@@ -1,12 +1,12 @@
 import { redirect } from 'next/navigation';
-import { createClient, getOwnerBox } from '@/lib/supabase/server';
+import { createClient, getOwnerBox, getServerUser } from '@/lib/supabase/server';
 import Sidebar from '@/components/layout/Sidebar';
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await getServerUser();
   if (!user) redirect('/login');
 
+  const supabase = await createClient();
   const box = await getOwnerBox(supabase);
   if (!box) {
     return (

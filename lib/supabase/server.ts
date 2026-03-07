@@ -1,22 +1,36 @@
 import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
 
-export async function createClient() {
-  const cookieStore = await cookies();
-  const accessToken = cookieStore.get('sb-access-token')?.value;
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
-  return createSupabaseClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
-      global: accessToken ? { headers: { Authorization: `Bearer ${accessToken}` } } : {},
-    }
-  );
+export async function getAccessToken(): Promise<string | null> {
+  const cookieStore = await cookies();
+  return cookieStore.get('sb-access-token')?.value ?? null;
+}
+
+export async function getServerUser() {
+  const accessToken = await getAccessToken();
+  if (!accessToken) return null;
+  const res = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
+    headers: { Authorization: `Bearer ${accessToken}`, apikey: SUPABASE_ANON_KEY },
+    cache: 'no-store',
+  });
+  if (!res.ok) return null;
+  const user = await res.json();
+  return user?.id ? user : null;
+}
+
+export async function createClient() {
+  const accessToken = await getAccessToken();
+  return createSupabaseClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
+    global: accessToken ? { headers: { Authorization: `Bearer ${accessToken}` } } : {},
+  });
 }
 
 export async function getOwnerBox(supabase: Awaited<ReturnType<typeof createClient>>) {
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await getServerUser();
   if (!user) return null;
   const { data: box } = await supabase
     .from('boxes').select('*').eq('owner_id', user.id).single();
