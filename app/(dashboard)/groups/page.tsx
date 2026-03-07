@@ -11,7 +11,7 @@ export default async function GroupsPage() {
 
   const { data: groups } = await supabase
     .from('message_groups')
-    .select('id, name, description, created_at, message_group_members(count)')
+    .select('id, name, color, created_at, message_group_members(count)')
     .eq('box_id', box.id)
     .order('created_at', { ascending: false });
 
@@ -40,15 +40,14 @@ export default async function GroupsPage() {
             <Link key={g.id} href={`/groups/${g.id}`}
               className="bg-[#16162A] border border-white/8 hover:border-white/20 rounded-2xl p-5 transition-all group">
               <div className="flex items-start justify-between mb-3">
-                <div className="w-10 h-10 rounded-xl bg-indigo-600/20 flex items-center justify-center">
-                  <Users2 size={18} className="text-indigo-400" />
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: `${g.color ?? '#6366F1'}25` }}>
+                  <Users2 size={18} style={{ color: g.color ?? '#6366F1' }} />
                 </div>
                 <span className="text-xs text-gray-500 bg-white/5 px-2.5 py-1 rounded-lg">
                   {g.message_group_members?.[0]?.count ?? 0} membres
                 </span>
               </div>
               <p className="text-sm font-bold text-white group-hover:text-indigo-300 transition-colors">{g.name}</p>
-              {g.description && <p className="text-xs text-gray-500 mt-1 line-clamp-2">{g.description}</p>}
               <p className="text-xs text-gray-600 mt-3">{formatDate(g.created_at)}</p>
             </Link>
           ))}

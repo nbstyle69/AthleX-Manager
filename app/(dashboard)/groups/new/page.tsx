@@ -6,12 +6,18 @@ import { createClient } from '@/lib/supabase/client';
 import { ArrowLeft, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 
+const COLORS = [
+  '#6366F1', '#8B5CF6', '#EC4899', '#EF4444',
+  '#F59E0B', '#10B981', '#3B82F6', '#14B8A6',
+  '#F97316', '#84CC16',
+];
+
 export default function NewGroupPage() {
   const router = useRouter();
-  const [name, setName]         = useState('');
-  const [desc, setDesc]         = useState('');
-  const [saving, setSaving]     = useState(false);
-  const [error, setError]       = useState<string | null>(null);
+  const [name,   setName]   = useState('');
+  const [color,  setColor]  = useState('#6366F1');
+  const [saving, setSaving] = useState(false);
+  const [error,  setError]  = useState<string | null>(null);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -22,11 +28,14 @@ export default function NewGroupPage() {
     if (!user) { setError('Non authentifié'); setSaving(false); return; }
     const { data: box } = await supabase.from('boxes').select('id').eq('owner_id', user.id).single();
     if (!box) { setError('Box introuvable'); setSaving(false); return; }
-    const { error: err } = await supabase.from('message_groups').insert({ name, description: desc, box_id: box.id, created_by: user.id });
+    const { data: created, error: err } = await supabase
+      .from('message_groups')
+      .insert({ name, color, box_id: box.id, created_by: user.id })
+      .select('id')
+      .single();
     setSaving(false);
     if (err) { setError(err.message); return; }
-    router.push('/groups');
-    router.refresh();
+    router.push(`/groups/${created.id}`);
   }
 
   const inp = 'w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-indigo-500 transition-colors';
@@ -40,19 +49,35 @@ export default function NewGroupPage() {
 
       <form onSubmit={handleSubmit} className="bg-[#16162A] border border-white/8 rounded-2xl p-6 space-y-5">
         {error && <div className="bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3 text-sm text-red-400">{error}</div>}
+
         <div>
           <label className="block text-xs font-semibold text-gray-400 mb-1.5 uppercase tracking-wider">Nom *</label>
           <input className={inp} value={name} onChange={e => setName(e.target.value)} placeholder="ex: Athlètes RX" required />
         </div>
+
         <div>
-          <label className="block text-xs font-semibold text-gray-400 mb-1.5 uppercase tracking-wider">Description</label>
-          <textarea className={`${inp} min-h-[80px] resize-y`} value={desc} onChange={e => setDesc(e.target.value)} placeholder="Description optionnelle..." />
+          <label className="block text-xs font-semibold text-gray-400 mb-3 uppercase tracking-wider">Couleur</label>
+          <div className="flex flex-wrap gap-3">
+            {COLORS.map(c => (
+              <button
+                key={c} type="button"
+                onClick={() => setColor(c)}
+                className={`w-9 h-9 rounded-xl transition-all ${color === c ? 'ring-2 ring-white ring-offset-2 ring-offset-[#16162A] scale-110' : 'hover:scale-105'}`}
+                style={{ backgroundColor: c }}
+              />
+            ))}
+          </div>
+          <div className="flex items-center gap-3 mt-3">
+            <div className="w-8 h-8 rounded-xl shrink-0" style={{ backgroundColor: color }} />
+            <span className="text-sm text-gray-400 font-mono">{color}</span>
+          </div>
         </div>
+
         <div className="flex justify-end gap-3 pt-2">
           <Link href="/groups" className="px-4 py-2.5 text-sm text-gray-400 hover:text-white border border-white/10 rounded-xl">Annuler</Link>
-          <button type="submit" disabled={saving} className="flex items-center gap-2 px-5 py-2.5 text-sm font-bold bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl disabled:opacity-60">
+          <button type="submit" disabled={saving || !name.trim()} className="flex items-center gap-2 px-5 py-2.5 text-sm font-bold bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl disabled:opacity-60">
             {saving && <Loader2 size={14} className="animate-spin" />}
-            Créer
+            Créer et ajouter des membres
           </button>
         </div>
       </form>
