@@ -20,19 +20,12 @@ export default async function DashboardLayout({ children }: { children: React.Re
     );
   }
 
-  const { data: unreadData } = await supabase
-    .from('box_messages')
-    .select('id', { count: 'exact', head: true })
-    .eq('box_id', box.id)
-    .eq('is_read', false)
-    .neq('sender_id', user.id);
-
   return (
     <div className="min-h-screen bg-[#0F0F1A] flex">
       <Sidebar
-        box={{ name: box.name, plan: box.plan }}
+        box={{ name: box.name, plan: (box as any).plan ?? 'free' }}
         email={user.email ?? ''}
-        unreadCount={(unreadData as any)?.count ?? 0}
+        unreadCount={0}
       />
       <main className="flex-1 ml-60 min-h-screen p-8 overflow-y-auto">
         {children}
