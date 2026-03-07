@@ -35,6 +35,8 @@ export default function TestLogin() {
     const res = await fetch('/api/session', { credentials: 'include' });
     const json = await res.json();
 
+    addLog('🍪 Cookies reçus par le serveur: ' + JSON.stringify(json.receivedCookies ?? []));
+
     if (json.user) {
       addLog('✅ Serveur voit la session: ' + json.user.email);
       addLog('→ Navigation vers le dashboard...');
@@ -43,8 +45,9 @@ export default function TestLogin() {
       addLog('❌ Serveur ne voit PAS la session');
       addLog('   Error: ' + (json.error ?? 'null'));
       addLog('');
-      addLog('🔍 Cookies dans le navigateur:');
-      addLog(document.cookie || '(aucun cookie visible)');
+      addLog('🔍 Cookies dans le navigateur (noms):');
+      const browserCookieNames = document.cookie.split(';').map(c => c.trim().split('=')[0]).join(', ');
+      addLog(browserCookieNames || '(aucun cookie visible)');
     }
   }
 
