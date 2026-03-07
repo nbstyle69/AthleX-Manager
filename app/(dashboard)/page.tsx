@@ -9,38 +9,39 @@ export default async function DashboardPage() {
   const box = await getOwnerBox(supabase);
   if (!box) redirect('/login');
 
+  const { data: boxTournaments } = await supabase
+    .from('tournaments').select('id').eq('box_id', box.id);
+  const tournamentIds = (boxTournaments ?? []).map((t: any) => t.id);
+
   const [
     { count: activeTournaments },
     { count: membersCount },
     { count: pendingScores },
-    { count: unreadMessages },
     { data: recentTournaments },
     { data: pendingScoresList },
   ] = await Promise.all([
     supabase.from('tournaments').select('*', { count: 'exact', head: true })
       .eq('box_id', box.id).in('status', ['open', 'active']),
     supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('box_id', box.id),
-    supabase.from('tournament_scores').select('tournament_scores.id', { count: 'exact', head: true })
-      .eq('status', 'pending')
-      .in('tournament_id', supabase.from('tournaments').select('id').eq('box_id', box.id) as any),
-    supabase.from('box_messages').select('*', { count: 'exact', head: true })
-      .eq('box_id', box.id).eq('is_read', false),
+    tournamentIds.length
+      ? supabase.from('tournament_scores').select('id', { count: 'exact', head: true })
+          .eq('status', 'pending').in('tournament_id', tournamentIds)
+      : Promise.resolve({ count: 0, data: null, error: null }),
     supabase.from('tournaments').select('id, name, status, created_at, current_participants, max_participants')
       .eq('box_id', box.id).order('created_at', { ascending: false }).limit(3),
-    supabase.from('tournament_scores')
-      .select('id, score_value, submitted_at, status, athlete_id, tournament_wod_id, tournament_id, profile:profiles(username, level), tw:tournament_wods(title)')
-      .eq('status', 'pending')
-      .in('tournament_id',
-        supabase.from('tournaments').select('id').eq('box_id', box.id) as any
-      )
-      .order('submitted_at', { ascending: false }).limit(5),
+    tournamentIds.length
+      ? supabase.from('tournament_scores')
+          .select('id, score_value, submitted_at, status, athlete_id, tournament_wod_id, tournament_id, profile:profiles(username, level), tw:tournament_wods(title)')
+          .eq('status', 'pending').in('tournament_id', tournamentIds)
+          .order('submitted_at', { ascending: false }).limit(5)
+      : Promise.resolve({ count: 0, data: [], error: null }),
   ]);
 
   const kpis = [
     { label: 'Tournois actifs',    value: activeTournaments ?? 0, icon: Trophy,        color: '#6366F1', href: '/tournaments' },
     { label: 'Membres',            value: membersCount ?? 0,      icon: Users,         color: '#22C55E', href: '/members' },
     { label: 'Scores en attente',  value: pendingScores ?? 0,     icon: Clock,         color: '#D97706', href: '/tournaments' },
-    { label: 'Messages non lus',   value: unreadMessages ?? 0,    icon: MessageSquare, color: '#8B5CF6', href: '/messages' },
+    { label: 'Messages non lus',   value: 0,                      icon: MessageSquare, color: '#8B5CF6', href: '/messages' },
   ];
 
   return (
