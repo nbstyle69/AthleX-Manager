@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import { Loader2, AlertCircle } from 'lucide-react';
-import Image from 'next/image';
 import { createClient } from '@/lib/supabase/client';
 
 export default function LoginPage() {
@@ -42,9 +41,7 @@ export default function LoginPage() {
   return (
     <div className="w-full max-w-sm mx-auto px-4">
       <div className="flex flex-col items-center mb-10 gap-3">
-        <div className="w-14 h-14 rounded-2xl overflow-hidden bg-black flex items-center justify-center">
-          <Image src="/logo.png" alt="BattleWOD" width={56} height={56} className="object-contain" />
-        </div>
+        <img src="/logo.png" alt="BattleWOD" width={56} height={56} className="w-14 h-14 object-contain" />
         <div className="text-center">
           <h1 className="text-2xl font-black text-white tracking-tight">BattleWOD</h1>
           <p className="text-sm text-gray-400 font-medium mt-0.5">Back Office Box Owner</p>

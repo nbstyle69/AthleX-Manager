@@ -3,7 +3,6 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { Users, FolderOpen, MessageSquare, LayoutDashboard, LogOut, Dumbbell, Trophy, Sun, Moon } from 'lucide-react';
-import Image from 'next/image';
 import { createClient } from '@/lib/supabase/client';
 import { cn } from '@/lib/utils';
 import { useTheme } from '@/components/ThemeProvider';
@@ -44,7 +43,7 @@ export default function Sidebar({ box, email, unreadCount = 0 }: SidebarProps) {
       <div className="px-5 py-6 border-b border-white/[0.06]">
         <div className="flex items-center gap-3 mb-3">
           <div className="w-9 h-9 rounded-xl overflow-hidden shrink-0 flex items-center justify-center bg-black">
-            <Image src="/logo.png" alt="BattleWOD" width={36} height={36} className="object-contain" />
+            <img src="/logo.png" alt="BattleWOD" width={36} height={36} className="object-contain w-full h-full" />
           </div>
           <div className="min-w-0">
             <p className="text-xs font-black text-white/30 tracking-widest uppercase">BattleWOD</p>
