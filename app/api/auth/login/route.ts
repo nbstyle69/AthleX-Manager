@@ -6,7 +6,7 @@ export async function POST(request: NextRequest) {
   const email = formData.get('email') as string;
   const password = formData.get('password') as string;
 
-  const successResponse = NextResponse.redirect(new URL('/', request.url));
+  const successResponse = NextResponse.redirect(new URL('/', request.url), { status: 303 });
   const errorUrl = (msg: string) => new URL('/login?error=' + encodeURIComponent(msg), request.url);
 
   const supabase = createServerClient(
@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
   const { error } = await supabase.auth.signInWithPassword({ email, password });
 
   if (error) {
-    return NextResponse.redirect(errorUrl(error.message));
+    return NextResponse.redirect(errorUrl(error.message), { status: 303 });
   }
 
   return successResponse;
