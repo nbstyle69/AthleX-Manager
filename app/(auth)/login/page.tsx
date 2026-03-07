@@ -1,5 +1,4 @@
 import { Trophy, AlertCircle } from 'lucide-react';
-import { loginAction } from './actions';
 
 export default async function LoginPage({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
   const { error } = await searchParams;
@@ -28,7 +27,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
           </div>
         )}
 
-        <form action={loginAction} className="space-y-4">
+        <form action="/api/auth/login" method="POST" className="space-y-4">
           <div>
             <label className="block text-xs font-semibold text-gray-400 mb-1.5 uppercase tracking-wider">
               Email
