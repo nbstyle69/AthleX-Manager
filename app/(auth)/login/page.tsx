@@ -18,9 +18,14 @@ export default function LoginPage() {
     setError(null);
     try {
       const supabase = createClient();
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) {
         setError(error.message);
+        setLoading(false);
+        return;
+      }
+      if (!data.session) {
+        setError('Session non créée — email non confirmé ou mot de passe incorrect.');
         setLoading(false);
         return;
       }
