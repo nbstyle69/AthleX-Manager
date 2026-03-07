@@ -29,25 +29,35 @@ export default function TestLogin() {
     }
 
     addLog('✅ Session créée: ' + data.session.user.email);
-    addLog('   Access token (début): ' + data.session.access_token.slice(0, 30) + '...');
 
-    addLog('2. Vérification session côté serveur (/api/session)...');
-    const res = await fetch('/api/session', { credentials: 'include' });
+    addLog('2. Envoi tokens au serveur (/api/auth/set-session)...');
+    const setRes = await fetch('/api/auth/set-session', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        access_token: data.session.access_token,
+        refresh_token: data.session.refresh_token,
+      }),
+    });
+    const setJson = await setRes.json();
+
+    if (!setJson.ok) {
+      addLog('❌ set-session échoué: ' + setJson.error);
+      return;
+    }
+    addLog('✅ Tokens stockés côté serveur');
+
+    addLog('3. Vérification session (/api/session)...');
+    const res = await fetch('/api/session');
     const json = await res.json();
-
-    addLog('🍪 Cookies reçus par le serveur: ' + JSON.stringify(json.receivedCookies ?? []));
+    addLog('🍪 Cookies reçus: ' + JSON.stringify(json.receivedCookies ?? []));
 
     if (json.user) {
       addLog('✅ Serveur voit la session: ' + json.user.email);
       addLog('→ Navigation vers le dashboard...');
       window.location.href = '/';
     } else {
-      addLog('❌ Serveur ne voit PAS la session');
-      addLog('   Error: ' + (json.error ?? 'null'));
-      addLog('');
-      addLog('🔍 Cookies dans le navigateur (noms):');
-      const browserCookieNames = document.cookie.split(';').map(c => c.trim().split('=')[0]).join(', ');
-      addLog(browserCookieNames || '(aucun cookie visible)');
+      addLog('❌ Serveur ne voit toujours PAS la session: ' + json.error);
     }
   }
 
