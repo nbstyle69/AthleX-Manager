@@ -41,15 +41,17 @@ export default function TournamentForm({ boxId, initial }: Props) {
     setError(null);
     const supabase = createClient();
     const payload  = { ...form, box_id: boxId, status: publish ? 'open' : form.status };
-    let err;
     if (initial?.id) {
-      ({ error: err } = await supabase.from('tournaments').update(payload).eq('id', initial.id));
+      const { error: err } = await supabase.from('tournaments').update(payload).eq('id', initial.id);
+      setSaving(false);
+      if (err) { setError(err.message); return; }
+      router.push(`/tournaments/${initial.id}`);
     } else {
-      ({ error: err } = await supabase.from('tournaments').insert(payload));
+      const { data, error: err } = await supabase.from('tournaments').insert(payload).select('id').single();
+      setSaving(false);
+      if (err) { setError(err.message); return; }
+      router.push(`/tournaments/${data.id}/wods`);
     }
-    setSaving(false);
-    if (err) { setError(err.message); return; }
-    router.push('/tournaments');
     router.refresh();
   }
 
