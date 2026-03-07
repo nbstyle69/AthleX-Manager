@@ -27,7 +27,7 @@ export default async function DashboardPage() {
       ? supabase.from('tournament_scores').select('id', { count: 'exact', head: true })
           .eq('status', 'pending').in('tournament_id', tournamentIds)
       : Promise.resolve({ count: 0, data: null, error: null }),
-    supabase.from('tournaments').select('id, name, status, created_at, current_participants, max_participants')
+    supabase.from('tournaments').select('id, name, status, created_at, max_participants')
       .eq('box_id', box.id).order('created_at', { ascending: false }).limit(3),
     tournamentIds.length
       ? supabase.from('tournament_scores')
@@ -86,7 +86,7 @@ export default async function DashboardPage() {
                     className="flex items-center justify-between py-3 border-b border-white/5 last:border-0 hover:bg-white/3 rounded-lg px-2 -mx-2 transition-colors">
                     <div>
                       <p className="text-sm font-semibold text-white">{t.name}</p>
-                      <p className="text-xs text-gray-500 mt-0.5">{t.current_participants ?? 0} / {t.max_participants} participants</p>
+                      <p className="text-xs text-gray-500 mt-0.5">0 / {t.max_participants} participants</p>
                     </div>
                     <span className="text-xs font-bold px-2 py-0.5 rounded-md" style={{ backgroundColor: `${sb.color}20`, color: sb.color }}>
                       {sb.label}

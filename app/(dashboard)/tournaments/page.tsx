@@ -11,7 +11,7 @@ export default async function TournamentsPage() {
 
   const { data: tournaments } = await supabase
     .from('tournaments')
-    .select('id, name, status, level, max_participants, current_participants, created_at, start_date')
+    .select('id, name, status, level, max_participants, created_at, start_date')
     .eq('box_id', box.id)
     .order('created_at', { ascending: false });
 
@@ -65,7 +65,7 @@ export default async function TournamentsPage() {
                     <td className="px-5 py-4">
                       <div className="flex items-center gap-1.5 text-sm text-gray-300">
                         <Users size={13} className="text-gray-500" />
-                        {t.current_participants ?? 0} / {t.max_participants}
+                        0 / {t.max_participants}
                       </div>
                     </td>
                     <td className="px-5 py-4">
