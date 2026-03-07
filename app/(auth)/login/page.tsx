@@ -24,8 +24,7 @@ export default function LoginPage() {
         setLoading(false);
         return;
       }
-      router.push('/');
-      router.refresh();
+      window.location.href = '/';
     } catch (err: any) {
       setError(err?.message ?? 'Erreur réseau — vérifiez les variables Supabase.');
       setLoading(false);
