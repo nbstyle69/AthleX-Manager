@@ -16,15 +16,20 @@ export default function LoginPage() {
     e.preventDefault();
     setLoading(true);
     setError(null);
-    const supabase = createClient();
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) {
-      setError(error.message ?? 'Email ou mot de passe incorrect.');
+    try {
+      const supabase = createClient();
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) {
+        setError(error.message);
+        setLoading(false);
+        return;
+      }
+      router.push('/');
+      router.refresh();
+    } catch (err: any) {
+      setError(err?.message ?? 'Erreur réseau — vérifiez les variables Supabase.');
       setLoading(false);
-      return;
     }
-    router.push('/');
-    router.refresh();
   }
 
   return (
