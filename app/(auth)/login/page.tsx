@@ -1,43 +1,8 @@
-'use client';
+import { Trophy, AlertCircle } from 'lucide-react';
+import { loginAction } from './actions';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { createClient } from '@/lib/supabase/client';
-import { Trophy, Loader2, AlertCircle } from 'lucide-react';
-
-export default function LoginPage() {
-  const router = useRouter();
-  const [email,    setEmail]    = useState('');
-  const [password, setPassword] = useState('');
-  const [loading,  setLoading]  = useState(false);
-  const [error,    setError]    = useState<string | null>(null);
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    setLoading(true);
-    setError(null);
-    try {
-      const supabase = createClient();
-      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) {
-        alert('ERREUR: ' + error.message);
-        setError(error.message);
-        setLoading(false);
-        return;
-      }
-      if (!data.session) {
-        alert('PAS DE SESSION - email non confirmé');
-        setError('Session non créée — email non confirmé ou mot de passe incorrect.');
-        setLoading(false);
-        return;
-      }
-      alert('OK SESSION: ' + data.session.user.email);
-      window.location.href = '/';
-    } catch (err: any) {
-      setError(err?.message ?? 'Erreur réseau — vérifiez les variables Supabase.');
-      setLoading(false);
-    }
-  }
+export default function LoginPage({ searchParams }: { searchParams: { error?: string } }) {
+  const error = searchParams?.error;
 
   return (
     <div className="w-full max-w-sm mx-auto px-4">
@@ -59,18 +24,17 @@ export default function LoginPage() {
         {error && (
           <div className="flex items-center gap-2 bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3 mb-5">
             <AlertCircle size={15} className="text-red-400 shrink-0" />
-            <p className="text-sm text-red-400">{error}</p>
+            <p className="text-sm text-red-400">{decodeURIComponent(error)}</p>
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form action={loginAction} className="space-y-4">
           <div>
             <label className="block text-xs font-semibold text-gray-400 mb-1.5 uppercase tracking-wider">
               Email
             </label>
             <input
-              type="email" required value={email}
-              onChange={e => setEmail(e.target.value)}
+              type="email" name="email" required
               placeholder="owner@mabox.com"
               className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-indigo-500 transition-colors"
             />
@@ -80,18 +44,16 @@ export default function LoginPage() {
               Mot de passe
             </label>
             <input
-              type="password" required value={password}
-              onChange={e => setPassword(e.target.value)}
+              type="password" name="password" required
               placeholder="••••••••"
               className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-indigo-500 transition-colors"
             />
           </div>
           <button
-            type="submit" disabled={loading}
-            className="w-full bg-indigo-600 hover:bg-indigo-500 disabled:opacity-60 text-white font-bold py-3 rounded-xl transition-colors flex items-center justify-center gap-2 mt-2"
+            type="submit"
+            className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 rounded-xl transition-colors flex items-center justify-center gap-2 mt-2"
           >
-            {loading && <Loader2 size={16} className="animate-spin" />}
-            {loading ? 'Connexion…' : 'Se connecter'}
+            Se connecter
           </button>
         </form>
 
