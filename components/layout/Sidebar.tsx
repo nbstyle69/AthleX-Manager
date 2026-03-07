@@ -2,10 +2,11 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { Users, FolderOpen, MessageSquare, LayoutDashboard, LogOut, Dumbbell, Trophy } from 'lucide-react';
+import { Users, FolderOpen, MessageSquare, LayoutDashboard, LogOut, Dumbbell, Trophy, Sun, Moon } from 'lucide-react';
 import Image from 'next/image';
 import { createClient } from '@/lib/supabase/client';
 import { cn } from '@/lib/utils';
+import { useTheme } from '@/components/ThemeProvider';
 
 const NAV = [
   { href: '/',             label: 'Dashboard',  icon: LayoutDashboard },
@@ -25,6 +26,7 @@ interface SidebarProps {
 export default function Sidebar({ box, email, unreadCount = 0 }: SidebarProps) {
   const pathname = usePathname();
   const router   = useRouter();
+  const { theme, toggle } = useTheme();
 
   async function handleSignOut() {
     const supabase = createClient();
@@ -92,6 +94,16 @@ export default function Sidebar({ box, email, unreadCount = 0 }: SidebarProps) {
             {email[0]?.toUpperCase()}
           </div>
           <p className="text-xs text-gray-400 truncate flex-1">{email}</p>
+        </div>
+        <div className="flex items-center gap-2 mb-2">
+          <button
+            onClick={toggle}
+            title={theme === 'dark' ? 'Passer en mode clair' : 'Passer en mode sombre'}
+            className="flex-1 flex items-center gap-2 px-3 py-2 rounded-xl text-sm text-gray-500 hover:text-gray-300 hover:bg-white/5 transition-all"
+          >
+            {theme === 'dark' ? <Sun size={15} /> : <Moon size={15} />}
+            {theme === 'dark' ? 'Mode clair' : 'Mode sombre'}
+          </button>
         </div>
         <button
           onClick={handleSignOut}

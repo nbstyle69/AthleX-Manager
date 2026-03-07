@@ -2,23 +2,66 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ── Dark mode (default) ───────────────── */
 :root {
-  --bg:     #0A0A0A;
-  --card:   #111111;
-  --border: rgba(255,255,255,0.08);
-  --accent: #C9A227;
+  --bg:      #0A0A0A;
+  --card:    #111111;
+  --sidebar: #080808;
+  --border:  rgba(255,255,255,0.08);
+  --accent:  #C9A227;
+  --fg:      #F9FAFB;
+  --fg-2:    #9CA3AF;
+  --fg-3:    #6B7280;
+  --subtle:  rgba(255,255,255,0.05);
+  --subtle2: rgba(255,255,255,0.10);
 }
+
+/* ── Light mode ────────────────────────── */
+html.light {
+  --bg:      #F5F5F0;
+  --card:    #FFFFFF;
+  --sidebar: #FAFAF8;
+  --border:  rgba(0,0,0,0.08);
+  --accent:  #C9A227;
+  --fg:      #111111;
+  --fg-2:    #555555;
+  --fg-3:    #888888;
+  --subtle:  rgba(0,0,0,0.04);
+  --subtle2: rgba(0,0,0,0.08);
+}
+
+/* Override hardcoded Tailwind classes in light mode */
+html.light .bg-\[\#0A0A0A\]           { background-color: #F5F5F0; }
+html.light .bg-\[\#111111\]           { background-color: #FFFFFF; }
+html.light .bg-\[\#080808\]           { background-color: #FAFAF8; }
+html.light .text-white                { color: #111111; }
+html.light .text-gray-400             { color: #555555; }
+html.light .text-gray-500             { color: #666666; }
+html.light .text-gray-600             { color: #888888; }
+html.light .text-gray-700             { color: #444444; }
+html.light .border-white\/\[0\.06\]   { border-color: rgba(0,0,0,0.06); }
+html.light .border-white\/\[0\.08\]   { border-color: rgba(0,0,0,0.08); }
+html.light .border-white\/5           { border-color: rgba(0,0,0,0.05); }
+html.light .border-white\/8           { border-color: rgba(0,0,0,0.08); }
+html.light .border-white\/10          { border-color: rgba(0,0,0,0.10); }
+html.light .border-white\/20          { border-color: rgba(0,0,0,0.20); }
+html.light .bg-white\/5               { background-color: rgba(0,0,0,0.04); }
+html.light .bg-white\/10              { background-color: rgba(0,0,0,0.07); }
+html.light .hover\:bg-white\/5:hover  { background-color: rgba(0,0,0,0.04); }
+html.light .divide-white\/5 > * + *   { border-color: rgba(0,0,0,0.05); }
+html.light .scrollbar-track           { background: transparent; }
 
 * { box-sizing: border-box; }
 
 body {
   background-color: var(--bg);
-  color: #F9FAFB;
+  color: var(--fg);
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
   -webkit-font-smoothing: antialiased;
+  transition: background-color 0.2s, color 0.2s;
 }
 
 ::-webkit-scrollbar       { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
+::-webkit-scrollbar-thumb { background: rgba(128,128,128,0.3); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(128,128,128,0.5); }
