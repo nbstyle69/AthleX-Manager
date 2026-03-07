@@ -1,4 +1,4 @@
-import { createClient, getOwnerBox } from '@/lib/supabase/server';
+﻿import { createClient, getOwnerBox } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { Plus, Trophy, Users, Clock, ChevronRight } from 'lucide-react';
@@ -23,23 +23,23 @@ export default async function TournamentsPage() {
           <p className="text-sm text-gray-400 mt-1">{tournaments?.length ?? 0} tournoi(s) créé(s)</p>
         </div>
         <Link href="/tournaments/new"
-          className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-bold px-4 py-2.5 rounded-xl transition-colors">
+          className="flex items-center gap-2 bg-[#C9A227] hover:bg-[#C9A227] text-white text-sm font-bold px-4 py-2.5 rounded-xl transition-colors">
           <Plus size={16} /> Créer un tournoi
         </Link>
       </div>
 
       {!tournaments?.length ? (
-        <div className="bg-[#16162A] border border-white/8 rounded-2xl p-12 text-center">
+        <div className="bg-[#111111] border border-white/8 rounded-2xl p-12 text-center">
           <Trophy size={40} className="text-gray-600 mx-auto mb-4" />
           <h3 className="text-white font-bold mb-2">Aucun tournoi</h3>
           <p className="text-sm text-gray-500 mb-6">Créez votre premier tournoi pour commencer.</p>
           <Link href="/tournaments/new"
-            className="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-bold px-5 py-2.5 rounded-xl transition-colors">
+            className="inline-flex items-center gap-2 bg-[#C9A227] hover:bg-[#C9A227] text-white text-sm font-bold px-5 py-2.5 rounded-xl transition-colors">
             <Plus size={15} /> Créer un tournoi
           </Link>
         </div>
       ) : (
-        <div className="bg-[#16162A] border border-white/8 rounded-2xl overflow-hidden">
+        <div className="bg-[#111111] border border-white/8 rounded-2xl overflow-hidden">
           <table className="w-full">
             <thead>
               <tr className="border-b border-white/8">
@@ -76,7 +76,7 @@ export default async function TournamentsPage() {
                     <td className="px-5 py-4 text-sm text-gray-400">{formatDate(t.start_date ?? t.created_at)}</td>
                     <td className="px-5 py-4">
                       <Link href={`/tournaments/${t.id}`}
-                        className="flex items-center gap-1 text-xs text-indigo-400 hover:text-indigo-300 font-semibold transition-colors">
+                        className="flex items-center gap-1 text-xs text-[#C9A227] hover:text-[#C9A227] font-semibold transition-colors">
                         Gérer <ChevronRight size={13} />
                       </Link>
                     </td>

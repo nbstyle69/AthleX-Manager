@@ -1,4 +1,4 @@
-import { createClient, getOwnerBox } from '@/lib/supabase/server';
+﻿import { createClient, getOwnerBox } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import { Users } from 'lucide-react';
 import { formatDate } from '@/lib/utils';
@@ -24,13 +24,13 @@ export default async function MembersPage() {
       </div>
 
       {!members?.length ? (
-        <div className="bg-[#16162A] border border-white/8 rounded-2xl p-12 text-center">
+        <div className="bg-[#111111] border border-white/8 rounded-2xl p-12 text-center">
           <Users size={40} className="text-gray-600 mx-auto mb-4" />
           <p className="text-white font-bold mb-1">Aucun membre</p>
           <p className="text-sm text-gray-500">Les membres rejoignent votre box via le code invitation.</p>
         </div>
       ) : (
-        <div className="bg-[#16162A] border border-white/8 rounded-2xl overflow-hidden">
+        <div className="bg-[#111111] border border-white/8 rounded-2xl overflow-hidden">
           <table className="w-full">
             <thead>
               <tr className="border-b border-white/8">
@@ -47,7 +47,7 @@ export default async function MembersPage() {
                 <tr key={m.id} className="border-b border-white/5 last:border-0 hover:bg-white/[0.02] transition-colors">
                   <td className="px-5 py-4">
                     <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-indigo-600/20 flex items-center justify-center text-indigo-300 text-xs font-black shrink-0">
+                      <div className="w-8 h-8 rounded-full bg-[#C9A227]/20 flex items-center justify-center text-[#C9A227] text-xs font-black shrink-0">
                         {(m.username ?? '?')[0].toUpperCase()}
                       </div>
                       <div>

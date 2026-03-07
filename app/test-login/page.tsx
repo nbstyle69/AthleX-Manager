@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
@@ -62,7 +62,7 @@ export default function TestLogin() {
   }
 
   return (
-    <div style={{ background: '#0F0F1A', minHeight: '100vh', padding: '2rem', fontFamily: 'monospace', color: 'white' }}>
+    <div style={{ background: '#0A0A0A', minHeight: '100vh', padding: '2rem', fontFamily: 'monospace', color: 'white' }}>
       <h1 style={{ color: '#818cf8' }}>Test Login Diagnostic</h1>
       <div style={{ display: 'flex', gap: '1rem', marginBottom: '1rem' }}>
         <input
@@ -79,7 +79,7 @@ export default function TestLogin() {
         />
         <button
           onClick={runTest}
-          style={{ padding: '8px 16px', background: '#6366f1', border: 'none', borderRadius: '6px', color: 'white', cursor: 'pointer' }}
+          style={{ padding: '8px 16px', background: '#C9A227', border: 'none', borderRadius: '6px', color: 'white', cursor: 'pointer' }}
         >
           Tester
         </button>

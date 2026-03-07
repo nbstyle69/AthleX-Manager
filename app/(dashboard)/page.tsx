@@ -1,4 +1,4 @@
-import { createClient, getOwnerBox } from '@/lib/supabase/server';
+﻿import { createClient, getOwnerBox } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { Trophy, Users, Clock, MessageSquare, ChevronRight, CheckCircle, XCircle } from 'lucide-react';
@@ -38,7 +38,7 @@ export default async function DashboardPage() {
   ]);
 
   const kpis = [
-    { label: 'Tournois actifs',    value: activeTournaments ?? 0, icon: Trophy,        color: '#6366F1', href: '/tournaments' },
+    { label: 'Tournois actifs',    value: activeTournaments ?? 0, icon: Trophy,        color: '#C9A227', href: '/tournaments' },
     { label: 'Membres',            value: membersCount ?? 0,      icon: Users,         color: '#22C55E', href: '/members' },
     { label: 'Scores en attente',  value: pendingScores ?? 0,     icon: Clock,         color: '#D97706', href: '/tournaments' },
     { label: 'Messages non lus',   value: 0,                      icon: MessageSquare, color: '#8B5CF6', href: '/messages' },
@@ -55,7 +55,7 @@ export default async function DashboardPage() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {kpis.map(({ label, value, icon: Icon, color, href }) => (
           <Link key={label} href={href}
-            className="bg-[#16162A] border border-white/8 rounded-2xl p-5 hover:border-white/15 transition-colors group">
+            className="bg-[#111111] border border-white/8 rounded-2xl p-5 hover:border-white/15 transition-colors group">
             <div className="flex items-center justify-between mb-3">
               <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: `${color}20` }}>
                 <Icon size={20} style={{ color }} />
@@ -70,10 +70,10 @@ export default async function DashboardPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Tournois récents */}
-        <div className="bg-[#16162A] border border-white/8 rounded-2xl p-6">
+        <div className="bg-[#111111] border border-white/8 rounded-2xl p-6">
           <div className="flex items-center justify-between mb-5">
             <h2 className="text-sm font-bold text-white">Tournois récents</h2>
-            <Link href="/tournaments" className="text-xs text-indigo-400 hover:text-indigo-300 font-semibold">Voir tout →</Link>
+            <Link href="/tournaments" className="text-xs text-[#C9A227] hover:text-[#C9A227] font-semibold">Voir tout →</Link>
           </div>
           {!recentTournaments?.length ? (
             <p className="text-sm text-gray-500 text-center py-6">Aucun tournoi créé.</p>
@@ -99,10 +99,10 @@ export default async function DashboardPage() {
         </div>
 
         {/* Scores à valider */}
-        <div className="bg-[#16162A] border border-white/8 rounded-2xl p-6">
+        <div className="bg-[#111111] border border-white/8 rounded-2xl p-6">
           <div className="flex items-center justify-between mb-5">
             <h2 className="text-sm font-bold text-white">Scores à valider</h2>
-            <Link href="/tournaments" className="text-xs text-indigo-400 hover:text-indigo-300 font-semibold">Voir tout →</Link>
+            <Link href="/tournaments" className="text-xs text-[#C9A227] hover:text-[#C9A227] font-semibold">Voir tout →</Link>
           </div>
           {!pendingScoresList?.length ? (
             <p className="text-sm text-gray-500 text-center py-6">Aucun score en attente. ✅</p>
@@ -111,7 +111,7 @@ export default async function DashboardPage() {
               {pendingScoresList.map((score: any) => (
                 <Link key={score.id} href={`/tournaments/${score.tournament_id}/scores`}
                   className="flex items-center gap-3 py-3 border-b border-white/5 last:border-0 hover:bg-white/3 rounded-lg px-2 -mx-2 transition-colors">
-                  <div className="w-8 h-8 rounded-full bg-indigo-600/20 flex items-center justify-center text-indigo-300 text-xs font-black shrink-0">
+                  <div className="w-8 h-8 rounded-full bg-[#C9A227]/20 flex items-center justify-center text-[#C9A227] text-xs font-black shrink-0">
                     {(score.profile?.username ?? '?')[0].toUpperCase()}
                   </div>
                   <div className="flex-1 min-w-0">

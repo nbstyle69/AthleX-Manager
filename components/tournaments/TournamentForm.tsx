@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -53,7 +53,7 @@ export default function TournamentForm({ boxId, initial }: Props) {
     router.refresh();
   }
 
-  const inp = 'w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-indigo-500 transition-colors';
+  const inp = 'w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-[#C9A227] transition-colors';
   const lbl = 'block text-xs font-semibold text-gray-400 mb-1.5 uppercase tracking-wider';
 
   return (
@@ -63,7 +63,7 @@ export default function TournamentForm({ boxId, initial }: Props) {
       )}
 
       {/* Section générale */}
-      <div className="bg-[#16162A] border border-white/8 rounded-2xl p-6 space-y-5">
+      <div className="bg-[#111111] border border-white/8 rounded-2xl p-6 space-y-5">
         <h2 className="text-sm font-bold text-white uppercase tracking-wider">Informations générales</h2>
         <div>
           <label className={lbl}>Nom du tournoi *</label>
@@ -110,7 +110,7 @@ export default function TournamentForm({ boxId, initial }: Props) {
       </div>
 
       {/* Règlement */}
-      <div className="bg-[#16162A] border border-white/8 rounded-2xl p-6 space-y-5">
+      <div className="bg-[#111111] border border-white/8 rounded-2xl p-6 space-y-5">
         <h2 className="text-sm font-bold text-white uppercase tracking-wider">Règlement</h2>
         <textarea
           className={`${inp} min-h-[160px] font-mono text-xs resize-y`}
@@ -131,7 +131,7 @@ export default function TournamentForm({ boxId, initial }: Props) {
           Enregistrer
         </button>
         <button type="button" disabled={saving} onClick={(e) => handleSubmit(e as any, true)}
-          className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold bg-indigo-600 hover:bg-indigo-500 text-white disabled:opacity-60 transition-colors">
+          className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold bg-[#C9A227] hover:bg-[#C9A227] text-white disabled:opacity-60 transition-colors">
           {saving && <Loader2 size={14} className="animate-spin" />}
           Publier
         </button>

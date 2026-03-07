@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
@@ -65,7 +65,7 @@ export default function WODForm({ tournamentId, initial, onSaved, onCancel }: Pr
     onSaved();
   }
 
-  const inp = 'w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-indigo-500 transition-colors';
+  const inp = 'w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-[#C9A227] transition-colors';
   const lbl = 'block text-xs font-semibold text-gray-400 mb-1.5 uppercase tracking-wider';
 
   return (
@@ -97,7 +97,7 @@ export default function WODForm({ tournamentId, initial, onSaved, onCancel }: Pr
       <div>
         <div className="flex items-center justify-between mb-2">
           <label className={lbl}>Mouvements</label>
-          <button type="button" onClick={addMovement} className="text-xs text-indigo-400 hover:text-indigo-300 font-semibold flex items-center gap-1">
+          <button type="button" onClick={addMovement} className="text-xs text-[#C9A227] hover:text-[#C9A227] font-semibold flex items-center gap-1">
             <Plus size={12} /> Ajouter
           </button>
         </div>
@@ -146,7 +146,7 @@ export default function WODForm({ tournamentId, initial, onSaved, onCancel }: Pr
         <button type="button" onClick={onCancel} className="px-4 py-2.5 rounded-xl text-sm font-semibold text-gray-400 hover:text-white border border-white/10 hover:border-white/20 transition-colors flex items-center gap-1.5">
           <X size={13} /> Annuler
         </button>
-        <button type="submit" disabled={saving} className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold bg-indigo-600 hover:bg-indigo-500 text-white disabled:opacity-60 transition-colors">
+        <button type="submit" disabled={saving} className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold bg-[#C9A227] hover:bg-[#C9A227] text-white disabled:opacity-60 transition-colors">
           {saving && <Loader2 size={14} className="animate-spin" />}
           {initial?.id ? 'Mettre à jour' : 'Ajouter le WOD'}
         </button>

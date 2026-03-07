@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
@@ -145,7 +145,7 @@ export default function WODsPage() {
     load();
   }
 
-  const inp = 'w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-indigo-500 transition-colors';
+  const inp = 'w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-[#C9A227] transition-colors';
 
   return (
     <div className="space-y-6">
@@ -157,14 +157,14 @@ export default function WODsPage() {
         </div>
         <button
           onClick={() => openCreate(todayISO)}
-          className="flex items-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-bold rounded-xl transition-colors"
+          className="flex items-center gap-2 px-4 py-2.5 bg-[#C9A227] hover:bg-[#C9A227] text-white text-sm font-bold rounded-xl transition-colors"
         >
           <Plus size={15} /> Nouveau WOD
         </button>
       </div>
 
       {/* Week nav */}
-      <div className="flex items-center justify-between bg-[#16162A] border border-white/8 rounded-2xl px-5 py-3">
+      <div className="flex items-center justify-between bg-[#111111] border border-white/8 rounded-2xl px-5 py-3">
         <button onClick={() => setWeek(w => w - 1)} className="p-2 rounded-xl hover:bg-white/5 text-gray-400 hover:text-white transition-colors">
           <ChevronLeft size={18} />
         </button>
@@ -174,7 +174,7 @@ export default function WODsPage() {
             {' — '}
             {weekDates[6].toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}
           </p>
-          {weekOffset === 0 && <p className="text-xs text-indigo-400 font-semibold mt-0.5">Semaine actuelle</p>}
+          {weekOffset === 0 && <p className="text-xs text-[#C9A227] font-semibold mt-0.5">Semaine actuelle</p>}
         </div>
         <button onClick={() => setWeek(w => w + 1)} className="p-2 rounded-xl hover:bg-white/5 text-gray-400 hover:text-white transition-colors">
           <ChevronRight size={18} />
@@ -183,7 +183,7 @@ export default function WODsPage() {
 
       {/* Calendar */}
       {loading ? (
-        <div className="flex justify-center py-20"><Loader2 className="animate-spin text-indigo-400" size={28} /></div>
+        <div className="flex justify-center py-20"><Loader2 className="animate-spin text-[#C9A227]" size={28} /></div>
       ) : (
         <div className="space-y-3">
           {weekDates.map((d, i) => {
@@ -191,18 +191,18 @@ export default function WODsPage() {
             const isToday = iso === todayISO;
             const dayWODs = wods.filter(w => w.scheduled_date === iso);
             return (
-              <div key={iso} className={`bg-[#16162A] border rounded-2xl overflow-hidden ${isToday ? 'border-indigo-500/50' : 'border-white/8'}`}>
+              <div key={iso} className={`bg-[#111111] border rounded-2xl overflow-hidden ${isToday ? 'border-[#C9A227]/50' : 'border-white/8'}`}>
                 {/* Day header */}
-                <div className={`flex items-center justify-between px-5 py-3 ${isToday ? 'bg-indigo-600/20' : ''}`}>
+                <div className={`flex items-center justify-between px-5 py-3 ${isToday ? 'bg-[#C9A227]/20' : ''}`}>
                   <div className="flex items-center gap-3">
-                    <span className={`text-sm font-black ${isToday ? 'text-indigo-300' : 'text-gray-400'}`}>
+                    <span className={`text-sm font-black ${isToday ? 'text-[#C9A227]' : 'text-gray-400'}`}>
                       {DAY_LABELS[i]}
                     </span>
                     <span className={`text-sm font-bold ${isToday ? 'text-white' : 'text-gray-300'}`}>
                       {d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}
                     </span>
                     {isToday && (
-                      <span className="text-[10px] font-black text-indigo-400 bg-indigo-500/20 px-2 py-0.5 rounded-full uppercase tracking-wider">
+                      <span className="text-[10px] font-black text-[#C9A227] bg-[#C9A227]/20 px-2 py-0.5 rounded-full uppercase tracking-wider">
                         Aujourd'hui
                       </span>
                     )}
@@ -210,7 +210,7 @@ export default function WODsPage() {
                   </div>
                   <button
                     onClick={() => openCreate(iso)}
-                    className="flex items-center gap-1.5 text-xs text-indigo-400 hover:text-indigo-300 font-semibold transition-colors"
+                    className="flex items-center gap-1.5 text-xs text-[#C9A227] hover:text-[#C9A227] font-semibold transition-colors"
                   >
                     <Plus size={14} /> Ajouter
                   </button>
@@ -261,7 +261,7 @@ export default function WODsPage() {
                                 : <EyeOff size={15} className="text-gray-500" />}
                             </button>
                             <button onClick={() => openEdit(wod)} className="p-2 rounded-xl hover:bg-white/5 transition-colors">
-                              <Pencil size={14} className="text-indigo-400" />
+                              <Pencil size={14} className="text-[#C9A227]" />
                             </button>
                             <button onClick={() => deleteWOD(wod)} className="p-2 rounded-xl hover:bg-red-500/10 transition-colors">
                               <Trash2 size={14} className="text-red-400" />
@@ -281,7 +281,7 @@ export default function WODsPage() {
       {/* Modal */}
       {modal && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="bg-[#16162A] border border-white/10 rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+          <div className="bg-[#111111] border border-white/10 rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between px-6 py-5 border-b border-white/8">
               <h2 className="text-lg font-black text-white">{editWOD ? 'Modifier le WOD' : 'Créer un WOD'}</h2>
               <button onClick={() => setModal(false)} className="p-1.5 rounded-xl hover:bg-white/5 text-gray-400 hover:text-white transition-colors">
@@ -364,7 +364,7 @@ export default function WODsPage() {
                 <button
                   onClick={saveWOD}
                   disabled={!form.title.trim() || !form.date || saving}
-                  className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-sm font-bold transition-colors"
+                  className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-[#C9A227] hover:bg-[#C9A227] disabled:opacity-50 text-white text-sm font-bold transition-colors"
                 >
                   {saving && <Loader2 size={15} className="animate-spin" />}
                   {editWOD ? 'Enregistrer' : 'Créer le WOD'}

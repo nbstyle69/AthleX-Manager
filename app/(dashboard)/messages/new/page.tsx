@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -56,7 +56,7 @@ export default function NewMessagePage() {
     router.refresh();
   }
 
-  const inp = 'w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-indigo-500 transition-colors';
+  const inp = 'w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-[#C9A227] transition-colors';
 
   return (
     <div className="max-w-lg space-y-6">
@@ -65,7 +65,7 @@ export default function NewMessagePage() {
         <h1 className="text-xl font-black text-white">Envoyer un message</h1>
       </div>
 
-      <form onSubmit={handleSubmit} className="bg-[#16162A] border border-white/8 rounded-2xl p-6 space-y-5">
+      <form onSubmit={handleSubmit} className="bg-[#111111] border border-white/8 rounded-2xl p-6 space-y-5">
         {error && <div className="bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3 text-sm text-red-400">{error}</div>}
 
         <div>
@@ -75,7 +75,7 @@ export default function NewMessagePage() {
               <button key={t.value} type="button" onClick={() => setType(t.value)}
                 className={`text-xs font-bold px-3 py-1.5 rounded-lg border transition-colors ${
                   type === t.value
-                    ? 'border-indigo-500 bg-indigo-500/20 text-indigo-300'
+                    ? 'border-[#C9A227] bg-[#C9A227]/20 text-[#C9A227]'
                     : 'border-white/10 bg-white/5 text-gray-400 hover:border-white/20'
                 }`}>
                 {t.label}
@@ -105,7 +105,7 @@ export default function NewMessagePage() {
         <div className="flex justify-end gap-3 pt-2">
           <Link href="/messages" className="px-4 py-2.5 text-sm text-gray-400 hover:text-white border border-white/10 rounded-xl">Annuler</Link>
           <button type="submit" disabled={saving || !body.trim()}
-            className="flex items-center gap-2 px-5 py-2.5 text-sm font-bold bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl disabled:opacity-60 transition-colors">
+            className="flex items-center gap-2 px-5 py-2.5 text-sm font-bold bg-[#C9A227] hover:bg-[#C9A227] text-white rounded-xl disabled:opacity-60 transition-colors">
             {saving ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
             Envoyer
           </button>

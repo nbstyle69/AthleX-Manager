@@ -1,7 +1,8 @@
-'use client';
+﻿'use client';
 
 import { useState } from 'react';
-import { Trophy, Loader2, AlertCircle } from 'lucide-react';
+import { Loader2, AlertCircle } from 'lucide-react';
+import Image from 'next/image';
 import { createClient } from '@/lib/supabase/client';
 
 export default function LoginPage() {
@@ -41,8 +42,8 @@ export default function LoginPage() {
   return (
     <div className="w-full max-w-sm mx-auto px-4">
       <div className="flex flex-col items-center mb-10 gap-3">
-        <div className="w-14 h-14 rounded-2xl bg-indigo-600 flex items-center justify-center">
-          <Trophy className="text-white" size={28} />
+        <div className="w-14 h-14 rounded-2xl overflow-hidden bg-black flex items-center justify-center">
+          <Image src="/logo.png" alt="BattleWOD" width={56} height={56} className="object-contain" />
         </div>
         <div className="text-center">
           <h1 className="text-2xl font-black text-white tracking-tight">BattleWOD</h1>
@@ -50,7 +51,7 @@ export default function LoginPage() {
         </div>
       </div>
 
-      <div className="bg-[#16162A] rounded-2xl border border-white/8 p-8">
+      <div className="bg-[#111111] rounded-2xl border border-white/8 p-8">
         <h2 className="text-lg font-bold text-white mb-6">Connexion</h2>
 
         {error && (
@@ -65,16 +66,16 @@ export default function LoginPage() {
             <label className="block text-xs font-semibold text-gray-400 mb-1.5 uppercase tracking-wider">Email</label>
             <input type="email" required value={email} onChange={e => setEmail(e.target.value)}
               placeholder="owner@mabox.com"
-              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-indigo-500 transition-colors" />
+              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-[#C9A227] transition-colors" />
           </div>
           <div>
             <label className="block text-xs font-semibold text-gray-400 mb-1.5 uppercase tracking-wider">Mot de passe</label>
             <input type="password" required value={password} onChange={e => setPassword(e.target.value)}
               placeholder="••••••••"
-              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-indigo-500 transition-colors" />
+              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-[#C9A227] transition-colors" />
           </div>
           <button type="submit" disabled={loading}
-            className="w-full bg-indigo-600 hover:bg-indigo-500 disabled:opacity-60 text-white font-bold py-3 rounded-xl transition-colors flex items-center justify-center gap-2 mt-2">
+            className="w-full bg-[#C9A227] hover:bg-[#C9A227] disabled:opacity-60 text-white font-bold py-3 rounded-xl transition-colors flex items-center justify-center gap-2 mt-2">
             {loading && <Loader2 size={16} className="animate-spin" />}
             {loading ? 'Connexion…' : 'Se connecter'}
           </button>

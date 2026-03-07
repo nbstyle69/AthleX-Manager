@@ -1,8 +1,9 @@
-'use client';
+﻿'use client';
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { Trophy, Users, FolderOpen, MessageSquare, LayoutDashboard, LogOut, Dumbbell } from 'lucide-react';
+import { Users, FolderOpen, MessageSquare, LayoutDashboard, LogOut, Dumbbell, Trophy } from 'lucide-react';
+import Image from 'next/image';
 import { createClient } from '@/lib/supabase/client';
 import { cn } from '@/lib/utils';
 
@@ -32,16 +33,16 @@ export default function Sidebar({ box, email, unreadCount = 0 }: SidebarProps) {
     router.refresh();
   }
 
-  const planColor = box?.plan === 'pro' ? '#8B5CF6' : box?.plan === 'elite' ? '#C9A227' : '#6366F1';
+  const planColor = box?.plan === 'pro' ? '#8B5CF6' : box?.plan === 'elite' ? '#C9A227' : '#C9A227';
   const planLabel = box?.plan === 'pro' ? 'Pro' : box?.plan === 'elite' ? 'Elite' : 'Starter';
 
   return (
-    <aside className="fixed top-0 left-0 h-full w-60 bg-[#0C0C18] border-r border-white/[0.06] flex flex-col z-40">
+    <aside className="fixed top-0 left-0 h-full w-60 bg-[#080808] border-r border-white/[0.06] flex flex-col z-40">
       {/* Logo + box */}
       <div className="px-5 py-6 border-b border-white/[0.06]">
         <div className="flex items-center gap-3 mb-3">
-          <div className="w-9 h-9 rounded-xl bg-indigo-600 flex items-center justify-center shrink-0">
-            <Trophy size={18} className="text-white" />
+          <div className="w-9 h-9 rounded-xl overflow-hidden shrink-0 flex items-center justify-center bg-black">
+            <Image src="/logo.png" alt="BattleWOD" width={36} height={36} className="object-contain" />
           </div>
           <div className="min-w-0">
             <p className="text-xs font-black text-white/30 tracking-widest uppercase">BattleWOD</p>
@@ -68,14 +69,14 @@ export default function Sidebar({ box, email, unreadCount = 0 }: SidebarProps) {
               className={cn(
                 'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all relative',
                 active
-                  ? 'bg-indigo-600/20 text-white'
+                  ? 'bg-[#C9A227]/20 text-white'
                   : 'text-gray-400 hover:text-white hover:bg-white/5'
               )}
             >
-              <Icon size={17} className={active ? 'text-indigo-400' : ''} />
+              <Icon size={17} className={active ? 'text-[#C9A227]' : ''} />
               {label}
               {label === 'Messages' && unreadCount > 0 && (
-                <span className="ml-auto bg-indigo-600 text-white text-[10px] font-black rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1">
+                <span className="ml-auto bg-[#C9A227] text-white text-[10px] font-black rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1">
                   {unreadCount > 99 ? '99+' : unreadCount}
                 </span>
               )}
@@ -87,7 +88,7 @@ export default function Sidebar({ box, email, unreadCount = 0 }: SidebarProps) {
       {/* Footer */}
       <div className="px-4 py-4 border-t border-white/[0.06]">
         <div className="flex items-center gap-3 mb-3">
-          <div className="w-8 h-8 rounded-full bg-indigo-600/30 flex items-center justify-center text-indigo-300 text-xs font-black">
+          <div className="w-8 h-8 rounded-full bg-[#C9A227]/30 flex items-center justify-center text-[#C9A227] text-xs font-black">
             {email[0]?.toUpperCase()}
           </div>
           <p className="text-xs text-gray-400 truncate flex-1">{email}</p>

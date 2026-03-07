@@ -1,4 +1,4 @@
-import { createClient, getOwnerBox } from '@/lib/supabase/server';
+﻿import { createClient, getOwnerBox } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import TournamentForm from '@/components/tournaments/TournamentForm';
 
