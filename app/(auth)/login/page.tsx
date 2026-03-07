@@ -1,8 +1,8 @@
 import { Trophy, AlertCircle } from 'lucide-react';
 import { loginAction } from './actions';
 
-export default function LoginPage({ searchParams }: { searchParams: { error?: string } }) {
-  const error = searchParams?.error;
+export default async function LoginPage({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
+  const { error } = await searchParams;
 
   return (
     <div className="w-full max-w-sm mx-auto px-4">
