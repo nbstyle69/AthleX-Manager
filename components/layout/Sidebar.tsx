@@ -2,13 +2,14 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { Trophy, Users, FolderOpen, MessageSquare, LayoutDashboard, LogOut } from 'lucide-react';
+import { Trophy, Users, FolderOpen, MessageSquare, LayoutDashboard, LogOut, Dumbbell } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { cn } from '@/lib/utils';
 
 const NAV = [
   { href: '/',             label: 'Dashboard',  icon: LayoutDashboard },
   { href: '/tournaments',  label: 'Tournois',   icon: Trophy },
+  { href: '/wods',         label: 'Whiteboard', icon: Dumbbell },
   { href: '/members',      label: 'Membres',    icon: Users },
   { href: '/groups',       label: 'Groupes',    icon: FolderOpen },
   { href: '/messages',     label: 'Messages',   icon: MessageSquare },
