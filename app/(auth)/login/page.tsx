@@ -20,15 +20,18 @@ export default function LoginPage() {
       const supabase = createClient();
       const { data, error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) {
+        alert('ERREUR: ' + error.message);
         setError(error.message);
         setLoading(false);
         return;
       }
       if (!data.session) {
+        alert('PAS DE SESSION - email non confirmé');
         setError('Session non créée — email non confirmé ou mot de passe incorrect.');
         setLoading(false);
         return;
       }
+      alert('OK SESSION: ' + data.session.user.email);
       window.location.href = '/';
     } catch (err: any) {
       setError(err?.message ?? 'Erreur réseau — vérifiez les variables Supabase.');
