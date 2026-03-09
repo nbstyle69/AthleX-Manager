@@ -4,8 +4,9 @@ import { useState, useEffect, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import {
   Plus, ChevronLeft, ChevronRight, Pencil, Trash2,
-  Eye, EyeOff, X, Loader2, Dumbbell,
+  Eye, EyeOff, X, Loader2, Dumbbell, Upload, Download, FileText,
 } from 'lucide-react';
+import { useRef } from 'react';
 
 type WodType = 'for-time' | 'amrap' | 'emom' | 'tabata' | 'strength' | 'custom';
 
@@ -57,11 +58,14 @@ export default function WODsPage() {
   const [boxId,      setBoxId]     = useState<string | null>(null);
   const [userId,     setUserId]    = useState<string | null>(null);
 
-  const [modal,     setModal]     = useState(false);
-  const [editWOD,   setEditWOD]   = useState<BoxWOD | null>(null);
-  const [form,      setForm]      = useState(EMPTY);
-  const [saving,    setSaving]    = useState(false);
-  const [formError, setFormError] = useState<string | null>(null);
+  const [modal,       setModal]       = useState(false);
+  const [editWOD,     setEditWOD]     = useState<BoxWOD | null>(null);
+  const [form,        setForm]        = useState(EMPTY);
+  const [saving,      setSaving]      = useState(false);
+  const [formError,   setFormError]   = useState<string | null>(null);
+  const [importing,   setImporting]   = useState(false);
+  const [importResult, setImportResult] = useState<{ ok: number; errors: string[] } | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const weekDates = getWeekDates(weekOffset);
   const todayISO  = toISO(new Date());
@@ -145,23 +149,148 @@ export default function WODsPage() {
     load();
   }
 
+  // ── CSV Export ────────────────────────────────────────────────────────────
+  function exportCSV() {
+    if (!wods.length) return;
+    const headers = ['date','title','type','description','time_cap_min','rounds','notes','published'];
+    const rows = wods.map(w => [
+      w.scheduled_date,
+      `"${(w.title ?? '').replace(/"/g, '""')}"`,
+      w.wod_type,
+      `"${(w.description ?? '').replace(/"/g, '""')}"`,
+      w.time_cap_seconds ? String(Math.floor(w.time_cap_seconds / 60)) : '',
+      w.rounds ?? '',
+      `"${(w.notes ?? '').replace(/"/g, '""')}"`,
+      w.is_published ? 'true' : 'false',
+    ].join(','));
+    const csv = [headers.join(','), ...rows].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = `wods_semaine_${toISO(weekDates[0])}.csv`;
+    a.click(); URL.revokeObjectURL(url);
+  }
+
+  // ── CSV Template ─────────────────────────────────────────────────────────
+  function downloadTemplate() {
+    const headers = 'date,title,type,description,time_cap_min,rounds,notes,published';
+    const examples = [
+      `2026-03-10,Fran,for-time,"21-15-9 Thrusters (43kg) + Pull-ups",20,,"Objectif sub 5min",true`,
+      `2026-03-11,Cindy,amrap,"5 Pull-ups / 10 Push-ups / 15 Air Squats",20,,"Comptez vos rounds complets",true`,
+      `2026-03-12,Back Squat,strength,"5x5 Back Squat - 80% 1RM",,5,"Repos 3min entre séries",true`,
+      `2026-03-13,Karen,for-time,"150 Wall Balls (9kg / cible 3m)",20,,"",true`,
+      `2026-03-14,EMOM 12,emom,"Min 1: 12 Box Jumps | Min 2: 8 Dips | Min 3: 200m Row",12,4,"",true`,
+    ].join('\n');
+    const csv = `${headers}\n${examples}`;
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'template_wods.csv';
+    a.click(); URL.revokeObjectURL(url);
+  }
+
+  // ── CSV Import ────────────────────────────────────────────────────────────
+  async function handleImport(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file || !boxId || !userId) return;
+    setImporting(true);
+    setImportResult(null);
+    const text = await file.text();
+    const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+    if (lines.length < 2) { setImporting(false); return; }
+    // skip header
+    const dataLines = lines.slice(1);
+    let ok = 0;
+    const errors: string[] = [];
+
+    for (let i = 0; i < dataLines.length; i++) {
+      const line = dataLines[i];
+      // parse CSV line respecting quoted fields
+      const fields: string[] = [];
+      let current = ''; let inQuote = false;
+      for (let c = 0; c < line.length; c++) {
+        const ch = line[c];
+        if (ch === '"') { if (inQuote && line[c+1] === '"') { current += '"'; c++; } else { inQuote = !inQuote; } }
+        else if (ch === ',' && !inQuote) { fields.push(current); current = ''; }
+        else { current += ch; }
+      }
+      fields.push(current);
+
+      const [date, title, type, description, timeCap, rounds, notes, published] = fields;
+      if (!date?.match(/^\d{4}-\d{2}-\d{2}$/) || !title?.trim()) {
+        errors.push(`Ligne ${i + 2} ignorée : date ou titre invalide`);
+        continue;
+      }
+      const validTypes = ['for-time','amrap','emom','tabata','strength','custom'];
+      const wodType = validTypes.includes(type?.trim()) ? type.trim() : 'custom';
+      const { error } = await supabase.from('box_wods').insert({
+        box_id: boxId, created_by: userId,
+        title: title.trim(),
+        description: description?.trim() || null,
+        wod_type: wodType,
+        scheduled_date: date.trim(),
+        time_cap_seconds: timeCap?.trim() ? parseInt(timeCap) * 60 : null,
+        rounds: rounds?.trim() ? parseInt(rounds) : null,
+        notes: notes?.trim() || null,
+        is_published: published?.trim().toLowerCase() !== 'false',
+      });
+      if (error) errors.push(`Ligne ${i + 2} : ${error.message}`);
+      else ok++;
+    }
+    setImportResult({ ok, errors });
+    setImporting(false);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+    if (ok > 0) load();
+  }
+
   const inp = 'w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-[#C9A227] transition-colors';
 
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-2xl font-black text-white">Whiteboard</h1>
           <p className="text-sm text-gray-500 mt-0.5">Calendrier des WODs de la semaine</p>
         </div>
-        <button
-          onClick={() => openCreate(todayISO)}
-          className="flex items-center gap-2 px-4 py-2.5 bg-[#C9A227] hover:bg-[#C9A227] text-white text-sm font-bold rounded-xl transition-colors"
-        >
-          <Plus size={15} /> Nouveau WOD
-        </button>
+        <div className="flex items-center gap-2 flex-wrap">
+          <button onClick={downloadTemplate}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold border border-white/10 text-gray-400 hover:text-white hover:border-white/20 transition-colors">
+            <FileText size={13} /> Template CSV
+          </button>
+          <button onClick={exportCSV} disabled={!wods.length}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold border border-white/10 text-gray-400 hover:text-white hover:border-white/20 disabled:opacity-40 transition-colors">
+            <Download size={13} /> Exporter
+          </button>
+          <label className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold border border-white/10 text-gray-400 hover:text-white hover:border-white/20 transition-colors cursor-pointer ${importing ? 'opacity-60 pointer-events-none' : ''}`}>
+            {importing ? <Loader2 size={13} className="animate-spin" /> : <Upload size={13} />}
+            {importing ? 'Import…' : 'Importer CSV'}
+            <input ref={fileInputRef} type="file" accept=".csv" className="hidden" onChange={handleImport} />
+          </label>
+          <button
+            onClick={() => openCreate(todayISO)}
+            className="flex items-center gap-2 px-4 py-2.5 bg-[#C9A227] hover:bg-[#C9A227]/90 text-white text-sm font-bold rounded-xl transition-colors"
+          >
+            <Plus size={15} /> Nouveau WOD
+          </button>
+        </div>
       </div>
+
+      {/* Import result */}
+      {importResult && (
+        <div className={`border rounded-xl px-4 py-3 text-sm ${importResult.errors.length > 0 ? 'bg-amber-500/10 border-amber-500/20' : 'bg-emerald-500/10 border-emerald-500/20'}`}>
+          <div className="flex items-center justify-between">
+            <p className={`font-bold ${importResult.errors.length > 0 ? 'text-amber-400' : 'text-emerald-400'}`}>
+              ✅ {importResult.ok} WOD{importResult.ok > 1 ? 's' : ''} importé{importResult.ok > 1 ? 's' : ''}
+              {importResult.errors.length > 0 && ` — ⚠️ ${importResult.errors.length} erreur(s)`}
+            </p>
+            <button onClick={() => setImportResult(null)} className="text-gray-500 hover:text-white"><X size={13} /></button>
+          </div>
+          {importResult.errors.map((e, i) => (
+            <p key={i} className="text-xs text-amber-400/80 mt-1">{e}</p>
+          ))}
+        </div>
+      )}
 
       {/* Week nav */}
       <div className="flex items-center justify-between bg-[#111111] border border-white/8 rounded-2xl px-5 py-3">
