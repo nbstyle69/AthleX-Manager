@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { ChevronLeft, Dumbbell, Users, BarChart2, Trophy, Pencil } from 'lucide-react';
 import CloseTournamentButton from '@/components/tournaments/CloseTournamentButton';
+import DeleteTournamentButton from '@/components/tournaments/DeleteTournamentButton';
 
 const STATUS_MAP: Record<string, { label: string; color: string }> = {
   draft:    { label: 'Brouillon',              color: '#6B7280' },
@@ -77,6 +78,7 @@ export default async function TournamentDetailPage({ params }: { params: Promise
               className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold text-gray-400 hover:text-white border border-white/10 hover:border-white/20 transition-colors">
               <Pencil size={12} /> Modifier
             </Link>
+            <DeleteTournamentButton tournamentId={id} />
           </div>
         </div>
       </div>
