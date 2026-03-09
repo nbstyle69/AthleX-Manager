@@ -1,6 +1,7 @@
 ﻿import { NextRequest, NextResponse } from 'next/server';
 
-const COOKIE_OPTS = 'Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=28800';
+const IS_PROD = process.env.NODE_ENV === 'production';
+const COOKIE_OPTS = `Path=/; HttpOnly; SameSite=Lax; Max-Age=28800${IS_PROD ? '; Secure' : ''}`;
 
 export async function POST(request: NextRequest) {
   const { access_token, refresh_token } = await request.json();

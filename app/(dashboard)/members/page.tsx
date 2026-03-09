@@ -8,11 +8,19 @@ export default async function MembersPage() {
   const box = await getOwnerBox(supabase);
   if (!box) redirect('/login');
 
-  const { data: members } = await supabase
-    .from('profiles')
-    .select('id, username, level, elo, email, created_at, is_banned')
+  const { data: membersRaw } = await supabase
+    .from('box_members')
+    .select('member_id, status, joined_at, profile:profiles(id, username, level, elo, email, created_at)')
     .eq('box_id', box.id)
-    .order('created_at', { ascending: false });
+    .in('status', ['active', 'banned'])
+    .order('joined_at', { ascending: false });
+
+  const members = (membersRaw ?? []).map((m: any) => ({
+    ...m.profile,
+    joined_at: m.joined_at,
+    member_status: m.status,
+    is_banned: m.status === 'banned',
+  }));
 
   return (
     <div className="space-y-6">
@@ -51,7 +59,7 @@ export default async function MembersPage() {
                         {(m.username ?? '?')[0].toUpperCase()}
                       </div>
                       <div>
-                        <p className={`text-sm font-semibold ${m.is_banned ? 'line-through text-gray-500' : 'text-white'}`}>{m.username}</p>
+                        <p className={`text-sm font-semibold ${m.is_banned ? 'line-through text-gray-500' : 'text-white'}`}>{m.username ?? '—'}</p>
                         <p className="text-xs text-gray-500">{m.email ?? ''}</p>
                       </div>
                     </div>
@@ -70,7 +78,7 @@ export default async function MembersPage() {
                     <form action={async () => {
                       'use server';
                       const srv = await (await import('@/lib/supabase/server')).createClient();
-                      await srv.from('profiles').update({ is_banned: !m.is_banned }).eq('id', m.id);
+                      await srv.from('box_members').update({ status: m.is_banned ? 'active' : 'banned' }).eq('member_id', m.id).eq('box_id', box.id);
                     }}>
                       <button type="submit" className={`text-xs font-semibold transition-colors ${m.is_banned ? 'text-green-400 hover:text-green-300' : 'text-red-400 hover:text-red-300'}`}>
                         {m.is_banned ? 'Débannir' : 'Bannir'}

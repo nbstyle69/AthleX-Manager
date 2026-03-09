@@ -13,21 +13,29 @@ export default async function DashboardPage() {
     .from('tournaments').select('id').eq('box_id', box.id);
   const tournamentIds = (boxTournaments ?? []).map((t: any) => t.id);
 
+  const { data: { user: authUser } } = await supabase.auth.getUser();
+  const ownerId = authUser?.id ?? '';
+
   const [
     { count: activeTournaments },
     { count: membersCount },
     { count: pendingScores },
+    { count: unreadMessages },
     { data: recentTournaments },
     { data: pendingScoresList },
   ] = await Promise.all([
     supabase.from('tournaments').select('*', { count: 'exact', head: true })
       .eq('box_id', box.id).in('status', ['open', 'active']),
-    supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('box_id', box.id),
+    supabase.from('box_members').select('*', { count: 'exact', head: true }).eq('box_id', box.id).eq('status', 'active'),
     tournamentIds.length
       ? supabase.from('tournament_scores').select('id', { count: 'exact', head: true })
           .eq('status', 'pending').in('tournament_id', tournamentIds)
       : Promise.resolve({ count: 0, data: null, error: null }),
-    supabase.from('tournaments').select('id, name, status, created_at, max_participants')
+    ownerId
+      ? supabase.from('messages').select('id', { count: 'exact', head: true })
+          .eq('box_id', box.id).neq('sender_id', ownerId).not('read_by', 'cs', `{${ownerId}}`)
+      : Promise.resolve({ count: 0, data: null, error: null }),
+    supabase.from('tournaments').select('id, name, status, created_at, max_participants, tournament_participants(count)')
       .eq('box_id', box.id).order('created_at', { ascending: false }).limit(3),
     tournamentIds.length
       ? supabase.from('tournament_scores')
@@ -41,7 +49,7 @@ export default async function DashboardPage() {
     { label: 'Tournois actifs',    value: activeTournaments ?? 0, icon: Trophy,        color: '#C9A227', href: '/tournaments' },
     { label: 'Membres',            value: membersCount ?? 0,      icon: Users,         color: '#22C55E', href: '/members' },
     { label: 'Scores en attente',  value: pendingScores ?? 0,     icon: Clock,         color: '#D97706', href: '/tournaments' },
-    { label: 'Messages non lus',   value: 0,                      icon: MessageSquare, color: '#8B5CF6', href: '/messages' },
+    { label: 'Messages non lus',   value: unreadMessages ?? 0,    icon: MessageSquare, color: '#8B5CF6', href: '/messages' },
   ];
 
   return (
@@ -86,7 +94,7 @@ export default async function DashboardPage() {
                     className="flex items-center justify-between py-3 border-b border-white/5 last:border-0 hover:bg-white/3 rounded-lg px-2 -mx-2 transition-colors">
                     <div>
                       <p className="text-sm font-semibold text-white">{t.name}</p>
-                      <p className="text-xs text-gray-500 mt-0.5">0 / {t.max_participants} participants</p>
+                      <p className="text-xs text-gray-500 mt-0.5">{(t.tournament_participants as any)?.[0]?.count ?? 0} / {t.max_participants} participants</p>
                     </div>
                     <span className="text-xs font-bold px-2 py-0.5 rounded-md" style={{ backgroundColor: `${sb.color}20`, color: sb.color }}>
                       {sb.label}

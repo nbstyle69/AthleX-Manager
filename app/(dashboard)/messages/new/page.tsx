@@ -26,6 +26,11 @@ export default function NewMessagePage() {
   const [error,    setError]    = useState<string | null>(null);
 
   useEffect(() => {
+    // Pre-fill group from URL query param (?group=xxx)
+    const params = new URLSearchParams(window.location.search);
+    const gid = params.get('group');
+    if (gid) setGroupId(gid);
+
     (async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
@@ -50,8 +55,19 @@ export default function NewMessagePage() {
       box_id: box.id, title: title.trim() || null, body: body.trim(),
       type, target_group_id: groupId || null, sent_at: new Date().toISOString(),
     });
+    if (err) { setSaving(false); setError(err.message); return; }
+
+    // Diffuse aussi dans la table messages pour que l'app le reçoive en temps réel
+    const content = title.trim() ? `${title.trim()}\n${body.trim()}` : body.trim();
+    const { error: msgErr } = await supabase.from('messages').insert({
+      box_id: box.id,
+      sender_id: user.id,
+      content,
+      message_type: 'general',
+      is_announcement: true,
+    });
     setSaving(false);
-    if (err) { setError(err.message); return; }
+    if (msgErr) { setError(`Message envoyé au back office mais erreur app: ${msgErr.message}`); return; }
     router.push('/messages');
     router.refresh();
   }
