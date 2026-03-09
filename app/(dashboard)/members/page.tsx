@@ -1,42 +1,249 @@
-﻿import { createClient, getOwnerBox } from '@/lib/supabase/server';
-import { redirect } from 'next/navigation';
-import { revalidatePath } from 'next/cache';
-import { Users } from 'lucide-react';
-import { formatDate } from '@/lib/utils';
+﻿'use client';
 
-export default async function MembersPage() {
-  const supabase = await createClient();
-  const box = await getOwnerBox(supabase);
-  if (!box) redirect('/login');
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import { createClient } from '@/lib/supabase/client';
+import { useRouter } from 'next/navigation';
+import { Users, Search, SlidersHorizontal, X, Loader2, ChevronDown, Check } from 'lucide-react';
 
-  const { data: membersRaw } = await supabase
-    .from('box_members')
-    .select('member_id, status, joined_at, profile:profiles(id, username, level, elo, email, created_at)')
-    .eq('box_id', box.id)
-    .in('status', ['active', 'banned'])
-    .order('joined_at', { ascending: false });
+const LEVELS = ['rx+', 'rx', 'scaled', 'foundations'];
+const LEVEL_LABEL: Record<string, string> = { 'rx+': 'RX+', rx: 'RX', scaled: 'SCALED', foundations: 'FOUNDATIONS' };
+const LEVEL_COLOR: Record<string, string> = { 'rx+': '#C9A227', rx: '#3B82F6', scaled: '#10B981', foundations: '#8B5CF6' };
 
-  const members = (membersRaw ?? []).map((m: any) => ({
-    ...m.profile,
-    joined_at: m.joined_at,
-    member_status: m.status,
-    is_banned: m.status === 'banned',
-  }));
+interface Member {
+  id: string; username: string; level: string; elo: number;
+  email: string; joined_at: string; is_banned: boolean;
+  groups: { id: string; name: string; color: string }[];
+}
+
+function GroupsPopover({ member, allGroups, onToggle, toggling }: {
+  member: Member;
+  allGroups: { id: string; name: string; color: string }[];
+  onToggle: (memberId: string, groupId: string, inGroup: boolean) => void;
+  toggling: string | null;
+}) {
+  const [open, setOpen] = useState(false);
+  const memberGroupIds = new Set(member.groups.map(g => g.id));
+  return (
+    <div className="relative">
+      <button onClick={() => setOpen(v => !v)}
+        className="flex items-center gap-1 text-xs font-semibold text-gray-400 hover:text-white border border-white/10 hover:border-white/20 px-2.5 py-1.5 rounded-lg transition-colors">
+        Groupes <ChevronDown size={11} className={`transition-transform ${open ? 'rotate-180' : ''}`} />
+      </button>
+      {open && (
+        <>
+          <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
+          <div className="absolute right-0 top-full mt-1 z-20 bg-[#1a1a1a] border border-white/10 rounded-xl shadow-2xl min-w-[180px] py-1 overflow-hidden">
+            {allGroups.length === 0 && <p className="px-3 py-2 text-xs text-gray-500">Aucun groupe</p>}
+            {allGroups.map(g => {
+              const inGroup = memberGroupIds.has(g.id);
+              const isLoading = toggling === `${member.id}-${g.id}`;
+              return (
+                <button key={g.id} onClick={() => onToggle(member.id, g.id, inGroup)}
+                  disabled={isLoading}
+                  className="w-full flex items-center gap-2.5 px-3 py-2 text-xs hover:bg-white/5 transition-colors text-left">
+                  {isLoading ? <Loader2 size={12} className="animate-spin text-gray-400" /> : (
+                    <div className={`w-4 h-4 rounded flex items-center justify-center border ${inGroup ? 'border-transparent' : 'border-white/20'}`}
+                      style={inGroup ? { backgroundColor: g.color } : {}}>
+                      {inGroup && <Check size={10} color="#000" strokeWidth={3} />}
+                    </div>
+                  )}
+                  <span className="flex-1 font-semibold" style={{ color: inGroup ? g.color : '#9ca3af' }}>{g.name}</span>
+                </button>
+              );
+            })}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+export default function MembersPage() {
+  const router = useRouter();
+  const supabase = createClient();
+
+  const [members,    setMembers]    = useState<Member[]>([]);
+  const [allGroups,  setAllGroups]  = useState<{ id: string; name: string; color: string }[]>([]);
+  const [boxId,      setBoxId]      = useState<string | null>(null);
+  const [loading,    setLoading]    = useState(true);
+  const [toggling,   setToggling]   = useState<string | null>(null);
+  const [banning,    setBanning]    = useState<string | null>(null);
+
+  const [search,      setSearch]      = useState('');
+  const [filterLevel, setFilterLevel] = useState('');
+  const [filterGroup, setFilterGroup] = useState('');
+  const [eloSort,     setEloSort]     = useState<'asc' | 'desc' | ''>('');
+  const [showFilters, setShowFilters] = useState(false);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) { router.push('/login'); return; }
+    const { data: box } = await supabase.from('boxes').select('id').eq('owner_id', user.id).single();
+    if (!box) { router.push('/login'); return; }
+    setBoxId(box.id);
+
+    const [{ data: membersRaw }, { data: groups }, { data: groupMemberships }] = await Promise.all([
+      supabase.from('box_members')
+        .select('member_id, status, joined_at, profile:profiles(id, username, level, elo, email)')
+        .eq('box_id', box.id).in('status', ['active', 'banned'])
+        .order('joined_at', { ascending: false }),
+      supabase.from('message_groups').select('id, name, color').eq('box_id', box.id),
+      supabase.from('message_group_members').select('member_id, group_id'),
+    ]);
+
+    setAllGroups(groups ?? []);
+
+    const membershipMap: Record<string, string[]> = {};
+    for (const gm of groupMemberships ?? []) {
+      if (!membershipMap[gm.member_id]) membershipMap[gm.member_id] = [];
+      membershipMap[gm.member_id].push(gm.group_id);
+    }
+    const groupMap: Record<string, { id: string; name: string; color: string }> = {};
+    for (const g of groups ?? []) groupMap[g.id] = g;
+
+    const parsed: Member[] = (membersRaw ?? []).map((m: any) => {
+      const p = Array.isArray(m.profile) ? m.profile[0] : m.profile;
+      if (!p) return null;
+      return {
+        id: p.id, username: p.username ?? '?', level: p.level ?? 'rx',
+        elo: p.elo ?? 1000, email: p.email ?? '', joined_at: m.joined_at,
+        is_banned: m.status === 'banned',
+        groups: (membershipMap[p.id] ?? []).map((gid: string) => groupMap[gid]).filter(Boolean),
+      };
+    }).filter(Boolean) as Member[];
+
+    setMembers(parsed);
+    setLoading(false);
+  }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  async function toggleBan(member: Member) {
+    if (!boxId) return;
+    setBanning(member.id);
+    const newStatus = member.is_banned ? 'active' : 'banned';
+    await supabase.from('box_members').update({ status: newStatus }).eq('member_id', member.id).eq('box_id', boxId);
+    setMembers(prev => prev.map(m => m.id === member.id ? { ...m, is_banned: !m.is_banned } : m));
+    setBanning(null);
+  }
+
+  async function toggleGroup(memberId: string, groupId: string, inGroup: boolean) {
+    setToggling(`${memberId}-${groupId}`);
+    if (inGroup) {
+      await supabase.from('message_group_members').delete().eq('member_id', memberId).eq('group_id', groupId);
+    } else {
+      await supabase.from('message_group_members').insert({ member_id: memberId, group_id: groupId });
+    }
+    const group = allGroups.find(g => g.id === groupId)!;
+    setMembers(prev => prev.map(m => {
+      if (m.id !== memberId) return m;
+      return {
+        ...m,
+        groups: inGroup ? m.groups.filter(g => g.id !== groupId) : [...m.groups, group],
+      };
+    }));
+    setToggling(null);
+  }
+
+  const filtered = useMemo(() => {
+    let list = [...members];
+    if (search)      list = list.filter(m => m.username.toLowerCase().includes(search.toLowerCase()) || m.email.toLowerCase().includes(search.toLowerCase()));
+    if (filterLevel) list = list.filter(m => m.level === filterLevel);
+    if (filterGroup) list = list.filter(m => m.groups.some(g => g.id === filterGroup));
+    if (eloSort === 'asc')  list = [...list].sort((a, b) => a.elo - b.elo);
+    if (eloSort === 'desc') list = [...list].sort((a, b) => b.elo - a.elo);
+    return list;
+  }, [members, search, filterLevel, filterGroup, eloSort]);
+
+  const activeFilters = [filterLevel, filterGroup, eloSort].filter(Boolean).length;
+
+  if (loading) return (
+    <div className="flex items-center justify-center min-h-[300px]">
+      <Loader2 size={28} className="animate-spin text-[#C9A227]" />
+    </div>
+  );
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-black text-white">Membres</h1>
-          <p className="text-sm text-gray-400 mt-1">{members?.length ?? 0} membre(s)</p>
+          <p className="text-sm text-gray-400 mt-1">{filtered.length} / {members.length} membre(s)</p>
         </div>
       </div>
 
-      {!members?.length ? (
+      {/* Search + filters */}
+      <div className="space-y-2">
+        <div className="flex gap-2">
+          <div className="relative flex-1">
+            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
+            <input value={search} onChange={e => setSearch(e.target.value)}
+              placeholder="Rechercher par nom ou email…"
+              className="w-full bg-[#111111] border border-white/8 rounded-xl pl-9 pr-3 py-2.5 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-[#C9A227] transition-colors" />
+            {search && <button onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white"><X size={13} /></button>}
+          </div>
+          <button onClick={() => setShowFilters(v => !v)}
+            className={`flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl text-sm font-bold border transition-colors ${showFilters || activeFilters > 0 ? 'border-[#C9A227]/50 text-[#C9A227] bg-[#C9A227]/10' : 'bg-[#111111] border-white/8 text-gray-400 hover:text-white'}`}>
+            <SlidersHorizontal size={14} />
+            Filtres{activeFilters > 0 ? ` (${activeFilters})` : ''}
+          </button>
+        </div>
+
+        {showFilters && (
+          <div className="bg-[#111111] border border-white/8 rounded-xl px-4 py-3 flex flex-wrap gap-3 items-center">
+            {/* Level */}
+            <div className="flex items-center gap-1">
+              {['', ...LEVELS].map(l => (
+                <button key={l} onClick={() => setFilterLevel(l)}
+                  className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-colors ${filterLevel === l ? '' : 'text-gray-500 hover:text-gray-300 bg-white/5'}`}
+                  style={filterLevel === l ? (l ? { backgroundColor: `${LEVEL_COLOR[l]}25`, color: LEVEL_COLOR[l] } : { backgroundColor: 'rgba(255,255,255,0.12)', color: 'white' }) : {}}>
+                  {l ? LEVEL_LABEL[l] : 'Tous'}
+                </button>
+              ))}
+            </div>
+
+            <div className="w-px h-5 bg-white/10" />
+
+            {/* ELO sort */}
+            <div className="flex items-center gap-1.5">
+              <span className="text-xs text-gray-600 font-semibold">ELO :</span>
+              {([['', 'Défaut'], ['desc', '↓ Haut'], ['asc', '↑ Bas']] as [string, string][]).map(([val, label]) => (
+                <button key={val} onClick={() => setEloSort(val as any)}
+                  className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-colors ${eloSort === val ? 'bg-white/10 text-white' : 'text-gray-500 hover:text-gray-300 bg-white/5'}`}>
+                  {label}
+                </button>
+              ))}
+            </div>
+
+            <div className="w-px h-5 bg-white/10" />
+
+            {/* Group filter */}
+            <select value={filterGroup} onChange={e => setFilterGroup(e.target.value)}
+              className="bg-white/5 border border-white/10 rounded-lg px-2.5 py-1 text-xs text-white focus:outline-none focus:border-[#C9A227] transition-colors">
+              <option value="">Tous les groupes</option>
+              {allGroups.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
+            </select>
+
+            {activeFilters > 0 && (
+              <button onClick={() => { setFilterLevel(''); setFilterGroup(''); setEloSort(''); }}
+                className="ml-auto text-xs text-red-400 hover:text-red-300 flex items-center gap-1">
+                <X size={11} /> Réinitialiser
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+
+      {!members.length ? (
         <div className="bg-[#111111] border border-white/8 rounded-2xl p-12 text-center">
           <Users size={40} className="text-gray-600 mx-auto mb-4" />
           <p className="text-white font-bold mb-1">Aucun membre</p>
           <p className="text-sm text-gray-500">Les membres rejoignent votre box via le code invitation.</p>
+        </div>
+      ) : filtered.length === 0 ? (
+        <div className="bg-[#111111] border border-white/8 rounded-2xl p-10 text-center text-sm text-gray-500">
+          Aucun résultat pour ces filtres.
         </div>
       ) : (
         <div className="bg-[#111111] border border-white/8 rounded-2xl overflow-hidden">
@@ -46,49 +253,55 @@ export default async function MembersPage() {
                 <th className="text-left px-5 py-3.5 text-xs font-bold text-gray-500 uppercase tracking-wider">Membre</th>
                 <th className="text-left px-5 py-3.5 text-xs font-bold text-gray-500 uppercase tracking-wider">Niveau</th>
                 <th className="text-left px-5 py-3.5 text-xs font-bold text-gray-500 uppercase tracking-wider">ELO</th>
-                <th className="text-left px-5 py-3.5 text-xs font-bold text-gray-500 uppercase tracking-wider">Inscrit le</th>
+                <th className="text-left px-5 py-3.5 text-xs font-bold text-gray-500 uppercase tracking-wider">Groupes</th>
                 <th className="text-left px-5 py-3.5 text-xs font-bold text-gray-500 uppercase tracking-wider">Statut</th>
                 <th className="text-right px-5 py-3.5"></th>
               </tr>
             </thead>
             <tbody>
-              {members.map((m: any) => (
-                <tr key={m.id} className="border-b border-white/5 last:border-0 hover:bg-white/[0.02] transition-colors">
-                  <td className="px-5 py-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-[#C9A227]/20 flex items-center justify-center text-[#C9A227] text-xs font-black shrink-0">
-                        {(m.username ?? '?')[0].toUpperCase()}
+              {filtered.map(m => {
+                const lvlColor = LEVEL_COLOR[m.level] ?? '#6B7280';
+                return (
+                  <tr key={m.id} className="border-b border-white/5 last:border-0 hover:bg-white/[0.02] transition-colors">
+                    <td className="px-5 py-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-[#C9A227]/20 flex items-center justify-center text-[#C9A227] text-xs font-black shrink-0">
+                          {m.username[0].toUpperCase()}
+                        </div>
+                        <div>
+                          <p className={`text-sm font-semibold ${m.is_banned ? 'line-through text-gray-500' : 'text-white'}`}>{m.username}</p>
+                          <p className="text-xs text-gray-500">{m.email}</p>
+                        </div>
                       </div>
-                      <div>
-                        <p className={`text-sm font-semibold ${m.is_banned ? 'line-through text-gray-500' : 'text-white'}`}>{m.username ?? '—'}</p>
-                        <p className="text-xs text-gray-500">{m.email ?? ''}</p>
+                    </td>
+                    <td className="px-5 py-4">
+                      <span className="text-xs font-bold px-2 py-0.5 rounded-md" style={{ color: lvlColor, backgroundColor: `${lvlColor}20` }}>
+                        {LEVEL_LABEL[m.level] ?? m.level.toUpperCase()}
+                      </span>
+                    </td>
+                    <td className="px-5 py-4 text-sm text-gray-300 font-mono">⭐ {m.elo}</td>
+                    <td className="px-5 py-4">
+                      <div className="flex items-center gap-1 flex-wrap">
+                        {m.groups.map(g => (
+                          <span key={g.id} className="text-[10px] font-bold px-1.5 py-0.5 rounded-md" style={{ color: g.color, backgroundColor: `${g.color}20` }}>{g.name}</span>
+                        ))}
+                        <GroupsPopover member={m} allGroups={allGroups} onToggle={toggleGroup} toggling={toggling} />
                       </div>
-                    </div>
-                  </td>
-                  <td className="px-5 py-4">
-                    <span className="text-xs font-bold uppercase text-gray-400">{m.level ?? 'scaled'}</span>
-                  </td>
-                  <td className="px-5 py-4 text-sm text-gray-300">{m.elo ?? 1000}</td>
-                  <td className="px-5 py-4 text-sm text-gray-400">{formatDate(m.created_at)}</td>
-                  <td className="px-5 py-4">
-                    <span className={`text-xs font-bold px-2.5 py-1 rounded-lg ${m.is_banned ? 'bg-red-500/10 text-red-400' : 'bg-green-500/10 text-green-400'}`}>
-                      {m.is_banned ? 'Banni' : 'Actif'}
-                    </span>
-                  </td>
-                  <td className="px-5 py-4 text-right">
-                    <form action={async () => {
-                      'use server';
-                      const srv = await (await import('@/lib/supabase/server')).createClient();
-                      await srv.from('box_members').update({ status: m.is_banned ? 'active' : 'banned' }).eq('member_id', m.id).eq('box_id', box.id);
-                      revalidatePath('/members');
-                    }}>
-                      <button type="submit" className={`text-xs font-semibold transition-colors ${m.is_banned ? 'text-green-400 hover:text-green-300' : 'text-red-400 hover:text-red-300'}`}>
-                        {m.is_banned ? 'Débannir' : 'Bannir'}
+                    </td>
+                    <td className="px-5 py-4">
+                      <span className={`text-xs font-bold px-2.5 py-1 rounded-lg ${m.is_banned ? 'bg-red-500/10 text-red-400' : 'bg-green-500/10 text-green-400'}`}>
+                        {m.is_banned ? 'Banni' : 'Actif'}
+                      </span>
+                    </td>
+                    <td className="px-5 py-4 text-right">
+                      <button onClick={() => toggleBan(m)} disabled={banning === m.id}
+                        className={`text-xs font-semibold transition-colors ${m.is_banned ? 'text-green-400 hover:text-green-300' : 'text-red-400 hover:text-red-300'}`}>
+                        {banning === m.id ? <Loader2 size={12} className="animate-spin inline" /> : m.is_banned ? 'Débannir' : 'Bannir'}
                       </button>
-                    </form>
-                  </td>
-                </tr>
-              ))}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
