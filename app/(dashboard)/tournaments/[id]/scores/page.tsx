@@ -9,7 +9,7 @@ interface Score {
   id: string;
   score_value: string;
   submitted_at: string;
-  status: 'pending' | 'approved' | 'rejected';
+  status: 'pending' | 'validated' | 'rejected';
   video_url: string | null;
   notes: string | null;
   athlete_id: string;
@@ -25,7 +25,7 @@ export default function TournamentScoresPage({ params }: { params: Promise<{ id:
   const [scores,      setScores]      = useState<Score[]>([]);
   const [loading,     setLoading]     = useState(true);
   const [processing,  setProcessing]  = useState<string | null>(null);
-  const [filter,      setFilter]      = useState<'pending' | 'approved' | 'rejected' | 'all'>('pending');
+  const [filter,      setFilter]      = useState<'pending' | 'validated' | 'rejected' | 'all'>('pending');
   const [tournament,  setTournament]  = useState<{ name: string } | null>(null);
 
   const load = useCallback(async () => {
@@ -48,15 +48,44 @@ export default function TournamentScoresPage({ params }: { params: Promise<{ id:
 
   useEffect(() => { load(); }, [load]);
 
-  async function updateStatus(scoreId: string, status: 'approved' | 'rejected') {
+  async function updateStatus(scoreId: string, newStatus: 'validated' | 'rejected') {
     setProcessing(scoreId);
-    await supabase.from('tournament_scores').update({ status }).eq('id', scoreId);
-    setScores(prev => prev.map(s => s.id === scoreId ? { ...s, status } : s));
+    const payload: any = { status: newStatus };
+    if (newStatus === 'validated') payload.validated_at = new Date().toISOString();
+    await supabase.from('tournament_scores').update(payload).eq('id', scoreId);
+    if (newStatus === 'validated') {
+      // Recalc leaderboard points
+      const { data: allValidated } = await supabase
+        .from('tournament_scores').select('athlete_id, score_value, tournament_wod_id')
+        .eq('tournament_id', tournamentId).eq('status', 'validated');
+      if (allValidated) {
+        const pointsMap: Record<string, number> = {};
+        const byWod: Record<string, { athlete_id: string; score_value: string }[]> = {};
+        allValidated.forEach((s: any) => {
+          if (!byWod[s.tournament_wod_id]) byWod[s.tournament_wod_id] = [];
+          byWod[s.tournament_wod_id].push(s);
+        });
+        for (const [, wodScores] of Object.entries(byWod)) {
+          const sorted = [...wodScores].sort((a, b) => parseFloat(b.score_value) - parseFloat(a.score_value));
+          sorted.forEach((s, i) => {
+            const pts = Math.max(1, 100 - i * 3);
+            pointsMap[s.athlete_id] = (pointsMap[s.athlete_id] ?? 0) + pts;
+          });
+        }
+        for (const [athleteId, pts] of Object.entries(pointsMap)) {
+          await supabase.from('tournament_participants')
+            .update({ score: pts }).eq('tournament_id', tournamentId).eq('athlete_id', athleteId);
+        }
+      }
+    }
+    setScores(prev => prev.map(s => s.id === scoreId ? { ...s, status: newStatus } : s));
     setProcessing(null);
   }
 
   const filtered = filter === 'all' ? scores : scores.filter(s => s.status === filter);
-  const pendingCount = scores.filter(s => s.status === 'pending').length;
+  const pendingCount  = scores.filter(s => s.status === 'pending').length;
+  const validatedCount = scores.filter(s => s.status === 'validated').length;
+  const rejectedCount  = scores.filter(s => s.status === 'rejected').length;
 
   return (
     <div className="space-y-6">
@@ -72,19 +101,19 @@ export default function TournamentScoresPage({ params }: { params: Promise<{ id:
 
       {/* Filter tabs */}
       <div className="flex gap-2">
-        {(['pending', 'approved', 'rejected', 'all'] as const).map(f => (
+        {(['pending', 'validated', 'rejected', 'all'] as const).map(f => (
           <button key={f} onClick={() => setFilter(f)}
             className={`text-sm font-bold px-4 py-2 rounded-xl border transition-colors ${
               filter === f
-                ? f === 'pending'  ? 'bg-amber-500 border-amber-500 text-white'
-                : f === 'approved' ? 'bg-green-600 border-green-600 text-white'
-                : f === 'rejected' ? 'bg-red-600 border-red-600 text-white'
+                ? f === 'pending'    ? 'bg-amber-500 border-amber-500 text-white'
+                : f === 'validated' ? 'bg-green-600 border-green-600 text-white'
+                : f === 'rejected'  ? 'bg-red-600 border-red-600 text-white'
                 : 'bg-[#C9A227] border-[#C9A227] text-white'
                 : 'border-white/10 text-gray-400 hover:border-white/20 hover:text-white'
             }`}>
-            {f === 'pending' ? `En attente${pendingCount > 0 ? ` (${pendingCount})` : ''}`
-              : f === 'approved' ? 'Validés'
-              : f === 'rejected' ? 'Rejetés'
+            {f === 'pending'   ? `En attente${pendingCount > 0 ? ` (${pendingCount})` : ''}`
+              : f === 'validated' ? `Validés${validatedCount > 0 ? ` (${validatedCount})` : ''}`
+              : f === 'rejected'  ? `Rejetés${rejectedCount > 0 ? ` (${rejectedCount})` : ''}`
               : 'Tous'}
           </button>
         ))}
@@ -149,9 +178,9 @@ export default function TournamentScoresPage({ params }: { params: Promise<{ id:
                       Rejeter
                     </button>
                   )}
-                  {score.status !== 'approved' && (
+                  {score.status !== 'validated' && (
                     <button
-                      onClick={() => updateStatus(score.id, 'approved')}
+                      onClick={() => updateStatus(score.id, 'validated')}
                       disabled={processing === score.id}
                       className="flex items-center gap-1.5 px-3 py-2 text-xs font-bold text-green-400 border border-green-500/20 rounded-xl hover:bg-green-500/10 transition-colors disabled:opacity-50">
                       {processing === score.id ? <Loader2 size={12} className="animate-spin" /> : <CheckCircle size={13} />}
@@ -160,9 +189,9 @@ export default function TournamentScoresPage({ params }: { params: Promise<{ id:
                   )}
                   {score.status !== 'pending' && (
                     <span className={`text-xs font-bold px-3 py-2 rounded-xl ${
-                      score.status === 'approved' ? 'text-green-400 bg-green-500/10' : 'text-red-400 bg-red-500/10'
+                      score.status === 'validated' ? 'text-green-400 bg-green-500/10' : 'text-red-400 bg-red-500/10'
                     }`}>
-                      {score.status === 'approved' ? '✓ Validé' : '✗ Rejeté'}
+                      {score.status === 'validated' ? '✓ Validé' : '✗ Rejeté'}
                     </span>
                   )}
                 </div>

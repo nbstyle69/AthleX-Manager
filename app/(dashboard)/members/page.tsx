@@ -1,5 +1,6 @@
 ﻿import { createClient, getOwnerBox } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
+import { revalidatePath } from 'next/cache';
 import { Users } from 'lucide-react';
 import { formatDate } from '@/lib/utils';
 
@@ -79,6 +80,7 @@ export default async function MembersPage() {
                       'use server';
                       const srv = await (await import('@/lib/supabase/server')).createClient();
                       await srv.from('box_members').update({ status: m.is_banned ? 'active' : 'banned' }).eq('member_id', m.id).eq('box_id', box.id);
+                      revalidatePath('/members');
                     }}>
                       <button type="submit" className={`text-xs font-semibold transition-colors ${m.is_banned ? 'text-green-400 hover:text-green-300' : 'text-red-400 hover:text-red-300'}`}>
                         {m.is_banned ? 'Débannir' : 'Bannir'}

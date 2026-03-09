@@ -2,6 +2,7 @@
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { ChevronLeft, Dumbbell, Users, BarChart2, Trophy, Pencil } from 'lucide-react';
+import CloseTournamentButton from '@/components/tournaments/CloseTournamentButton';
 
 const STATUS_MAP: Record<string, { label: string; color: string }> = {
   draft:    { label: 'Brouillon',              color: '#6B7280' },
@@ -25,9 +26,10 @@ export default async function TournamentDetailPage({ params }: { params: Promise
 
   if (!t) redirect('/tournaments');
 
-  const [{ count: wodCount }, { count: participantCount }] = await Promise.all([
+  const [{ count: wodCount }, { count: participantCount }, { count: pendingCount }] = await Promise.all([
     supabase.from('tournament_wods').select('*', { count: 'exact', head: true }).eq('tournament_id', id),
     supabase.from('tournament_participants').select('*', { count: 'exact', head: true }).eq('tournament_id', id),
+    supabase.from('tournament_scores').select('*', { count: 'exact', head: true }).eq('tournament_id', id).eq('status', 'pending'),
   ]);
 
   const st = STATUS_MAP[t.status] ?? STATUS_MAP.draft;
@@ -65,10 +67,17 @@ export default async function TournamentDetailPage({ params }: { params: Promise
               {t.prize && <span>🏆 {t.prize}</span>}
             </div>
           </div>
-          <Link href={`/tournaments/${id}/edit`}
-            className="shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold text-gray-400 hover:text-white border border-white/10 hover:border-white/20 transition-colors">
-            <Pencil size={12} /> Modifier
-          </Link>
+          <div className="flex items-center gap-2 shrink-0">
+            <CloseTournamentButton
+              tournamentId={id}
+              pendingCount={pendingCount ?? 0}
+              status={t.status}
+            />
+            <Link href={`/tournaments/${id}/edit`}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold text-gray-400 hover:text-white border border-white/10 hover:border-white/20 transition-colors">
+              <Pencil size={12} /> Modifier
+            </Link>
+          </div>
         </div>
       </div>
 
