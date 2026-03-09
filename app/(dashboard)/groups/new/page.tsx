@@ -30,7 +30,7 @@ export default function NewGroupPage() {
     if (!box) { setError('Box introuvable'); setSaving(false); return; }
     const { data: created, error: err } = await supabase
       .from('message_groups')
-      .insert({ name, color, box_id: box.id, created_by: user.id })
+      .insert({ name, color, box_id: box.id, created_by: user.id, members: [] })
       .select('id')
       .single();
     setSaving(false);
