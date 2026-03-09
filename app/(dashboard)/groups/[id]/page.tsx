@@ -1,25 +1,44 @@
 ﻿'use client';
 
-import { useState, useEffect, useCallback, use } from 'react';
+import { useState, useEffect, useCallback, use, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
-import { ArrowLeft, Loader2, UserPlus, UserMinus, Users2, MessageSquare } from 'lucide-react';
+import { ArrowLeft, Loader2, UserPlus, UserMinus, Users2, MessageSquare, Search, SlidersHorizontal, X } from 'lucide-react';
 import Link from 'next/link';
 
-interface Member { id: string; username: string; level: string; email: string; }
+interface Member {
+  id: string;
+  username: string;
+  level: string;
+  email: string;
+  elo: number;
+  groups: { id: string; name: string; color: string }[];
+}
+
+const LEVELS = ['rx+', 'rx', 'scaled', 'foundations'];
+const LEVEL_LABEL: Record<string, string> = { 'rx+': 'RX+', rx: 'RX', scaled: 'SCALED', foundations: 'FOUNDATIONS' };
+const LEVEL_COLOR: Record<string, string> = { 'rx+': '#C9A227', rx: '#3B82F6', scaled: '#10B981', foundations: '#8B5CF6' };
 
 export default function GroupDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id: groupId } = use(params);
   const router = useRouter();
   const supabase = createClient();
 
-  const [group,        setGroup]        = useState<{ id: string; name: string; color: string } | null>(null);
-  const [members,      setMembers]      = useState<Member[]>([]);
-  const [allMembers,   setAllMembers]   = useState<Member[]>([]);
-  const [loading,      setLoading]      = useState(true);
-  const [toggling,     setToggling]     = useState<string | null>(null);
-  const [deleting,     setDeleting]     = useState(false);
-  const [error,        setError]        = useState<string | null>(null);
+  const [group,      setGroup]      = useState<{ id: string; name: string; color: string } | null>(null);
+  const [members,    setMembers]    = useState<Member[]>([]);
+  const [allMembers, setAllMembers] = useState<Member[]>([]);
+  const [allGroups,  setAllGroups]  = useState<{ id: string; name: string; color: string }[]>([]);
+  const [loading,    setLoading]    = useState(true);
+  const [toggling,   setToggling]   = useState<string | null>(null);
+  const [deleting,   setDeleting]   = useState(false);
+  const [error,      setError]      = useState<string | null>(null);
+
+  // Filters
+  const [search,       setSearch]       = useState('');
+  const [filterLevel,  setFilterLevel]  = useState<string>('');
+  const [filterGroup,  setFilterGroup]  = useState<string>('');
+  const [eloSort,      setEloSort]      = useState<'asc' | 'desc' | ''>('');
+  const [showFilters,  setShowFilters]  = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -28,38 +47,46 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
     const { data: box } = await supabase.from('boxes').select('id').eq('owner_id', user.id).single();
     if (!box) { router.push('/login'); return; }
 
-    const [{ data: grp }, { data: grpMembers }, { data: boxMembers }] = await Promise.all([
+    const [{ data: grp }, { data: grpMembers }, { data: boxMembers }, { data: groups }, { data: groupMemberships }] = await Promise.all([
       supabase.from('message_groups').select('id, name, color').eq('id', groupId).single(),
       supabase.from('message_group_members')
-        .select('member_id, profiles(id, username, level, email)')
+        .select('member_id, profiles(id, username, level, email, elo)')
         .eq('group_id', groupId),
       supabase.from('box_members')
-        .select('member_id, profiles(id, username, level, email)')
-        .eq('box_id', box.id)
-        .eq('status', 'active'),
+        .select('member_id, profiles(id, username, level, email, elo)')
+        .eq('box_id', box.id).eq('status', 'active'),
+      supabase.from('message_groups').select('id, name, color').eq('box_id', box.id),
+      supabase.from('message_group_members').select('member_id, group_id'),
     ]);
 
     if (!grp) { router.push('/groups'); return; }
     setGroup(grp);
+    setAllGroups(groups ?? []);
 
-    const inGroup = (grpMembers ?? []).map((m: any) => {
+    const membershipMap: Record<string, string[]> = {};
+    for (const gm of groupMemberships ?? []) {
+      if (!membershipMap[gm.member_id]) membershipMap[gm.member_id] = [];
+      membershipMap[gm.member_id].push(gm.group_id);
+    }
+    const groupMap: Record<string, { id: string; name: string; color: string }> = {};
+    for (const g of groups ?? []) groupMap[g.id] = g;
+
+    const toMember = (m: any): Member | null => {
       const p = Array.isArray(m.profiles) ? m.profiles[0] : m.profiles;
-      return p ? { id: p.id, username: p.username, level: p.level, email: p.email ?? '' } : null;
-    }).filter(Boolean) as Member[];
-    setMembers(inGroup);
+      if (!p) return null;
+      const memberGroups = (membershipMap[p.id] ?? [])
+        .map((gid: string) => groupMap[gid]).filter(Boolean);
+      return { id: p.id, username: p.username ?? '?', level: p.level ?? 'rx', email: p.email ?? '', elo: p.elo ?? 1000, groups: memberGroups };
+    };
 
-    const all = (boxMembers ?? []).map((m: any) => {
-      const p = Array.isArray(m.profiles) ? m.profiles[0] : m.profiles;
-      return p ? { id: p.id, username: p.username, level: p.level, email: p.email ?? '' } : null;
-    }).filter(Boolean) as Member[];
-    setAllMembers(all);
-
+    setMembers((grpMembers ?? []).map(toMember).filter(Boolean) as Member[]);
+    setAllMembers((boxMembers ?? []).map(toMember).filter(Boolean) as Member[]);
     setLoading(false);
   }, [groupId]);
 
   useEffect(() => { load(); }, [load]);
 
-  const inGroupIds = new Set(members.map(m => m.id));
+  const inGroupIds = useMemo(() => new Set(members.map(m => m.id)), [members]);
 
   async function toggleMember(memberId: string) {
     setToggling(memberId);
@@ -87,15 +114,24 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
     router.push('/groups');
   }
 
+  const filteredNotInGroup = useMemo(() => {
+    let list = allMembers.filter(m => !inGroupIds.has(m.id));
+    if (search)      list = list.filter(m => m.username.toLowerCase().includes(search.toLowerCase()));
+    if (filterLevel) list = list.filter(m => m.level === filterLevel);
+    if (filterGroup) list = list.filter(m => m.groups.some(g => g.id === filterGroup));
+    if (eloSort === 'asc')  list = [...list].sort((a, b) => a.elo - b.elo);
+    if (eloSort === 'desc') list = [...list].sort((a, b) => b.elo - a.elo);
+    return list;
+  }, [allMembers, inGroupIds, search, filterLevel, filterGroup, eloSort]);
+
+  const activeFilters = [filterLevel, filterGroup, eloSort].filter(Boolean).length;
+
   if (loading) return (
     <div className="flex items-center justify-center min-h-[200px]">
       <Loader2 size={24} className="animate-spin text-[#C9A227]" />
     </div>
   );
-
   if (!group) return null;
-
-  const notInGroup = allMembers.filter(m => !inGroupIds.has(m.id));
 
   return (
     <div className="space-y-6 max-w-2xl">
@@ -129,21 +165,26 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
 
       {/* Members in group */}
       <div className="bg-[#111111] border border-white/8 rounded-2xl overflow-hidden">
-        <div className="px-5 py-3.5 border-b border-white/8">
+        <div className="px-5 py-3.5 border-b border-white/8 flex items-center justify-between">
           <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Membres du groupe</p>
+          <span className="text-xs text-gray-600">{members.length}</span>
         </div>
         {members.length === 0 ? (
           <div className="px-5 py-8 text-center text-sm text-gray-500">Aucun membre dans ce groupe.</div>
-        ) : (
-          members.map(m => (
+        ) : members.map(m => {
+          const lvlColor = LEVEL_COLOR[m.level] ?? '#6B7280';
+          return (
             <div key={m.id} className="flex items-center justify-between px-5 py-3.5 border-b border-white/5 last:border-0">
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-black text-[#C9A227] bg-[#C9A227]/10">
-                  {(m.username ?? '?')[0].toUpperCase()}
+                <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-black" style={{ color: group.color, backgroundColor: `${group.color}15` }}>
+                  {m.username[0].toUpperCase()}
                 </div>
                 <div>
-                  <p className="text-sm font-semibold text-white">{m.username}</p>
-                  <p className="text-xs text-gray-500">{m.email}</p>
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm font-semibold text-white">{m.username}</p>
+                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md" style={{ color: lvlColor, backgroundColor: `${lvlColor}20` }}>{LEVEL_LABEL[m.level] ?? m.level.toUpperCase()}</span>
+                  </div>
+                  <p className="text-xs text-gray-500">⭐ ELO {m.elo}</p>
                 </div>
               </div>
               <button onClick={() => toggleMember(m.id)} disabled={toggling === m.id}
@@ -152,36 +193,114 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
                 Retirer
               </button>
             </div>
-          ))
-        )}
+          );
+        })}
       </div>
 
-      {/* Members to add */}
-      {notInGroup.length > 0 && (
-        <div className="bg-[#111111] border border-white/8 rounded-2xl overflow-hidden">
-          <div className="px-5 py-3.5 border-b border-white/8">
-            <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Ajouter des membres</p>
+      {/* Add members section */}
+      <div className="bg-[#111111] border border-white/8 rounded-2xl overflow-hidden">
+        <div className="px-5 py-3.5 border-b border-white/8">
+          <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Ajouter des membres</p>
+        </div>
+
+        {/* Search + filter bar */}
+        <div className="px-5 py-3 border-b border-white/5 space-y-2">
+          <div className="flex gap-2">
+            <div className="relative flex-1">
+              <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
+              <input
+                value={search} onChange={e => setSearch(e.target.value)}
+                placeholder="Rechercher un membre…"
+                className="w-full bg-white/5 border border-white/10 rounded-xl pl-8 pr-3 py-2 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-[#C9A227] transition-colors"
+              />
+              {search && <button onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white"><X size={12} /></button>}
+            </div>
+            <button onClick={() => setShowFilters(v => !v)}
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold border transition-colors ${showFilters || activeFilters > 0 ? 'border-[#C9A227]/50 text-[#C9A227] bg-[#C9A227]/10' : 'border-white/10 text-gray-400 hover:text-white'}`}>
+              <SlidersHorizontal size={13} />
+              Filtres{activeFilters > 0 ? ` (${activeFilters})` : ''}
+            </button>
           </div>
-          {notInGroup.map(m => (
+
+          {showFilters && (
+            <div className="flex flex-wrap gap-2 pt-1">
+              {/* Level filter */}
+              <div className="flex items-center gap-1">
+                {['', ...LEVELS].map(l => (
+                  <button key={l} onClick={() => setFilterLevel(l)}
+                    className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-colors ${filterLevel === l ? 'text-white' : 'text-gray-500 hover:text-gray-300 bg-white/5'}`}
+                    style={filterLevel === l && l ? { backgroundColor: `${LEVEL_COLOR[l]}25`, color: LEVEL_COLOR[l] } : filterLevel === l ? { backgroundColor: 'rgba(255,255,255,0.1)', color: 'white' } : {}}>
+                    {l ? LEVEL_LABEL[l] : 'Tous niveaux'}
+                  </button>
+                ))}
+              </div>
+
+              {/* ELO sort */}
+              <div className="flex items-center gap-1 ml-auto">
+                <span className="text-xs text-gray-600">ELO :</span>
+                {[['', 'Défaut'], ['desc', '↓ Haut'], ['asc', '↑ Bas']].map(([val, label]) => (
+                  <button key={val} onClick={() => setEloSort(val as any)}
+                    className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-colors ${eloSort === val ? 'bg-white/10 text-white' : 'text-gray-500 hover:text-gray-300 bg-white/5'}`}>
+                    {label}
+                  </button>
+                ))}
+              </div>
+
+              {/* Group filter */}
+              {allGroups.filter(g => g.id !== groupId).length > 0 && (
+                <div className="w-full">
+                  <select value={filterGroup} onChange={e => setFilterGroup(e.target.value)}
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-[#C9A227] transition-colors">
+                    <option value="">Tous les groupes</option>
+                    {allGroups.filter(g => g.id !== groupId).map(g => (
+                      <option key={g.id} value={g.id}>{g.name}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {activeFilters > 0 && (
+                <button onClick={() => { setFilterLevel(''); setFilterGroup(''); setEloSort(''); }}
+                  className="text-xs text-red-400 hover:text-red-300 flex items-center gap-1">
+                  <X size={11} /> Réinitialiser
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+
+        {filteredNotInGroup.length === 0 ? (
+          <div className="px-5 py-8 text-center text-sm text-gray-500">
+            {allMembers.filter(m => !inGroupIds.has(m.id)).length === 0 ? 'Tous les membres sont déjà dans ce groupe.' : 'Aucun résultat pour ces filtres.'}
+          </div>
+        ) : filteredNotInGroup.map(m => {
+          const lvlColor = LEVEL_COLOR[m.level] ?? '#6B7280';
+          return (
             <div key={m.id} className="flex items-center justify-between px-5 py-3.5 border-b border-white/5 last:border-0">
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-black text-gray-400 bg-white/5">
-                  {(m.username ?? '?')[0].toUpperCase()}
+                <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-xs font-black text-gray-400">
+                  {m.username[0].toUpperCase()}
                 </div>
                 <div>
-                  <p className="text-sm font-semibold text-gray-300">{m.username}</p>
-                  <p className="text-xs text-gray-600">{m.level?.toUpperCase()}</p>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <p className="text-sm font-semibold text-gray-200">{m.username}</p>
+                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md" style={{ color: lvlColor, backgroundColor: `${lvlColor}20` }}>{LEVEL_LABEL[m.level] ?? m.level.toUpperCase()}</span>
+                    {m.groups.map(g => (
+                      <span key={g.id} className="text-[10px] font-bold px-1.5 py-0.5 rounded-md" style={{ color: g.color, backgroundColor: `${g.color}20` }}>{g.name}</span>
+                    ))}
+                  </div>
+                  <p className="text-xs text-gray-600">⭐ ELO {m.elo}</p>
                 </div>
               </div>
               <button onClick={() => toggleMember(m.id)} disabled={toggling === m.id}
-                className="flex items-center gap-1.5 text-xs font-bold text-[#C9A227] hover:text-[#C9A227]/80 transition-colors">
+                className="flex items-center gap-1.5 text-xs font-bold text-[#C9A227] hover:text-[#C9A227]/80 transition-colors shrink-0">
                 {toggling === m.id ? <Loader2 size={12} className="animate-spin" /> : <UserPlus size={13} />}
                 Ajouter
               </button>
             </div>
-          ))}
-        </div>
-      )}
+          );
+        })}
+      </div>
     </div>
   );
 }
