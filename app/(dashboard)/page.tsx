@@ -39,11 +39,17 @@ export default async function DashboardPage() {
       .eq('box_id', box.id).order('created_at', { ascending: false }).limit(3),
     tournamentIds.length
       ? supabase.from('tournament_scores')
-          .select('id, score_value, submitted_at, status, athlete_id, tournament_wod_id, tournament_id, profile:profiles(username, level), tw:tournament_wods(title)')
+          .select('id, score_value, submitted_at, status, athlete_id, tournament_wod_id, tournament_id, profile:profiles!athlete_id(username, level), tw:tournament_wods(title)')
           .eq('status', 'pending').in('tournament_id', tournamentIds)
           .order('submitted_at', { ascending: false }).limit(5)
       : Promise.resolve({ count: 0, data: [], error: null }),
   ]);
+
+  const normalizedScores = (pendingScoresList ?? []).map((s: any) => ({
+    ...s,
+    profile: Array.isArray(s.profile) ? s.profile[0] : s.profile,
+    tw:      Array.isArray(s.tw)      ? s.tw[0]      : s.tw,
+  }));
 
   const kpis = [
     { label: 'Tournois actifs',    value: activeTournaments ?? 0, icon: Trophy,        color: '#C9A227', href: '/tournaments' },
@@ -124,11 +130,11 @@ export default async function DashboardPage() {
             <h2 className="text-sm font-bold text-white">Scores à valider</h2>
             <Link href="/tournaments" className="text-xs text-[#C9A227] hover:text-[#C9A227] font-semibold">Voir tout →</Link>
           </div>
-          {!pendingScoresList?.length ? (
+          {!normalizedScores.length ? (
             <p className="text-sm text-gray-500 text-center py-6">Aucun score en attente. ✅</p>
           ) : (
             <div className="space-y-2">
-              {pendingScoresList.map((score: any) => (
+              {normalizedScores.map((score: any) => (
                 <Link key={score.id} href={`/tournaments/${score.tournament_id}/scores`}
                   className="flex items-center gap-3 py-3 border-b border-white/5 last:border-0 hover:bg-white/3 rounded-lg px-2 -mx-2 transition-colors">
                   <div className="w-8 h-8 rounded-full bg-[#C9A227]/20 flex items-center justify-center text-[#C9A227] text-xs font-black shrink-0">
