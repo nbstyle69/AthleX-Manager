@@ -1,7 +1,7 @@
-﻿import { createClient, getOwnerBox } from '@/lib/supabase/server';
+﻿import { createClient, createServiceClient, getOwnerBox } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
-import { ChevronLeft, Dumbbell, Users, BarChart2, Trophy, Pencil } from 'lucide-react';
+import { ChevronLeft, Dumbbell, Users, BarChart2, Trophy, Pencil, ClipboardCheck } from 'lucide-react';
 import CloseTournamentButton from '@/components/tournaments/CloseTournamentButton';
 import DeleteTournamentButton from '@/components/tournaments/DeleteTournamentButton';
 
@@ -27,10 +27,12 @@ export default async function TournamentDetailPage({ params }: { params: Promise
 
   if (!t) redirect('/tournaments');
 
-  const [{ count: wodCount }, { count: participantCount }, { count: pendingCount }] = await Promise.all([
+  const svc = createServiceClient();
+  const [{ count: wodCount }, { count: participantCount }, { count: pendingCount }, { count: totalScores }] = await Promise.all([
     supabase.from('tournament_wods').select('*', { count: 'exact', head: true }).eq('tournament_id', id),
     supabase.from('tournament_participants').select('*', { count: 'exact', head: true }).eq('tournament_id', id),
-    supabase.from('tournament_scores').select('*', { count: 'exact', head: true }).eq('tournament_id', id).eq('status', 'pending'),
+    svc.from('tournament_scores').select('*', { count: 'exact', head: true }).eq('tournament_id', id).eq('status', 'pending'),
+    svc.from('tournament_scores').select('*', { count: 'exact', head: true }).eq('tournament_id', id),
   ]);
 
   const st = STATUS_MAP[t.status] ?? STATUS_MAP.draft;
@@ -84,7 +86,7 @@ export default async function TournamentDetailPage({ params }: { params: Promise
       </div>
 
       {/* Quick nav tiles */}
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Link href={`/tournaments/${id}/wods`}
           className="bg-[#111111] border border-white/8 rounded-2xl p-5 hover:border-[#C9A227]/30 transition-colors group">
           <div className="w-10 h-10 rounded-xl bg-[#C9A227]/15 flex items-center justify-center mb-3">
@@ -101,6 +103,20 @@ export default async function TournamentDetailPage({ params }: { params: Promise
           </div>
           <p className="text-white font-bold text-lg">{participantCount ?? 0}</p>
           <p className="text-xs text-gray-400 font-semibold mt-0.5">Participants</p>
+        </Link>
+
+        <Link href={`/tournaments/${id}/scores`}
+          className="relative bg-[#111111] border border-white/8 rounded-2xl p-5 hover:border-amber-500/30 transition-colors group">
+          {(pendingCount ?? 0) > 0 && (
+            <span className="absolute top-3 right-3 bg-amber-500 text-white text-[10px] font-black px-1.5 py-0.5 rounded-full">
+              {pendingCount}
+            </span>
+          )}
+          <div className="w-10 h-10 rounded-xl bg-amber-500/15 flex items-center justify-center mb-3">
+            <ClipboardCheck size={18} className="text-amber-400" />
+          </div>
+          <p className="text-white font-bold text-lg">{totalScores ?? 0}</p>
+          <p className="text-xs text-gray-400 font-semibold mt-0.5">Scores à valider</p>
         </Link>
 
         <Link href={`/tournaments/${id}/leaderboard`}

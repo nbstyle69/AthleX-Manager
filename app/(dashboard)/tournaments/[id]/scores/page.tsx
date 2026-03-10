@@ -16,7 +16,7 @@ export default async function TournamentScoresPage({ params }: { params: Promise
   const [{ data: tournament }, { data: rawScores }] = await Promise.all([
     svc.from('tournaments').select('name, box_id').eq('id', tournamentId).single(),
     svc.from('tournament_scores')
-      .select('id, score_value, submitted_at, status, video_url, notes, athlete_id, tournament_wod_id, tw:tournament_wods(title)')
+      .select('id, score_value, submitted_at, status, video_url, notes, admin_message, athlete_id, tournament_wod_id, tw:tournament_wods(title)')
       .eq('tournament_id', tournamentId)
       .order('submitted_at', { ascending: false }),
   ]);
@@ -37,6 +37,7 @@ export default async function TournamentScoresPage({ params }: { params: Promise
     status:           s.status,
     video_url:        s.video_url ?? null,
     notes:            s.notes ?? null,
+    admin_message:    s.admin_message ?? null,
     athlete_id:       s.athlete_id,
     tournament_wod_id: s.tournament_wod_id,
     username:         profileMap[s.athlete_id]?.username ?? null,
