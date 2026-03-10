@@ -30,6 +30,12 @@ export async function createClient() {
   });
 }
 
+export function createServiceClient() {
+  return createSupabaseClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, {
+    auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
+  });
+}
+
 export async function getOwnerBox(supabase: Awaited<ReturnType<typeof createClient>>) {
   const user = await getServerUser();
   if (!user) return null;
