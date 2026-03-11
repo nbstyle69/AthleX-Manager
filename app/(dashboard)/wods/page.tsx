@@ -13,8 +13,9 @@ type WodType = 'for-time' | 'amrap' | 'emom' | 'tabata' | 'strength' | 'custom';
 interface BoxWOD {
   id: string; box_id: string; created_by: string;
   title: string; description: string | null;
-  wod_type: WodType; scheduled_date: string;
+  wod_type: WodType | null; scheduled_date: string;
   time_cap_seconds: number | null; rounds: number | null;
+  block: string | null;
   notes: string | null; is_published: boolean;
 }
 
@@ -28,6 +29,18 @@ const WOD_TYPES: { value: WodType; label: string; color: string }[] = [
 ];
 
 const TYPE_COLOR: Record<string, string> = Object.fromEntries(WOD_TYPES.map(t => [t.value, t.color]));
+
+type BlockType = 'skill-gym' | 'skill-haltero' | 'wod' | 'pre-wod' | 'post-wod' | '';
+const BLOCKS: { value: string; label: string; color: string }[] = [
+  { value: 'skill-gym',     label: 'Skill GYM',     color: '#06B6D4' },
+  { value: 'skill-haltero', label: 'Skill Halt\u00e9ro',  color: '#F97316' },
+  { value: 'wod',           label: 'WOD',            color: '#EF4444' },
+  { value: 'pre-wod',       label: 'Pr\u00e9-WOD',       color: '#22C55E' },
+  { value: 'post-wod',      label: 'Post-WOD',      color: '#A855F7' },
+];
+const BLOCK_COLOR: Record<string, string> = Object.fromEntries(BLOCKS.map(b => [b.value, b.color]));
+const BLOCK_LABEL: Record<string, string> = Object.fromEntries(BLOCKS.map(b => [b.value, b.label]));
+
 const DAY_LABELS = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
 
 function getWeekDates(offset = 0): Date[] {
@@ -47,7 +60,7 @@ function toISO(d: Date): string {
   return d.toISOString().split('T')[0];
 }
 
-const EMPTY = { title: '', description: '', wod_type: 'amrap' as WodType, date: '', timeCap: '', rounds: '', notes: '', published: true };
+const EMPTY = { title: '', description: '', wod_type: '' as string, block: '' as string, date: '', timeCap: '', rounds: '', notes: '', published: true };
 
 export default function WODsPage() {
   const supabase = createClient();
@@ -108,7 +121,8 @@ export default function WODsPage() {
     setEditWOD(wod);
     setForm({
       title: wod.title, description: wod.description ?? '',
-      wod_type: wod.wod_type, date: wod.scheduled_date,
+      wod_type: wod.wod_type ?? '', block: wod.block ?? '',
+      date: wod.scheduled_date,
       timeCap: wod.time_cap_seconds ? String(Math.floor(wod.time_cap_seconds / 60)) : '',
       rounds: wod.rounds ? String(wod.rounds) : '',
       notes: wod.notes ?? '', published: wod.is_published,
@@ -124,7 +138,8 @@ export default function WODsPage() {
       box_id: boxId, created_by: userId,
       title: form.title.trim(),
       description: form.description.trim() || null,
-      wod_type: form.wod_type,
+      wod_type: form.wod_type || null,
+      block: form.block || null,
       scheduled_date: form.date,
       time_cap_seconds: form.timeCap ? parseInt(form.timeCap) * 60 : null,
       rounds: form.rounds ? parseInt(form.rounds) : null,
@@ -393,12 +408,13 @@ export default function WODsPage() {
                   ) : (
                     <>
                       {dayWODs.map(wod => {
-                        const color = TYPE_COLOR[wod.wod_type] ?? '#6B7280';
+                        const wt = wod.wod_type ?? '';
+                        const color = TYPE_COLOR[wt] ?? '#6B7280';
                         return (
                           <div key={wod.id} className={`rounded-xl p-2.5 border border-white/5 bg-white/[0.02] hover:bg-white/[0.04] transition-colors ${!wod.is_published ? 'opacity-50' : ''}`}>
-                            <div className="flex items-center gap-1.5 mb-1">
-                              <div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: color }} />
-                              <span className="text-[9px] font-black tracking-wider truncate" style={{ color }}>{wod.wod_type.toUpperCase()}</span>
+                            <div className="flex items-center gap-1.5 mb-1 flex-wrap">
+                              {wod.block && <span className="text-[8px] font-black tracking-wider px-1 py-0.5 rounded" style={{ backgroundColor: `${BLOCK_COLOR[wod.block]}20`, color: BLOCK_COLOR[wod.block] }}>{BLOCK_LABEL[wod.block]}</span>}
+                              {wt && <><div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: color }} /><span className="text-[9px] font-black tracking-wider truncate" style={{ color }}>{wt.toUpperCase()}</span></>}
                               {!wod.is_published && <EyeOff size={9} className="text-amber-500 shrink-0" />}
                             </div>
                             <p className="text-xs font-bold text-white truncate">{wod.title}</p>
@@ -470,15 +486,23 @@ export default function WODsPage() {
                 ) : (
                   <div className="border-t border-white/5 divide-y divide-white/5">
                     {dayWODs.map(wod => {
-                      const color = TYPE_COLOR[wod.wod_type] ?? '#6B7280';
+                      const wt = wod.wod_type ?? '';
+                      const color = TYPE_COLOR[wt] ?? '#6B7280';
                       return (
                         <div key={wod.id} className={`flex items-center gap-4 px-5 py-3.5 ${!wod.is_published ? 'opacity-60' : ''}`}>
-                          <div className="w-1 h-10 rounded-full shrink-0" style={{ backgroundColor: color }} />
+                          <div className="w-1 h-10 rounded-full shrink-0" style={{ backgroundColor: wod.block ? (BLOCK_COLOR[wod.block] ?? color) : color }} />
                           <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 mb-0.5">
-                              <span className="text-[10px] font-black tracking-wider" style={{ color }}>
-                                {wod.wod_type.toUpperCase()}
-                              </span>
+                            <div className="flex items-center gap-2 mb-0.5 flex-wrap">
+                              {wod.block && (
+                                <span className="text-[10px] font-black tracking-wider px-1.5 py-0.5 rounded" style={{ backgroundColor: `${BLOCK_COLOR[wod.block]}20`, color: BLOCK_COLOR[wod.block] }}>
+                                  {BLOCK_LABEL[wod.block]}
+                                </span>
+                              )}
+                              {wt && (
+                                <span className="text-[10px] font-black tracking-wider" style={{ color }}>
+                                  {wt.toUpperCase()}
+                                </span>
+                              )}
                               {!wod.is_published && (
                                 <span className="text-[9px] font-black text-amber-500 bg-amber-500/10 px-1.5 py-0.5 rounded uppercase tracking-wider">
                                   Brouillon
@@ -544,9 +568,21 @@ export default function WODsPage() {
                     onChange={e => setForm(f => ({ ...f, date: e.target.value }))} required />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-gray-400 mb-1.5 uppercase tracking-wider">Type</label>
+                  <label className="block text-xs font-semibold text-gray-400 mb-1.5 uppercase tracking-wider">Block</label>
+                  <select className={inp} value={form.block}
+                    onChange={e => setForm(f => ({ ...f, block: e.target.value }))}>
+                    <option value="">— Aucun —</option>
+                    {BLOCKS.map(b => <option key={b.value} value={b.value}>{b.label}</option>)}
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold text-gray-400 mb-1.5 uppercase tracking-wider">Type <span className="text-gray-600 normal-case tracking-normal">(optionnel)</span></label>
                   <select className={inp} value={form.wod_type}
-                    onChange={e => setForm(f => ({ ...f, wod_type: e.target.value as WodType }))}>
+                    onChange={e => setForm(f => ({ ...f, wod_type: e.target.value }))}>
+                    <option value="">— Aucun —</option>
                     {WOD_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
                   </select>
                 </div>
@@ -572,9 +608,9 @@ export default function WODsPage() {
                     onChange={e => setForm(f => ({ ...f, timeCap: e.target.value }))} placeholder="20" min="0" />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-gray-400 mb-1.5 uppercase tracking-wider">Rounds</label>
+                  <label className="block text-xs font-semibold text-gray-400 mb-1.5 uppercase tracking-wider">Rounds <span className="text-gray-600 normal-case tracking-normal">(optionnel)</span></label>
                   <input type="number" className={inp} value={form.rounds}
-                    onChange={e => setForm(f => ({ ...f, rounds: e.target.value }))} placeholder="5" min="0" />
+                    onChange={e => setForm(f => ({ ...f, rounds: e.target.value }))} placeholder="—" min="0" />
                 </div>
               </div>
 
