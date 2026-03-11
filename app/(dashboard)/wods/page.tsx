@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import {
   Plus, ChevronLeft, ChevronRight, Pencil, Trash2,
-  Eye, EyeOff, X, Loader2, Dumbbell, Upload, Download, FileText,
+  Eye, EyeOff, X, Loader2, Dumbbell, Upload, Download, FileText, Calendar, LayoutGrid, List,
 } from 'lucide-react';
 import { useRef } from 'react';
 
@@ -66,6 +66,8 @@ export default function WODsPage() {
   const [importing,   setImporting]   = useState(false);
   const [importResult, setImportResult] = useState<{ ok: number; errors: string[] } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [layout, setLayout] = useState<'rows' | 'columns'>('rows');
+  const [showDateNav, setShowDateNav] = useState(false);
 
   const weekDates = getWeekDates(weekOffset);
   const todayISO  = toISO(new Date());
@@ -243,6 +245,22 @@ export default function WODsPage() {
     if (ok > 0) load();
   }
 
+  function jumpToDate(dateStr: string) {
+    const target = new Date(dateStr + 'T00:00:00');
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const todayDay = today.getDay();
+    const currentMonday = new Date(today);
+    currentMonday.setDate(today.getDate() - (todayDay === 0 ? 6 : todayDay - 1));
+    const targetDay = target.getDay();
+    const targetMonday = new Date(target);
+    targetMonday.setDate(target.getDate() - (targetDay === 0 ? 6 : targetDay - 1));
+    const diffMs = targetMonday.getTime() - currentMonday.getTime();
+    const diffWeeks = Math.round(diffMs / (7 * 24 * 60 * 60 * 1000));
+    setWeek(diffWeeks);
+    setShowDateNav(false);
+  }
+
   const inp = 'w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-[#C9A227] transition-colors';
 
   return (
@@ -267,6 +285,14 @@ export default function WODsPage() {
             {importing ? 'Import…' : 'Importer CSV'}
             <input ref={fileInputRef} type="file" accept=".csv" className="hidden" onChange={handleImport} />
           </label>
+          <button
+            onClick={() => setLayout(l => l === 'rows' ? 'columns' : 'rows')}
+            title={layout === 'rows' ? 'Vue colonnes' : 'Vue lignes'}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold border border-white/10 text-gray-400 hover:text-white hover:border-white/20 transition-colors"
+          >
+            {layout === 'rows' ? <LayoutGrid size={13} /> : <List size={13} />}
+            {layout === 'rows' ? 'Colonnes' : 'Lignes'}
+          </button>
           <button
             onClick={() => openCreate(todayISO)}
             className="flex items-center gap-2 px-4 py-2.5 bg-[#C9A227] hover:bg-[#C9A227]/90 text-white text-sm font-bold rounded-xl transition-colors"
@@ -293,26 +319,114 @@ export default function WODsPage() {
       )}
 
       {/* Week nav */}
-      <div className="flex items-center justify-between bg-[#111111] border border-white/8 rounded-2xl px-5 py-3">
-        <button onClick={() => setWeek(w => w - 1)} className="p-2 rounded-xl hover:bg-white/5 text-gray-400 hover:text-white transition-colors">
-          <ChevronLeft size={18} />
-        </button>
-        <div className="text-center">
-          <p className="text-sm font-bold text-white">
-            {weekDates[0].toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })}
-            {' — '}
-            {weekDates[6].toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}
-          </p>
-          {weekOffset === 0 && <p className="text-xs text-[#C9A227] font-semibold mt-0.5">Semaine actuelle</p>}
+      <div className="relative">
+        <div className="flex items-center justify-between bg-[#111111] border border-white/8 rounded-2xl px-5 py-3">
+          <button onClick={() => setWeek(w => w - 1)} className="p-2 rounded-xl hover:bg-white/5 text-gray-400 hover:text-white transition-colors">
+            <ChevronLeft size={18} />
+          </button>
+          <button onClick={() => setShowDateNav(v => !v)} className="text-center hover:opacity-80 transition-opacity group">
+            <div className="flex items-center gap-2 justify-center">
+              <Calendar size={14} className="text-gray-500 group-hover:text-[#C9A227] transition-colors" />
+              <p className="text-sm font-bold text-white">
+                {weekDates[0].toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })}
+                {' — '}
+                {weekDates[6].toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}
+              </p>
+            </div>
+            {weekOffset === 0 && <p className="text-xs text-[#C9A227] font-semibold mt-0.5">Semaine actuelle</p>}
+          </button>
+          <button onClick={() => setWeek(w => w + 1)} className="p-2 rounded-xl hover:bg-white/5 text-gray-400 hover:text-white transition-colors">
+            <ChevronRight size={18} />
+          </button>
         </div>
-        <button onClick={() => setWeek(w => w + 1)} className="p-2 rounded-xl hover:bg-white/5 text-gray-400 hover:text-white transition-colors">
-          <ChevronRight size={18} />
-        </button>
+        {showDateNav && (
+          <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 bg-[#1a1a1a] border border-white/10 rounded-2xl p-4 shadow-2xl z-30 min-w-[280px]">
+            <p className="text-xs font-semibold text-gray-400 mb-2 uppercase tracking-wider">Aller à une date</p>
+            <input
+              type="date"
+              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-[#C9A227] transition-colors"
+              onChange={(e) => { if (e.target.value) jumpToDate(e.target.value); }}
+            />
+            <div className="flex gap-2 mt-3">
+              <button onClick={() => { setWeek(0); setShowDateNav(false); }} className="flex-1 py-2 text-xs font-semibold text-[#C9A227] rounded-xl hover:bg-[#C9A227]/10 transition-colors">
+                Aujourd&#39;hui
+              </button>
+              <button onClick={() => setShowDateNav(false)} className="flex-1 py-2 text-xs font-semibold text-gray-400 rounded-xl hover:bg-white/5 transition-colors">
+                Fermer
+              </button>
+            </div>
+          </div>
+        )}
+        {weekOffset !== 0 && !showDateNav && (
+          <div className="text-center mt-1">
+            <button onClick={() => setWeek(0)} className="text-xs text-gray-500 hover:text-[#C9A227] font-semibold transition-colors">
+              ← Revenir à la semaine actuelle
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Calendar */}
       {loading ? (
         <div className="flex justify-center py-20"><Loader2 className="animate-spin text-[#C9A227]" size={28} /></div>
+      ) : layout === 'columns' ? (
+        <div className="grid grid-cols-7 gap-2 min-h-[400px]">
+          {weekDates.map((d, i) => {
+            const iso     = toISO(d);
+            const isToday = iso === todayISO;
+            const dayWODs = wods.filter(w => w.scheduled_date === iso);
+            return (
+              <div key={iso} className={`bg-[#111111] border rounded-2xl overflow-hidden flex flex-col ${isToday ? 'border-[#C9A227]/50' : 'border-white/8'}`}>
+                <div className={`text-center px-2 py-3 ${isToday ? 'bg-[#C9A227]/20' : ''}`}>
+                  <p className={`text-xs font-black ${isToday ? 'text-[#C9A227]' : 'text-gray-400'}`}>{DAY_LABELS[i]}</p>
+                  <p className={`text-sm font-bold mt-0.5 ${isToday ? 'text-white' : 'text-gray-300'}`}>
+                    {d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}
+                  </p>
+                  {isToday && <span className="text-[9px] font-black text-[#C9A227] mt-0.5 block">Aujourd&#39;hui</span>}
+                </div>
+                <div className="flex-1 border-t border-white/5 p-2 space-y-2 min-h-[120px]">
+                  {dayWODs.length === 0 ? (
+                    <button onClick={() => openCreate(iso)} className="w-full h-full min-h-[100px] flex flex-col items-center justify-center text-xs text-gray-600 hover:text-gray-400 transition-colors rounded-xl hover:bg-white/5">
+                      <Dumbbell size={16} className="mb-1.5 opacity-40" />
+                      Ajouter
+                    </button>
+                  ) : (
+                    <>
+                      {dayWODs.map(wod => {
+                        const color = TYPE_COLOR[wod.wod_type] ?? '#6B7280';
+                        return (
+                          <div key={wod.id} className={`rounded-xl p-2.5 border border-white/5 bg-white/[0.02] hover:bg-white/[0.04] transition-colors ${!wod.is_published ? 'opacity-50' : ''}`}>
+                            <div className="flex items-center gap-1.5 mb-1">
+                              <div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: color }} />
+                              <span className="text-[9px] font-black tracking-wider truncate" style={{ color }}>{wod.wod_type.toUpperCase()}</span>
+                              {!wod.is_published && <EyeOff size={9} className="text-amber-500 shrink-0" />}
+                            </div>
+                            <p className="text-xs font-bold text-white truncate">{wod.title}</p>
+                            {wod.description && <p className="text-[10px] text-gray-500 truncate mt-0.5">{wod.description}</p>}
+                            <div className="flex items-center gap-0.5 mt-2 pt-1.5 border-t border-white/5">
+                              <button onClick={() => togglePublish(wod)} className="p-1 rounded-lg hover:bg-white/10 transition-colors" title={wod.is_published ? 'Dépublier' : 'Publier'}>
+                                {wod.is_published ? <Eye size={11} className="text-emerald-400" /> : <EyeOff size={11} className="text-gray-500" />}
+                              </button>
+                              <button onClick={() => openEdit(wod)} className="p-1 rounded-lg hover:bg-white/10 transition-colors">
+                                <Pencil size={11} className="text-[#C9A227]" />
+                              </button>
+                              <button onClick={() => deleteWOD(wod)} className="p-1 rounded-lg hover:bg-red-500/10 transition-colors">
+                                <Trash2 size={11} className="text-red-400" />
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                      <button onClick={() => openCreate(iso)} className="w-full py-1.5 text-center text-[10px] text-[#C9A227] font-semibold rounded-lg hover:bg-white/5 transition-colors">
+                        <Plus size={10} className="inline mr-0.5 -mt-px" /> Ajouter
+                      </button>
+                    </>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
       ) : (
         <div className="space-y-3">
           {weekDates.map((d, i) => {
