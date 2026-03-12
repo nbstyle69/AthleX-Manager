@@ -69,7 +69,8 @@ const MVTS: MvDef[] = [
   { name: 'Chest-to-Bar',       eq: ['Barre de traction'], reps: [0,0,8,10,12,15] },
   { name: 'Toes to Bar',        eq: ['Barre de traction'], reps: [5,8,10,12,15,18] },
   { name: 'Bar Muscle-ups',     eq: ['Barre de traction'], reps: [0,0,0,3,5,7] },
-  { name: 'HSPU',               eq: ['Barre de traction'], reps: [0,3,5,7,10,12] },
+  { name: 'HSPU Stricts',        eq: ['Barre de traction'], reps: [0,0,5,7,10,12] },
+  { name: 'Wall Facing HSPU',   eq: ['Barre de traction'], reps: [0,0,0,5,8,10] },
   // Anneaux
   { name: 'Ring Dips',          eq: ['Anneaux'], reps: [3,5,8,10,12,15] },
   { name: 'Ring Muscle-ups',    eq: ['Anneaux'], reps: [0,0,0,2,4,6] },
