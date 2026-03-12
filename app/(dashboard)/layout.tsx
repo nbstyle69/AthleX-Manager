@@ -1,5 +1,5 @@
 ﻿import { redirect } from 'next/navigation';
-import { createClient, getOwnerBox, getServerUser } from '@/lib/supabase/server';
+import { createClient, getOwnerBox, getServerProfile, getServerUser } from '@/lib/supabase/server';
 import Sidebar from '@/components/layout/Sidebar';
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -7,6 +7,13 @@ export default async function DashboardLayout({ children }: { children: React.Re
   if (!user) redirect('/login');
 
   const supabase = await createClient();
+
+  // Super admin → redirect to /admin section
+  const profile = await getServerProfile(supabase);
+  if (profile?.role === 'super_admin' || profile?.role === 'admin') {
+    redirect('/admin');
+  }
+
   const box = await getOwnerBox(supabase);
   if (!box) {
     return (
