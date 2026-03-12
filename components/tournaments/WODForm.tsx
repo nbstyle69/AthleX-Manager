@@ -7,6 +7,7 @@ import { Plus, Trash2, Loader2, X, Sparkles, ChevronDown, ChevronUp, Timer } fro
 const WOD_TYPES = ['AMRAP', 'For Time', 'EMOM', 'Tabata', 'Max Reps', 'Strength'];
 const LEVELS    = ['scaled', 'inter', 'rx', 'rx+', 'gx', 'pro'];
 const EQUIPMENT = ['Barre olympique', 'Haltères', 'Kettlebell', 'Barre de traction', 'Anneaux', 'Rameur', 'Vélo assault', 'Corde à sauter', 'Box', 'Sac de sable', 'Médecine ball', 'GHD'];
+const DURATIONS = [5, 8, 10, 12, 15, 20, 25, 30];
 
 const WOD_STATUSES = [
   { value: 'pending', label: 'En attente' },
@@ -25,6 +26,232 @@ function timerInfoForType(type: string, form: any) {
     default: return '';
   }
 }
+
+// ── Local WOD Generation Engine ─────────────────────────────────────────
+const LI: Record<string, number> = { scaled: 0, inter: 1, rx: 2, 'rx+': 3, gx: 4, pro: 5 };
+
+interface MvDef { name: string; eq: string[]; reps: number[]; load?: string[] }
+
+const MVTS: MvDef[] = [
+  // Barre olympique
+  { name: 'Thrusters',          eq: ['Barre olympique'], reps: [8,10,12,15,15,18], load: ['30/20','40/28','43/30','50/35','60/42','70/48'] },
+  { name: 'Clean & Jerk',       eq: ['Barre olympique'], reps: [5,7,9,10,12,15], load: ['30/20','43/30','60/43','70/48','80/55','102/70'] },
+  { name: 'Power Cleans',       eq: ['Barre olympique'], reps: [6,8,10,12,12,15], load: ['40/28','50/35','60/43','70/48','80/55','90/63'] },
+  { name: 'Squat Cleans',       eq: ['Barre olympique'], reps: [0,5,7,9,10,12], load: ['','45/32','60/43','70/48','80/55','90/63'] },
+  { name: 'Power Snatches',     eq: ['Barre olympique'], reps: [5,7,9,10,12,15], load: ['20/15','35/25','50/35','60/42','70/50','85/60'] },
+  { name: 'Deadlifts',          eq: ['Barre olympique'], reps: [8,10,12,15,15,18], load: ['70/50','100/70','120/80','140/95','160/110','180/120'] },
+  { name: 'Front Squats',       eq: ['Barre olympique'], reps: [6,8,10,12,12,15], load: ['40/28','55/38','70/48','85/58','100/68','120/80'] },
+  { name: 'OHS',                eq: ['Barre olympique'], reps: [0,5,8,10,12,15], load: ['','35/25','50/35','60/42','70/48','80/55'] },
+  { name: 'Push Press',         eq: ['Barre olympique'], reps: [6,8,10,12,12,15], load: ['30/20','40/28','50/35','60/42','70/48','80/55'] },
+  { name: 'Shoulder to OH',     eq: ['Barre olympique'], reps: [6,8,10,12,12,15], load: ['25/18','35/25','45/32','55/38','65/45','75/50'] },
+  { name: 'Hang Squat Cleans',  eq: ['Barre olympique'], reps: [0,5,7,9,10,12], load: ['','40/28','50/35','60/42','70/48','80/55'] },
+  { name: 'Sumo Deadlift HP',   eq: ['Barre olympique'], reps: [6,8,10,12,12,15], load: ['25/18','30/20','35/25','40/28','50/35','55/38'] },
+  // Haltères
+  { name: 'DB Thrusters',       eq: ['Haltères'], reps: [6,8,10,12,15,18], load: ['10/7','15/10','20/14','22/15','25/17','30/20'] },
+  { name: 'DB Snatches alt.',   eq: ['Haltères'], reps: [8,10,12,15,18,21], load: ['10/7','15/10','20/14','22/15','25/17','30/20'] },
+  { name: "Devil's Press",      eq: ['Haltères'], reps: [4,6,8,10,12,15], load: ['10/7','15/10','20/14','22/15','25/17','30/20'] },
+  { name: 'DB Clean & Jerk',    eq: ['Haltères'], reps: [6,8,10,12,15,18], load: ['10/7','15/10','20/14','22/15','25/17','30/20'] },
+  { name: 'DB Lunges',          eq: ['Haltères'], reps: [8,10,12,16,20,24], load: ['10/7','15/10','20/14','22/15','25/17','30/20'] },
+  // Kettlebell
+  { name: 'KB Swings',          eq: ['Kettlebell'], reps: [12,15,18,21,24,30], load: ['16/12','20/16','24/16','28/20','32/24','36/28'] },
+  { name: 'Goblet Squats',      eq: ['Kettlebell'], reps: [8,10,12,15,18,21], load: ['16/12','20/16','24/16','28/20','32/24','36/28'] },
+  { name: 'KB Snatches alt.',   eq: ['Kettlebell'], reps: [6,8,10,12,15,18], load: ['16/12','20/16','24/16','28/20','32/24','36/28'] },
+  { name: 'Turkish Get-ups',    eq: ['Kettlebell'], reps: [2,3,4,5,6,8], load: ['10/8','14/10','16/12','20/14','24/16','28/20'] },
+  // Barre de traction
+  { name: 'Pull-ups',           eq: ['Barre de traction'], reps: [5,8,10,12,15,18] },
+  { name: 'Chest-to-Bar',       eq: ['Barre de traction'], reps: [0,0,8,10,12,15] },
+  { name: 'Toes to Bar',        eq: ['Barre de traction'], reps: [5,8,10,12,15,18] },
+  { name: 'Bar Muscle-ups',     eq: ['Barre de traction'], reps: [0,0,0,3,5,7] },
+  { name: 'HSPU',               eq: ['Barre de traction'], reps: [0,3,5,7,10,12] },
+  // Anneaux
+  { name: 'Ring Dips',          eq: ['Anneaux'], reps: [3,5,8,10,12,15] },
+  { name: 'Ring Muscle-ups',    eq: ['Anneaux'], reps: [0,0,0,2,4,6] },
+  { name: 'Ring Rows',          eq: ['Anneaux'], reps: [8,10,12,15,15,18] },
+  // Rameur
+  { name: 'Cal Rameur',         eq: ['Rameur'], reps: [10,12,15,18,20,25] },
+  { name: 'Row (m)',            eq: ['Rameur'], reps: [200,250,300,400,500,750] },
+  // Vélo assault
+  { name: 'Cal Assault Bike',   eq: ['Vélo assault'], reps: [8,10,12,15,18,22] },
+  // Corde à sauter
+  { name: 'Double Unders',      eq: ['Corde à sauter'], reps: [0,20,30,40,50,60] },
+  { name: 'Cross Overs',        eq: ['Corde à sauter'], reps: [0,0,10,15,20,25] },
+  // Box
+  { name: 'Box Jumps',          eq: ['Box'], reps: [10,12,15,18,20,24] },
+  { name: 'Box Jump Overs',     eq: ['Box'], reps: [8,10,12,15,18,21] },
+  // Sac de sable
+  { name: 'Sandbag Cleans',     eq: ['Sac de sable'], reps: [5,7,10,12,15,18], load: ['20','30','40','50','60','70'] },
+  // Médecine ball
+  { name: 'Wall Balls',         eq: ['Médecine ball'], reps: [12,15,18,21,25,30], load: ['6/4','7/5','9/6','10/7','12/9','14/10'] },
+  { name: 'MB Slams',           eq: ['Médecine ball'], reps: [8,10,12,15,18,21], load: ['6','8','9','10','12','14'] },
+  // GHD
+  { name: 'GHD Sit-ups',        eq: ['GHD'], reps: [8,12,15,18,21,25] },
+  { name: 'GHD Hip Extensions', eq: ['GHD'], reps: [8,10,12,15,18,21] },
+  // Bodyweight (toujours dispo)
+  { name: 'Burpees',            eq: [], reps: [5,8,10,12,15,18] },
+  { name: 'Air Squats',         eq: [], reps: [12,15,20,25,30,40] },
+  { name: 'Push-ups',           eq: [], reps: [8,10,15,18,21,25] },
+  { name: 'Sit-ups',            eq: [], reps: [10,12,15,18,21,25] },
+  { name: 'Lunges',             eq: [], reps: [10,12,16,20,24,30] },
+  { name: 'Wall Walks',         eq: [], reps: [0,1,2,3,4,5] },
+];
+
+const WOD_NAMES: Record<string, string[]> = {
+  'AMRAP':    ['Endless Engine','Non-Stop','The Grind','Reactor','Pulse','Dynamo','Voltage','Overdrive','Cyclone','Fuel'],
+  'For Time': ['Iron Fist','Steel Storm','War Machine','Fire Breather','The Crusher','Ground Zero','Full Send','Red Line','Forge','Inferno'],
+  'EMOM':     ['Clockwork','Metronome','Rhythm','Steady State','Tempo','The Beat','Chronos','Sequence','Epoch','The Grid'],
+  'Tabata':   ['Tabata Terror','Short Fuse','Blast','Thunder','Lightning','Shock','Impact','Explosion','Strike','Hammer'],
+  'Max Reps': ['Peak','Limit Tester','Max Out','The Summit','Threshold','Pinnacle','Zenith','Apex','Top Out','Redline'],
+  'Strength': ['Heavy Day','PR Hunt','Max Effort','The Forge','Iron Will','Bone Crusher','Heavy Metal','The Test','Beast Mode','Power Hour'],
+};
+
+function rand<T>(arr: T[]): T { return arr[Math.floor(Math.random() * arr.length)]; }
+function pick<T>(arr: T[], n: number): T[] {
+  const c = [...arr]; const r: T[] = [];
+  for (let i = 0; i < Math.min(n, c.length); i++) { const idx = Math.floor(Math.random() * c.length); r.push(c.splice(idx, 1)[0]); }
+  return r;
+}
+
+function fmtMv(m: MvDef, li: number): string {
+  const r = m.reps[li];
+  if (r === 0) return '';
+  const ld = m.load?.[li];
+  if (m.name === 'Row (m)') return `${r}m Rameur`;
+  if (m.name.startsWith('Cal ')) return `${r} ${m.name}`;
+  if (ld) return `${r} ${m.name} (${ld} kg)`;
+  return `${r} ${m.name}`;
+}
+
+function fmtMvLabel(m: MvDef, li: number): string {
+  const ld = m.load?.[li];
+  if (ld) return `${m.name} (${ld} kg)`;
+  return m.name;
+}
+
+function localGenerate(type: string, level: string, duration: number, eqList: string[]) {
+  const li = LI[level] ?? 2;
+  const pool = MVTS.filter(m => {
+    if (m.reps[li] === 0) return false;
+    if (m.eq.length === 0) return true;
+    return m.eq.some(e => eqList.includes(e));
+  });
+  if (pool.length === 0) return null;
+
+  // Force at least 1 move per selected equipment
+  const forced: MvDef[] = [];
+  for (const eq of eqList) {
+    const eqPool = pool.filter(m => m.eq.includes(eq) && !forced.includes(m));
+    if (eqPool.length > 0) forced.push(rand(eqPool));
+  }
+  const pickForced = (n: number): MvDef[] => {
+    const need = Math.max(0, n - forced.length);
+    const rem = pool.filter(m => !forced.includes(m));
+    const extra = pick(rem, Math.min(need, rem.length));
+    const res = [...forced, ...extra];
+    for (let i = res.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [res[i], res[j]] = [res[j], res[i]]; }
+    return res.slice(0, n);
+  };
+
+  const title = rand(WOD_NAMES[type] ?? WOD_NAMES['AMRAP']);
+  let movements: string[] = [];
+  let scoring = '';
+  let description = '';
+  let timer_type = 'stopwatch';
+  let time_cap_seconds: number | null = null;
+  let rounds: number | null = null;
+  let work_seconds: number | null = null;
+  let rest_seconds: number | null = null;
+  let duration_minutes = duration;
+
+  switch (type) {
+    case 'AMRAP': {
+      const count = duration <= 8 ? 3 : duration <= 15 ? rand([3,4]) : rand([4,5]);
+      movements = pickForced(count).map(m => fmtMv(m, li)).filter(Boolean);
+      scoring = `Max rounds + reps en ${duration} min`;
+      description = `AMRAP ${duration} min — Enchaîne les mouvements, note ton score (rounds + reps).`;
+      timer_type = 'stopwatch';
+      time_cap_seconds = duration * 60;
+      break;
+    }
+    case 'For Time': {
+      const style = Math.random();
+      if (style < 0.35) {
+        const r = duration <= 8 ? 3 : duration <= 15 ? rand([3,4,5]) : rand([4,5,6]);
+        const mvs = pickForced(3);
+        movements = [`${r} Rounds For Time :`, ...mvs.map(m => fmtMv(m, li)).filter(Boolean)];
+        scoring = `Temps total (cap ${duration} min)`;
+        description = `${r} rounds for time — Termine le plus vite possible.`;
+      } else if (style < 0.7) {
+        const count = duration <= 8 ? 3 : duration <= 15 ? rand([4,5]) : rand([5,6,7]);
+        const mvs = pickForced(count);
+        const repMult = duration <= 10 ? [1,1.5,1,1.2,1] : [1.5,2,1.5,2,1,1.5,1];
+        movements = mvs.map((m, i) => {
+          const mult = repMult[i % repMult.length];
+          const r = Math.round(m.reps[li] * mult);
+          const ld = m.load?.[li];
+          if (m.name === 'Row (m)') return `${r}m Rameur`;
+          if (m.name.startsWith('Cal ')) return `${r} ${m.name}`;
+          return ld ? `${r} ${m.name} (${ld} kg)` : `${r} ${m.name}`;
+        }).filter(Boolean);
+        scoring = `Chipper — Temps total (cap ${duration} min)`;
+        description = `Chipper : enchaîne tout sans round. Sprint mode.`;
+      } else {
+        const scheme = duration <= 10 ? rand(['21-15-9','15-12-9']) : rand(['21-15-9','30-20-10']);
+        const mvs = pickForced(2);
+        movements = [`${scheme} :`, ...mvs.map(m => fmtMvLabel(m, li))];
+        scoring = `${scheme} — Temps total (cap ${duration} min)`;
+        description = `Scheme ${scheme} — Reps décroissantes, vitesse maximale.`;
+      }
+      timer_type = 'countdown';
+      time_cap_seconds = duration * 60;
+      break;
+    }
+    case 'EMOM': {
+      const mins = duration <= 8 ? 2 : duration <= 12 ? 3 : rand([3,4]);
+      const mvs = pickForced(mins);
+      movements = mvs.map((m, i) => `Min ${i+1}: ${fmtMv(m, li)}`).filter(Boolean);
+      scoring = `E${mins}MOM × ${duration} min — Score = rounds complétés`;
+      description = `EMOM ${duration} min (cycle de ${mins} min) — Finis chaque minute avec 15s de repos.`;
+      timer_type = 'emom';
+      time_cap_seconds = duration * 60;
+      rounds = duration;
+      break;
+    }
+    case 'Tabata': {
+      const count = rand([3,4,5]);
+      const mvs = pickForced(count);
+      movements = mvs.map(m => `20s ${m.name} / 10s repos × 8`);
+      scoring = `Score = total de reps`;
+      description = `Tabata — ${count} mouvements, 8 rounds de 20s travail / 10s repos chacun.`;
+      timer_type = 'tabata';
+      rounds = 8;
+      work_seconds = 20;
+      rest_seconds = 10;
+      duration_minutes = count * 4;
+      break;
+    }
+    case 'Max Reps': {
+      const mvs = pickForced(rand([1,2]));
+      movements = mvs.map(m => `Max ${fmtMvLabel(m, li)} en ${mvs.length === 1 ? duration : Math.floor(duration/mvs.length)} min`);
+      scoring = `Score = total de reps`;
+      description = `Max reps en ${duration} min — Pousse au maximum.`;
+      timer_type = 'countdown';
+      time_cap_seconds = duration * 60;
+      break;
+    }
+    case 'Strength': {
+      const mvs = pickForced(rand([1,2]));
+      movements = mvs.map(m => `5 × 3 ${fmtMvLabel(m, li)} (montée en charge)`);
+      scoring = `Score = charge max`;
+      description = `Force — Montée progressive en charge. Repos 2-3 min entre les séries.`;
+      timer_type = 'none';
+      break;
+    }
+  }
+
+  return { title, movements: movements.filter(Boolean), scoring, description, timer_type, time_cap_seconds, rounds, work_seconds, rest_seconds, duration_minutes };
+}
+
+// ─────────────────────────────────────────────────────────────────────────
 
 interface Props {
   tournamentId: string;
@@ -62,6 +289,8 @@ export default function WODForm({ tournamentId, initial, onSaved, onCancel }: Pr
   const [showGen,      setShowGen]      = useState(false);
   const [genLoading,   setGenLoading]   = useState(false);
   const [genLevel,     setGenLevel]     = useState('rx');
+  const [genType,      setGenType]      = useState('AMRAP');
+  const [genDuration,  setGenDuration]  = useState(12);
   const [genEquipment, setGenEquipment] = useState<string[]>(['Barre olympique', 'Barre de traction', 'Haltères']);
   const [genError,     setGenError]     = useState<string | null>(null);
 
@@ -87,36 +316,32 @@ export default function WODForm({ tournamentId, initial, onSaved, onCancel }: Pr
   function removeMovement(i: number)     { setMovements(m => m.filter((_, idx) => idx !== i)); }
   function setMovement(i: number, v: string) { setMovements(m => m.map((x, idx) => idx === i ? v : x)); }
 
-  async function generateWOD() {
+  function generateWOD() {
     setGenLoading(true);
     setGenError(null);
     try {
-      const res = await fetch('/api/generate-wod', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          type: form.type,
-          level: genLevel,
-          duration_minutes: form.type === 'For Time' || form.type === 'Max Reps' ? form.time_cap : form.duration_minutes,
-          equipment: genEquipment,
-        }),
-      });
-      if (!res.ok) throw new Error('Erreur génération');
-      const data = await res.json();
-      if (data.error) throw new Error(data.error);
+      const data = localGenerate(genType, genLevel, genDuration, genEquipment);
+      if (!data) { setGenError('Pas assez de mouvements disponibles pour cet équipement.'); return; }
+
+      const timerMap: Record<string, string> = {
+        'AMRAP': 'stopwatch', 'For Time': 'countdown', 'EMOM': 'emom',
+        'Tabata': 'tabata', 'Max Reps': 'countdown', 'Strength': 'none',
+      };
 
       setForm(f => ({
         ...f,
-        title:       data.title       ?? f.title,
-        description: data.description ?? f.description,
-        scoring:     data.scoring     ?? f.scoring,
-        timer_type:  data.timer_type  ?? f.timer_type,
-        rounds:      data.rounds      ?? f.rounds,
-        work_seconds: data.work_seconds ?? f.work_seconds,
-        rest_seconds: data.rest_seconds ?? f.rest_seconds,
+        title:           data.title,
+        description:     data.description,
+        scoring:         data.scoring,
+        type:            genType,
+        timer_type:      timerMap[genType] ?? 'stopwatch',
+        duration_minutes: data.duration_minutes ?? genDuration,
+        time_cap:        data.time_cap_seconds ? Math.floor(data.time_cap_seconds / 60) : genDuration,
+        rounds:          data.rounds ?? f.rounds,
+        work_seconds:    data.work_seconds ?? f.work_seconds,
+        rest_seconds:    data.rest_seconds ?? f.rest_seconds,
       }));
-      if (data.time_cap_seconds) set('time_cap', Math.floor(data.time_cap_seconds / 60));
-      if (Array.isArray(data.movements)) setMovements(data.movements);
+      setMovements(data.movements);
       setShowGen(false);
     } catch (e: any) {
       setGenError(e.message ?? 'Erreur inconnue');
@@ -183,7 +408,14 @@ export default function WODForm({ tournamentId, initial, onSaved, onCancel }: Pr
 
         {showGen && (
           <div className="p-4 space-y-4 bg-[#0A0A0A]/50">
+            {/* Type + Level row */}
             <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className={lbl}>Type de WOD</label>
+                <select className={inp} value={genType} onChange={e => setGenType(e.target.value)}>
+                  {WOD_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                </select>
+              </div>
               <div>
                 <label className={lbl}>Niveau athlètes</label>
                 <select className={inp} value={genLevel} onChange={e => setGenLevel(e.target.value)}>
@@ -192,6 +424,26 @@ export default function WODForm({ tournamentId, initial, onSaved, onCancel }: Pr
               </div>
             </div>
 
+            {/* Duration */}
+            {genType !== 'Strength' && (
+              <div>
+                <label className={lbl}>
+                  {genType === 'For Time' || genType === 'Max Reps' ? 'Time Cap (minutes)' : genType === 'EMOM' ? 'Durée totale (minutes)' : 'Durée (minutes)'}
+                </label>
+                <div className="flex flex-wrap gap-2 mt-1">
+                  {DURATIONS.map(d => (
+                    <button key={d} type="button" onClick={() => setGenDuration(d)}
+                      className={`text-xs px-3 py-1.5 rounded-lg border font-bold transition-colors ${
+                        genDuration === d
+                          ? 'bg-[#C9A227]/20 border-[#C9A227]/40 text-[#C9A227]'
+                          : 'bg-white/5 border-white/10 text-gray-400 hover:border-white/20'
+                      }`}>{d} min</button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Equipment */}
             <div>
               <label className={lbl}>Équipement disponible</label>
               <div className="flex flex-wrap gap-2 mt-1">
