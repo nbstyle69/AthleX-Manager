@@ -3,8 +3,8 @@ import './globals.css';
 import ThemeProvider from '@/components/ThemeProvider';
 
 export const metadata: Metadata = {
-  title: 'BattleWOD Admin',
-  description: 'Back office for BattleWOD box owners',
+  title: 'Test Admin',
+  description: 'Back office for Test box owners',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

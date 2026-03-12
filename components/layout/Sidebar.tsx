@@ -43,10 +43,10 @@ export default function Sidebar({ box, email, unreadCount = 0 }: SidebarProps) {
       <div className="px-5 py-6 border-b border-white/[0.06]">
         <div className="flex items-center gap-3 mb-3">
           <div className="w-9 h-9 rounded-xl overflow-hidden shrink-0 flex items-center justify-center bg-black">
-            <img src="/logo.png" alt="BattleWOD" width={36} height={36} className="object-contain w-full h-full" />
+            <img src="/logo.png" alt="Test" width={36} height={36} className="object-contain w-full h-full" />
           </div>
           <div className="min-w-0">
-            <p className="text-xs font-black text-white/30 tracking-widest uppercase">BattleWOD</p>
+            <p className="text-xs font-black text-white/30 tracking-widest uppercase">Test</p>
             <p className="text-sm font-bold text-white truncate leading-tight">
               {box?.name ?? 'Ma Box'}
             </p>

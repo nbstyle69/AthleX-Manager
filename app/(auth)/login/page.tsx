@@ -41,9 +41,9 @@ export default function LoginPage() {
   return (
     <div className="w-full max-w-sm mx-auto px-4">
       <div className="flex flex-col items-center mb-10 gap-3">
-        <img src="/logo.png" alt="BattleWOD" width={56} height={56} className="w-14 h-14 object-contain" />
+        <img src="/logo.png" alt="Test" width={56} height={56} className="w-14 h-14 object-contain" />
         <div className="text-center">
-          <h1 className="text-2xl font-black text-white tracking-tight">BattleWOD</h1>
+          <h1 className="text-2xl font-black text-white tracking-tight">Test</h1>
           <p className="text-sm text-gray-400 font-medium mt-0.5">Back Office Box Owner</p>
         </div>
       </div>
@@ -80,7 +80,7 @@ export default function LoginPage() {
 
         <p className="text-xs text-gray-600 text-center mt-6">
           Accès réservé aux propriétaires de box.<br />
-          Contactez l&apos;équipe BattleWOD pour créer un compte.
+          Contactez l&apos;équipe Test pour créer un compte.
         </p>
       </div>
     </div>
