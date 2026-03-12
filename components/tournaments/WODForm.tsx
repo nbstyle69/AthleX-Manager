@@ -6,8 +6,15 @@ import { Plus, Trash2, Loader2, X, Sparkles, ChevronDown, ChevronUp, Timer } fro
 
 const WOD_TYPES = ['AMRAP', 'For Time', 'EMOM', 'Tabata', 'Max Reps', 'Strength'];
 const LEVELS    = ['scaled', 'inter', 'rx', 'rx+', 'gx', 'pro'];
-const EQUIPMENT = ['Barre olympique', 'Haltères', 'Kettlebell', 'Barre de traction', 'Anneaux', 'Rameur', 'Vélo assault', 'Corde à sauter', 'Box', 'Sac de sable', 'Médecine ball', 'GHD'];
+const EQUIPMENT_FF = ['Barbell', 'Haltères', 'Kettlebell', 'Box', 'Corde à sauter', 'Barre de traction', 'Anneaux', 'Erg', 'Med Ball', 'GHD', 'Worm', 'Benchmark', 'Sans matériel'];
 const DURATIONS = [5, 8, 10, 12, 15, 20, 25, 30];
+
+// Hybrid / Hyrox
+const HYBRID_LEVELS    = ['Open', 'Pro', 'Elite'];
+const HYBRID_FORMATS   = ['Solo', 'Doubles', 'Relais', 'Mixed Relais'];
+const HYBRID_TYPES     = ['Race Simulation', 'Station Training', 'Cardio Force', 'Running Intervals'];
+const HYBRID_DURATIONS = [20, 30, 45, 60];
+const EQUIPMENT_HY = ['SkiErg', 'Sled Push', 'Sled Pull', 'RowErg', 'Burpee BJ', 'Farmers Carry', 'Sandbag Lunge', 'Wall Balls', 'Tapis course', 'Haltères'];
 
 const WOD_STATUSES = [
   { value: 'pending', label: 'En attente' },
@@ -78,8 +85,6 @@ const MVTS: MvDef[] = [
   // Box
   { name: 'Box Jumps',          eq: ['Box'], reps: [10,12,15,18,20,24] },
   { name: 'Box Jump Overs',     eq: ['Box'], reps: [8,10,12,15,18,21] },
-  // Sac de sable
-  { name: 'Sandbag Cleans',     eq: ['Sac de sable'], reps: [5,7,10,12,15,18], load: ['20','30','40','50','60','70'] },
   // Médecine ball
   { name: 'Wall Balls',         eq: ['Médecine ball'], reps: [12,15,18,21,25,30], load: ['6/4','7/5','9/6','10/7','12/9','14/10'] },
   { name: 'MB Slams',           eq: ['Médecine ball'], reps: [8,10,12,15,18,21], load: ['6','8','9','10','12','14'] },
@@ -127,12 +132,140 @@ function fmtMvLabel(m: MvDef, li: number): string {
   return m.name;
 }
 
+// ── Hybrid / Hyrox Generation Engine ────────────────────────────────────
+function localGenerateHybrid(type: string, level: string, format: string, duration: number, eqKeys: string[]) {
+  const li = ({ Open: 0, Pro: 1, Elite: 2 } as Record<string, number>)[level] ?? 0;
+  const ski = eqKeys.includes('SkiErg'), slp = eqKeys.includes('Sled Push'), slpu = eqKeys.includes('Sled Pull');
+  const row = eqKeys.includes('RowErg'), wb = eqKeys.includes('Wall Balls'), fc = eqKeys.includes('Farmers Carry');
+  const bbj = eqKeys.includes('Burpee BJ'), sbl = eqKeys.includes('Sandbag Lunge');
+  const db = eqKeys.includes('Haltères'), trd = eqKeys.includes('Tapis course');
+
+  const sp_kg = ['60','80','100+'][li], sl_kg = ['40','60','80+'][li];
+  const wb_rep = [75,90,100][li], wb_kg = ['6','9','9'][li];
+  const fc_kg = ['16','20','24'][li], sb_kg = ['10','15','20'][li], db_kg = ['12','15','20'][li];
+  const ski_d = ['800m','1000m','1200m'][li], row_d = ['800m','1000m','1200m'][li];
+  const r1k = trd ? '1km Tapis' : '1km Course', r800 = trd ? '800m Tapis' : '800m Course', r400 = trd ? '400m Tapis' : '400m Course';
+
+  const E: Record<string,string> = {
+    ski1k: ski ? `${ski_d} SkiErg` : row ? `${row_d} RowErg` : `${ski_d} Course`,
+    row1k: row ? `${row_d} RowErg` : ski ? `${ski_d} SkiErg` : `${row_d} Course`,
+    ski500: ski ? '500m SkiErg' : row ? '500m RowErg' : r800,
+    row500: row ? '500m RowErg' : ski ? '500m SkiErg' : r800,
+    slp: slp ? `50m Sled Push (${sp_kg} kg)` : bbj ? `${[15,20,25][li]} Burpee BJ` : `${[20,25,30][li]} KB Swings`,
+    slpu: slpu ? `50m Sled Pull (${sl_kg} kg)` : fc ? `${[150,200,250][li]}m Farmers Carry (${fc_kg}kg×2)` : `${[15,20,25][li]} Burpees`,
+    sbl: sbl ? `${[50,75,100][li]}m Sandbag Lunges (${sb_kg} kg)` : `${[40,60,80][li]} Air Squats`,
+    wb: wb ? `${wb_rep} Wall Balls (${wb_kg} kg)` : `${[80,100,120][li]} Air Squats`,
+    fc: fc ? `${[150,200,250][li]}m Farmers Carry (${fc_kg}kg×2)` : sbl ? `${[50,75,100][li]}m Sandbag Lunges (${sb_kg} kg)` : `${[40,60,80][li]} Goblet Squats`,
+    bbj: bbj ? `${[15,20,25][li]} Burpee Broad Jump` : `${[20,25,30][li]} Burpees`,
+    db: db ? `${[12,15,20][li]} DB Thrusters (${db_kg}kg/main)` : `${[15,20,25][li]} KB Thrusters`,
+    ski250: ski ? `${['250m','300m','400m'][li]} SkiErg` : row ? `${['250m','300m','400m'][li]} RowErg` : `${['200m','300m','400m'][li]} Course`,
+  };
+
+  const HYROX_NAMES: Record<string,string[]> = {
+    'Race Simulation': ['Podium Run','Race Day','The Distance','Full Circuit','Iron Race','Race Pace','Finish Line','The Gauntlet','Full Send','Marathon Mode'],
+    'Station Training': ['Station Grinder','Work Capacity','The Builder','Brick by Brick','Foundation','Station Master','Rep City','Volume Day','The Factory','Work Rate'],
+    'Cardio Force': ['Cardio Killer','Heart & Muscle','Hybrid Engine','Dual Threat','Power Pulse','Gas & Go','Force Fed','Engine Room','Push Pull','Redline'],
+    'Running Intervals': ['Run & Gun','Interval Hell','Pace Maker','Track Attack','Sprint Circuit','Run the Gauntlet','Laps & Reps','Mile Marker','Road Warrior','Tempo Run'],
+  };
+
+  const title = rand(HYROX_NAMES[type] ?? HYROX_NAMES['Race Simulation']);
+  let stations: string[] = [];
+  let scoring = '';
+  const allStations = [E.slp, E.slpu, E.sbl, E.wb, E.fc, E.bbj, E.db];
+
+  if (type === 'Race Simulation') {
+    if (duration <= 20) {
+      const count = 2 + Math.floor(Math.random() * 2);
+      const s = pick(allStations, count);
+      stations = s.flatMap(st => [rand([r400, r800]), st]);
+    } else if (duration <= 30) {
+      const count = 3 + Math.floor(Math.random() * 2);
+      stations = pick(allStations, count).flatMap(st => [r800, st]);
+    } else if (duration <= 45) {
+      const count = 4 + Math.floor(Math.random() * 2);
+      stations = pick(allStations, count).flatMap(st => [rand([r800, r1k]), st]);
+    } else {
+      stations = pick(allStations, 5).flatMap(st => [r1k, st]);
+    }
+    scoring = `Temps total — objectif < ${duration} min`;
+  } else if (type === 'Station Training') {
+    const sets = ['4 ×','5 ×','6 ×'][li];
+    const stPool = [
+      ski ? `${sets} ${ski_d} SkiErg` : row ? `${sets} ${row_d} RowErg` : `${sets} ${r800}`,
+      slp ? `${sets} 20m Sled Push (max)` : `${sets} ${E.bbj}`,
+      wb ? `${sets} 25 Wall Balls (${wb_kg} kg)` : `${sets} 30 Air Squats`,
+      `${sets} ${E.db}`, `${sets} ${E.bbj}`,
+      row ? `${sets} 250m RowErg tempo` : ski ? `${sets} 250m SkiErg tempo` : `${sets} ${r400}`,
+    ];
+    const count = duration <= 20 ? 3 : duration <= 30 ? 4 : duration <= 45 ? 5 : 6;
+    stations = pick(stPool, count);
+    scoring = `Score = stations complétées en ${duration} min`;
+  } else if (type === 'Cardio Force') {
+    const cardioPool = [E.ski500, E.row500, r800, r400, `${[20,25,30][li]} Cal Assault Bike`, E.ski250];
+    const forcePool = [E.slp, E.slpu, E.wb, E.sbl, E.fc, E.bbj, E.db];
+    const count = duration <= 20 ? 4 : duration <= 30 ? 5 : duration <= 45 ? 6 : 8;
+    const nC = Math.ceil(count / 2), nF = Math.floor(count / 2);
+    const pC = pick(cardioPool, nC), pF = pick(forcePool, nF);
+    const combined: string[] = [];
+    for (let i = 0; i < Math.max(nC, nF); i++) { if (pC[i]) combined.push(pC[i]); if (pF[i]) combined.push(pF[i]); }
+    stations = combined;
+    scoring = `AMRAP ${duration} min — max rounds`;
+  } else {
+    const runOpts = [r400, r800, r1k];
+    const stPool = [E.ski500, E.row500, E.wb, E.slp, E.sbl, E.fc, E.bbj, E.db];
+    const cycles = duration <= 20 ? 2 : duration <= 30 ? 3 : duration <= 45 ? 4 : 5;
+    const runDist = rand(runOpts);
+    const picked = pick(stPool, Math.min(cycles, 4));
+    const result: string[] = [];
+    for (let i = 0; i < cycles; i++) { result.push(runDist); result.push(picked[i % picked.length]); }
+    stations = result;
+    scoring = `Temps total pour ${cycles} cycles`;
+  }
+
+  const fmtStation = (s: string): string => {
+    if (format === 'Doubles') return `(split) ${s}`;
+    if (format === 'Relais') return `[relais] ${s}`;
+    if (format === 'Mixed Relais') return `[mixed] ${s}`;
+    return s;
+  };
+  stations = stations.map(fmtStation);
+
+  const HYROX_COACHES: Record<string,string[]> = {
+    'Race Simulation': ['Gère ton allure. Attaque chaque station à 85% max.','Ne sprint jamais. La régularité fait la performance.'],
+    'Station Training': ['Qualité > vitesse. Maîtrise le geste.','Simule la fatigue de course avant chaque station.'],
+    'Cardio Force': ['Enchaîne sans repos. Adapte les charges.','Maintiens le nombre de rounds.'],
+    'Running Intervals': ['Allure de course régulière.','Vitesse identique sur chaque intervalle.'],
+  };
+  const coach = rand(HYROX_COACHES[type] ?? HYROX_COACHES['Race Simulation']);
+
+  return {
+    title, movements: stations, scoring,
+    description: `${type} — ${format} — ${level} — ${duration} min. ${coach}`,
+    timer_type: type === 'Cardio Force' ? 'stopwatch' : 'countdown',
+    time_cap_seconds: duration * 60,
+    rounds: null, work_seconds: null, rest_seconds: null,
+    duration_minutes: duration,
+  };
+}
+
 function localGenerate(type: string, level: string, duration: number, eqList: string[]) {
   const li = LI[level] ?? 2;
+
+  // Map BO equipment labels to MVTS eq names
+  const eqMap: Record<string,string> = {
+    'Barbell': 'Barre olympique', 'Haltères': 'Haltères', 'Kettlebell': 'Kettlebell',
+    'Box': 'Box', 'Corde à sauter': 'Corde à sauter', 'Barre de traction': 'Barre de traction',
+    'Anneaux': 'Anneaux', 'Erg': 'Rameur', 'Med Ball': 'Médecine ball', 'GHD': 'GHD',
+    'Worm': 'Worm', 'Sans matériel': '',
+  };
+  const mappedEq = eqList.map(e => eqMap[e] ?? e).filter(Boolean);
+  // Also include 'Vélo assault' when Erg is selected
+  if (eqList.includes('Erg')) mappedEq.push('Vélo assault');
+
   const pool = MVTS.filter(m => {
     if (m.reps[li] === 0) return false;
     if (m.eq.length === 0) return true;
-    return m.eq.some(e => eqList.includes(e));
+    return m.eq.some(e => mappedEq.includes(e));
   });
   if (pool.length === 0) return null;
 
@@ -288,11 +421,18 @@ export default function WODForm({ tournamentId, initial, onSaved, onCancel }: Pr
   // AI Generator state
   const [showGen,      setShowGen]      = useState(false);
   const [genLoading,   setGenLoading]   = useState(false);
+  const [genSport,     setGenSport]     = useState<'functional'|'hybrid'>('functional');
   const [genLevel,     setGenLevel]     = useState('rx');
   const [genType,      setGenType]      = useState('AMRAP');
   const [genDuration,  setGenDuration]  = useState(12);
-  const [genEquipment, setGenEquipment] = useState<string[]>(['Barre olympique', 'Barre de traction', 'Haltères']);
+  const [genEquipment, setGenEquipment] = useState<string[]>(['Barbell', 'Barre de traction', 'Haltères']);
   const [genError,     setGenError]     = useState<string | null>(null);
+  // Hybrid-specific
+  const [genHybridLevel,  setGenHybridLevel]  = useState('Open');
+  const [genHybridFormat, setGenHybridFormat] = useState('Solo');
+  const [genHybridType,   setGenHybridType]   = useState('Race Simulation');
+  const [genHybridDur,    setGenHybridDur]    = useState(30);
+  const [genHybridEq,     setGenHybridEq]     = useState<string[]>(['SkiErg', 'Sled Push', 'RowErg', 'Wall Balls']);
 
   const set = (k: string, v: any) => setForm(f => ({ ...f, [k]: v }));
 
@@ -311,6 +451,9 @@ export default function WODForm({ tournamentId, initial, onSaved, onCancel }: Pr
   function toggleEquipment(eq: string) {
     setGenEquipment(prev => prev.includes(eq) ? prev.filter(e => e !== eq) : [...prev, eq]);
   }
+  function toggleHybridEq(eq: string) {
+    setGenHybridEq(prev => prev.includes(eq) ? prev.filter(e => e !== eq) : [...prev, eq]);
+  }
 
   function addMovement()                 { setMovements(m => [...m, '']); }
   function removeMovement(i: number)     { setMovements(m => m.filter((_, idx) => idx !== i)); }
@@ -320,7 +463,9 @@ export default function WODForm({ tournamentId, initial, onSaved, onCancel }: Pr
     setGenLoading(true);
     setGenError(null);
     try {
-      const data = localGenerate(genType, genLevel, genDuration, genEquipment);
+      const data = genSport === 'hybrid'
+        ? localGenerateHybrid(genHybridType, genHybridLevel, genHybridFormat, genHybridDur, genHybridEq)
+        : localGenerate(genType, genLevel, genDuration, genEquipment);
       if (!data) { setGenError('Pas assez de mouvements disponibles pour cet équipement.'); return; }
 
       const timerMap: Record<string, string> = {
@@ -328,15 +473,17 @@ export default function WODForm({ tournamentId, initial, onSaved, onCancel }: Pr
         'Tabata': 'tabata', 'Max Reps': 'countdown', 'Strength': 'none',
       };
 
+      const usedType = genSport === 'hybrid' ? 'For Time' : genType;
+
       setForm(f => ({
         ...f,
         title:           data.title,
         description:     data.description,
         scoring:         data.scoring,
-        type:            genType,
-        timer_type:      timerMap[genType] ?? 'stopwatch',
-        duration_minutes: data.duration_minutes ?? genDuration,
-        time_cap:        data.time_cap_seconds ? Math.floor(data.time_cap_seconds / 60) : genDuration,
+        type:            usedType,
+        timer_type:      data.timer_type ?? timerMap[usedType] ?? 'stopwatch',
+        duration_minutes: data.duration_minutes ?? (genSport === 'hybrid' ? genHybridDur : genDuration),
+        time_cap:        data.time_cap_seconds ? Math.floor(data.time_cap_seconds / 60) : (genSport === 'hybrid' ? genHybridDur : genDuration),
         rounds:          data.rounds ?? f.rounds,
         work_seconds:    data.work_seconds ?? f.work_seconds,
         rest_seconds:    data.rest_seconds ?? f.rest_seconds,
@@ -408,60 +555,143 @@ export default function WODForm({ tournamentId, initial, onSaved, onCancel }: Pr
 
         {showGen && (
           <div className="p-4 space-y-4 bg-[#0A0A0A]/50">
-            {/* Type + Level row */}
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className={lbl}>Type de WOD</label>
-                <select className={inp} value={genType} onChange={e => setGenType(e.target.value)}>
-                  {WOD_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
-                </select>
-              </div>
-              <div>
-                <label className={lbl}>Niveau athlètes</label>
-                <select className={inp} value={genLevel} onChange={e => setGenLevel(e.target.value)}>
-                  {LEVELS.map(l => <option key={l} value={l}>{l.toUpperCase()}</option>)}
-                </select>
-              </div>
-            </div>
-
-            {/* Duration */}
-            {genType !== 'Strength' && (
-              <div>
-                <label className={lbl}>
-                  {genType === 'For Time' || genType === 'Max Reps' ? 'Time Cap (minutes)' : genType === 'EMOM' ? 'Durée totale (minutes)' : 'Durée (minutes)'}
-                </label>
-                <div className="flex flex-wrap gap-2 mt-1">
-                  {DURATIONS.map(d => (
-                    <button key={d} type="button" onClick={() => setGenDuration(d)}
-                      className={`text-xs px-3 py-1.5 rounded-lg border font-bold transition-colors ${
-                        genDuration === d
-                          ? 'bg-[#C9A227]/20 border-[#C9A227]/40 text-[#C9A227]'
-                          : 'bg-white/5 border-white/10 text-gray-400 hover:border-white/20'
-                      }`}>{d} min</button>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Equipment */}
+            {/* Sport selector */}
             <div>
-              <label className={lbl}>Équipement disponible</label>
-              <div className="flex flex-wrap gap-2 mt-1">
-                {EQUIPMENT.map(eq => (
-                  <button key={eq} type="button" onClick={() => toggleEquipment(eq)}
-                    className={`text-xs px-2.5 py-1 rounded-lg border font-semibold transition-colors ${
-                      genEquipment.includes(eq)
-                        ? 'bg-[#C9A227]/20 border-[#C9A227]/40 text-[#C9A227]'
-                        : 'bg-white/5 border-white/10 text-gray-400 hover:border-white/20'
-                    }`}>{eq}</button>
-                ))}
+              <label className={lbl}>Sport</label>
+              <div className="flex gap-2 mt-1">
+                <button type="button" onClick={() => setGenSport('functional')}
+                  className={`flex-1 text-xs px-3 py-2 rounded-lg border font-bold text-center transition-colors ${
+                    genSport === 'functional'
+                      ? 'bg-[#C9A227]/20 border-[#C9A227]/40 text-[#C9A227]'
+                      : 'bg-white/5 border-white/10 text-gray-400 hover:border-white/20'
+                  }`}>🏋️ Functional Fitness</button>
+                <button type="button" onClick={() => setGenSport('hybrid')}
+                  className={`flex-1 text-xs px-3 py-2 rounded-lg border font-bold text-center transition-colors ${
+                    genSport === 'hybrid'
+                      ? 'bg-orange-500/20 border-orange-500/40 text-orange-400'
+                      : 'bg-white/5 border-white/10 text-gray-400 hover:border-white/20'
+                  }`}>⚡ Hybrid / Hyrox</button>
               </div>
             </div>
+
+            {genSport === 'functional' ? (
+              <>
+                {/* FF: Type + Level */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className={lbl}>Type de WOD</label>
+                    <select className={inp} value={genType} onChange={e => setGenType(e.target.value)}>
+                      {WOD_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className={lbl}>Niveau athlètes</label>
+                    <select className={inp} value={genLevel} onChange={e => setGenLevel(e.target.value)}>
+                      {LEVELS.map(l => <option key={l} value={l}>{l.toUpperCase()}</option>)}
+                    </select>
+                  </div>
+                </div>
+                {/* FF: Duration */}
+                {genType !== 'Strength' && (
+                  <div>
+                    <label className={lbl}>
+                      {genType === 'For Time' || genType === 'Max Reps' ? 'Time Cap (minutes)' : genType === 'EMOM' ? 'Durée totale (minutes)' : 'Durée (minutes)'}
+                    </label>
+                    <div className="flex flex-wrap gap-2 mt-1">
+                      {DURATIONS.map(d => (
+                        <button key={d} type="button" onClick={() => setGenDuration(d)}
+                          className={`text-xs px-3 py-1.5 rounded-lg border font-bold transition-colors ${
+                            genDuration === d
+                              ? 'bg-[#C9A227]/20 border-[#C9A227]/40 text-[#C9A227]'
+                              : 'bg-white/5 border-white/10 text-gray-400 hover:border-white/20'
+                          }`}>{d} min</button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {/* FF: Equipment */}
+                <div>
+                  <label className={lbl}>Équipement disponible</label>
+                  <div className="flex flex-wrap gap-2 mt-1">
+                    {EQUIPMENT_FF.map(eq => (
+                      <button key={eq} type="button" onClick={() => toggleEquipment(eq)}
+                        className={`text-xs px-2.5 py-1 rounded-lg border font-semibold transition-colors ${
+                          genEquipment.includes(eq)
+                            ? 'bg-[#C9A227]/20 border-[#C9A227]/40 text-[#C9A227]'
+                            : 'bg-white/5 border-white/10 text-gray-400 hover:border-white/20'
+                        }`}>{eq}</button>
+                    ))}
+                  </div>
+                </div>
+              </>
+            ) : (
+              <>
+                {/* Hybrid: Level + Format */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className={lbl}>Catégorie</label>
+                    <select className={inp} value={genHybridLevel} onChange={e => setGenHybridLevel(e.target.value)}>
+                      {HYBRID_LEVELS.map(l => <option key={l} value={l}>{l}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className={lbl}>Format</label>
+                    <select className={inp} value={genHybridFormat} onChange={e => setGenHybridFormat(e.target.value)}>
+                      {HYBRID_FORMATS.map(f => <option key={f} value={f}>{f}</option>)}
+                    </select>
+                  </div>
+                </div>
+                {/* Hybrid: Type */}
+                <div>
+                  <label className={lbl}>Type d&apos;entraînement</label>
+                  <div className="flex flex-wrap gap-2 mt-1">
+                    {HYBRID_TYPES.map(t => (
+                      <button key={t} type="button" onClick={() => setGenHybridType(t)}
+                        className={`text-xs px-2.5 py-1.5 rounded-lg border font-bold transition-colors ${
+                          genHybridType === t
+                            ? 'bg-orange-500/20 border-orange-500/40 text-orange-400'
+                            : 'bg-white/5 border-white/10 text-gray-400 hover:border-white/20'
+                        }`}>{t}</button>
+                    ))}
+                  </div>
+                </div>
+                {/* Hybrid: Duration */}
+                <div>
+                  <label className={lbl}>Durée</label>
+                  <div className="flex flex-wrap gap-2 mt-1">
+                    {HYBRID_DURATIONS.map(d => (
+                      <button key={d} type="button" onClick={() => setGenHybridDur(d)}
+                        className={`text-xs px-3 py-1.5 rounded-lg border font-bold transition-colors ${
+                          genHybridDur === d
+                            ? 'bg-orange-500/20 border-orange-500/40 text-orange-400'
+                            : 'bg-white/5 border-white/10 text-gray-400 hover:border-white/20'
+                        }`}>{d} min</button>
+                    ))}
+                  </div>
+                </div>
+                {/* Hybrid: Equipment */}
+                <div>
+                  <label className={lbl}>Équipement</label>
+                  <div className="flex flex-wrap gap-2 mt-1">
+                    {EQUIPMENT_HY.map(eq => (
+                      <button key={eq} type="button" onClick={() => toggleHybridEq(eq)}
+                        className={`text-xs px-2.5 py-1 rounded-lg border font-semibold transition-colors ${
+                          genHybridEq.includes(eq)
+                            ? 'bg-orange-500/20 border-orange-500/40 text-orange-400'
+                            : 'bg-white/5 border-white/10 text-gray-400 hover:border-white/20'
+                        }`}>{eq}</button>
+                    ))}
+                  </div>
+                </div>
+              </>
+            )}
 
             {genError && <p className="text-xs text-red-400">{genError}</p>}
 
             <button type="button" onClick={generateWOD} disabled={genLoading}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold bg-[#C9A227] text-white disabled:opacity-60 transition-colors">
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold text-white disabled:opacity-60 transition-colors ${
+                genSport === 'hybrid' ? 'bg-orange-500' : 'bg-[#C9A227]'
+              }`}>
               {genLoading ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
               {genLoading ? 'Génération en cours...' : 'Générer le WOD'}
             </button>
