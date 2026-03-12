@@ -31,7 +31,15 @@ export default function LoginPage() {
       const json = await res.json();
       if (!json.ok) { setError('Erreur serveur: ' + json.error); setLoading(false); return; }
 
-      window.location.href = '/';
+      // Check role to redirect super_admin to /admin
+      const { data: profile } = await supabase
+        .from('profiles').select('role').eq('id', data.user.id).single();
+      const role = profile?.role;
+      if (role === 'super_admin' || role === 'admin') {
+        window.location.href = '/admin';
+      } else {
+        window.location.href = '/';
+      }
     } catch (err: any) {
       setError(err?.message ?? 'Erreur réseau.');
       setLoading(false);

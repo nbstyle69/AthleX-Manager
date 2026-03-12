@@ -36,6 +36,16 @@ export function createServiceClient() {
   });
 }
 
+export async function getServerProfile(supabase: Awaited<ReturnType<typeof createClient>>) {
+  const user = await getServerUser();
+  if (!user) return null;
+  const { data } = await supabase
+    .from('profiles').select('id, username, role, level, elo').eq('id', user.id).single();
+  return data as {
+    id: string; username: string; role: string; level: string; elo: number;
+  } | null;
+}
+
 export async function getOwnerBox(supabase: Awaited<ReturnType<typeof createClient>>) {
   const user = await getServerUser();
   if (!user) return null;
