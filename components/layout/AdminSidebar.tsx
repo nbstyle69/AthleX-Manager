@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { Shield, LayoutDashboard, Swords, Users, Trophy, LogOut, Sun, Moon } from 'lucide-react';
+import { Shield, LayoutDashboard, Swords, Users, Trophy, LogOut, Sun, Moon, Building2 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { cn } from '@/lib/utils';
 import { useTheme } from '@/components/ThemeProvider';
@@ -12,6 +12,7 @@ const NAV = [
   { href: '/admin/daily-contests', label: 'Contestations',  icon: Swords },
   { href: '/admin/tournaments',    label: 'Tournois',       icon: Trophy },
   { href: '/admin/users',          label: 'Utilisateurs',   icon: Users },
+  { href: '/admin/boxes',          label: 'Boxes',          icon: Building2 },
 ];
 
 interface AdminSidebarProps {
