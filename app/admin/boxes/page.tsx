@@ -2,7 +2,8 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { Building2, Search, Users, Calendar, CheckCircle, XCircle } from 'lucide-react';
+import { Building2, Search, Users, Calendar, CheckCircle, XCircle, ChevronRight } from 'lucide-react';
+import Link from 'next/link';
 
 interface BoxItem {
   id: string;
@@ -105,7 +106,7 @@ export default function AdminBoxesPage() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           {filtered.map(box => (
-            <div key={box.id} className="bg-[#111111] border border-white/[0.06] rounded-2xl p-5 space-y-4 hover:border-white/10 transition-all">
+            <Link key={box.id} href={`/admin/boxes/${box.id}`} className="block bg-[#111111] border border-white/[0.06] rounded-2xl p-5 space-y-4 hover:border-emerald-500/30 transition-all cursor-pointer group">
               {/* Header */}
               <div className="flex items-start justify-between">
                 <div className="flex items-center gap-3">
@@ -148,11 +149,14 @@ export default function AdminBoxesPage() {
                   <p className="text-[10px] text-gray-500 uppercase tracking-wider font-bold">Owner</p>
                   <p className="text-xs font-semibold text-gray-300">{box.owner_name}</p>
                 </div>
-                <span className={`text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-lg ${planColor(box.plan)}`}>
-                  {box.plan}
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className={`text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-lg ${planColor(box.plan)}`}>
+                    {box.plan}
+                  </span>
+                  <ChevronRight size={14} className="text-gray-600 group-hover:text-emerald-400 transition-colors" />
+                </div>
               </div>
-            </div>
+            </Link>
           ))}
         </div>
       )}
