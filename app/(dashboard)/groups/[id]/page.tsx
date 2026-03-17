@@ -30,7 +30,7 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
   const router = useRouter();
   const supabase = createClient();
 
-  const [group,      setGroup]      = useState<{ id: string; name: string; color: string } | null>(null);
+  const [group,      setGroup]      = useState<{ id: string; name: string; color: string; wod_visibility_mode: string } | null>(null);
   const [members,    setMembers]    = useState<Member[]>([]);
   const [allMembers, setAllMembers] = useState<Member[]>([]);
   const [allGroups,  setAllGroups]  = useState<{ id: string; name: string; color: string }[]>([]);
@@ -41,6 +41,7 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
   const [editing,    setEditing]    = useState(false);
   const [editName,   setEditName]   = useState('');
   const [editColor,  setEditColor]  = useState('');
+  const [editVisibility, setEditVisibility] = useState<'daily' | 'weekly'>('weekly');
   const [saving,     setSaving]     = useState(false);
 
   // Filters
@@ -58,7 +59,7 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
     if (!box) { router.push('/login'); return; }
 
     const [{ data: grp }, { data: grpMembers }, { data: boxMembers }, { data: groups }, { data: groupMemberships }] = await Promise.all([
-      supabase.from('message_groups').select('id, name, color').eq('id', groupId).single(),
+      supabase.from('message_groups').select('id, name, color, wod_visibility_mode').eq('id', groupId).single(),
       supabase.from('message_group_members')
         .select('member_id, profiles(id, username, level, email, elo)')
         .eq('group_id', groupId),
@@ -70,7 +71,7 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
     ]);
 
     if (!grp) { router.push('/groups'); return; }
-    setGroup(grp);
+    setGroup({ ...grp, wod_visibility_mode: grp.wod_visibility_mode ?? 'weekly' });
     setAllGroups(groups ?? []);
 
     const membershipMap: Record<string, string[]> = {};
@@ -121,10 +122,10 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
     setSaving(true);
     const { error: e } = await supabase
       .from('message_groups')
-      .update({ name: editName.trim(), color: editColor })
+      .update({ name: editName.trim(), color: editColor, wod_visibility_mode: editVisibility })
       .eq('id', groupId);
     if (e) { setError(e.message); } else {
-      setGroup({ ...group!, name: editName.trim(), color: editColor });
+      setGroup({ ...group!, name: editName.trim(), color: editColor, wod_visibility_mode: editVisibility });
       setEditing(false);
     }
     setSaving(false);
@@ -134,6 +135,7 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
     if (!group) return;
     setEditName(group.name);
     setEditColor(group.color);
+    setEditVisibility((group.wod_visibility_mode as 'daily' | 'weekly') ?? 'weekly');
     setEditing(true);
   }
 
@@ -176,7 +178,12 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
             </div>
             <div>
               <h1 className="text-xl font-black text-white">{group.name}</h1>
-              <p className="text-xs text-gray-500">{members.length} membre(s)</p>
+              <div className="flex items-center gap-2">
+                <p className="text-xs text-gray-500">{members.length} membre(s)</p>
+                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md ${group.wod_visibility_mode === 'daily' ? 'text-amber-400 bg-amber-400/15' : 'text-emerald-400 bg-emerald-400/15'}`}>
+                  {group.wod_visibility_mode === 'daily' ? 'Jour par jour' : 'Semaine'}
+                </span>
+              </div>
             </div>
           </div>
         </div>
@@ -222,6 +229,33 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
               ))}
             </div>
           </div>
+          <div>
+            <label className="block text-xs font-semibold text-gray-400 mb-2">Diffusion des WODs</label>
+            <div className="flex gap-2">
+              <button type="button" onClick={() => setEditVisibility('daily')}
+                className={`flex-1 text-center text-xs font-bold px-3 py-2.5 rounded-xl border transition-colors ${
+                  editVisibility === 'daily'
+                    ? 'border-[#C9A227] bg-[#C9A227]/15 text-[#C9A227]'
+                    : 'border-white/10 text-gray-500 hover:text-white hover:border-white/20'
+                }`}>
+                Jour par jour
+              </button>
+              <button type="button" onClick={() => setEditVisibility('weekly')}
+                className={`flex-1 text-center text-xs font-bold px-3 py-2.5 rounded-xl border transition-colors ${
+                  editVisibility === 'weekly'
+                    ? 'border-[#C9A227] bg-[#C9A227]/15 text-[#C9A227]'
+                    : 'border-white/10 text-gray-500 hover:text-white hover:border-white/20'
+                }`}>
+                Semaine entière
+              </button>
+            </div>
+            <p className="text-[10px] text-gray-600 mt-1.5">
+              {editVisibility === 'daily'
+                ? 'Les membres ne voient que les WODs du jour (pas les jours futurs)'
+                : 'Les membres voient tous les WODs de la semaine'}
+            </p>
+          </div>
+
           <div className="flex items-center gap-2 pt-1">
             <button onClick={saveGroup} disabled={saving || !editName.trim()}
               className="flex items-center gap-1.5 px-4 py-2 text-sm font-bold bg-[#C9A227] text-white rounded-xl disabled:opacity-60 transition-colors">

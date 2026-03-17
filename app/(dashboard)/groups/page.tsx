@@ -11,7 +11,7 @@ export default async function GroupsPage() {
 
   const { data: groups } = await supabase
     .from('message_groups')
-    .select('id, name, color, created_at, message_group_members(count)')
+    .select('id, name, color, created_at, wod_visibility_mode, message_group_members(count)')
     .eq('box_id', box.id)
     .order('created_at', { ascending: false });
 
@@ -48,7 +48,12 @@ export default async function GroupsPage() {
                 </span>
               </div>
               <p className="text-sm font-bold text-white group-hover:text-[#C9A227] transition-colors">{g.name}</p>
-              <p className="text-xs text-gray-600 mt-3">{formatDate(g.created_at)}</p>
+              <div className="flex items-center gap-2 mt-3">
+                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md ${(g.wod_visibility_mode ?? 'weekly') === 'daily' ? 'text-amber-400 bg-amber-400/15' : 'text-emerald-400 bg-emerald-400/15'}`}>
+                  {(g.wod_visibility_mode ?? 'weekly') === 'daily' ? 'Jour par jour' : 'Semaine'}
+                </span>
+                <p className="text-xs text-gray-600">{formatDate(g.created_at)}</p>
+              </div>
             </Link>
           ))}
         </div>
