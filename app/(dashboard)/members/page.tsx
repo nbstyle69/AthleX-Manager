@@ -3,15 +3,23 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
-import { Users, Search, SlidersHorizontal, X, Loader2, ChevronDown, Check } from 'lucide-react';
+import { Users, Search, SlidersHorizontal, X, Loader2, ChevronDown, Check, Plus, Trash2, CreditCard } from 'lucide-react';
 
 const LEVELS = ['rx+', 'rx', 'scaled', 'foundations'];
 const LEVEL_LABEL: Record<string, string> = { 'rx+': 'RX+', rx: 'RX', scaled: 'SCALED', foundations: 'FOUNDATIONS' };
 const LEVEL_COLOR: Record<string, string> = { 'rx+': '#C9A227', rx: '#3B82F6', scaled: '#10B981', foundations: '#8B5CF6' };
 
+interface MembershipPlan {
+  id: string;
+  name: string;
+  max_sessions_per_week: number | null;
+  color: string;
+}
+
 interface Member {
   id: string; username: string; level: string; elo: number;
   email: string; joined_at: string; is_banned: boolean;
+  plan_id: string | null;
   groups: { id: string; name: string; color: string }[];
 }
 
@@ -58,6 +66,67 @@ function GroupsPopover({ member, allGroups, onToggle, toggling }: {
   );
 }
 
+function PlanPopover({ member, plans, onAssign, saving }: {
+  member: Member;
+  plans: MembershipPlan[];
+  onAssign: (memberId: string, planId: string | null) => void;
+  saving: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  const currentPlan = plans.find(p => p.id === member.plan_id);
+  return (
+    <div className="relative">
+      <button
+        onClick={() => setOpen(v => !v)}
+        disabled={saving}
+        className="flex items-center gap-2 text-xs font-semibold border border-white/10 hover:border-white/20 px-2.5 py-1.5 rounded-lg transition-colors disabled:opacity-50"
+        style={currentPlan ? { color: currentPlan.color, borderColor: `${currentPlan.color}40`, backgroundColor: `${currentPlan.color}10` } : { color: '#9ca3af' }}
+      >
+        {currentPlan && <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: currentPlan.color }} />}
+        {currentPlan ? currentPlan.name : 'Illimité'}
+        <ChevronDown size={11} className={`transition-transform ${open ? 'rotate-180' : ''}`} />
+      </button>
+      {open && (
+        <>
+          <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
+          <div className="absolute left-0 top-full mt-1 z-20 bg-[#1a1a1a] border border-white/10 rounded-xl shadow-2xl min-w-[180px] py-1 overflow-hidden">
+            <button
+              onClick={() => { onAssign(member.id, null); setOpen(false); }}
+              className={`w-full flex items-center gap-2.5 px-3 py-2 text-xs hover:bg-white/5 transition-colors text-left ${!member.plan_id ? 'text-white' : 'text-gray-400'}`}
+            >
+              <div className={`w-4 h-4 rounded flex items-center justify-center border ${!member.plan_id ? 'border-transparent bg-white/20' : 'border-white/20'}`}>
+                {!member.plan_id && <Check size={10} color="#fff" strokeWidth={3} />}
+              </div>
+              <span className="flex-1 font-semibold">Illimité</span>
+            </button>
+            {plans.map(p => {
+              const selected = member.plan_id === p.id;
+              return (
+                <button key={p.id}
+                  onClick={() => { onAssign(member.id, p.id); setOpen(false); }}
+                  className="w-full flex items-center gap-2.5 px-3 py-2 text-xs hover:bg-white/5 transition-colors text-left"
+                >
+                  <div className={`w-4 h-4 rounded flex items-center justify-center border ${selected ? 'border-transparent' : 'border-white/20'}`}
+                    style={selected ? { backgroundColor: p.color } : {}}>
+                    {selected && <Check size={10} color="#000" strokeWidth={3} />}
+                  </div>
+                  <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: p.color }} />
+                  <span className="flex-1 font-semibold" style={{ color: selected ? p.color : '#9ca3af' }}>
+                    {p.name}
+                  </span>
+                  {p.max_sessions_per_week && (
+                    <span className="text-[10px] text-gray-600">{p.max_sessions_per_week}x/sem</span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 export default function MembersPage() {
   const router = useRouter();
   const supabase = createClient();
@@ -68,6 +137,13 @@ export default function MembersPage() {
   const [loading,    setLoading]    = useState(true);
   const [toggling,   setToggling]   = useState<string | null>(null);
   const [banning,    setBanning]    = useState<string | null>(null);
+  const [plans,      setPlans]      = useState<MembershipPlan[]>([]);
+  const [planSaving, setPlanSaving]  = useState<string | null>(null);
+  const [showPlans,  setShowPlans]   = useState(false);
+  const [newPlanName, setNewPlanName] = useState('');
+  const [newPlanMax,  setNewPlanMax]  = useState('');
+  const [newPlanColor, setNewPlanColor] = useState('#C9A227');
+  const [creatingPlan, setCreatingPlan] = useState(false);
 
   const [search,      setSearch]      = useState('');
   const [filterLevel, setFilterLevel] = useState('');
@@ -83,14 +159,17 @@ export default function MembersPage() {
     if (!box) { router.push('/login'); return; }
     setBoxId(box.id);
 
-    const [{ data: membersRaw }, { data: groups }, { data: groupMemberships }] = await Promise.all([
+    const [{ data: membersRaw }, { data: groups }, { data: groupMemberships }, { data: plansData }] = await Promise.all([
       supabase.from('box_members')
-        .select('member_id, status, joined_at, profile:profiles(id, username, level, elo, email)')
+        .select('member_id, status, joined_at, plan_id, profile:profiles(id, username, level, elo, email)')
         .eq('box_id', box.id).in('status', ['active', 'banned'])
         .order('joined_at', { ascending: false }),
       supabase.from('message_groups').select('id, name, color').eq('box_id', box.id),
       supabase.from('message_group_members').select('member_id, group_id'),
+      supabase.from('membership_plans').select('id, name, max_sessions_per_week, color').eq('box_id', box.id).order('max_sessions_per_week', { ascending: true, nullsFirst: false }),
     ]);
+
+    setPlans((plansData ?? []) as MembershipPlan[]);
 
     setAllGroups(groups ?? []);
 
@@ -107,8 +186,9 @@ export default function MembersPage() {
       if (!p) return null;
       return {
         id: p.id, username: p.username ?? '?', level: p.level ?? 'rx',
-        elo: p.elo ?? 1000, email: p.email ?? '', joined_at: m.joined_at,
+        elo: p.eo ?? 1000, email: p.email ?? '', joined_at: m.joined_at,
         is_banned: m.status === 'banned',
+        plan_id: m.plan_id ?? null,
         groups: (membershipMap[p.id] ?? []).map((gid: string) => groupMap[gid]).filter(Boolean),
       };
     }).filter(Boolean) as Member[];
@@ -126,6 +206,36 @@ export default function MembersPage() {
     await supabase.from('box_members').update({ status: newStatus }).eq('member_id', member.id).eq('box_id', boxId);
     setMembers(prev => prev.map(m => m.id === member.id ? { ...m, is_banned: !m.is_banned } : m));
     setBanning(null);
+  }
+
+  async function assignPlan(memberId: string, planId: string | null) {
+    if (!boxId) return;
+    setPlanSaving(memberId);
+    await supabase.from('box_members').update({ plan_id: planId }).eq('member_id', memberId).eq('box_id', boxId);
+    setMembers(prev => prev.map(m => m.id === memberId ? { ...m, plan_id: planId } : m));
+    setPlanSaving(null);
+  }
+
+  async function createPlan() {
+    if (!boxId || !newPlanName.trim()) return;
+    setCreatingPlan(true);
+    const maxVal = newPlanMax.trim() === '' ? null : parseInt(newPlanMax);
+    const { data, error } = await supabase.from('membership_plans').insert({
+      box_id: boxId, name: newPlanName.trim(), max_sessions_per_week: maxVal, color: newPlanColor,
+    }).select().single();
+    if (!error && data) {
+      setPlans(prev => [...prev, data as MembershipPlan]);
+      setNewPlanName('');
+      setNewPlanMax('');
+    }
+    setCreatingPlan(false);
+  }
+
+  async function deletePlan(planId: string) {
+    if (!confirm('Supprimer ce contrat ? Les membres associés passeront en illimité.')) return;
+    await supabase.from('membership_plans').delete().eq('id', planId);
+    setPlans(prev => prev.filter(p => p.id !== planId));
+    setMembers(prev => prev.map(m => m.plan_id === planId ? { ...m, plan_id: null } : m));
   }
 
   async function toggleGroup(memberId: string, groupId: string, inGroup: boolean) {
@@ -171,7 +281,68 @@ export default function MembersPage() {
           <h1 className="text-2xl font-black text-white">Membres</h1>
           <p className="text-sm text-gray-400 mt-1">{filtered.length} / {members.length} membre(s)</p>
         </div>
+        <button onClick={() => setShowPlans(v => !v)}
+          className={`flex items-center gap-2 text-sm font-bold px-4 py-2.5 rounded-xl border transition-colors ${showPlans ? 'border-[#C9A227]/50 text-[#C9A227] bg-[#C9A227]/10' : 'border-white/10 text-gray-300 hover:text-white hover:bg-white/5'}`}>
+          <CreditCard size={16} />
+          Contrats
+        </button>
       </div>
+
+      {/* Plans management panel */}
+      {showPlans && (
+        <div className="bg-[#111111] border border-white/8 rounded-2xl p-5 space-y-4">
+          <h3 className="text-sm font-bold text-white">Contrats / Abonnements</h3>
+          <p className="text-xs text-gray-500">Définissez les types de contrats pour limiter le nombre de réservations par semaine.</p>
+
+          {/* Existing plans */}
+          <div className="space-y-2">
+            {plans.map(p => (
+              <div key={p.id} className="flex items-center gap-3 bg-[#0A0A0A] rounded-xl px-4 py-3">
+                <div className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: p.color }} />
+                <span className="text-sm font-semibold text-white flex-1">{p.name}</span>
+                <span className="text-xs text-gray-400">
+                  {p.max_sessions_per_week ? `${p.max_sessions_per_week}x / semaine` : 'Illimité'}
+                </span>
+                <span className="text-[10px] text-gray-600">
+                  {members.filter(m => m.plan_id === p.id).length} membre(s)
+                </span>
+                <button onClick={() => deletePlan(p.id)} className="p-1 rounded-lg hover:bg-red-500/20 text-gray-500 hover:text-red-400 transition-colors">
+                  <Trash2 size={13} />
+                </button>
+              </div>
+            ))}
+            {plans.length === 0 && (
+              <p className="text-xs text-gray-600 italic">Aucun contrat créé. Tous les membres sont en accès illimité.</p>
+            )}
+          </div>
+
+          {/* Create new plan */}
+          <div className="flex items-end gap-3">
+            <div className="flex-1">
+              <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1 block">Nom</label>
+              <input value={newPlanName} onChange={e => setNewPlanName(e.target.value)}
+                placeholder="Ex: Essentiel, Premium…"
+                className="w-full bg-[#0A0A0A] border border-white/10 rounded-lg px-3 py-2 text-xs text-white placeholder-gray-600 focus:outline-none focus:border-[#C9A227]/50" />
+            </div>
+            <div className="w-28">
+              <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1 block">Séances/sem</label>
+              <input type="number" min={1} value={newPlanMax} onChange={e => setNewPlanMax(e.target.value)}
+                placeholder="∞"
+                className="w-full bg-[#0A0A0A] border border-white/10 rounded-lg px-3 py-2 text-xs text-white placeholder-gray-600 focus:outline-none focus:border-[#C9A227]/50" />
+            </div>
+            <div className="w-16">
+              <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1 block">Couleur</label>
+              <input type="color" value={newPlanColor} onChange={e => setNewPlanColor(e.target.value)}
+                className="w-full h-[34px] bg-[#0A0A0A] border border-white/10 rounded-lg cursor-pointer" />
+            </div>
+            <button onClick={createPlan} disabled={creatingPlan || !newPlanName.trim()}
+              className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[#C9A227] hover:bg-[#B8911F] text-white text-xs font-bold transition-colors disabled:opacity-50">
+              {creatingPlan ? <Loader2 size={12} className="animate-spin" /> : <Plus size={12} />}
+              Créer
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Search + filters */}
       <div className="space-y-2">
@@ -253,6 +424,7 @@ export default function MembersPage() {
                 <th className="text-left px-5 py-3.5 text-xs font-bold text-gray-500 uppercase tracking-wider">Membre</th>
                 <th className="text-left px-5 py-3.5 text-xs font-bold text-gray-500 uppercase tracking-wider">Niveau</th>
                 <th className="text-left px-5 py-3.5 text-xs font-bold text-gray-500 uppercase tracking-wider">ELO</th>
+                <th className="text-left px-5 py-3.5 text-xs font-bold text-gray-500 uppercase tracking-wider">Contrat</th>
                 <th className="text-left px-5 py-3.5 text-xs font-bold text-gray-500 uppercase tracking-wider">Groupes</th>
                 <th className="text-left px-5 py-3.5 text-xs font-bold text-gray-500 uppercase tracking-wider">Statut</th>
                 <th className="text-right px-5 py-3.5"></th>
@@ -280,6 +452,9 @@ export default function MembersPage() {
                       </span>
                     </td>
                     <td className="px-5 py-4 text-sm text-gray-300 font-mono">⭐ {m.elo}</td>
+                    <td className="px-5 py-4">
+                      <PlanPopover member={m} plans={plans} onAssign={assignPlan} saving={planSaving === m.id} />
+                    </td>
                     <td className="px-5 py-4">
                       <div className="flex items-center gap-1 flex-wrap">
                         {m.groups.map(g => (

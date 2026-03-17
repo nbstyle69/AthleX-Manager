@@ -57,10 +57,13 @@ function getWeekDates(offset = 0): Date[] {
 }
 
 function toISO(d: Date): string {
-  return d.toISOString().split('T')[0];
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
 }
 
-const EMPTY = { title: '', description: '', wod_type: '' as string, block: '' as string, date: '', timeCap: '', rounds: '', notes: '', published: true };
+const EMPTY = { title: '', description: '', wod_type: '' as string, block: '' as string, date: '', timeCap: '', rounds: '', notes: '', published: true, leaderboard: true, groupIds: [] as string[] };
 
 export default function WODsPage() {
   const supabase = createClient();
@@ -81,6 +84,7 @@ export default function WODsPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [layout, setLayout] = useState<'rows' | 'columns'>('rows');
   const [showDateNav, setShowDateNav] = useState(false);
+  const [groups, setGroups] = useState<{ id: string; name: string; color: string }[]>([]);
 
   const weekDates = getWeekDates(weekOffset);
   const todayISO  = toISO(new Date());
@@ -91,7 +95,11 @@ export default function WODsPage() {
       if (!user) return;
       setUserId(user.id);
       const { data: box } = await supabase.from('boxes').select('id').eq('owner_id', user.id).single();
-      if (box) setBoxId(box.id);
+      if (box) {
+        setBoxId(box.id);
+        const { data: g } = await supabase.from('message_groups').select('id, name, color').eq('box_id', box.id).order('name');
+        setGroups(g ?? []);
+      }
     })();
   }, []);
 
@@ -117,8 +125,14 @@ export default function WODsPage() {
     setModal(true);
   }
 
-  function openEdit(wod: BoxWOD) {
+  async function loadWodGroups(wodId: string): Promise<string[]> {
+    const { data } = await supabase.from('wod_group_access').select('group_id').eq('wod_id', wodId);
+    return (data ?? []).map((r: any) => r.group_id);
+  }
+
+  async function openEdit(wod: BoxWOD) {
     setEditWOD(wod);
+    const gIds = await loadWodGroups(wod.id);
     setForm({
       title: wod.title, description: wod.description ?? '',
       wod_type: wod.wod_type ?? '', block: wod.block ?? '',
@@ -126,6 +140,8 @@ export default function WODsPage() {
       timeCap: wod.time_cap_seconds ? String(Math.floor(wod.time_cap_seconds / 60)) : '',
       rounds: wod.rounds ? String(wod.rounds) : '',
       notes: wod.notes ?? '', published: wod.is_published,
+      leaderboard: (wod as any).leaderboard_enabled ?? true,
+      groupIds: gIds,
     });
     setFormError(null);
     setModal(true);
@@ -145,12 +161,29 @@ export default function WODsPage() {
       rounds: form.rounds ? parseInt(form.rounds) : null,
       notes: form.notes.trim() || null,
       is_published: form.published,
+      leaderboard_enabled: form.leaderboard,
     };
-    const { error } = editWOD
-      ? await supabase.from('box_wods').update(payload).eq('id', editWOD.id)
-      : await supabase.from('box_wods').insert(payload);
+    let wodId = editWOD?.id;
+    if (editWOD) {
+      const { error } = await supabase.from('box_wods').update(payload).eq('id', editWOD.id);
+      if (error) { setSaving(false); setFormError(error.message); return; }
+    } else {
+      const { data: newWod, error } = await supabase.from('box_wods').insert(payload).select('id').single();
+      if (error || !newWod) { setSaving(false); setFormError(error?.message ?? 'Erreur'); return; }
+      wodId = newWod.id;
+    }
+
+    // Save group access
+    if (wodId) {
+      await supabase.from('wod_group_access').delete().eq('wod_id', wodId);
+      if (form.groupIds.length > 0) {
+        await supabase.from('wod_group_access').insert(
+          form.groupIds.map(gid => ({ wod_id: wodId, group_id: gid }))
+        );
+      }
+    }
+
     setSaving(false);
-    if (error) { setFormError(error.message); return; }
     setModal(false);
     load();
   }
@@ -561,6 +594,38 @@ export default function WODsPage() {
                 <div className="bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3 text-sm text-red-400">{formError}</div>
               )}
 
+              {/* Group access */}
+              {groups.length > 0 && (
+                <div>
+                  <label className="block text-xs font-semibold text-gray-400 mb-2 uppercase tracking-wider">Groupes autorisés <span className="text-gray-600 normal-case tracking-normal">(vide = tous les membres)</span></label>
+                  <div className="flex flex-wrap gap-2">
+                    {groups.map(g => {
+                      const selected = form.groupIds.includes(g.id);
+                      return (
+                        <button key={g.id} type="button"
+                          onClick={() => setForm(f => ({
+                            ...f,
+                            groupIds: selected ? f.groupIds.filter(id => id !== g.id) : [...f.groupIds, g.id],
+                          }))}
+                          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all border ${
+                            selected
+                              ? 'border-transparent scale-105'
+                              : 'border-white/10 text-gray-400 hover:text-white hover:border-white/20'
+                          }`}
+                          style={selected ? { backgroundColor: `${g.color}25`, color: g.color, borderColor: `${g.color}50` } : {}}
+                        >
+                          <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: g.color }} />
+                          {g.name}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {form.groupIds.length > 0 && (
+                    <p className="text-[11px] text-gray-500 mt-1.5">Seuls les membres de ces groupes verront ce WOD.</p>
+                  )}
+                </div>
+              )}
+
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-semibold text-gray-400 mb-1.5 uppercase tracking-wider">Date *</label>
@@ -632,6 +697,20 @@ export default function WODsPage() {
                   className={`relative w-11 h-6 rounded-full transition-colors ${form.published ? 'bg-emerald-500' : 'bg-white/10'}`}
                 >
                   <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${form.published ? 'translate-x-5' : 'translate-x-0.5'}`} />
+                </button>
+              </div>
+
+              <div className="flex items-center justify-between bg-white/5 rounded-xl px-4 py-3">
+                <div>
+                  <p className="text-sm font-semibold text-white">Classement</p>
+                  <p className="text-xs text-gray-500">{form.leaderboard ? 'Les scores sont classés entre membres' : 'Scores enregistrés en historique uniquement'}</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setForm(f => ({ ...f, leaderboard: !f.leaderboard }))}
+                  className={`relative w-11 h-6 rounded-full transition-colors ${form.leaderboard ? 'bg-[#C9A227]' : 'bg-white/10'}`}
+                >
+                  <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${form.leaderboard ? 'translate-x-5' : 'translate-x-0.5'}`} />
                 </button>
               </div>
 

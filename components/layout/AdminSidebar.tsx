@@ -1,8 +1,8 @@
-'use client';
+﻿'use client';
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { Shield, LayoutDashboard, Swords, Users, Trophy, LogOut, Sun, Moon, Building2 } from 'lucide-react';
+import { Shield, LayoutDashboard, Swords, Users, Trophy, LogOut, Sun, Moon, Building2, Globe2 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { cn } from '@/lib/utils';
 import { useTheme } from '@/components/ThemeProvider';
@@ -12,7 +12,8 @@ const NAV = [
   { href: '/admin/daily-contests', label: 'Contestations',  icon: Swords },
   { href: '/admin/tournaments',    label: 'Tournois',       icon: Trophy },
   { href: '/admin/users',          label: 'Utilisateurs',   icon: Users },
-  { href: '/admin/boxes',          label: 'Boxes',          icon: Building2 },
+  { href: '/admin/boxes',            label: 'Boxes',            icon: Building2 },
+  { href: '/admin/inter-competitions', label: 'Compet. Inter-box', icon: Globe2 },
 ];
 
 interface AdminSidebarProps {
@@ -98,9 +99,10 @@ export default function AdminSidebar({ username, email }: AdminSidebarProps) {
           className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-sm text-gray-500 hover:text-red-400 hover:bg-red-500/10 transition-all"
         >
           <LogOut size={15} />
-          Déconnexion
+          DÃ©connexion
         </button>
       </div>
     </aside>
   );
 }
+

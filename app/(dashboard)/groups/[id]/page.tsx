@@ -3,7 +3,13 @@
 import { useState, useEffect, useCallback, use, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
-import { ArrowLeft, Loader2, UserPlus, UserMinus, Users2, MessageSquare, Search, SlidersHorizontal, X } from 'lucide-react';
+import { ArrowLeft, Loader2, UserPlus, UserMinus, Users2, MessageSquare, Search, SlidersHorizontal, X, Pencil, Check } from 'lucide-react';
+
+const COLORS = [
+  '#C9A227', '#8B5CF6', '#EC4899', '#EF4444',
+  '#F59E0B', '#10B981', '#3B82F6', '#14B8A6',
+  '#F97316', '#84CC16',
+];
 import Link from 'next/link';
 
 interface Member {
@@ -32,6 +38,10 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
   const [toggling,   setToggling]   = useState<string | null>(null);
   const [deleting,   setDeleting]   = useState(false);
   const [error,      setError]      = useState<string | null>(null);
+  const [editing,    setEditing]    = useState(false);
+  const [editName,   setEditName]   = useState('');
+  const [editColor,  setEditColor]  = useState('');
+  const [saving,     setSaving]     = useState(false);
 
   // Filters
   const [search,       setSearch]       = useState('');
@@ -106,6 +116,27 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
     setToggling(null);
   }
 
+  async function saveGroup() {
+    if (!editName.trim()) return;
+    setSaving(true);
+    const { error: e } = await supabase
+      .from('message_groups')
+      .update({ name: editName.trim(), color: editColor })
+      .eq('id', groupId);
+    if (e) { setError(e.message); } else {
+      setGroup({ ...group!, name: editName.trim(), color: editColor });
+      setEditing(false);
+    }
+    setSaving(false);
+  }
+
+  function startEditing() {
+    if (!group) return;
+    setEditName(group.name);
+    setEditColor(group.color);
+    setEditing(true);
+  }
+
   async function deleteGroup() {
     if (!confirm('Supprimer ce groupe ? Les messages associés resteront.')) return;
     setDeleting(true);
@@ -150,6 +181,10 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
           </div>
         </div>
         <div className="flex items-center gap-2">
+          <button onClick={startEditing}
+            className="flex items-center gap-1.5 text-sm font-bold px-3 py-2 rounded-xl border border-white/10 text-gray-400 hover:text-white hover:border-white/20 transition-colors">
+            <Pencil size={13} /> Modifier
+          </button>
           <Link href={`/messages/new?group=${groupId}`}
             className="flex items-center gap-1.5 text-sm font-bold px-3 py-2 rounded-xl border border-white/10 text-gray-400 hover:text-white hover:border-white/20 transition-colors">
             <MessageSquare size={13} /> Message
@@ -160,6 +195,46 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
           </button>
         </div>
       </div>
+
+      {/* Edit panel */}
+      {editing && (
+        <div className="bg-[#111111] border border-[#C9A227]/30 rounded-2xl p-5 space-y-4">
+          <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Modifier le groupe</p>
+          <div>
+            <label className="block text-xs font-semibold text-gray-400 mb-1.5">Nom</label>
+            <input
+              value={editName}
+              onChange={e => setEditName(e.target.value)}
+              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-[#C9A227] transition-colors"
+              placeholder="Nom du groupe"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-gray-400 mb-2">Couleur</label>
+            <div className="flex flex-wrap gap-2.5">
+              {COLORS.map(c => (
+                <button
+                  key={c} type="button"
+                  onClick={() => setEditColor(c)}
+                  className={`w-8 h-8 rounded-xl transition-all ${editColor === c ? 'ring-2 ring-white ring-offset-2 ring-offset-[#111111] scale-110' : 'hover:scale-105'}`}
+                  style={{ backgroundColor: c }}
+                />
+              ))}
+            </div>
+          </div>
+          <div className="flex items-center gap-2 pt-1">
+            <button onClick={saveGroup} disabled={saving || !editName.trim()}
+              className="flex items-center gap-1.5 px-4 py-2 text-sm font-bold bg-[#C9A227] text-white rounded-xl disabled:opacity-60 transition-colors">
+              {saving ? <Loader2 size={13} className="animate-spin" /> : <Check size={13} />}
+              Enregistrer
+            </button>
+            <button onClick={() => setEditing(false)}
+              className="px-4 py-2 text-sm text-gray-400 hover:text-white border border-white/10 rounded-xl transition-colors">
+              Annuler
+            </button>
+          </div>
+        </div>
+      )}
 
       {error && <div className="bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3 text-sm text-red-400">{error}</div>}
 

@@ -18,32 +18,29 @@ function isTokenValid(token: string): boolean {
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  if (pathname.startsWith('/api/') || pathname.startsWith('/test-login')) {
+  if (pathname.startsWith('/api/') || pathname.startsWith('/test-login') || pathname.startsWith('/landing')) {
     return NextResponse.next();
   }
 
   const accessToken = request.cookies.get('sb-access-token')?.value;
   const tokenOk = accessToken ? isTokenValid(accessToken) : false;
 
-  if (!tokenOk) {
-    // Clear stale cookies to prevent redirect loop
-    if (pathname === '/login') {
-      const res = NextResponse.next();
-      if (accessToken) {
-        res.cookies.delete('sb-access-token');
-        res.cookies.delete('sb-refresh-token');
-      }
-      return res;
+  // Always allow /login to render — never redirect from it in middleware
+  // (prevents loop when token looks valid locally but is revoked on Supabase)
+  if (pathname === '/login') {
+    const res = NextResponse.next();
+    if (!tokenOk && accessToken) {
+      res.cookies.delete('sb-access-token');
+      res.cookies.delete('sb-refresh-token');
     }
+    return res;
+  }
+
+  if (!tokenOk) {
     const res = NextResponse.redirect(new URL('/login', request.url));
     res.cookies.delete('sb-access-token');
     res.cookies.delete('sb-refresh-token');
     return res;
-  }
-
-  // Valid token — redirect away from login
-  if (pathname === '/login') {
-    return NextResponse.redirect(new URL('/', request.url));
   }
 
   return NextResponse.next();
