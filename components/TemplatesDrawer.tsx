@@ -172,13 +172,13 @@ export default function TemplatesDrawer({ open, onClose, boxId }: Props) {
               <div>
                 <label className="block text-xs font-semibold text-gray-400 mb-1.5">Jour</label>
                 <select value={form.day_of_week} onChange={e => setForm(f => ({ ...f, day_of_week: Number(e.target.value) }))} className="w-full bg-[#1a1a1a] border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white">
-                  {DAYS.map(d => <option key={d.value} value={d.value}>{d.label}</option>)}
+                  {DAYS.map(d => <option key={d.value} value={d.value} className="text-black">{d.label}</option>)}
                 </select>
               </div>
               <div>
                 <label className="block text-xs font-semibold text-gray-400 mb-1.5">Type de cours</label>
                 <select value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} className="w-full bg-[#1a1a1a] border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white">
-                  {CLASS_TYPES.map(c => <option key={c}>{c}</option>)}
+                  {CLASS_TYPES.map(c => <option key={c} className="text-black">{c}</option>)}
                 </select>
               </div>
               <div className="grid grid-cols-2 gap-3">

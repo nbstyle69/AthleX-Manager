@@ -222,14 +222,20 @@ export default function WODsPage() {
   }
 
   // ── CSV Template ─────────────────────────────────────────────────────────
+  // Colonnes : date,title,type,description,timecap,rounds,notes,block,published,rank,groups
+  //   type      = for-time | amrap | emom | tabata | strength | custom
+  //   block     = skill-gym | skill-haltero | wod | pre-wod | post-wod  (optionnel)
+  //   published = true/false  (défaut true)
+  //   rank      = true/false  (défaut true) → leaderboard_enabled
+  //   groups    = noms séparés par | (ex: Compétiteurs|CrossFit Avancé) — vide = visible par tous
   function downloadTemplate() {
-    const headers = 'date,title,type,description,time_cap_min,rounds,notes,published';
+    const headers = 'date,title,type,description,timecap,rounds,notes,block,published,rank,groups';
     const examples = [
-      `2026-03-10,Fran,for-time,"21-15-9 Thrusters (43kg) + Pull-ups",20,,"Objectif sub 5min",true`,
-      `2026-03-11,Cindy,amrap,"5 Pull-ups / 10 Push-ups / 15 Air Squats",20,,"Comptez vos rounds complets",true`,
-      `2026-03-12,Back Squat,strength,"5x5 Back Squat - 80% 1RM",,5,"Repos 3min entre séries",true`,
-      `2026-03-13,Karen,for-time,"150 Wall Balls (9kg / cible 3m)",20,,"",true`,
-      `2026-03-14,EMOM 12,emom,"Min 1: 12 Box Jumps | Min 2: 8 Dips | Min 3: 200m Row",12,4,"",true`,
+      `2026-03-10,Fran,for-time,"21-15-9 Thrusters (43kg) + Pull-ups",20,,"Objectif sub 5min",wod,true,true,Compétiteurs|CrossFit Avancé`,
+      `2026-03-10,Front Squat,strength,"5x3 Front Squat @80-85%",,5,"Repos 3min entre séries",skill-haltero,true,false,`,
+      `2026-03-11,Cindy,amrap,"5 Pull-ups / 10 Push-ups / 15 Air Squats",20,,"Comptez vos rounds complets",wod,true,true,`,
+      `2026-03-12,Karen,for-time,"150 Wall Balls (9kg / cible 3m)",20,,,wod,false,true,Groupe du Matin`,
+      `2026-03-13,EMOM 12,emom,"Min 1: 12 Box Jumps | Min 2: 8 Dips | Min 3: 200m Row",12,4,,wod,true,true,`,
     ].join('\n');
     const csv = `${headers}\n${examples}`;
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
@@ -239,54 +245,123 @@ export default function WODsPage() {
     a.click(); URL.revokeObjectURL(url);
   }
 
-  // ── CSV Import ────────────────────────────────────────────────────────────
+  // ── CSV / JSON Import ──────────────────────────────────────────────────────
   async function handleImport(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file || !boxId || !userId) return;
     setImporting(true);
     setImportResult(null);
     const text = await file.text();
-    const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
-    if (lines.length < 2) { setImporting(false); return; }
-    // skip header
-    const dataLines = lines.slice(1);
-    let ok = 0;
-    const errors: string[] = [];
 
-    for (let i = 0; i < dataLines.length; i++) {
-      const line = dataLines[i];
-      // parse CSV line respecting quoted fields
-      const fields: string[] = [];
-      let current = ''; let inQuote = false;
-      for (let c = 0; c < line.length; c++) {
-        const ch = line[c];
-        if (ch === '"') { if (inQuote && line[c+1] === '"') { current += '"'; c++; } else { inQuote = !inQuote; } }
-        else if (ch === ',' && !inQuote) { fields.push(current); current = ''; }
-        else { current += ch; }
-      }
-      fields.push(current);
+    const parseBool = (v: string | undefined | null, fb = true): boolean => {
+      if (!v || !v.trim()) return fb;
+      const s = v.trim().toLowerCase();
+      return !(s === 'false' || s === '0' || s === 'non');
+    };
 
-      const [date, title, type, description, timeCap, rounds, notes, published] = fields;
-      if (!date?.match(/^\d{4}-\d{2}-\d{2}$/) || !title?.trim()) {
-        errors.push(`Ligne ${i + 2} ignorée : date ou titre invalide`);
-        continue;
-      }
-      const validTypes = ['for-time','amrap','emom','tabata','strength','custom'];
-      const wodType = validTypes.includes(type?.trim()) ? type.trim() : 'custom';
-      const { error } = await supabase.from('box_wods').insert({
-        box_id: boxId, created_by: userId,
-        title: title.trim(),
-        description: description?.trim() || null,
-        wod_type: wodType,
-        scheduled_date: date.trim(),
-        time_cap_seconds: timeCap?.trim() ? parseInt(timeCap) * 60 : null,
-        rounds: rounds?.trim() ? parseInt(rounds) : null,
-        notes: notes?.trim() || null,
-        is_published: published?.trim().toLowerCase() !== 'false',
-      });
-      if (error) errors.push(`Ligne ${i + 2} : ${error.message}`);
-      else ok++;
+    // --- Parse rows ---
+    interface ImportRow {
+      date: string; title: string; type: string; description: string;
+      timeCap: string; rounds: string; notes: string; block: string;
+      published: boolean; rank: boolean; groupNames: string[];
     }
+    const rows: ImportRow[] = [];
+    const parseErrors: string[] = [];
+
+    if (file.name.endsWith('.json')) {
+      try {
+        const parsed = JSON.parse(text);
+        const arr = Array.isArray(parsed) ? parsed : [parsed];
+        arr.forEach((r: any, i: number) => {
+          if (!r.date || !r.title) { parseErrors.push(`Entrée ${i + 1} ignorée : date ou titre manquant`); return; }
+          rows.push({
+            date: r.date, title: r.title, type: r.type || 'custom',
+            description: r.description || '', timeCap: r.timecap != null ? String(r.timecap) : '',
+            rounds: r.rounds != null ? String(r.rounds) : '', notes: r.notes || '',
+            block: r.block || '', published: r.published !== false,
+            rank: r.rank !== false, groupNames: Array.isArray(r.groups) ? r.groups : [],
+          });
+        });
+      } catch { parseErrors.push('Fichier JSON invalide'); }
+    } else {
+      const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+      if (lines.length < 2) { setImporting(false); return; }
+      const dataLines = lines.slice(1);
+      for (let i = 0; i < dataLines.length; i++) {
+        const line = dataLines[i];
+        const fields: string[] = [];
+        let current = ''; let inQuote = false;
+        for (let c = 0; c < line.length; c++) {
+          const ch = line[c];
+          if (ch === '"') { if (inQuote && line[c+1] === '"') { current += '"'; c++; } else { inQuote = !inQuote; } }
+          else if ((ch === ',' || ch === ';') && !inQuote) { fields.push(current); current = ''; }
+          else { current += ch; }
+        }
+        fields.push(current);
+        const [date, title, type, description, timeCap, rounds, notes, block, published, rank, groups] = fields;
+        if (!date?.match(/^\d{4}-\d{2}-\d{2}$/) || !title?.trim()) {
+          parseErrors.push(`Ligne ${i + 2} ignorée : date ou titre invalide`);
+          continue;
+        }
+        rows.push({
+          date: date.trim(), title: title.trim(), type: type?.trim() || 'custom',
+          description: description?.trim() || '', timeCap: timeCap?.trim() || '',
+          rounds: rounds?.trim() || '', notes: notes?.trim() || '',
+          block: block?.trim() || '', published: parseBool(published),
+          rank: parseBool(rank), groupNames: groups ? groups.split('|').map(g => g.trim()).filter(Boolean) : [],
+        });
+      }
+    }
+
+    if (rows.length === 0) {
+      setImportResult({ ok: 0, errors: parseErrors.length ? parseErrors : ['Aucun WOD trouvé dans le fichier'] });
+      setImporting(false);
+      return;
+    }
+
+    // --- Resolve group names → IDs ---
+    const allGroupNames = [...new Set(rows.flatMap(r => r.groupNames))];
+    const groupMap: Record<string, string> = {};
+    if (allGroupNames.length > 0) {
+      const { data: grps } = await supabase
+        .from('message_groups').select('id, name')
+        .eq('box_id', boxId).in('name', allGroupNames);
+      if (grps) grps.forEach((g: any) => { groupMap[g.name] = g.id; });
+      const missing = allGroupNames.filter(n => !groupMap[n]);
+      if (missing.length > 0) parseErrors.push(`Groupes inconnus (ignorés) : ${missing.join(', ')}`);
+    }
+
+    // --- Insert WODs ---
+    const validTypes = ['for-time','amrap','emom','tabata','strength','custom'];
+    let ok = 0;
+    const errors = [...parseErrors];
+
+    for (let i = 0; i < rows.length; i++) {
+      const r = rows[i];
+      const wodType = validTypes.includes(r.type) ? r.type : 'custom';
+      const { data: inserted, error } = await supabase.from('box_wods').insert({
+        box_id: boxId, created_by: userId,
+        title: r.title, description: r.description || null,
+        wod_type: wodType, scheduled_date: r.date,
+        time_cap_seconds: r.timeCap ? parseInt(r.timeCap) * 60 : null,
+        rounds: r.rounds ? parseInt(r.rounds) : null,
+        notes: r.notes || null, block_name: r.block || null,
+        is_published: r.published, leaderboard_enabled: r.rank,
+      }).select('id').single();
+      if (error) { errors.push(`Ligne ${i + 2} : ${error.message}`); continue; }
+      ok++;
+      // Insert group access
+      if (inserted && r.groupNames.length > 0) {
+        const accessRows = r.groupNames
+          .filter(gn => groupMap[gn])
+          .map(gn => ({ wod_id: inserted.id, group_id: groupMap[gn] }));
+        if (accessRows.length > 0) {
+          const { error: gErr } = await supabase.from('wod_group_access').insert(accessRows);
+          if (gErr) errors.push(`WOD "${r.title}" : erreur groupes — ${gErr.message}`);
+        }
+      }
+    }
+
     setImportResult({ ok, errors });
     setImporting(false);
     if (fileInputRef.current) fileInputRef.current.value = '';
@@ -330,8 +405,8 @@ export default function WODsPage() {
           </button>
           <label className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold border border-white/10 text-gray-400 hover:text-white hover:border-white/20 transition-colors cursor-pointer ${importing ? 'opacity-60 pointer-events-none' : ''}`}>
             {importing ? <Loader2 size={13} className="animate-spin" /> : <Upload size={13} />}
-            {importing ? 'Import…' : 'Importer CSV'}
-            <input ref={fileInputRef} type="file" accept=".csv" className="hidden" onChange={handleImport} />
+            {importing ? 'Import…' : 'Importer'}
+            <input ref={fileInputRef} type="file" accept=".csv,.json" className="hidden" onChange={handleImport} />
           </label>
           <button
             onClick={() => setLayout(l => l === 'rows' ? 'columns' : 'rows')}
@@ -636,8 +711,8 @@ export default function WODsPage() {
                   <label className="block text-xs font-semibold text-gray-400 mb-1.5 uppercase tracking-wider">Block</label>
                   <select className={inp} value={form.block}
                     onChange={e => setForm(f => ({ ...f, block: e.target.value }))}>
-                    <option value="">— Aucun —</option>
-                    {BLOCKS.map(b => <option key={b.value} value={b.value}>{b.label}</option>)}
+                    <option value="" className="text-black">— Aucun —</option>
+                    {BLOCKS.map(b => <option key={b.value} value={b.value} className="text-black">{b.label}</option>)}
                   </select>
                 </div>
               </div>
@@ -647,8 +722,8 @@ export default function WODsPage() {
                   <label className="block text-xs font-semibold text-gray-400 mb-1.5 uppercase tracking-wider">Type <span className="text-gray-600 normal-case tracking-normal">(optionnel)</span></label>
                   <select className={inp} value={form.wod_type}
                     onChange={e => setForm(f => ({ ...f, wod_type: e.target.value }))}>
-                    <option value="">— Aucun —</option>
-                    {WOD_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+                    <option value="" className="text-black">— Aucun —</option>
+                    {WOD_TYPES.map(t => <option key={t.value} value={t.value} className="text-black">{t.label}</option>)}
                   </select>
                 </div>
               </div>

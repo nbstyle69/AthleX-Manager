@@ -392,8 +392,8 @@ export default function MembersPage() {
             {/* Group filter */}
             <select value={filterGroup} onChange={e => setFilterGroup(e.target.value)}
               className="bg-white/5 border border-white/10 rounded-lg px-2.5 py-1 text-xs text-white focus:outline-none focus:border-[#C9A227] transition-colors">
-              <option value="">Tous les groupes</option>
-              {allGroups.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
+              <option value="" className="text-black">Tous les groupes</option>
+              {allGroups.map(g => <option key={g.id} value={g.id} className="text-black">{g.name}</option>)}
             </select>
 
             {activeFilters > 0 && (

@@ -113,8 +113,8 @@ export default function NewMessagePage() {
         <div>
           <label className="block text-xs font-semibold text-gray-400 mb-1.5 uppercase tracking-wider">Groupe cible</label>
           <select className={inp} value={groupId} onChange={e => setGroupId(e.target.value)}>
-            <option value="">Tous les membres</option>
-            {groups.map((g: any) => <option key={g.id} value={g.id}>{g.name}</option>)}
+            <option value="" className="text-black">Tous les membres</option>
+            {groups.map((g: any) => <option key={g.id} value={g.id} className="text-black">{g.name}</option>)}
           </select>
         </div>
 

@@ -79,13 +79,13 @@ export default function TournamentForm({ boxId, initial }: Props) {
           <div>
             <label className={lbl}>Niveau requis</label>
             <select className={inp} value={form.level} onChange={e => set('level', e.target.value)}>
-              {LEVELS.map(l => <option key={l} value={l}>{l.toUpperCase()}</option>)}
+              {LEVELS.map(l => <option key={l} value={l} className="text-black">{l.toUpperCase()}</option>)}
             </select>
           </div>
           <div>
             <label className={lbl}>Statut</label>
             <select className={inp} value={form.status} onChange={e => set('status', e.target.value)}>
-              {STATUSES.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
+              {STATUSES.map(s => <option key={s.value} value={s.value} className="text-black">{s.label}</option>)}
             </select>
           </div>
         </div>

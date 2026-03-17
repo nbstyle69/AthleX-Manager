@@ -326,9 +326,9 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
                 <div className="w-full">
                   <select value={filterGroup} onChange={e => setFilterGroup(e.target.value)}
                     className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-[#C9A227] transition-colors">
-                    <option value="">Tous les groupes</option>
+                    <option value="" className="text-black">Tous les groupes</option>
                     {allGroups.filter(g => g.id !== groupId).map(g => (
-                      <option key={g.id} value={g.id}>{g.name}</option>
+                      <option key={g.id} value={g.id} className="text-black">{g.name}</option>
                     ))}
                   </select>
                 </div>

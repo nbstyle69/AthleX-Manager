@@ -582,13 +582,13 @@ export default function WODForm({ tournamentId, initial, onSaved, onCancel }: Pr
                   <div>
                     <label className={lbl}>Type de WOD</label>
                     <select className={inp} value={genType} onChange={e => setGenType(e.target.value)}>
-                      {WOD_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                      {WOD_TYPES.map(t => <option key={t} value={t} className="text-black">{t}</option>)}
                     </select>
                   </div>
                   <div>
                     <label className={lbl}>Niveau athlètes</label>
                     <select className={inp} value={genLevel} onChange={e => setGenLevel(e.target.value)}>
-                      {LEVELS.map(l => <option key={l} value={l}>{l.toUpperCase()}</option>)}
+                      {LEVELS.map(l => <option key={l} value={l} className="text-black">{l.toUpperCase()}</option>)}
                     </select>
                   </div>
                 </div>
@@ -632,13 +632,13 @@ export default function WODForm({ tournamentId, initial, onSaved, onCancel }: Pr
                   <div>
                     <label className={lbl}>Catégorie</label>
                     <select className={inp} value={genHybridLevel} onChange={e => setGenHybridLevel(e.target.value)}>
-                      {HYBRID_LEVELS.map(l => <option key={l} value={l}>{l}</option>)}
+                      {HYBRID_LEVELS.map(l => <option key={l} value={l} className="text-black">{l}</option>)}
                     </select>
                   </div>
                   <div>
                     <label className={lbl}>Format</label>
                     <select className={inp} value={genHybridFormat} onChange={e => setGenHybridFormat(e.target.value)}>
-                      {HYBRID_FORMATS.map(f => <option key={f} value={f}>{f}</option>)}
+                      {HYBRID_FORMATS.map(f => <option key={f} value={f} className="text-black">{f}</option>)}
                     </select>
                   </div>
                 </div>
@@ -709,13 +709,13 @@ export default function WODForm({ tournamentId, initial, onSaved, onCancel }: Pr
         <div>
           <label className={lbl}>Type de WOD</label>
           <select className={inp} value={form.type} onChange={e => onTypeChange(e.target.value)}>
-            {WOD_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+            {WOD_TYPES.map(t => <option key={t} value={t} className="text-black">{t}</option>)}
           </select>
         </div>
         <div>
           <label className={lbl}>Statut</label>
           <select className={inp} value={form.status} onChange={e => set('status', e.target.value)}>
-            {WOD_STATUSES.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
+            {WOD_STATUSES.map(s => <option key={s.value} value={s.value} className="text-black">{s.label}</option>)}
           </select>
         </div>
       </div>

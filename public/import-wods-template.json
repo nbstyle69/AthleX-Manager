@@ -1,0 +1,41 @@
+[
+  {
+    "date": "2026-03-18",
+    "title": "FRAN",
+    "type": "for-time",
+    "description": "21-15-9 Thrusters (43/30 kg) + Pull-ups",
+    "timecap": 10,
+    "rounds": null,
+    "notes": "Scale: bandes élastiques ou ring rows",
+    "block": "wod",
+    "published": true,
+    "rank": true,
+    "groups": ["Compétiteurs", "CrossFit Avancé"]
+  },
+  {
+    "date": "2026-03-18",
+    "title": "FRONT SQUAT",
+    "type": "strength",
+    "description": "5x3 Front Squat @80-85% pause 2s en bas",
+    "timecap": null,
+    "rounds": null,
+    "notes": "Si trop lourd: réduire à 70%",
+    "block": "skill-haltero",
+    "published": true,
+    "rank": false,
+    "groups": []
+  },
+  {
+    "date": "2026-03-19",
+    "title": "MURPH",
+    "type": "for-time",
+    "description": "1 mile Run + 100 Pull-ups + 200 Push-ups + 300 Squats + 1 mile Run",
+    "timecap": 60,
+    "rounds": null,
+    "notes": "Partition autorisée. Gilet 9/6kg en Rx+",
+    "block": "wod",
+    "published": true,
+    "rank": true,
+    "groups": []
+  }
+]
