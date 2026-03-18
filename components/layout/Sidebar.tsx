@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { Users, FolderOpen, MessageSquare, LayoutDashboard, LogOut, Dumbbell, Trophy, Sun, Moon, CalendarClock } from 'lucide-react';
+import { Users, FolderOpen, MessageSquare, LayoutDashboard, LogOut, Dumbbell, Trophy, Sun, Moon, CalendarClock, Settings } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { cn } from '@/lib/utils';
 import { useTheme } from '@/components/ThemeProvider';
@@ -15,6 +15,7 @@ const NAV = [
   { href: '/members',      label: 'Membres',    icon: Users },
   { href: '/groups',       label: 'Groupes',    icon: FolderOpen },
   { href: '/messages',     label: 'Messages',   icon: MessageSquare },
+  { href: '/settings',     label: 'Réglages',   icon: Settings },
 ];
 
 interface SidebarProps {
