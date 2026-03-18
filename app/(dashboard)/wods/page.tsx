@@ -15,7 +15,7 @@ interface BoxWOD {
   title: string; description: string | null;
   wod_type: WodType | null; scheduled_date: string;
   time_cap_seconds: number | null; rounds: number | null;
-  block: string | null;
+  block_name: string | null;
   notes: string | null; is_published: boolean;
 }
 
@@ -135,7 +135,7 @@ export default function WODsPage() {
     const gIds = await loadWodGroups(wod.id);
     setForm({
       title: wod.title, description: wod.description ?? '',
-      wod_type: wod.wod_type ?? '', block: wod.block ?? '',
+      wod_type: wod.wod_type ?? '', block: wod.block_name ?? '',
       date: wod.scheduled_date,
       timeCap: wod.time_cap_seconds ? String(Math.floor(wod.time_cap_seconds / 60)) : '',
       rounds: wod.rounds ? String(wod.rounds) : '',
@@ -155,7 +155,7 @@ export default function WODsPage() {
       title: form.title.trim(),
       description: form.description.trim() || null,
       wod_type: form.wod_type || null,
-      block: form.block || null,
+      block_name: form.block || null,
       scheduled_date: form.date,
       time_cap_seconds: form.timeCap ? parseInt(form.timeCap) * 60 : null,
       rounds: form.rounds ? parseInt(form.rounds) : null,
@@ -521,7 +521,7 @@ export default function WODsPage() {
                         return (
                           <div key={wod.id} className={`rounded-xl p-2.5 border border-white/5 bg-white/[0.02] hover:bg-white/[0.04] transition-colors ${!wod.is_published ? 'opacity-50' : ''}`}>
                             <div className="flex items-center gap-1.5 mb-1 flex-wrap">
-                              {wod.block && <span className="text-[8px] font-black tracking-wider px-1 py-0.5 rounded" style={{ backgroundColor: `${BLOCK_COLOR[wod.block]}20`, color: BLOCK_COLOR[wod.block] }}>{BLOCK_LABEL[wod.block]}</span>}
+                              {wod.block_name && <span className="text-[8px] font-black tracking-wider px-1 py-0.5 rounded" style={{ backgroundColor: `${BLOCK_COLOR[wod.block_name]}20`, color: BLOCK_COLOR[wod.block_name] }}>{BLOCK_LABEL[wod.block_name]}</span>}
                               {wt && <><div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: color }} /><span className="text-[9px] font-black tracking-wider truncate" style={{ color }}>{wt.toUpperCase()}</span></>}
                               {!wod.is_published && <EyeOff size={9} className="text-amber-500 shrink-0" />}
                             </div>
@@ -598,12 +598,12 @@ export default function WODsPage() {
                       const color = TYPE_COLOR[wt] ?? '#6B7280';
                       return (
                         <div key={wod.id} className={`flex items-center gap-4 px-5 py-3.5 ${!wod.is_published ? 'opacity-60' : ''}`}>
-                          <div className="w-1 h-10 rounded-full shrink-0" style={{ backgroundColor: wod.block ? (BLOCK_COLOR[wod.block] ?? color) : color }} />
+                          <div className="w-1 h-10 rounded-full shrink-0" style={{ backgroundColor: wod.block_name ? (BLOCK_COLOR[wod.block_name] ?? color) : color }} />
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 mb-0.5 flex-wrap">
-                              {wod.block && (
-                                <span className="text-[10px] font-black tracking-wider px-1.5 py-0.5 rounded" style={{ backgroundColor: `${BLOCK_COLOR[wod.block]}20`, color: BLOCK_COLOR[wod.block] }}>
-                                  {BLOCK_LABEL[wod.block]}
+                              {wod.block_name && (
+                                <span className="text-[10px] font-black tracking-wider px-1.5 py-0.5 rounded" style={{ backgroundColor: `${BLOCK_COLOR[wod.block_name]}20`, color: BLOCK_COLOR[wod.block_name] }}>
+                                  {BLOCK_LABEL[wod.block_name]}
                                 </span>
                               )}
                               {wt && (
