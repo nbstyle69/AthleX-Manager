@@ -2,10 +2,10 @@
 
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import Link from 'next/link';
 import {
   Building2, ArrowLeft, Users, Dumbbell, Trophy, Crown,
   CheckCircle, XCircle, Calendar, Clock, Shield, Hash,
+  Pencil, Save, X as XIcon, Image as ImageIcon,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -25,18 +25,54 @@ export default function BoxDetailPage() {
   const [data, setData] = useState<BoxData | null>(null);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState(0);
+  const [editing, setEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [editName, setEditName] = useState('');
+  const [editDesc, setEditDesc] = useState('');
+  const [editCity, setEditCity] = useState('');
+  const [editActive, setEditActive] = useState(true);
+  const [editPlan, setEditPlan] = useState('free');
 
-  useEffect(() => {
-    async function load() {
-      setLoading(true);
-      const res = await fetch(`/api/admin/boxes/${id}`);
-      if (!res.ok) { setLoading(false); return; }
-      const json = await res.json();
-      setData(json);
-      setLoading(false);
+  async function loadData() {
+    setLoading(true);
+    const res = await fetch(`/api/admin/boxes/${id}`);
+    if (!res.ok) { setLoading(false); return; }
+    const json = await res.json();
+    setData(json);
+    setLoading(false);
+  }
+
+  useEffect(() => { loadData(); }, [id]);
+
+  function startEdit() {
+    if (!data?.box) return;
+    setEditName(data.box.name ?? '');
+    setEditDesc(data.box.description ?? '');
+    setEditCity(data.box.city ?? '');
+    setEditActive(data.box.is_active ?? true);
+    setEditPlan(data.box.plan ?? 'free');
+    setEditing(true);
+  }
+
+  async function handleSave() {
+    setSaving(true);
+    const res = await fetch(`/api/admin/boxes/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: editName.trim(),
+        description: editDesc.trim() || null,
+        city: editCity.trim() || null,
+        is_active: editActive,
+        plan: editPlan,
+      }),
+    });
+    setSaving(false);
+    if (res.ok) {
+      setEditing(false);
+      loadData();
     }
-    load();
-  }, [id]);
+  }
 
   if (loading) {
     return (
@@ -90,9 +126,13 @@ export default function BoxDetailPage() {
         </button>
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-4">
-            <div className="w-14 h-14 rounded-2xl bg-orange-500/15 flex items-center justify-center text-orange-400 font-black text-xl">
-              {box.name?.[0]?.toUpperCase() ?? 'B'}
-            </div>
+            {box.logo_url ? (
+              <img src={box.logo_url} alt={box.name} className="w-14 h-14 rounded-2xl object-cover" />
+            ) : (
+              <div className="w-14 h-14 rounded-2xl bg-orange-500/15 flex items-center justify-center text-orange-400 font-black text-xl">
+                {box.name?.[0]?.toUpperCase() ?? 'B'}
+              </div>
+            )}
             <div>
               <h1 className="text-2xl font-black text-white">{box.name}</h1>
               <div className="flex items-center gap-3 mt-1">
@@ -112,6 +152,12 @@ export default function BoxDetailPage() {
               </div>
             </div>
           </div>
+          {!editing && (
+            <button onClick={startEdit}
+              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-sm font-bold text-gray-300 hover:text-white hover:border-emerald-500/30 transition-all">
+              <Pencil size={14} /> Modifier
+            </button>
+          )}
         </div>
       </div>
 
@@ -139,15 +185,73 @@ export default function BoxDetailPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="bg-[#111111] border border-white/[0.06] rounded-2xl p-6 space-y-4">
             <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Informations</h3>
-            <div className="space-y-3">
-              <InfoRow label="Nom" value={box.name} />
-              <InfoRow label="Slug" value={box.slug ?? '—'} />
-              <InfoRow label="Ville" value={box.city ?? '—'} />
-              <InfoRow label="Description" value={box.description ?? 'Aucune description'} />
-              <InfoRow label="Code invitation" value={box.invite_code} mono />
-              <InfoRow label="Créée le" value={new Date(box.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })} />
-            </div>
+            {editing ? (
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 mb-1">Nom</label>
+                  <input value={editName} onChange={e => setEditName(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-sm text-white focus:outline-none focus:border-emerald-500/50" />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 mb-1">Ville</label>
+                  <input value={editCity} onChange={e => setEditCity(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-sm text-white focus:outline-none focus:border-emerald-500/50" />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 mb-1">Description</label>
+                  <textarea value={editDesc} onChange={e => setEditDesc(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-sm text-white focus:outline-none focus:border-emerald-500/50 h-20 resize-none" />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 mb-1">Plan</label>
+                  <select value={editPlan} onChange={e => setEditPlan(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-sm text-white focus:outline-none focus:border-emerald-500/50">
+                    <option value="free">Free</option>
+                    <option value="pro">Pro</option>
+                    <option value="elite">Elite</option>
+                  </select>
+                </div>
+                <div className="flex items-center gap-3">
+                  <label className="text-xs font-bold text-gray-500">Active</label>
+                  <button onClick={() => setEditActive(!editActive)}
+                    className={cn('w-10 h-5 rounded-full transition-colors relative', editActive ? 'bg-emerald-500' : 'bg-white/10')}>
+                    <div className={cn('w-4 h-4 rounded-full bg-white absolute top-0.5 transition-all', editActive ? 'left-5' : 'left-0.5')} />
+                  </button>
+                </div>
+                <div className="flex gap-2 pt-2">
+                  <button onClick={handleSave} disabled={saving}
+                    className="flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 disabled:opacity-50 text-white text-sm font-bold transition-colors">
+                    <Save size={14} /> {saving ? 'Sauvegarde...' : 'Sauvegarder'}
+                  </button>
+                  <button onClick={() => setEditing(false)}
+                    className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-sm font-bold text-gray-400 hover:text-white transition-colors">
+                    <XIcon size={14} /> Annuler
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <InfoRow label="Nom" value={box.name} />
+                <InfoRow label="Slug" value={box.slug ?? '—'} />
+                <InfoRow label="Ville" value={box.city ?? '—'} />
+                <InfoRow label="Description" value={box.description ?? 'Aucune description'} />
+                <InfoRow label="Code invitation" value={box.invite_code} mono />
+                <InfoRow label="Créée le" value={new Date(box.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })} />
+              </div>
+            )}
           </div>
+
+          {/* Logo card */}
+          {box.logo_url && (
+            <div className="bg-[#111111] border border-white/[0.06] rounded-2xl p-6 md:col-span-2 lg:col-span-1">
+              <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4 flex items-center gap-2">
+                <ImageIcon size={14} /> Logo
+              </h3>
+              <div className="flex items-center justify-center">
+                <img src={box.logo_url} alt={`Logo ${box.name}`} className="max-h-48 rounded-2xl object-contain" />
+              </div>
+            </div>
+          )}
 
           <div className="space-y-4">
             {/* Owner card */}

@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { Building2, Search, Users, Calendar, CheckCircle, XCircle, ChevronRight } from 'lucide-react';
+import { Building2, Search, Users, Calendar, CheckCircle, XCircle, ChevronRight, Plus, X } from 'lucide-react';
 import Link from 'next/link';
 
 interface BoxItem {
@@ -16,6 +16,7 @@ interface BoxItem {
   owner_name: string;
   owner_email: string;
   member_count: number;
+  logo_url: string | null;
 }
 
 export default function AdminBoxesPage() {
@@ -51,6 +52,7 @@ export default function AdminBoxesPage() {
           owner_name: owner?.username ?? 'Inconnu',
           owner_email: '',
           member_count: count ?? 0,
+          logo_url: b.logo_url ?? null,
         };
       })
     );
@@ -65,6 +67,61 @@ export default function AdminBoxesPage() {
     b.city?.toLowerCase().includes(search.toLowerCase()) ||
     b.owner_name?.toLowerCase().includes(search.toLowerCase())
   );
+
+  const [showCreate, setShowCreate] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [newName, setNewName] = useState('');
+  const [newDesc, setNewDesc] = useState('');
+  const [newCity, setNewCity] = useState('');
+  const [newOwnerUsername, setNewOwnerUsername] = useState('');
+  const [createError, setCreateError] = useState('');
+
+  async function handleCreate() {
+    if (!newName.trim()) { setCreateError('Le nom est requis.'); return; }
+    if (!newOwnerUsername.trim()) { setCreateError('Le username du propriétaire est requis.'); return; }
+    setCreating(true);
+    setCreateError('');
+
+    // Find owner by username (read-only, OK with client)
+    const { data: ownerData } = await supabase
+      .from('profiles')
+      .select('id')
+      .ilike('username', newOwnerUsername.trim())
+      .single();
+
+    if (!ownerData) {
+      setCreateError(`Utilisateur "${newOwnerUsername}" introuvable.`);
+      setCreating(false);
+      return;
+    }
+
+    // Generate invite code
+    const code = newName.trim().replace(/\s+/g, '').substring(0, 3).toUpperCase()
+      + String(Math.floor(Math.random() * 900) + 100);
+
+    // Use API route with service client to bypass RLS
+    const res = await fetch('/api/admin/boxes', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: newName.trim(),
+        description: newDesc.trim() || null,
+        city: newCity.trim() || null,
+        owner_id: ownerData.id,
+        invite_code: code,
+      }),
+    });
+
+    setCreating(false);
+    if (!res.ok) {
+      const err = await res.json();
+      setCreateError(err.error ?? 'Erreur lors de la création.');
+      return;
+    }
+    setShowCreate(false);
+    setNewName(''); setNewDesc(''); setNewCity(''); setNewOwnerUsername('');
+    load();
+  }
 
   const planColor = (p: string) =>
     p === 'elite' ? 'text-yellow-400 bg-yellow-500/15' :
@@ -83,16 +140,63 @@ export default function AdminBoxesPage() {
             <p className="text-sm text-gray-400">{boxes.length} box{boxes.length !== 1 ? 'es' : ''} enregistrée{boxes.length !== 1 ? 's' : ''}</p>
           </div>
         </div>
-        <div className="relative">
-          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
-          <input
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            placeholder="Rechercher..."
-            className="pl-9 pr-4 py-2 rounded-xl bg-white/5 border border-white/10 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-emerald-500/50 w-64"
-          />
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => setShowCreate(true)}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-bold transition-colors"
+          >
+            <Plus size={16} /> Créer une box
+          </button>
+          <div className="relative">
+            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
+            <input
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="Rechercher..."
+              className="pl-9 pr-4 py-2 rounded-xl bg-white/5 border border-white/10 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-emerald-500/50 w-64"
+            />
+          </div>
         </div>
       </div>
+
+      {/* Create Box Modal */}
+      {showCreate && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="bg-[#111111] border border-white/[0.08] rounded-2xl p-6 w-full max-w-md space-y-5">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-black text-white">Créer une Box</h2>
+              <button onClick={() => setShowCreate(false)} className="text-gray-500 hover:text-white"><X size={20} /></button>
+            </div>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">Nom *</label>
+                <input value={newName} onChange={e => setNewName(e.target.value)} placeholder="Crossfit NBS"
+                  className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-emerald-500/50" />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">Description</label>
+                <textarea value={newDesc} onChange={e => setNewDesc(e.target.value)} placeholder="Description de la box..."
+                  className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-emerald-500/50 h-20 resize-none" />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">Ville</label>
+                <input value={newCity} onChange={e => setNewCity(e.target.value)} placeholder="Paris"
+                  className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-emerald-500/50" />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">Username du propriétaire *</label>
+                <input value={newOwnerUsername} onChange={e => setNewOwnerUsername(e.target.value)} placeholder="nbstyle"
+                  className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-emerald-500/50" />
+              </div>
+              {createError && <p className="text-xs text-red-400">{createError}</p>}
+            </div>
+            <button onClick={handleCreate} disabled={creating}
+              className="w-full py-3 rounded-xl bg-emerald-500 hover:bg-emerald-600 disabled:opacity-50 text-white text-sm font-bold transition-colors">
+              {creating ? 'Création...' : 'Créer la box'}
+            </button>
+          </div>
+        </div>
+      )}
 
       {loading ? (
         <div className="flex items-center justify-center py-20">
@@ -110,9 +214,13 @@ export default function AdminBoxesPage() {
               {/* Header */}
               <div className="flex items-start justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-orange-500/15 flex items-center justify-center text-orange-400 font-black text-sm">
-                    {box.name[0]?.toUpperCase() ?? 'B'}
-                  </div>
+                  {box.logo_url ? (
+                    <img src={box.logo_url} alt={box.name} className="w-10 h-10 rounded-xl object-cover" />
+                  ) : (
+                    <div className="w-10 h-10 rounded-xl bg-orange-500/15 flex items-center justify-center text-orange-400 font-black text-sm">
+                      {box.name[0]?.toUpperCase() ?? 'B'}
+                    </div>
+                  )}
                   <div>
                     <p className="text-sm font-bold text-white">{box.name}</p>
                     {box.city && <p className="text-xs text-gray-500">{box.city}</p>}

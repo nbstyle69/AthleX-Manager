@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { Users, Search, Shield, Dumbbell } from 'lucide-react';
+import { Users, Search, Shield, Dumbbell, Building2 } from 'lucide-react';
 
 interface UserProfile {
   id: string;
@@ -13,6 +13,7 @@ interface UserProfile {
   total_matches: number;
   wins: number;
   created_at: string;
+  box_name: string | null;
 }
 
 export default function AdminUsersPage() {
@@ -23,12 +24,33 @@ export default function AdminUsersPage() {
 
   const load = useCallback(async () => {
     setLoading(true);
-    const { data } = await supabase
+    const { data: profiles } = await supabase
       .from('profiles')
       .select('id, username, role, level, elo, total_matches, wins, created_at')
       .order('elo', { ascending: false })
-      .limit(100);
-    setUsers(data ?? []);
+      .limit(200);
+
+    // Fetch box memberships to map user → box name
+    const { data: memberships } = await supabase
+      .from('box_members')
+      .select('member_id, box:boxes!box_members_box_id_fkey(name)')
+      .eq('status', 'active');
+
+    const boxMap = new Map<string, string>();
+    (memberships ?? []).forEach((m: any) => {
+      const box = Array.isArray(m.box) ? m.box[0] : m.box;
+      if (box?.name) boxMap.set(m.member_id, box.name);
+    });
+
+    // Also check box owners directly
+    const { data: boxes } = await supabase
+      .from('boxes')
+      .select('owner_id, name');
+    (boxes ?? []).forEach((b: any) => {
+      if (b.owner_id && !boxMap.has(b.owner_id)) boxMap.set(b.owner_id, b.name);
+    });
+
+    setUsers((profiles ?? []).map(p => ({ ...p, box_name: boxMap.get(p.id) ?? null })));
     setLoading(false);
   }, []);
 
@@ -87,6 +109,7 @@ export default function AdminUsersPage() {
               <tr className="bg-white/[0.03] text-left">
                 <th className="px-5 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Utilisateur</th>
                 <th className="px-5 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Rôle</th>
+                <th className="px-5 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Box</th>
                 <th className="px-5 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Niveau</th>
                 <th className="px-5 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">ELO</th>
                 <th className="px-5 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Matchs</th>
@@ -109,6 +132,16 @@ export default function AdminUsersPage() {
                     <span className={`text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-lg ${roleColor(u.role)}`}>
                       {u.role}
                     </span>
+                  </td>
+                  <td className="px-5 py-4">
+                    {u.box_name ? (
+                      <span className="flex items-center gap-1.5 text-xs font-semibold text-orange-400">
+                        <Building2 size={12} />
+                        {u.box_name}
+                      </span>
+                    ) : (
+                      <span className="text-xs text-gray-600">—</span>
+                    )}
                   </td>
                   <td className="px-5 py-4">
                     <span className={`text-xs font-black uppercase ${levelColor(u.level)}`}>
