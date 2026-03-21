@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { Shield, LayoutDashboard, Swords, Users, Trophy, LogOut, Sun, Moon, Building2, Globe2 } from 'lucide-react';
+import { Shield, LayoutDashboard, Swords, Users, Trophy, LogOut, Sun, Moon, Building2, Globe2, Award, Dumbbell, FileText } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { cn } from '@/lib/utils';
 import { useTheme } from '@/components/ThemeProvider';
@@ -14,6 +14,9 @@ const NAV = [
   { href: '/admin/users',          label: 'Utilisateurs',   icon: Users },
   { href: '/admin/boxes',            label: 'Boxes',            icon: Building2 },
   { href: '/admin/inter-competitions', label: 'Compet. Inter-box', icon: Globe2 },
+  { href: '/admin/badges',              label: 'Badges',            icon: Award },
+  { href: '/admin/movements',           label: 'Mouvements',        icon: Dumbbell },
+  { href: '/admin/changelog',           label: 'Changelog',         icon: FileText },
 ];
 
 interface AdminSidebarProps {
