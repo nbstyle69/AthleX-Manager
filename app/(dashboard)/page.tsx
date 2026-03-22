@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { Trophy, Users, Clock, MessageSquare, ChevronRight, CheckCircle, XCircle, Copy } from 'lucide-react';
 import { formatDateTime, statusBadge } from '@/lib/utils';
+import LogoUploadWidget from '@/components/dashboard/LogoUploadWidget';
 
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -93,6 +94,9 @@ export default async function DashboardPage() {
           <Copy size={18} className="text-gray-500 shrink-0" />
         </div>
       )}
+
+      {/* Logo upload */}
+      <LogoUploadWidget />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Tournois récents */}

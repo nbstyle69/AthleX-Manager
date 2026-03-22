@@ -2,21 +2,19 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { Users, FolderOpen, MessageSquare, LayoutDashboard, LogOut, Dumbbell, Trophy, Sun, Moon, CalendarClock, Settings, Newspaper } from 'lucide-react';
+import { Users, FolderOpen, MessageSquare, LayoutDashboard, LogOut, Dumbbell, Sun, Moon, CalendarClock, Newspaper } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { cn } from '@/lib/utils';
 import { useTheme } from '@/components/ThemeProvider';
 
 const NAV = [
-  { href: '/',             label: 'Dashboard',  icon: LayoutDashboard },
-  { href: '/tournaments',  label: 'Tournois',   icon: Trophy },
-  { href: '/wods',         label: 'Whiteboard', icon: Dumbbell },
-  { href: '/schedules',    label: 'Horaires',   icon: CalendarClock },
-  { href: '/members',      label: 'Membres',    icon: Users },
-  { href: '/groups',       label: 'Groupes',    icon: FolderOpen },
-  { href: '/articles',     label: 'Actualités', icon: Newspaper },
-  { href: '/messages',     label: 'Messages',   icon: MessageSquare },
-  { href: '/settings',     label: 'Réglages',   icon: Settings },
+  { href: '/',             label: 'Dashboard',   icon: LayoutDashboard },
+  { href: '/articles',     label: 'Actualités',  icon: Newspaper },
+  { href: '/schedules',    label: 'Horaires',    icon: CalendarClock },
+  { href: '/wods',         label: 'Whiteboard',  icon: Dumbbell },
+  { href: '/groups',       label: 'Groupes',     icon: FolderOpen },
+  { href: '/members',      label: 'Membres',     icon: Users },
+  { href: '/messages',     label: 'Messages',    icon: MessageSquare },
 ];
 
 interface SidebarProps {

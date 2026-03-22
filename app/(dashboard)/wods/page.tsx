@@ -83,7 +83,19 @@ export default function WODsPage() {
   const [importing,   setImporting]   = useState(false);
   const [importResult, setImportResult] = useState<{ ok: number; errors: string[] } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [layout, setLayout] = useState<'rows' | 'columns'>('rows');
+  const [layout, setLayoutRaw] = useState<'rows' | 'columns'>(() => {
+    if (typeof window !== 'undefined') {
+      return (localStorage.getItem('bo_wods_layout') as 'rows' | 'columns') || 'rows';
+    }
+    return 'rows';
+  });
+  const setLayout = (v: 'rows' | 'columns' | ((prev: 'rows' | 'columns') => 'rows' | 'columns')) => {
+    setLayoutRaw(prev => {
+      const next = typeof v === 'function' ? v(prev) : v;
+      localStorage.setItem('bo_wods_layout', next);
+      return next;
+    });
+  };
   const [showDateNav, setShowDateNav] = useState(false);
   const [groups, setGroups] = useState<{ id: string; name: string; color: string }[]>([]);
 
