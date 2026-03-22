@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
-import { Users, Search, SlidersHorizontal, X, Loader2, ChevronDown, Check, Plus, Trash2, CreditCard } from 'lucide-react';
+import { Users, Search, SlidersHorizontal, X, Loader2, ChevronDown, Check, Plus, Trash2, CreditCard, ShieldCheck } from 'lucide-react';
 
 const LEVELS = ['rx+', 'rx', 'scaled', 'foundations'];
 const LEVEL_LABEL: Record<string, string> = { 'rx+': 'RX+', rx: 'RX', scaled: 'SCALED', foundations: 'FOUNDATIONS' };
@@ -20,6 +20,7 @@ interface Member {
   id: string; username: string; level: string; elo: number;
   email: string; joined_at: string; is_banned: boolean;
   plan_id: string | null;
+  role: 'member' | 'coach';
   groups: { id: string; name: string; color: string }[];
 }
 
@@ -161,7 +162,7 @@ export default function MembersPage() {
 
     const [{ data: membersRaw }, { data: groups }, { data: groupMemberships }, { data: plansData }] = await Promise.all([
       supabase.from('box_members')
-        .select('member_id, status, joined_at, plan_id, profile:profiles(id, username, level, elo, email)')
+        .select('member_id, status, joined_at, plan_id, role, profile:profiles(id, username, level, elo, email)')
         .eq('box_id', box.id).in('status', ['active', 'banned'])
         .order('joined_at', { ascending: false }),
       supabase.from('message_groups').select('id, name, color').eq('box_id', box.id),
@@ -189,6 +190,7 @@ export default function MembersPage() {
         elo: p.eo ?? 1000, email: p.email ?? '', joined_at: m.joined_at,
         is_banned: m.status === 'banned',
         plan_id: m.plan_id ?? null,
+        role: m.role ?? 'member',
         groups: (membershipMap[p.id] ?? []).map((gid: string) => groupMap[gid]).filter(Boolean),
       };
     }).filter(Boolean) as Member[];
@@ -198,6 +200,15 @@ export default function MembersPage() {
   }, []);
 
   useEffect(() => { load(); }, [load]);
+
+  async function toggleCoach(member: Member) {
+    if (!boxId) return;
+    const newRole = member.role === 'coach' ? 'member' : 'coach';
+    const label = newRole === 'coach' ? 'Promouvoir coach' : 'Retirer le rôle coach';
+    if (!confirm(`${label} pour ${member.username} ?`)) return;
+    await supabase.from('box_members').update({ role: newRole }).eq('member_id', member.id).eq('box_id', boxId);
+    setMembers(prev => prev.map(m => m.id === member.id ? { ...m, role: newRole } : m));
+  }
 
   async function toggleBan(member: Member) {
     if (!boxId) return;
@@ -426,6 +437,7 @@ export default function MembersPage() {
                 <th className="text-left px-5 py-3.5 text-xs font-bold text-gray-500 uppercase tracking-wider">ELO</th>
                 <th className="text-left px-5 py-3.5 text-xs font-bold text-gray-500 uppercase tracking-wider">Contrat</th>
                 <th className="text-left px-5 py-3.5 text-xs font-bold text-gray-500 uppercase tracking-wider">Groupes</th>
+                <th className="text-left px-5 py-3.5 text-xs font-bold text-gray-500 uppercase tracking-wider">Rôle</th>
                 <th className="text-left px-5 py-3.5 text-xs font-bold text-gray-500 uppercase tracking-wider">Statut</th>
                 <th className="text-right px-5 py-3.5"></th>
               </tr>
@@ -462,6 +474,18 @@ export default function MembersPage() {
                         ))}
                         <GroupsPopover member={m} allGroups={allGroups} onToggle={toggleGroup} toggling={toggling} />
                       </div>
+                    </td>
+                    <td className="px-5 py-4">
+                      <button onClick={() => !m.is_banned && toggleCoach(m)} disabled={m.is_banned}
+                        className={`flex items-center gap-1.5 text-xs font-bold px-2.5 py-1 rounded-lg transition-colors ${
+                          m.role === 'coach'
+                            ? 'bg-blue-500/15 text-blue-400 hover:bg-blue-500/25'
+                            : 'bg-white/5 text-gray-500 hover:text-white hover:bg-white/10'
+                        } ${m.is_banned ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'}`}
+                      >
+                        <ShieldCheck size={12} />
+                        {m.role === 'coach' ? 'Coach' : 'Membre'}
+                      </button>
                     </td>
                     <td className="px-5 py-4">
                       <span className={`text-xs font-bold px-2.5 py-1 rounded-lg ${m.is_banned ? 'bg-red-500/10 text-red-400' : 'bg-green-500/10 text-green-400'}`}>

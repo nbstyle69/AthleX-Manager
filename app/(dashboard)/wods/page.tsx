@@ -17,6 +17,7 @@ interface BoxWOD {
   time_cap_seconds: number | null; rounds: number | null;
   block_name: string | null;
   notes: string | null; is_published: boolean;
+  publish_at: string | null;
 }
 
 const WOD_TYPES: { value: WodType; label: string; color: string }[] = [
@@ -63,7 +64,7 @@ function toISO(d: Date): string {
   return `${y}-${m}-${day}`;
 }
 
-const EMPTY = { title: '', description: '', wod_type: '' as string, block: '' as string, date: '', timeCap: '', rounds: '', notes: '', published: true, leaderboard: true, groupIds: [] as string[] };
+const EMPTY = { title: '', description: '', wod_type: '' as string, block: '' as string, date: '', timeCap: '', rounds: '', notes: '', published: true, leaderboard: true, groupIds: [] as string[], publishMode: 'now' as 'now' | 'scheduled', publishHour: '06', publishMin: '00' };
 
 export default function WODsPage() {
   const supabase = createClient();
@@ -142,6 +143,9 @@ export default function WODsPage() {
       notes: wod.notes ?? '', published: wod.is_published,
       leaderboard: (wod as any).leaderboard_enabled ?? true,
       groupIds: gIds,
+      publishMode: wod.publish_at ? 'scheduled' : 'now',
+      publishHour: wod.publish_at ? new Date(wod.publish_at).getHours().toString().padStart(2, '0') : '06',
+      publishMin: wod.publish_at ? new Date(wod.publish_at).getMinutes().toString().padStart(2, '0') : '00',
     });
     setFormError(null);
     setModal(true);
@@ -162,6 +166,9 @@ export default function WODsPage() {
       notes: form.notes.trim() || null,
       is_published: form.published,
       leaderboard_enabled: form.leaderboard,
+      publish_at: form.published && form.publishMode === 'scheduled'
+        ? `${form.date}T${form.publishHour.padStart(2,'0')}:${form.publishMin.padStart(2,'0')}:00`
+        : null,
     };
     let wodId = editWOD?.id;
     if (editWOD) {
@@ -524,6 +531,7 @@ export default function WODsPage() {
                               {wod.block_name && <span className="text-[8px] font-black tracking-wider px-1 py-0.5 rounded" style={{ backgroundColor: `${BLOCK_COLOR[wod.block_name]}20`, color: BLOCK_COLOR[wod.block_name] }}>{BLOCK_LABEL[wod.block_name]}</span>}
                               {wt && <><div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: color }} /><span className="text-[9px] font-black tracking-wider truncate" style={{ color }}>{wt.toUpperCase()}</span></>}
                               {!wod.is_published && <EyeOff size={9} className="text-amber-500 shrink-0" />}
+                              {wod.publish_at && new Date(wod.publish_at) > new Date() && <span className="text-[8px] font-bold text-blue-400">⏰ {new Date(wod.publish_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</span>}
                             </div>
                             <p className="text-xs font-bold text-white truncate">{wod.title}</p>
                             {wod.description && <p className="text-[10px] text-gray-500 truncate mt-0.5">{wod.description}</p>}
@@ -761,18 +769,47 @@ export default function WODsPage() {
                   placeholder="Conseils, scaling options…" />
               </div>
 
-              <div className="flex items-center justify-between bg-white/5 rounded-xl px-4 py-3">
-                <div>
-                  <p className="text-sm font-semibold text-white">Publier maintenant</p>
-                  <p className="text-xs text-gray-500">Visible par les athlètes de la box</p>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between bg-white/5 rounded-xl px-4 py-3">
+                  <div>
+                    <p className="text-sm font-semibold text-white">Publier</p>
+                    <p className="text-xs text-gray-500">Visible par les athlètes de la box</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setForm(f => ({ ...f, published: !f.published }))}
+                    className={`relative w-11 h-6 rounded-full transition-colors ${form.published ? 'bg-emerald-500' : 'bg-white/10'}`}
+                  >
+                    <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${form.published ? 'translate-x-5' : 'translate-x-0.5'}`} />
+                  </button>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => setForm(f => ({ ...f, published: !f.published }))}
-                  className={`relative w-11 h-6 rounded-full transition-colors ${form.published ? 'bg-emerald-500' : 'bg-white/10'}`}
-                >
-                  <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${form.published ? 'translate-x-5' : 'translate-x-0.5'}`} />
-                </button>
+
+                {form.published && (
+                  <div className="bg-white/5 rounded-xl px-4 py-3 space-y-3">
+                    <div className="flex gap-2">
+                      {(['now', 'scheduled'] as const).map(mode => (
+                        <button key={mode} type="button"
+                          onClick={() => setForm(f => ({ ...f, publishMode: mode }))}
+                          className={`flex-1 py-2 rounded-lg text-xs font-bold transition-colors ${form.publishMode === mode ? 'bg-[#C9A227]/20 text-[#C9A227] border border-[#C9A227]/40' : 'bg-white/5 text-gray-400 border border-white/10 hover:text-white'}`}>
+                          {mode === 'now' ? 'Maintenant' : 'Programmer'}
+                        </button>
+                      ))}
+                    </div>
+                    {form.publishMode === 'scheduled' && (
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-gray-500">Heure :</span>
+                        <input type="number" min={0} max={23} value={form.publishHour}
+                          onChange={e => setForm(f => ({ ...f, publishHour: e.target.value }))}
+                          className="w-14 bg-[#0A0A0A] border border-white/10 rounded-lg px-2 py-1.5 text-xs text-white text-center focus:outline-none focus:border-[#C9A227]/50" />
+                        <span className="text-gray-500 font-bold">:</span>
+                        <input type="number" min={0} max={59} value={form.publishMin}
+                          onChange={e => setForm(f => ({ ...f, publishMin: e.target.value }))}
+                          className="w-14 bg-[#0A0A0A] border border-white/10 rounded-lg px-2 py-1.5 text-xs text-white text-center focus:outline-none focus:border-[#C9A227]/50" />
+                        <span className="text-[10px] text-gray-600 ml-1">Le WOD sera visible à cette heure le jour programmé</span>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
               <div className="flex items-center justify-between bg-white/5 rounded-xl px-4 py-3">
