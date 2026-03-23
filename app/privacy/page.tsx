@@ -81,7 +81,7 @@ export default function PrivacyPage() {
       </p>
 
       <h2>11. Contact</h2>
-      <p>Pour toute question : <a href="mailto:contact@athlex.app">contact@athlex.app</a></p>
+      <p>Pour toute question : <a href="mailto:athlex.contact.app@gmail.com">athlex.contact.app@gmail.com</a></p>
 
       <hr style={{ margin: '3rem 0', borderColor: '#ddd' }} />
 
@@ -172,7 +172,7 @@ export default function PrivacyPage() {
       </p>
 
       <h2>11. Contact</h2>
-      <p>Pour toute question : <a href="mailto:contact@athlex.app">contact@athlex.app</a></p>
+      <p>Pour toute question : <a href="mailto:athlex.contact.app@gmail.com">athlex.contact.app@gmail.com</a></p>
 
       <p style={{ marginTop: '3rem', color: '#888', fontSize: '0.9rem' }}>© 2026 AthleX. Tous droits réservés.</p>
     </main>
