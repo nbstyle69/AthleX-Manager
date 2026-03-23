@@ -1,76 +1,160 @@
 export const metadata = {
-  title: 'Politique de confidentialité – AthleX',
+  title: 'Mentions légales – AthleX',
 };
 
 export default function PrivacyPage() {
   return (
-    <main style={{ maxWidth: 800, margin: '0 auto', padding: '2rem 1rem', fontFamily: 'system-ui, sans-serif', color: '#222' }}>
-      <h1>Politique de confidentialité – AthleX</h1>
-      <p><strong>Dernière mise à jour :</strong> 23 mars 2026</p>
+    <main style={{ maxWidth: 800, margin: '0 auto', padding: '2rem 1rem', fontFamily: 'system-ui, sans-serif', color: '#222', lineHeight: 1.7 }}>
 
-      <h2>1. Responsable du traitement</h2>
+      {/* ════════════════════════════════════════ */}
+      {/*  CGU                                     */}
+      {/* ════════════════════════════════════════ */}
+      <h1>Conditions Générales d&apos;Utilisation</h1>
+      <p><em>Dernière mise à jour : 21 mars 2026</em></p>
+
+      <h2>1. Objet</h2>
       <p>
-        L&apos;application <strong>AthleX</strong> est éditée par NBS Innovation.
-        Pour toute question : <a href="mailto:contact@athlex-app.com">contact@athlex-app.com</a>
+        Les présentes Conditions Générales d&apos;Utilisation (CGU) régissent l&apos;utilisation de l&apos;application mobile AthleX,
+        éditée par AthleX SAS. En créant un compte, vous acceptez ces CGU dans leur intégralité.
+      </p>
+
+      <h2>2. Inscription</h2>
+      <p>
+        L&apos;inscription est gratuite et ouverte à toute personne physique majeure ou mineure avec autorisation parentale.
+        Vous devez fournir un email valide, un pseudo unique et un mot de passe sécurisé (6 caractères minimum).
+        Vous êtes responsable de la confidentialité de vos identifiants.
+      </p>
+
+      <h2>3. Services</h2>
+      <p>AthleX propose les services suivants :</p>
+      <ul>
+        <li>Suivi de performances sportives (scores WOD, PR)</li>
+        <li>Système de classement ELO</li>
+        <li>Participation à des tournois et compétitions</li>
+        <li>Minuteur vidéo pour l&apos;enregistrement de WODs</li>
+        <li>Messagerie et communication entre membres d&apos;une box</li>
+        <li>Gestion de box pour les gérants</li>
+      </ul>
+
+      <h2>4. Comportement</h2>
+      <p>
+        L&apos;utilisateur s&apos;engage à ne pas tricher, falsifier ses scores ou adopter un comportement nuisible.
+        Tout faux score entraîne une disqualification et perte d&apos;ELO. AthleX se réserve le droit de suspendre
+        ou supprimer tout compte enfreignant ces règles.
+      </p>
+
+      <h2>5. Propriété intellectuelle</h2>
+      <p>
+        L&apos;application, son design, code et contenu sont la propriété exclusive d&apos;AthleX SAS.
+        Toute reproduction est interdite sans autorisation préalable.
+      </p>
+
+      <h2>6. Données personnelles</h2>
+      <p>
+        Le traitement des données personnelles est décrit dans notre Politique de Confidentialité ci-dessous.
+      </p>
+
+      <h2>7. Suppression de compte</h2>
+      <p>
+        Vous pouvez supprimer votre compte à tout moment depuis Profil → Compte → Supprimer mon compte.
+        La suppression est irréversible et entraîne l&apos;effacement définitif de toutes vos données.
+      </p>
+
+      <h2>8. Limitation de responsabilité</h2>
+      <p>
+        AthleX est fourni &quot;tel quel&quot;. Nous ne garantissons pas la disponibilité permanente du service.
+        AthleX ne peut être tenu responsable des blessures survenues lors d&apos;entraînements.
+      </p>
+
+      <h2>9. Modifications</h2>
+      <p>
+        AthleX se réserve le droit de modifier les CGU. Les utilisateurs seront informés des changements
+        significatifs via l&apos;application.
+      </p>
+
+      <h2>10. Droit applicable</h2>
+      <p>
+        Les présentes CGU sont soumises au droit français. Tout litige sera porté devant les tribunaux compétents de Paris.
+      </p>
+
+      <h2>11. Contact</h2>
+      <p>Pour toute question : <a href="mailto:contact@athlex.app">contact@athlex.app</a></p>
+
+      <hr style={{ margin: '3rem 0', borderColor: '#ddd' }} />
+
+      {/* ════════════════════════════════════════ */}
+      {/*  POLITIQUE DE CONFIDENTIALITÉ             */}
+      {/* ════════════════════════════════════════ */}
+      <h1>Politique de Confidentialité</h1>
+      <p><em>Dernière mise à jour : 21 mars 2026</em></p>
+
+      <h2>1. Introduction</h2>
+      <p>
+        AthleX (« nous », « notre ») est une application mobile de compétition functional fitness &amp; hybrid.
+        Cette politique décrit comment nous collectons, utilisons et protégeons vos données personnelles.
       </p>
 
       <h2>2. Données collectées</h2>
       <ul>
-        <li><strong>Compte utilisateur :</strong> adresse e-mail, nom d&apos;utilisateur, genre (optionnel), niveau sportif.</li>
-        <li><strong>Scores &amp; performances :</strong> scores de WOD, classements, historique ELO.</li>
-        <li><strong>Caméra &amp; microphone :</strong> utilisés uniquement pour l&apos;enregistrement vidéo de vos performances sportives. Les vidéos restent sur votre appareil sauf partage volontaire.</li>
-        <li><strong>Galerie photo :</strong> accès pour sauvegarder ou soumettre des vidéos de performance.</li>
-        <li><strong>Notifications push :</strong> token de notification pour les alertes (WOD, tournois, badges).</li>
+        <li>Informations de compte : email, pseudo, mot de passe (chiffré), niveau</li>
+        <li>Données de profil : photo, bio, personal records (PR)</li>
+        <li>Données de performance : scores WOD, classement ELO, vidéos</li>
+        <li>Données de compétition : participations, résultats</li>
+        <li>Communications : messages dans les chats de box</li>
+        <li>Données techniques : type d&apos;appareil, OS, token push</li>
       </ul>
 
       <h2>3. Utilisation des données</h2>
-      <p>Vos données sont utilisées pour :</p>
       <ul>
-        <li>Gérer votre compte et authentification.</li>
-        <li>Afficher vos scores, classements et badges.</li>
-        <li>Permettre l&apos;enregistrement vidéo de vos entraînements.</li>
-        <li>Envoyer des notifications liées à votre activité sportive.</li>
-        <li>Améliorer l&apos;expérience utilisateur via des statistiques anonymes (Mixpanel).</li>
+        <li>Fournir et améliorer les fonctionnalités</li>
+        <li>Gérer votre compte et profil athlète</li>
+        <li>Calculer et afficher les classements ELO</li>
+        <li>Permettre la participation aux compétitions</li>
+        <li>Envoyer des notifications push (si autorisées)</li>
       </ul>
 
-      <h2>4. Partage des données</h2>
+      <h2>4. Stockage et sécurité</h2>
       <p>
-        Vos données ne sont <strong>jamais vendues</strong>. Elles sont partagées uniquement avec :
+        Vos données sont stockées via Supabase, hébergé sur des serveurs conformes aux standards de sécurité.
+        Les mots de passe sont chiffrés. Les communications utilisent le protocole HTTPS.
       </p>
+
+      <h2>5. Caméra et galerie</h2>
+      <p>
+        L&apos;application peut accéder à votre caméra pour enregistrer vos performances et à votre galerie
+        pour sauvegarder les vidéos ou choisir une photo de profil. Ces accès nécessitent votre autorisation.
+      </p>
+
+      <h2>6. Notifications push</h2>
+      <p>
+        Les notifications vous informent des résultats et rappels. Vous pouvez les désactiver dans les paramètres.
+      </p>
+
+      <h2>7. Partage des données</h2>
+      <p>
+        Nous ne vendons jamais vos données. Sont visibles par les membres de votre box :
+        pseudo, niveau, scores, classement. Le gérant a accès aux données de ses membres.
+      </p>
+
+      <h2>8. Vos droits (RGPD)</h2>
       <ul>
-        <li><strong>Supabase</strong> (hébergement base de données, authentification).</li>
-        <li><strong>Sentry</strong> (suivi des erreurs techniques, données anonymisées).</li>
-        <li><strong>Mixpanel</strong> (analytics d&apos;usage, données anonymisées).</li>
+        <li>Accéder à vos données personnelles</li>
+        <li>Rectifier vos informations via votre profil</li>
+        <li>Supprimer votre compte et toutes vos données</li>
+        <li>Exporter vos données sur demande</li>
+        <li>Retirer votre consentement aux notifications</li>
       </ul>
 
-      <h2>5. Stockage &amp; sécurité</h2>
+      <h2>9. Conservation</h2>
       <p>
-        Les données sont hébergées par Supabase (serveurs AWS, région EU).
-        Les communications sont chiffrées via HTTPS/TLS.
-        Les mots de passe sont hashés et ne sont jamais stockés en clair.
+        Vos données sont conservées tant que votre compte est actif. En cas de suppression,
+        vos données sont effacées immédiatement.
       </p>
 
-      <h2>6. Vos droits</h2>
-      <p>Conformément au RGPD, vous disposez des droits suivants :</p>
-      <ul>
-        <li>Droit d&apos;accès, de rectification et de suppression de vos données.</li>
-        <li>Droit à la portabilité de vos données.</li>
-        <li>Droit d&apos;opposition au traitement.</li>
-      </ul>
-      <p>
-        Pour exercer vos droits : <a href="mailto:contact@athlex-app.com">contact@athlex-app.com</a>
-      </p>
+      <h2>10. Contact</h2>
+      <p>Pour toute question : <a href="mailto:contact@athlex.app">contact@athlex.app</a></p>
 
-      <h2>7. Conservation</h2>
-      <p>
-        Vos données sont conservées tant que votre compte est actif.
-        En cas de suppression de compte, vos données sont effacées sous 30 jours.
-      </p>
-
-      <h2>8. Modifications</h2>
-      <p>
-        Cette politique peut être mise à jour. Vous serez notifié en cas de changement significatif.
-      </p>
+      <p style={{ marginTop: '3rem', color: '#888', fontSize: '0.9rem' }}>© 2026 AthleX. Tous droits réservés.</p>
     </main>
   );
 }
