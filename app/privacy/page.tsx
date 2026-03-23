@@ -10,7 +10,7 @@ export default function PrivacyPage() {
       {/*  CGU                                     */}
       {/* ════════════════════════════════════════ */}
       <h1>Conditions Générales d&apos;Utilisation</h1>
-      <p><em>Dernière mise à jour : 21 mars 2026</em></p>
+      <p><em>Dernière mise à jour : 23 mars 2026</em></p>
 
       <h2>1. Objet</h2>
       <p>
@@ -32,6 +32,9 @@ export default function PrivacyPage() {
         <li>Système de classement ELO</li>
         <li>Participation à des tournois et compétitions</li>
         <li>Minuteur vidéo pour l&apos;enregistrement de WODs</li>
+        <li>Partage de scores sur les réseaux sociaux (Instagram, WhatsApp, etc.)</li>
+        <li>Système de badges et gamification</li>
+        <li>Code de parrainage pour inviter d&apos;autres athlètes</li>
         <li>Messagerie et communication entre membres d&apos;une box</li>
         <li>Gestion de box pour les gérants</li>
       </ul>
@@ -86,7 +89,7 @@ export default function PrivacyPage() {
       {/*  POLITIQUE DE CONFIDENTIALITÉ             */}
       {/* ════════════════════════════════════════ */}
       <h1>Politique de Confidentialité</h1>
-      <p><em>Dernière mise à jour : 21 mars 2026</em></p>
+      <p><em>Dernière mise à jour : 23 mars 2026</em></p>
 
       <h2>1. Introduction</h2>
       <p>
@@ -102,6 +105,7 @@ export default function PrivacyPage() {
         <li>Données de compétition : participations, résultats</li>
         <li>Communications : messages dans les chats de box</li>
         <li>Données techniques : type d&apos;appareil, OS, token push</li>
+        <li>Données de gamification : badges obtenus, streaks, compteurs d&apos;activité</li>
       </ul>
 
       <h2>3. Utilisation des données</h2>
@@ -111,6 +115,8 @@ export default function PrivacyPage() {
         <li>Calculer et afficher les classements ELO</li>
         <li>Permettre la participation aux compétitions</li>
         <li>Envoyer des notifications push (si autorisées)</li>
+        <li>Attribuer des badges et suivre votre progression</li>
+        <li>Analyser l&apos;usage de l&apos;application de manière anonyme</li>
       </ul>
 
       <h2>4. Stockage et sécurité</h2>
@@ -135,8 +141,22 @@ export default function PrivacyPage() {
         Nous ne vendons jamais vos données. Sont visibles par les membres de votre box :
         pseudo, niveau, scores, classement. Le gérant a accès aux données de ses membres.
       </p>
+      <p>
+        Lorsque vous partagez un score via la fonctionnalité de partage, une image contenant votre pseudo,
+        score et nom de box est générée localement et partagée via le système natif de votre appareil.
+        Aucune donnée n&apos;est envoyée à nos serveurs lors du partage.
+      </p>
 
-      <h2>8. Vos droits (RGPD)</h2>
+      <h2>8. Services tiers</h2>
+      <p>Nous utilisons les services tiers suivants :</p>
+      <ul>
+        <li>Supabase : hébergement des données et authentification</li>
+        <li>Mixpanel : statistiques d&apos;usage anonymisées</li>
+        <li>Sentry : détection et correction des erreurs techniques (données anonymisées)</li>
+        <li>Expo : distribution des mises à jour de l&apos;application</li>
+      </ul>
+
+      <h2>9. Vos droits (RGPD)</h2>
       <ul>
         <li>Accéder à vos données personnelles</li>
         <li>Rectifier vos informations via votre profil</li>
@@ -145,13 +165,13 @@ export default function PrivacyPage() {
         <li>Retirer votre consentement aux notifications</li>
       </ul>
 
-      <h2>9. Conservation</h2>
+      <h2>10. Conservation</h2>
       <p>
         Vos données sont conservées tant que votre compte est actif. En cas de suppression,
         vos données sont effacées immédiatement.
       </p>
 
-      <h2>10. Contact</h2>
+      <h2>11. Contact</h2>
       <p>Pour toute question : <a href="mailto:contact@athlex.app">contact@athlex.app</a></p>
 
       <p style={{ marginTop: '3rem', color: '#888', fontSize: '0.9rem' }}>© 2026 AthleX. Tous droits réservés.</p>
