@@ -58,26 +58,26 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
     const { data: box } = await supabase.from('boxes').select('id').eq('owner_id', user.id).single();
     if (!box) { router.push('/login'); return; }
 
-    const [{ data: grp }, { data: grpMembers }, { data: boxMembers }, { data: groups }, { data: groupMemberships }] = await Promise.all([
-      supabase.from('message_groups').select('id, name, color, wod_visibility_mode').eq('id', groupId).single(),
-      supabase.from('message_group_members')
-        .select('member_id, profiles(id, username, level, email, elo)')
-        .eq('group_id', groupId),
+    const [{ data: grp }, { data: boxMembers }, { data: groups }] = await Promise.all([
+      supabase.from('message_groups').select('id, name, color, wod_visibility_mode, members').eq('id', groupId).single(),
       supabase.from('box_members')
         .select('member_id, profiles(id, username, level, email, elo)')
         .eq('box_id', box.id).eq('status', 'active'),
-      supabase.from('message_groups').select('id, name, color').eq('box_id', box.id),
-      supabase.from('message_group_members').select('member_id, group_id'),
+      supabase.from('message_groups').select('id, name, color, members').eq('box_id', box.id),
     ]);
 
     if (!grp) { router.push('/groups'); return; }
     setGroup({ ...grp, wod_visibility_mode: grp.wod_visibility_mode ?? 'weekly' });
     setAllGroups(groups ?? []);
 
+    const grpMemberIds = new Set<string>(grp.members ?? []);
+
     const membershipMap: Record<string, string[]> = {};
-    for (const gm of groupMemberships ?? []) {
-      if (!membershipMap[gm.member_id]) membershipMap[gm.member_id] = [];
-      membershipMap[gm.member_id].push(gm.group_id);
+    for (const g of (groups ?? []) as any[]) {
+      for (const mid of (g.members ?? [])) {
+        if (!membershipMap[mid]) membershipMap[mid] = [];
+        membershipMap[mid].push(g.id);
+      }
     }
     const groupMap: Record<string, { id: string; name: string; color: string }> = {};
     for (const g of groups ?? []) groupMap[g.id] = g;
@@ -90,8 +90,9 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
       return { id: p.id, username: p.username ?? '?', level: p.level ?? 'rx', email: p.email ?? '', elo: p.elo ?? 1000, groups: memberGroups };
     };
 
-    setMembers((grpMembers ?? []).map(toMember).filter(Boolean) as Member[]);
-    setAllMembers((boxMembers ?? []).map(toMember).filter(Boolean) as Member[]);
+    const allMapped = (boxMembers ?? []).map(toMember).filter(Boolean) as Member[];
+    setAllMembers(allMapped);
+    setMembers(allMapped.filter(m => grpMemberIds.has(m.id)));
     setLoading(false);
   }, [groupId]);
 
@@ -102,14 +103,18 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
   async function toggleMember(memberId: string) {
     setToggling(memberId);
     setError(null);
-    if (inGroupIds.has(memberId)) {
-      const { error: e } = await supabase.from('message_group_members')
-        .delete().eq('group_id', groupId).eq('member_id', memberId);
-      if (e) { setError(e.message); } else { setMembers(prev => prev.filter(m => m.id !== memberId)); }
-    } else {
-      const { error: e } = await supabase.from('message_group_members')
-        .insert({ group_id: groupId, member_id: memberId });
-      if (e) { setError(e.message); } else {
+    const currentIds = members.map(m => m.id);
+    const newIds = inGroupIds.has(memberId)
+      ? currentIds.filter(id => id !== memberId)
+      : [...currentIds, memberId];
+    const { error: e } = await supabase
+      .from('message_groups')
+      .update({ members: newIds })
+      .eq('id', groupId);
+    if (e) { setError(e.message); } else {
+      if (inGroupIds.has(memberId)) {
+        setMembers(prev => prev.filter(m => m.id !== memberId));
+      } else {
         const added = allMembers.find(m => m.id === memberId);
         if (added) setMembers(prev => [...prev, added]);
       }
@@ -142,7 +147,6 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
   async function deleteGroup() {
     if (!confirm('Supprimer ce groupe ? Les messages associés resteront.')) return;
     setDeleting(true);
-    await supabase.from('message_group_members').delete().eq('group_id', groupId);
     await supabase.from('message_groups').delete().eq('id', groupId);
     router.push('/groups');
   }
