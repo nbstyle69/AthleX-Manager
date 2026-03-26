@@ -160,7 +160,7 @@ export default function BoxStatsPage() {
           </div>
           <div className="flex items-end gap-[2px] h-40">
             {filledChart.map((d) => (
-              <div key={d.date} className="flex-1 flex flex-col items-center justify-end group relative">
+              <div key={d.date} className="flex-1 h-full flex flex-col items-center justify-end group relative">
                 <div className="absolute -top-8 bg-[#1a1a1a] border border-white/10 rounded-lg px-2 py-1 text-[10px] text-white font-bold opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">
                   {d.date.slice(5)} · {d.count}
                 </div>
