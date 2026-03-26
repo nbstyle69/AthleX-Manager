@@ -1,9 +1,10 @@
 ﻿import { createClient, getOwnerBox } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
-import { Trophy, Users, Clock, MessageSquare, ChevronRight, CheckCircle, XCircle, Copy } from 'lucide-react';
+import { Trophy, Users, Clock, MessageSquare, ChevronRight, CheckCircle, XCircle } from 'lucide-react';
 import { formatDateTime, statusBadge } from '@/lib/utils';
 import LogoUploadWidget from '@/components/dashboard/LogoUploadWidget';
+import InviteCodeWidget from '@/components/dashboard/InviteCodeWidget';
 
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -85,14 +86,7 @@ export default async function DashboardPage() {
 
       {/* Invite code */}
       {(box as any).invite_code && (
-        <div className="bg-[#111111] border border-white/8 rounded-2xl p-5 flex items-center justify-between gap-4">
-          <div>
-            <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Code d'invitation box</p>
-            <p className="text-2xl font-black tracking-[0.3em] text-[#C9A227]">{(box as any).invite_code}</p>
-            <p className="text-xs text-gray-500 mt-1">Partagez ce code aux athlètes pour rejoindre votre box</p>
-          </div>
-          <Copy size={18} className="text-gray-500 shrink-0" />
-        </div>
+        <InviteCodeWidget initialCode={(box as any).invite_code} boxName={box.name} />
       )}
 
       {/* Logo upload */}
