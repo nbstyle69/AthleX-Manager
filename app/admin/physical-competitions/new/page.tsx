@@ -19,6 +19,8 @@ export default function NewPhysicalCompetitionPage() {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [date, setDate] = useState('');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
   const [location, setLocation] = useState('');
   const [format, setFormat] = useState('individual');
   const [registrationUrl, setRegistrationUrl] = useState('');
@@ -37,6 +39,8 @@ export default function NewPhysicalCompetitionPage() {
         setName(data.name ?? '');
         setDescription(data.description ?? '');
         setDate(data.date ?? '');
+        setStartDate(data.start_date ?? '');
+        setEndDate(data.end_date ?? '');
         setLocation(data.location ?? '');
         setFormat(data.format ?? 'individual');
         setRegistrationUrl(data.registration_url ?? '');
@@ -73,7 +77,9 @@ export default function NewPhysicalCompetitionPage() {
     const payload: Record<string, any> = {
       name: name.trim(),
       description: description.trim(),
-      date: date || new Date().toISOString().slice(0, 10),
+      date: mode === 'info' ? (date || new Date().toISOString().slice(0, 10)) : (startDate || new Date().toISOString().slice(0, 10)),
+      start_date: mode === 'qualification' ? (startDate || null) : null,
+      end_date: mode === 'qualification' ? (endDate || null) : null,
       location: location.trim(),
       mode,
       format,
@@ -224,24 +230,53 @@ export default function NewPhysicalCompetitionPage() {
           />
         </div>
 
-        {/* Date + Location */}
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="text-[11px] font-extrabold uppercase tracking-widest text-gray-400 mb-2 block">Date</label>
-            <input
-              type="date" value={date} onChange={e => setDate(e.target.value)}
-              className="w-full bg-[#0A0A0A] border border-white/8 rounded-xl px-4 py-3 text-sm text-white focus:border-white/20 focus:outline-none transition-colors"
-            />
+        {/* Dates + Location */}
+        {mode === 'qualification' ? (
+          <>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="text-[11px] font-extrabold uppercase tracking-widest text-gray-400 mb-2 block">Date de début <span className="text-purple-400">*</span></label>
+                <input
+                  type="date" value={startDate} onChange={e => setStartDate(e.target.value)}
+                  className="w-full bg-[#0A0A0A] border border-white/8 rounded-xl px-4 py-3 text-sm text-white focus:border-white/20 focus:outline-none transition-colors"
+                />
+              </div>
+              <div>
+                <label className="text-[11px] font-extrabold uppercase tracking-widest text-gray-400 mb-2 block">Date de fin <span className="text-purple-400">*</span></label>
+                <input
+                  type="date" value={endDate} onChange={e => setEndDate(e.target.value)}
+                  className="w-full bg-[#0A0A0A] border border-white/8 rounded-xl px-4 py-3 text-sm text-white focus:border-white/20 focus:outline-none transition-colors"
+                />
+              </div>
+            </div>
+            <div>
+              <label className="text-[11px] font-extrabold uppercase tracking-widest text-gray-400 mb-2 block">Lieu</label>
+              <input
+                type="text" value={location} onChange={e => setLocation(e.target.value)}
+                placeholder="ex: CrossFit NBS, Paris"
+                className="w-full bg-[#0A0A0A] border border-white/8 rounded-xl px-4 py-3 text-sm text-white placeholder:text-gray-600 focus:border-white/20 focus:outline-none transition-colors"
+              />
+            </div>
+          </>
+        ) : (
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="text-[11px] font-extrabold uppercase tracking-widest text-gray-400 mb-2 block">Date de l&apos;événement</label>
+              <input
+                type="date" value={date} onChange={e => setDate(e.target.value)}
+                className="w-full bg-[#0A0A0A] border border-white/8 rounded-xl px-4 py-3 text-sm text-white focus:border-white/20 focus:outline-none transition-colors"
+              />
+            </div>
+            <div>
+              <label className="text-[11px] font-extrabold uppercase tracking-widest text-gray-400 mb-2 block">Lieu</label>
+              <input
+                type="text" value={location} onChange={e => setLocation(e.target.value)}
+                placeholder="ex: CrossFit NBS, Paris"
+                className="w-full bg-[#0A0A0A] border border-white/8 rounded-xl px-4 py-3 text-sm text-white placeholder:text-gray-600 focus:border-white/20 focus:outline-none transition-colors"
+              />
+            </div>
           </div>
-          <div>
-            <label className="text-[11px] font-extrabold uppercase tracking-widest text-gray-400 mb-2 block">Lieu</label>
-            <input
-              type="text" value={location} onChange={e => setLocation(e.target.value)}
-              placeholder="ex: CrossFit NBS, Paris"
-              className="w-full bg-[#0A0A0A] border border-white/8 rounded-xl px-4 py-3 text-sm text-white placeholder:text-gray-600 focus:border-white/20 focus:outline-none transition-colors"
-            />
-          </div>
-        </div>
+        )}
 
         {/* Format */}
         <div>

@@ -13,6 +13,8 @@ interface PhysComp {
   name: string;
   description: string;
   date: string;
+  start_date: string | null;
+  end_date: string | null;
   location: string;
   status: string;
   mode: string;
@@ -49,6 +51,7 @@ export default function PhysicalCompetitionsPage() {
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState<string | null>(null);
   const [advancing, setAdvancing] = useState<string | null>(null);
+  const [modeFilter, setModeFilter] = useState<'all' | 'qualification' | 'info'>('all');
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -101,6 +104,25 @@ export default function PhysicalCompetitionsPage() {
         </Link>
       </div>
 
+      {/* Mode filter tabs */}
+      <div className="flex gap-2">
+        {([['all', 'Toutes'], ['qualification', '⚡ Qualification'], ['info', 'ℹ️ Sans qualif']] as const).map(([key, label]) => (
+          <button
+            key={key}
+            onClick={() => setModeFilter(key as any)}
+            className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${
+              modeFilter === key
+                ? key === 'qualification' ? 'bg-purple-500/20 text-purple-400 border border-purple-500/30'
+                  : key === 'info' ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
+                  : 'bg-white/10 text-white border border-white/20'
+                : 'bg-[#111111] border border-white/8 text-gray-400 hover:text-white hover:border-white/15'
+            }`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
       {loading ? (
         <div className="flex items-center justify-center py-24">
           <Loader2 size={28} className="text-purple-400 animate-spin" />
@@ -113,7 +135,7 @@ export default function PhysicalCompetitionsPage() {
         </div>
       ) : (
         <div className="space-y-3">
-          {comps.map(c => (
+          {comps.filter(c => modeFilter === 'all' || c.mode === modeFilter).map(c => (
             <div key={c.id} className="bg-[#111111] border border-white/8 rounded-2xl p-5 hover:border-white/15 transition-all">
               <div className="flex items-start gap-4">
                 {/* Logo or icon */}
@@ -146,11 +168,17 @@ export default function PhysicalCompetitionsPage() {
                         <MapPin size={11} /> {c.location}
                       </span>
                     )}
-                    {c.date && (
+                    {c.mode === 'qualification' && c.start_date ? (
+                      <span className="flex items-center gap-1">
+                        <Calendar size={11} />
+                        {new Date(c.start_date).toLocaleDateString('fr-FR')}
+                        {c.end_date ? ` → ${new Date(c.end_date).toLocaleDateString('fr-FR')}` : ''}
+                      </span>
+                    ) : c.date ? (
                       <span className="flex items-center gap-1">
                         <Calendar size={11} /> {new Date(c.date).toLocaleDateString('fr-FR')}
                       </span>
-                    )}
+                    ) : null}
                     {c.price && (
                       <span className="text-amber-400 font-bold">{c.price}</span>
                     )}
