@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, use, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { ArrowLeft, Loader2, UserPlus, UserMinus, Users2, MessageSquare, Search, SlidersHorizontal, X, Pencil, Check } from 'lucide-react';
+import { getMyBox } from '@/lib/getMyBox';
 
 const COLORS = [
   '#C9A227', '#8B5CF6', '#EC4899', '#EF4444',
@@ -55,7 +56,7 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
     setLoading(true);
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { router.push('/login'); return; }
-    const { data: box } = await supabase.from('boxes').select('id').eq('owner_id', user.id).single();
+    const box = await getMyBox(supabase, user.id);
     if (!box) { router.push('/login'); return; }
 
     const [{ data: grp }, { data: boxMembers }, { data: groups }] = await Promise.all([

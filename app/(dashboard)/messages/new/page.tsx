@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { ArrowLeft, Loader2, Send } from 'lucide-react';
 import Link from 'next/link';
+import { getMyBox } from '@/lib/getMyBox';
 
 const MSG_TYPES = [
   { value: 'announcement', label: 'Annonce', color: 'indigo' },
@@ -34,7 +35,7 @@ export default function NewMessagePage() {
     (async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
-      const { data: box } = await supabase.from('boxes').select('id').eq('owner_id', user.id).single();
+      const box = await getMyBox(supabase, user.id);
       if (!box) return;
       const { data } = await supabase.from('message_groups').select('id, name').eq('box_id', box.id);
       setGroups(data ?? []);
@@ -48,7 +49,7 @@ export default function NewMessagePage() {
     setError(null);
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { setError('Non authentifié'); setSaving(false); return; }
-    const { data: box } = await supabase.from('boxes').select('id').eq('owner_id', user.id).single();
+    const box = await getMyBox(supabase, user.id);
     if (!box) { setError('Box introuvable'); setSaving(false); return; }
 
     const { error: err } = await supabase.from('box_messages').insert({

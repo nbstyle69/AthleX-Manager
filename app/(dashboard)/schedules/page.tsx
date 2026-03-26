@@ -7,6 +7,7 @@ import {
   Plus, ChevronLeft, ChevronRight, Pencil, Trash2,
   Users, X, Loader2, Clock, Timer, CalendarCheck, LayoutTemplate, UserMinus,
 } from 'lucide-react';
+import { getMyBox } from '@/lib/getMyBox';
 
 interface Participant {
   reservation_id: string;
@@ -99,8 +100,7 @@ export default function SchedulesPage() {
     (async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
-      const { data: box } = await supabase
-        .from('boxes').select('id').eq('owner_id', user.id).single();
+      const box = await getMyBox(supabase, user.id);
       if (box?.id) setBoxId(box.id);
     })();
   }, []);

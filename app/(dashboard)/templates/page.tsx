@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { Plus, Pencil, Trash2, X, Loader2, CalendarDays, ToggleLeft, ToggleRight } from 'lucide-react';
+import { getMyBox } from '@/lib/getMyBox';
 
 interface ScheduleTemplate {
   id: string;
@@ -57,7 +58,7 @@ export default function TemplatesPage() {
   const load = useCallback(async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
-    const { data: box } = await supabase.from('boxes').select('id').eq('owner_id', user.id).maybeSingle();
+    const box = await getMyBox(supabase, user.id);
     if (!box) { setLoading(false); return; }
     setBoxId(box.id);
     const { data } = await supabase

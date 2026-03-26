@@ -3,7 +3,8 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
-import { Users, Search, SlidersHorizontal, X, Loader2, ChevronDown, Check, Plus, Trash2, CreditCard, ShieldCheck } from 'lucide-react';
+import { Users, Search, SlidersHorizontal, X, Loader2, ChevronDown, Check, Plus, Trash2, CreditCard, ShieldCheck, Crown } from 'lucide-react';
+import { getMyBox } from '@/lib/getMyBox';
 
 const LEVELS = ['rx+', 'rx', 'scaled', 'foundations'];
 const LEVEL_LABEL: Record<string, string> = { 'rx+': 'RX+', rx: 'RX', scaled: 'SCALED', foundations: 'FOUNDATIONS' };
@@ -20,7 +21,7 @@ interface Member {
   id: string; username: string; level: string; elo: number;
   email: string; joined_at: string; is_banned: boolean;
   plan_id: string | null;
-  role: 'member' | 'coach';
+  role: 'member' | 'coach' | 'owner';
   groups: { id: string; name: string; color: string }[];
 }
 
@@ -128,6 +129,55 @@ function PlanPopover({ member, plans, onAssign, saving }: {
   );
 }
 
+const ROLES: { key: 'member' | 'coach' | 'owner'; label: string; icon: any; color: string }[] = [
+  { key: 'member', label: 'Membre', icon: Users, color: '#6B7280' },
+  { key: 'coach',  label: 'Coach',  icon: ShieldCheck, color: '#3B82F6' },
+  { key: 'owner',  label: 'Owner',  icon: Crown, color: '#C9A227' },
+];
+
+function RolePopover({ member, onChange }: {
+  member: Member;
+  onChange: (member: Member, role: 'member' | 'coach' | 'owner') => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const current = ROLES.find(r => r.key === member.role) ?? ROLES[0];
+  const Icon = current.icon;
+  return (
+    <div className="relative">
+      <button onClick={() => setOpen(v => !v)} disabled={member.is_banned}
+        className={`flex items-center gap-1.5 text-xs font-bold px-2.5 py-1.5 rounded-lg border transition-colors ${member.is_banned ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer hover:border-white/20'}`}
+        style={{ color: current.color, borderColor: `${current.color}40`, backgroundColor: `${current.color}10` }}>
+        <Icon size={12} />
+        {current.label}
+        <ChevronDown size={10} className={`transition-transform ${open ? 'rotate-180' : ''}`} />
+      </button>
+      {open && (
+        <>
+          <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
+          <div className="absolute left-0 top-full mt-1 z-20 bg-[#1a1a1a] border border-white/10 rounded-xl shadow-2xl min-w-[150px] py-1 overflow-hidden">
+            {ROLES.map(r => {
+              const selected = member.role === r.key;
+              const RIcon = r.icon;
+              return (
+                <button key={r.key}
+                  onClick={() => { onChange(member, r.key); setOpen(false); }}
+                  className="w-full flex items-center gap-2.5 px-3 py-2 text-xs hover:bg-white/5 transition-colors text-left">
+                  <div className={`w-4 h-4 rounded flex items-center justify-center border ${selected ? 'border-transparent' : 'border-white/20'}`}
+                    style={selected ? { backgroundColor: r.color } : {}}>
+                    {selected && <Check size={10} color="#000" strokeWidth={3} />}
+                  </div>
+                  <RIcon size={12} style={{ color: selected ? r.color : '#6B7280' }} />
+                  <span className="flex-1 font-semibold" style={{ color: selected ? r.color : '#9ca3af' }}>{r.label}</span>
+                </button>
+              );
+            })}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 export default function MembersPage() {
   const router = useRouter();
   const supabase = createClient();
@@ -156,7 +206,7 @@ export default function MembersPage() {
     setLoading(true);
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { router.push('/login'); return; }
-    const { data: box } = await supabase.from('boxes').select('id').eq('owner_id', user.id).single();
+    const box = await getMyBox(supabase, user.id);
     if (!box) { router.push('/login'); return; }
     setBoxId(box.id);
 
@@ -201,11 +251,10 @@ export default function MembersPage() {
 
   useEffect(() => { load(); }, [load]);
 
-  async function toggleCoach(member: Member) {
-    if (!boxId) return;
-    const newRole = member.role === 'coach' ? 'member' : 'coach';
-    const label = newRole === 'coach' ? 'Promouvoir coach' : 'Retirer le rôle coach';
-    if (!confirm(`${label} pour ${member.username} ?`)) return;
+  async function changeRole(member: Member, newRole: 'member' | 'coach' | 'owner') {
+    if (!boxId || member.role === newRole) return;
+    const labels: Record<string, string> = { member: 'Membre', coach: 'Coach', owner: 'Owner' };
+    if (!confirm(`Changer le rôle de ${member.username} → ${labels[newRole]} ?`)) return;
     await supabase.from('box_members').update({ role: newRole }).eq('member_id', member.id).eq('box_id', boxId);
     setMembers(prev => prev.map(m => m.id === member.id ? { ...m, role: newRole } : m));
   }
@@ -476,16 +525,7 @@ export default function MembersPage() {
                       </div>
                     </td>
                     <td className="px-5 py-4">
-                      <button onClick={() => !m.is_banned && toggleCoach(m)} disabled={m.is_banned}
-                        className={`flex items-center gap-1.5 text-xs font-bold px-2.5 py-1 rounded-lg transition-colors ${
-                          m.role === 'coach'
-                            ? 'bg-blue-500/15 text-blue-400 hover:bg-blue-500/25'
-                            : 'bg-white/5 text-gray-500 hover:text-white hover:bg-white/10'
-                        } ${m.is_banned ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'}`}
-                      >
-                        <ShieldCheck size={12} />
-                        {m.role === 'coach' ? 'Coach' : 'Membre'}
-                      </button>
+                      <RolePopover member={m} onChange={changeRole} />
                     </td>
                     <td className="px-5 py-4">
                       <span className={`text-xs font-bold px-2.5 py-1 rounded-lg ${m.is_banned ? 'bg-red-500/10 text-red-400' : 'bg-green-500/10 text-green-400'}`}>

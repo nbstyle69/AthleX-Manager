@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { ArrowLeft, Loader2 } from 'lucide-react';
 import Link from 'next/link';
+import { getMyBox } from '@/lib/getMyBox';
 
 const COLORS = [
   '#C9A227', '#8B5CF6', '#EC4899', '#EF4444',
@@ -26,7 +27,7 @@ export default function NewGroupPage() {
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { setError('Non authentifié'); setSaving(false); return; }
-    const { data: box } = await supabase.from('boxes').select('id').eq('owner_id', user.id).single();
+    const box = await getMyBox(supabase, user.id);
     if (!box) { setError('Box introuvable'); setSaving(false); return; }
     const { data: created, error: err } = await supabase
       .from('message_groups')

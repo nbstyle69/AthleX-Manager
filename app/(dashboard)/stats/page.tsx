@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
 import { Users, Trophy, Dumbbell, TrendingUp, Loader2 } from 'lucide-react';
+import { getMyBox } from '@/lib/getMyBox';
 
 const LEVEL_LABEL: Record<string, string> = { 'rx+': 'RX+', rx: 'RX', scaled: 'SCALED', foundations: 'FOUNDATIONS' };
 const LEVEL_COLOR: Record<string, string> = { 'rx+': '#C9A227', rx: '#3B82F6', scaled: '#10B981', foundations: '#8B5CF6' };
@@ -26,7 +27,7 @@ export default function BoxStatsPage() {
     setLoading(true);
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { router.push('/login'); return; }
-    const { data: box } = await supabase.from('boxes').select('id').eq('owner_id', user.id).single();
+    const box = await getMyBox(supabase, user.id);
     if (!box) { router.push('/login'); return; }
 
     const [

@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { Send, MessageSquare, Users2, Loader2, Hash, Megaphone } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
+import { getMyBox } from '@/lib/getMyBox';
 
 interface Group { id: string; name: string; color: string | null; }
 interface ChatMessage {
@@ -47,7 +48,7 @@ export default function MessagesPage() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { setLoading(false); return; }
       setUserId(user.id);
-      const { data: box } = await supabase.from('boxes').select('id').eq('owner_id', user.id).single();
+      const box = await getMyBox(supabase, user.id);
       if (!box) { setLoading(false); return; }
       setBoxId(box.id);
       const { data: grps } = await supabase

@@ -49,11 +49,24 @@ export async function getServerProfile(supabase: Awaited<ReturnType<typeof creat
 export async function getOwnerBox(supabase: Awaited<ReturnType<typeof createClient>>) {
   const user = await getServerUser();
   if (!user) return null;
-  const { data: box } = await supabase
-    .from('boxes').select('*').eq('owner_id', user.id).single();
-  return box as {
+
+  type BoxRow = {
     id: string; name: string; slug: string; owner_id: string;
     city: string | null; plan: string; logo_url: string | null;
     is_active: boolean; created_at: string;
-  } | null;
+  };
+
+  // 1. Primary owner (boxes.owner_id)
+  const { data: box } = await supabase
+    .from('boxes').select('*').eq('owner_id', user.id).single();
+  if (box) return box as BoxRow;
+
+  // 2. Co-owner (box_members.role = 'owner')
+  const { data: membership } = await supabase
+    .from('box_members').select('box_id').eq('member_id', user.id).eq('role', 'owner').eq('status', 'active').single();
+  if (!membership) return null;
+
+  const { data: coBox } = await supabase
+    .from('boxes').select('*').eq('id', membership.box_id).single();
+  return coBox as BoxRow | null;
 }

@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { Upload, ImageIcon, Trash2, CheckCircle } from 'lucide-react';
+import { getMyBox } from '@/lib/getMyBox';
 
 export default function SettingsPage() {
   const supabase = createClient();
@@ -17,11 +18,9 @@ export default function SettingsPage() {
     async function load() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
-      const { data } = await supabase
-        .from('boxes')
-        .select('*')
-        .eq('owner_id', user.id)
-        .single();
+      const myBox = await getMyBox(supabase, user.id);
+      if (!myBox) return;
+      const { data } = await supabase.from('boxes').select('*').eq('id', myBox.id).single();
       if (data) {
         setBox(data);
         setLogoUrl(data.logo_url ?? null);

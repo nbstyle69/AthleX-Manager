@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { Newspaper, Plus, Trash2, Loader2, X, Image as ImageIcon, MessageCircle, Heart } from 'lucide-react';
+import { getMyBox } from '@/lib/getMyBox';
 
 interface Article {
   id: string;
@@ -33,7 +34,7 @@ export default function ArticlesPage() {
     (async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
-      const { data: box } = await supabase.from('boxes').select('id').eq('owner_id', user.id).single();
+      const box = await getMyBox(supabase, user.id);
       if (box) setBoxId(box.id);
     })();
   }, []);

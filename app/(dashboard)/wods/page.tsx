@@ -6,6 +6,7 @@ import {
   Plus, ChevronLeft, ChevronRight, Pencil, Trash2,
   Eye, EyeOff, X, Loader2, Dumbbell, Upload, Download, FileText, Calendar, LayoutGrid, List,
 } from 'lucide-react';
+import { getMyBox } from '@/lib/getMyBox';
 import { useRef } from 'react';
 
 type WodType = 'for-time' | 'amrap' | 'emom' | 'tabata' | 'strength' | 'custom';
@@ -107,7 +108,7 @@ export default function WODsPage() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
       setUserId(user.id);
-      const { data: box } = await supabase.from('boxes').select('id').eq('owner_id', user.id).single();
+      const box = await getMyBox(supabase, user.id);
       if (box) {
         setBoxId(box.id);
         const { data: g } = await supabase.from('message_groups').select('id, name, color').eq('box_id', box.id).order('name');
