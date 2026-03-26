@@ -139,13 +139,7 @@ export default function BoxStatsPage() {
 
   useEffect(() => { load(); }, [load]);
 
-  if (loading) return (
-    <div className="flex items-center justify-center min-h-[400px]">
-      <Loader2 size={28} className="animate-spin text-[#C9A227]" />
-    </div>
-  );
-
-  // Filtered + paginated top ELO
+  // Filtered + paginated top ELO (must be before early return — rules of hooks)
   const filteredMembers = useMemo(() => {
     if (genderFilter === 'all') return allMembers;
     return allMembers.filter(m => m.gender === genderFilter);
@@ -156,6 +150,12 @@ export default function BoxStatsPage() {
     const sorted = [...filteredMembers].sort((a, b) => b.elo - a.elo);
     return sorted.slice(topPage * PAGE_SIZE, (topPage + 1) * PAGE_SIZE);
   }, [filteredMembers, topPage]);
+
+  if (loading) return (
+    <div className="flex items-center justify-center min-h-[400px]">
+      <Loader2 size={28} className="animate-spin text-[#C9A227]" />
+    </div>
+  );
 
   // Chart data
   const now = new Date();
