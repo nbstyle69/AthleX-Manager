@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { Users, FolderOpen, MessageSquare, LayoutDashboard, LogOut, Dumbbell, Sun, Moon, CalendarClock, Newspaper } from 'lucide-react';
+import { Users, FolderOpen, MessageSquare, LayoutDashboard, LogOut, Dumbbell, Sun, Moon, CalendarClock, Newspaper, BarChart3 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { cn } from '@/lib/utils';
 import { useTheme } from '@/components/ThemeProvider';
@@ -14,6 +14,7 @@ const NAV = [
   { href: '/wods',         label: 'Whiteboard',  icon: Dumbbell },
   { href: '/groups',       label: 'Groupes',     icon: FolderOpen },
   { href: '/members',      label: 'Membres',     icon: Users },
+  { href: '/stats',        label: 'Statistiques', icon: BarChart3 },
   { href: '/messages',     label: 'Messages',    icon: MessageSquare },
 ];
 
