@@ -78,7 +78,11 @@ export default function InterCompetitionsPage() {
     const next = STATUS_NEXT[c.status];
     if (next === c.status) return;
     setAdvancing(c.id);
-    await supabase.from('inter_competitions').update({ status: next }).eq('id', c.id);
+    await fetch('/api/admin/inter-competitions', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'advance', competition_id: c.id }),
+    });
     await load();
     setAdvancing(null);
   }
