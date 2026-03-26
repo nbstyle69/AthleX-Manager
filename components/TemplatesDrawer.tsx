@@ -17,7 +17,7 @@ interface ScheduleTemplate {
   is_active: boolean;
 }
 
-const CLASS_TYPES = ['CrossFit','Halterophilie','Cardio','Open Gym','Strength','Mobility','Kids','Teens','Autre'];
+const CLASS_TYPES = ['WOD','Halterophilie','Cardio','Open Gym','Strength','Mobility','Kids','Teens','Autre'];
 
 const DAYS = [
   { value: 1, label: 'Lundi' },
@@ -29,7 +29,7 @@ const DAYS = [
   { value: 7, label: 'Dimanche' },
 ];
 
-const EMPTY_FORM = { title: 'CrossFit', description: '', coach: '', day_of_week: 1, start_time: '09:00', end_time: '10:00', max_capacity: 15 };
+const EMPTY_FORM = { title: 'WOD', description: '', coach: '', day_of_week: 1, start_time: '09:00', end_time: '10:00', max_capacity: 15 };
 
 interface Props { open: boolean; onClose: () => void; boxId: string | null; }
 
