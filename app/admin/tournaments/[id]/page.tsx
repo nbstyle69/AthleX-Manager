@@ -60,7 +60,7 @@ export default function DailyTournamentDetailPage() {
 
     const { data: t } = await supabase
       .from('daily_tournaments')
-      .select('*, creator:profiles!daily_tournaments_creator_id_fkey(username)')
+      .select('*, creator:profiles!creator_id(username)')
       .eq('id', id)
       .single();
 
@@ -77,7 +77,7 @@ export default function DailyTournamentDetailPage() {
 
     const { data: scoresRaw } = await supabase
       .from('daily_tournament_scores')
-      .select('*, profile:profiles!daily_tournament_scores_user_id_profiles_fkey(username), contester:profiles!daily_tournament_scores_contested_by_fkey(username)')
+      .select('*, profile:profiles!user_id(username), contester:profiles!contested_by(username)')
       .eq('tournament_id', id)
       .order('score_value', { ascending: t.score_mode === 'time' });
 

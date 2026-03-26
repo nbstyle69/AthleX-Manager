@@ -31,7 +31,7 @@ export default function AdminTournamentsPage() {
     setLoading(true);
     const { data } = await supabase
       .from('daily_tournaments')
-      .select('*, creator:profiles!daily_tournaments_creator_id_fkey(username)')
+      .select('*, creator:profiles!creator_id(username)')
       .order('created_at', { ascending: false })
       .limit(100);
 
