@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerUser } from '@/lib/supabase/server';
 import { createServiceClient } from '@/lib/supabase/server';
+import { calculatePairwiseDeltas } from '@/lib/elo';
 
 async function checkAdmin() {
   const user = await getServerUser();
@@ -101,36 +102,26 @@ export async function PATCH(req: NextRequest) {
             for (const p of profiles) {
               profileMap[p.id] = { elo: p.elo ?? 1000, wins: p.wins ?? 0, total_matches: p.total_matches ?? 0 };
             }
-            for (const r of ranked) {
-              r.elo = profileMap[r.athlete_id]?.elo ?? 1000;
-            }
 
-            // Pairwise ELO calculation (K=32)
-            const K = 32;
-            const n = ranked.length;
-            const deltas = ranked.map(player => {
-              let expectedScore = 0;
-              let actualScore = 0;
-              for (const opp of ranked) {
-                if (opp.athlete_id === player.athlete_id) continue;
-                expectedScore += 1 / (1 + Math.pow(10, (opp.elo - player.elo) / 400));
-                if (player.rank < opp.rank) actualScore += 1;
-                else if (player.rank === opp.rank) actualScore += 0.5;
-              }
-              const delta = Math.round((K / (n - 1)) * (actualScore - expectedScore));
-              return { ...player, delta };
-            });
+            // Build players array for shared utility
+            const players = ranked.map(r => ({
+              id: r.athlete_id,
+              elo: profileMap[r.athlete_id]?.elo ?? 1000,
+              rank: r.rank,
+            }));
+
+            const deltas = calculatePairwiseDeltas(players);
 
             // Apply ELO updates
             for (const d of deltas) {
-              const pm = profileMap[d.athlete_id];
+              const pm = profileMap[d.id];
               if (!pm) continue;
               const newElo = pm.elo + d.delta;
               await service.from('profiles').update({
                 elo: newElo,
                 total_matches: pm.total_matches + 1,
                 ...(d.rank === 1 ? { wins: pm.wins + 1 } : {}),
-              }).eq('id', d.athlete_id);
+              }).eq('id', d.id);
             }
           }
         }
