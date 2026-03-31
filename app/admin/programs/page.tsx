@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { BookOpen, Plus, Pencil, Trash2, ExternalLink, X, Check, Users, ShoppingCart, Image as ImageIcon } from 'lucide-react';
+import { BookOpen, Plus, Pencil, Trash2, ExternalLink, X, Check, Users, ShoppingCart, Image as ImageIcon, Upload, Loader2 } from 'lucide-react';
 
 interface Affiliate {
   id: string;
@@ -44,6 +44,9 @@ export default function AdminProgramsPage() {
   const [editingAff, setEditingAff] = useState<Affiliate | null>(null);
   const [creatingAff, setCreatingAff] = useState(false);
   const [savingAff, setSavingAff] = useState(false);
+  const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [logoPreview, setLogoPreview] = useState<string | null>(null);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
 
   // Program form
   const [prgForm, setPrgForm] = useState(EMPTY_PRG);
@@ -73,20 +76,45 @@ export default function AdminProgramsPage() {
   function openCreateAff() {
     const max = affiliates.reduce((m, a) => Math.max(m, a.sort_order), 0);
     setAffForm({ ...EMPTY_AFF, sort_order: max + 1 });
-    setEditingAff(null); setCreatingAff(true);
+    setEditingAff(null); setCreatingAff(true); setLogoFile(null); setLogoPreview(null);
   }
   function openEditAff(a: Affiliate) {
     setAffForm({ name: a.name, logo_url: a.logo_url ?? '', category: a.category, description: a.description ?? '', sort_order: a.sort_order, is_active: a.is_active });
-    setEditingAff(a); setCreatingAff(true);
+    setEditingAff(a); setCreatingAff(true); setLogoFile(null); setLogoPreview(a.logo_url ?? null);
   }
-  function closeAffForm() { setCreatingAff(false); setEditingAff(null); setAffForm(EMPTY_AFF); }
+  function closeAffForm() { setCreatingAff(false); setEditingAff(null); setAffForm(EMPTY_AFF); setLogoFile(null); setLogoPreview(null); }
+
+  function handleLogoSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setLogoFile(file);
+    setLogoPreview(URL.createObjectURL(file));
+  }
+
+  async function uploadLogo(file: File): Promise<string | null> {
+    const ext = file.name.split('.').pop()?.toLowerCase() ?? 'png';
+    const path = `programs/logos/${Date.now()}_${Math.random().toString(36).slice(2, 8)}.${ext}`;
+    const { error } = await supabase.storage.from('assets').upload(path, file, { upsert: true });
+    if (error) { console.error('Upload error:', error.message); return null; }
+    const { data: { publicUrl } } = supabase.storage.from('assets').getPublicUrl(path);
+    return publicUrl;
+  }
 
   async function saveAff() {
     if (!affForm.name.trim()) return;
     setSavingAff(true);
+
+    let logoUrl = affForm.logo_url?.trim() || null;
+    if (logoFile) {
+      setUploadingLogo(true);
+      const uploaded = await uploadLogo(logoFile);
+      setUploadingLogo(false);
+      if (uploaded) logoUrl = uploaded;
+    }
+
     const payload = {
       name: affForm.name.trim(),
-      logo_url: affForm.logo_url?.trim() || null,
+      logo_url: logoUrl,
       category: affForm.category,
       description: affForm.description?.trim() || null,
       sort_order: affForm.sort_order,
@@ -215,8 +243,28 @@ export default function AdminProgramsPage() {
                   <input value={affForm.name} onChange={e => setAffForm({...affForm, name: e.target.value})} placeholder="HWPO, CompTrain..." className={INPUT} />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">Logo URL</label>
-                  <input value={affForm.logo_url ?? ''} onChange={e => setAffForm({...affForm, logo_url: e.target.value})} placeholder="https://..." className={INPUT} />
+                  <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">Logo</label>
+                  <div className="flex items-center gap-3">
+                    {logoPreview ? (
+                      <img src={logoPreview} alt="" className="w-12 h-12 rounded-xl object-cover shrink-0 border border-white/10" />
+                    ) : (
+                      <div className="w-12 h-12 rounded-xl bg-white/5 border border-dashed border-white/20 flex items-center justify-center shrink-0">
+                        <ImageIcon size={16} className="text-gray-600" />
+                      </div>
+                    )}
+                    <label className="flex-1 cursor-pointer">
+                      <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 hover:border-emerald-500/50 transition-colors text-sm text-gray-400 hover:text-white">
+                        <Upload size={14} />
+                        {logoFile ? logoFile.name : 'Choisir un fichier…'}
+                      </div>
+                      <input type="file" accept="image/*" onChange={handleLogoSelect} className="hidden" />
+                    </label>
+                    {(logoPreview || affForm.logo_url) && (
+                      <button type="button" onClick={() => { setLogoFile(null); setLogoPreview(null); setAffForm({...affForm, logo_url: ''}); }} className="p-2 rounded-lg text-gray-500 hover:text-red-400 hover:bg-red-500/10 transition-all">
+                        <X size={14} />
+                      </button>
+                    )}
+                  </div>
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">Catégorie</label>
@@ -240,7 +288,7 @@ export default function AdminProgramsPage() {
               </label>
               <div className="flex gap-3 pt-2">
                 <button onClick={saveAff} disabled={savingAff || !affForm.name.trim()} className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-500/20 text-emerald-400 text-sm font-bold hover:bg-emerald-500/30 border border-emerald-500/30 disabled:opacity-40">
-                  <Check size={16} /> {savingAff ? 'Enregistrement...' : editingAff ? 'Modifier' : 'Créer'}
+                  {(savingAff || uploadingLogo) ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} />} {uploadingLogo ? 'Upload du logo...' : savingAff ? 'Enregistrement...' : editingAff ? 'Modifier' : 'Créer'}
                 </button>
                 <button onClick={closeAffForm} className="px-5 py-2.5 rounded-xl bg-white/5 text-gray-400 text-sm font-bold hover:text-white border border-white/10">Annuler</button>
               </div>
