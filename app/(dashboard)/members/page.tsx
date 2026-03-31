@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
-import { Users, Search, SlidersHorizontal, X, Loader2, ChevronDown, Check, Plus, Trash2, CreditCard, ShieldCheck, Crown } from 'lucide-react';
+import { Users, Search, SlidersHorizontal, X, Loader2, ChevronDown, ChevronUp, Check, Plus, Trash2, CreditCard, ShieldCheck, Crown } from 'lucide-react';
 import { getMyBox } from '@/lib/getMyBox';
 
 const LEVELS = ['rx+', 'rx', 'scaled', 'foundations'];
@@ -202,6 +202,19 @@ export default function MembersPage() {
   const [eloSort,     setEloSort]     = useState<'asc' | 'desc' | ''>('');
   const [showFilters, setShowFilters] = useState(false);
 
+  type SortCol = 'username' | 'level' | 'elo' | 'plan' | 'role' | 'status' | '';
+  const [sortCol, setSortCol] = useState<SortCol>('');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
+
+  function toggleSort(col: SortCol) {
+    if (sortCol === col) {
+      setSortDir(d => d === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortCol(col);
+      setSortDir(col === 'elo' ? 'desc' : 'asc');
+    }
+  }
+
   const load = useCallback(async () => {
     setLoading(true);
     const { data: { user } } = await supabase.auth.getUser();
@@ -323,8 +336,30 @@ export default function MembersPage() {
     if (filterGroup) list = list.filter(m => m.groups.some(g => g.id === filterGroup));
     if (eloSort === 'asc')  list = [...list].sort((a, b) => a.elo - b.elo);
     if (eloSort === 'desc') list = [...list].sort((a, b) => b.elo - a.elo);
+
+    // Column sort (overrides eloSort if sortCol is set)
+    if (sortCol) {
+      const dir = sortDir === 'asc' ? 1 : -1;
+      const LEVEL_ORDER: Record<string, number> = { 'rx+': 4, rx: 3, scaled: 2, foundations: 1 };
+      const ROLE_ORDER: Record<string, number> = { owner: 3, coach: 2, member: 1 };
+      list = [...list].sort((a, b) => {
+        switch (sortCol) {
+          case 'username': return dir * a.username.localeCompare(b.username);
+          case 'level':    return dir * ((LEVEL_ORDER[a.level] ?? 0) - (LEVEL_ORDER[b.level] ?? 0));
+          case 'elo':      return dir * (a.elo - b.elo);
+          case 'plan': {
+            const pa = plans.find(p => p.id === a.plan_id)?.name ?? '';
+            const pb = plans.find(p => p.id === b.plan_id)?.name ?? '';
+            return dir * pa.localeCompare(pb);
+          }
+          case 'role':     return dir * ((ROLE_ORDER[a.role] ?? 0) - (ROLE_ORDER[b.role] ?? 0));
+          case 'status':   return dir * (Number(a.is_banned) - Number(b.is_banned));
+          default: return 0;
+        }
+      });
+    }
     return list;
-  }, [members, search, filterLevel, filterGroup, eloSort]);
+  }, [members, search, filterLevel, filterGroup, eloSort, sortCol, sortDir, plans]);
 
   const activeFilters = [filterLevel, filterGroup, eloSort].filter(Boolean).length;
 
@@ -481,13 +516,28 @@ export default function MembersPage() {
           <table className="w-full">
             <thead>
               <tr className="border-b border-white/8">
-                <th className="text-left px-5 py-3.5 text-xs font-bold text-gray-500 uppercase tracking-wider">Membre</th>
-                <th className="text-left px-5 py-3.5 text-xs font-bold text-gray-500 uppercase tracking-wider">Niveau</th>
-                <th className="text-left px-5 py-3.5 text-xs font-bold text-gray-500 uppercase tracking-wider">ELO</th>
-                <th className="text-left px-5 py-3.5 text-xs font-bold text-gray-500 uppercase tracking-wider">Contrat</th>
-                <th className="text-left px-5 py-3.5 text-xs font-bold text-gray-500 uppercase tracking-wider">Groupes</th>
-                <th className="text-left px-5 py-3.5 text-xs font-bold text-gray-500 uppercase tracking-wider">Rôle</th>
-                <th className="text-left px-5 py-3.5 text-xs font-bold text-gray-500 uppercase tracking-wider">Statut</th>
+                {[
+                  { key: 'username' as SortCol, label: 'Membre' },
+                  { key: 'level' as SortCol, label: 'Niveau' },
+                  { key: 'elo' as SortCol, label: 'ELO' },
+                  { key: 'plan' as SortCol, label: 'Contrat' },
+                  { key: '' as SortCol, label: 'Groupes' },
+                  { key: 'role' as SortCol, label: 'Rôle' },
+                  { key: 'status' as SortCol, label: 'Statut' },
+                ].map(col => (
+                  <th key={col.label}
+                    onClick={col.key ? () => toggleSort(col.key) : undefined}
+                    className={`text-left px-5 py-3.5 text-xs font-bold uppercase tracking-wider select-none ${
+                      col.key ? 'cursor-pointer hover:text-white transition-colors' : ''
+                    } ${sortCol === col.key && col.key ? 'text-[#C9A227]' : 'text-gray-500'}`}>
+                    <span className="inline-flex items-center gap-1">
+                      {col.label}
+                      {col.key && sortCol === col.key && (
+                        sortDir === 'asc' ? <ChevronUp size={11} /> : <ChevronDown size={11} />
+                      )}
+                    </span>
+                  </th>
+                ))}
                 <th className="text-right px-5 py-3.5"></th>
               </tr>
             </thead>

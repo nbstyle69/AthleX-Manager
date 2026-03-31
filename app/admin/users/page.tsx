@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { Users, Search, Shield, Dumbbell, Building2 } from 'lucide-react';
+import { Users, Search, Shield, Dumbbell, Building2, ChevronUp, ChevronDown } from 'lucide-react';
 
 interface UserProfile {
   id: string;
@@ -20,6 +20,14 @@ export default function AdminUsersPage() {
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+
+  type SortCol = 'username' | 'role' | 'box' | 'level' | 'elo' | 'matches' | 'wins' | 'date' | '';
+  const [sortCol, setSortCol] = useState<SortCol>('');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
+  function toggleSort(col: SortCol) {
+    if (sortCol === col) { setSortDir(d => d === 'asc' ? 'desc' : 'asc'); }
+    else { setSortCol(col); setSortDir(col === 'elo' || col === 'matches' || col === 'wins' ? 'desc' : 'asc'); }
+  }
   const supabase = createClient();
 
   const load = useCallback(async () => {
@@ -56,10 +64,30 @@ export default function AdminUsersPage() {
 
   useEffect(() => { load(); }, [load]);
 
-  const filtered = users.filter(u =>
-    u.username?.toLowerCase().includes(search.toLowerCase()) ||
-    u.role?.toLowerCase().includes(search.toLowerCase())
-  );
+  const filtered = (() => {
+    let list = users.filter(u =>
+      u.username?.toLowerCase().includes(search.toLowerCase()) ||
+      u.role?.toLowerCase().includes(search.toLowerCase())
+    );
+    if (sortCol) {
+      const dir = sortDir === 'asc' ? 1 : -1;
+      const LEVEL_ORDER: Record<string, number> = { pro: 6, gx: 5, 'rx+': 4, rx: 3, inter: 2, scaled: 1 };
+      list = [...list].sort((a, b) => {
+        switch (sortCol) {
+          case 'username': return dir * (a.username ?? '').localeCompare(b.username ?? '');
+          case 'role':     return dir * (a.role ?? '').localeCompare(b.role ?? '');
+          case 'box':      return dir * (a.box_name ?? '').localeCompare(b.box_name ?? '');
+          case 'level':    return dir * ((LEVEL_ORDER[a.level] ?? 0) - (LEVEL_ORDER[b.level] ?? 0));
+          case 'elo':      return dir * (a.elo - b.elo);
+          case 'matches':  return dir * (a.total_matches - b.total_matches);
+          case 'wins':     return dir * (a.wins - b.wins);
+          case 'date':     return dir * (new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+          default: return 0;
+        }
+      });
+    }
+    return list;
+  })();
 
   const roleColor = (r: string) =>
     r === 'super_admin' ? 'text-emerald-400 bg-emerald-500/15' :
@@ -107,14 +135,29 @@ export default function AdminUsersPage() {
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-white/[0.03] text-left">
-                <th className="px-5 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Utilisateur</th>
-                <th className="px-5 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Rôle</th>
-                <th className="px-5 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Box</th>
-                <th className="px-5 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Niveau</th>
-                <th className="px-5 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">ELO</th>
-                <th className="px-5 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Matchs</th>
-                <th className="px-5 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Wins</th>
-                <th className="px-5 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Inscrit le</th>
+                {[
+                  { key: 'username' as SortCol, label: 'Utilisateur' },
+                  { key: 'role' as SortCol, label: 'Rôle' },
+                  { key: 'box' as SortCol, label: 'Box' },
+                  { key: 'level' as SortCol, label: 'Niveau' },
+                  { key: 'elo' as SortCol, label: 'ELO' },
+                  { key: 'matches' as SortCol, label: 'Matchs' },
+                  { key: 'wins' as SortCol, label: 'Wins' },
+                  { key: 'date' as SortCol, label: 'Inscrit le' },
+                ].map(col => (
+                  <th key={col.label}
+                    onClick={() => toggleSort(col.key)}
+                    className={`px-5 py-3 text-xs font-bold uppercase tracking-wider select-none cursor-pointer hover:text-white transition-colors ${
+                      sortCol === col.key ? 'text-emerald-400' : 'text-gray-500'
+                    }`}>
+                    <span className="inline-flex items-center gap-1">
+                      {col.label}
+                      {sortCol === col.key && (
+                        sortDir === 'asc' ? <ChevronUp size={11} /> : <ChevronDown size={11} />
+                      )}
+                    </span>
+                  </th>
+                ))}
               </tr>
             </thead>
             <tbody className="divide-y divide-white/[0.04]">
