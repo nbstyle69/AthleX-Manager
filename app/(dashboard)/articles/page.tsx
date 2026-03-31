@@ -9,14 +9,14 @@ interface Article {
   id: string;
   box_id: string;
   title: string;
-  content: string;
+  body: string;
   image_url: string | null;
   created_at: string;
   likes_count: number;
   comments_count: number;
 }
 
-const EMPTY = { title: '', content: '', image_url: '' };
+const EMPTY = { title: '', body: '', image_url: '' };
 
 export default function ArticlesPage() {
   const supabase = createClient();
@@ -24,6 +24,7 @@ export default function ArticlesPage() {
   const [articles, setArticles] = useState<Article[]>([]);
   const [loading, setLoading] = useState(true);
   const [boxId, setBoxId] = useState<string | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
   const [modal, setModal] = useState(false);
   const [editArticle, setEditArticle] = useState<Article | null>(null);
   const [form, setForm] = useState(EMPTY);
@@ -34,6 +35,7 @@ export default function ArticlesPage() {
     (async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
+      setUserId(user.id);
       const box = await getMyBox(supabase, user.id);
       if (box) setBoxId(box.id);
     })();
@@ -76,28 +78,27 @@ export default function ArticlesPage() {
 
   function openEdit(article: Article) {
     setEditArticle(article);
-    setForm({ title: article.title, content: article.content, image_url: article.image_url ?? '' });
+    setForm({ title: article.title, body: article.body, image_url: article.image_url ?? '' });
     setFormError(null);
     setModal(true);
   }
 
   async function saveArticle() {
-    if (!form.title.trim() || !form.content.trim() || !boxId) return;
+    if (!form.title.trim() || !form.body.trim() || !boxId) return;
     setSaving(true);
     setFormError(null);
 
-    const payload = {
-      box_id: boxId,
+    const base = {
       title: form.title.trim(),
-      content: form.content.trim(),
+      body: form.body.trim(),
       image_url: form.image_url.trim() || null,
     };
 
     if (editArticle) {
-      const { error } = await supabase.from('box_articles').update(payload).eq('id', editArticle.id);
+      const { error } = await supabase.from('box_articles').update(base).eq('id', editArticle.id);
       if (error) { setSaving(false); setFormError(error.message); return; }
     } else {
-      const { error } = await supabase.from('box_articles').insert(payload);
+      const { error } = await supabase.from('box_articles').insert({ ...base, box_id: boxId, author_id: userId });
       if (error) { setSaving(false); setFormError(error.message); return; }
     }
 
@@ -164,7 +165,7 @@ export default function ArticlesPage() {
                       </button>
                     </div>
                   </div>
-                  <p className="text-xs text-gray-400 mt-2 line-clamp-2">{a.content}</p>
+                  <p className="text-xs text-gray-400 mt-2 line-clamp-2">{a.body}</p>
                   <div className="flex items-center gap-4 mt-3">
                     <span className="flex items-center gap-1.5 text-xs text-gray-500">
                       <Heart size={12} /> {a.likes_count}
@@ -202,7 +203,7 @@ export default function ArticlesPage() {
 
             <div>
               <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1 block">Contenu *</label>
-              <textarea value={form.content} onChange={e => setForm(f => ({ ...f, content: e.target.value }))}
+              <textarea value={form.body} onChange={e => setForm(f => ({ ...f, body: e.target.value }))}
                 rows={6} placeholder="Rédigez votre article…"
                 className="w-full bg-[#0A0A0A] border border-white/10 rounded-lg px-3 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-[#C9A227]/50 resize-none" />
             </div>
@@ -223,7 +224,7 @@ export default function ArticlesPage() {
                 className="px-4 py-2.5 rounded-xl text-sm font-semibold text-gray-400 hover:text-white hover:bg-white/5 transition-colors">
                 Annuler
               </button>
-              <button onClick={saveArticle} disabled={saving || !form.title.trim() || !form.content.trim()}
+              <button onClick={saveArticle} disabled={saving || !form.title.trim() || !form.body.trim()}
                 className="flex items-center gap-2 bg-[#C9A227] hover:bg-[#B8911F] text-white text-sm font-bold px-5 py-2.5 rounded-xl transition-colors disabled:opacity-50">
                 {saving && <Loader2 size={14} className="animate-spin" />}
                 {editArticle ? 'Modifier' : 'Publier'}
