@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import {
   Plus, ChevronLeft, ChevronRight, Pencil, Trash2,
-  Eye, EyeOff, X, Loader2, Dumbbell, Upload, Download, FileText, Calendar, LayoutGrid, List,
+  Eye, EyeOff, X, Loader2, Dumbbell, Upload, Download, FileText, Calendar, LayoutGrid, List, Video,
 } from 'lucide-react';
 import { getMyBox } from '@/lib/getMyBox';
 import { useRef } from 'react';
@@ -17,6 +17,7 @@ interface BoxWOD {
   wod_type: WodType | null; scheduled_date: string;
   time_cap_seconds: number | null; rounds: number | null;
   block_name: string | null;
+  video_url: string | null;
   notes: string | null; is_published: boolean;
   publish_at: string | null;
 }
@@ -65,7 +66,7 @@ function toISO(d: Date): string {
   return `${y}-${m}-${day}`;
 }
 
-const EMPTY = { title: '', description: '', wod_type: '' as string, block: '' as string, date: '', timeCap: '', rounds: '', notes: '', published: true, leaderboard: true, groupIds: [] as string[], publishMode: 'now' as 'now' | 'scheduled', publishHour: '06', publishMin: '00' };
+const EMPTY = { title: '', description: '', wod_type: '' as string, block: '' as string, date: '', timeCap: '', rounds: '', notes: '', videoUrl: '', published: true, leaderboard: true, groupIds: [] as string[], publishMode: 'now' as 'now' | 'scheduled', publishHour: '06', publishMin: '00' };
 
 export default function WODsPage() {
   const supabase = createClient();
@@ -153,7 +154,7 @@ export default function WODsPage() {
       date: wod.scheduled_date,
       timeCap: wod.time_cap_seconds ? String(Math.floor(wod.time_cap_seconds / 60)) : '',
       rounds: wod.rounds ? String(wod.rounds) : '',
-      notes: wod.notes ?? '', published: wod.is_published,
+      notes: wod.notes ?? '', videoUrl: wod.video_url ?? '', published: wod.is_published,
       leaderboard: (wod as any).leaderboard_enabled ?? true,
       groupIds: gIds,
       publishMode: wod.publish_at ? 'scheduled' : 'now',
@@ -177,6 +178,7 @@ export default function WODsPage() {
       time_cap_seconds: form.timeCap ? parseInt(form.timeCap) * 60 : null,
       rounds: form.rounds ? parseInt(form.rounds) : null,
       notes: form.notes.trim() || null,
+      video_url: form.videoUrl.trim() || null,
       is_published: form.published,
       leaderboard_enabled: form.leaderboard,
       publish_at: form.published && form.publishMode === 'scheduled'
@@ -543,6 +545,7 @@ export default function WODsPage() {
                             <div className="flex items-center gap-1.5 mb-1 flex-wrap">
                               {wod.block_name && <span className="text-[8px] font-black tracking-wider px-1 py-0.5 rounded" style={{ backgroundColor: `${BLOCK_COLOR[wod.block_name]}20`, color: BLOCK_COLOR[wod.block_name] }}>{BLOCK_LABEL[wod.block_name]}</span>}
                               {wt && <><div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: color }} /><span className="text-[9px] font-black tracking-wider truncate" style={{ color }}>{wt.toUpperCase()}</span></>}
+                              {wod.video_url && <Video size={9} className="text-red-400 shrink-0" />}
                               {!wod.is_published && <EyeOff size={9} className="text-amber-500 shrink-0" />}
                               {wod.publish_at && new Date(wod.publish_at) > new Date() && <span className="text-[8px] font-bold text-blue-400">⏰ {new Date(wod.publish_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</span>}
                             </div>
@@ -630,6 +633,11 @@ export default function WODsPage() {
                               {wt && (
                                 <span className="text-[10px] font-black tracking-wider" style={{ color }}>
                                   {wt.toUpperCase()}
+                                </span>
+                              )}
+                              {wod.video_url && (
+                                <span className="text-[9px] font-black text-red-400 bg-red-500/10 px-1.5 py-0.5 rounded uppercase tracking-wider flex items-center gap-0.5">
+                                  <Video size={9} /> Vidéo
                                 </span>
                               )}
                               {!wod.is_published && (
@@ -780,6 +788,13 @@ export default function WODsPage() {
                 <textarea rows={2} className={`${inp} resize-none`} value={form.notes}
                   onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
                   placeholder="Conseils, scaling options…" />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-gray-400 mb-1.5 uppercase tracking-wider flex items-center gap-1.5"><Video size={13} className="text-red-400" /> Vidéo YouTube <span className="text-gray-600 normal-case tracking-normal">(optionnel)</span></label>
+                <input className={inp} value={form.videoUrl}
+                  onChange={e => setForm(f => ({ ...f, videoUrl: e.target.value }))}
+                  placeholder="https://www.youtube.com/watch?v=..." />
               </div>
 
               <div className="space-y-3">

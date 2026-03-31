@@ -34,7 +34,7 @@ interface ClassSchedule {
 }
 
 const CLASS_TYPES = [
-  'CrossFit', 'Haltérophilie', 'Cardio', 'Open Gym',
+  'WOD', 'Haltérophilie', 'Cardio', 'Open Gym',
   'Strength', 'Mobility', 'Kids', 'Teens', 'Autre',
 ];
 
@@ -61,7 +61,7 @@ function toISO(d: Date): string {
 }
 
 const EMPTY_FORM = {
-  title: 'CrossFit',
+  title: 'WOD',
   customTitle: '',
   description: '',
   coach: '',

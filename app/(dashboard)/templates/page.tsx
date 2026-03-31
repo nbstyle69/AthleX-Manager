@@ -19,7 +19,7 @@ interface ScheduleTemplate {
 }
 
 const CLASS_TYPES = [
-  'CrossFit', 'Haltérophilie', 'Cardio', 'Open Gym',
+  'WOD', 'Haltérophilie', 'Cardio', 'Open Gym',
   'Strength', 'Mobility', 'Kids', 'Teens', 'Autre',
 ];
 
@@ -34,7 +34,7 @@ const DAYS = [
 ];
 
 const EMPTY_FORM = {
-  title: 'CrossFit',
+  title: 'WOD',
   description: '',
   coach: '',
   day_of_week: 1,
