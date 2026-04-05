@@ -18,7 +18,7 @@ function isTokenValid(token: string): boolean {
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  if (pathname.startsWith('/api/') || pathname.startsWith('/test-login') || pathname.startsWith('/landing')) {
+  if (pathname.startsWith('/api/') || pathname.startsWith('/test-login') || pathname.startsWith('/landing') || pathname.startsWith('/.well-known')) {
     return NextResponse.next();
   }
 
@@ -47,5 +47,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)'],
+  matcher: ['/((?!_next/static|_next/image|favicon.ico|\\.well-known|.*\\.(?:svg|png|jpg|jpeg|gif|webp|json)$).*)'],
 };

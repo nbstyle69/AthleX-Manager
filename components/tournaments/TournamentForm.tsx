@@ -1,9 +1,9 @@
 ﻿'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Upload, ImageIcon, Trash2 } from 'lucide-react';
 
 const LEVELS = ['scaled','inter','rx','rx+','gx','pro'];
 const STATUSES = [
@@ -19,7 +19,10 @@ interface Props {
 
 export default function TournamentForm({ boxId, initial }: Props) {
   const router = useRouter();
+  const fileRef = useRef<HTMLInputElement>(null);
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [bannerUrl, setBannerUrl] = useState<string | null>(initial?.banner_url ?? null);
   const [error, setError]   = useState<string | null>(null);
   const [form, setForm] = useState({
     name:             initial?.name             ?? '',
@@ -35,12 +38,47 @@ export default function TournamentForm({ boxId, initial }: Props) {
 
   const set = (k: string, v: any) => setForm(f => ({ ...f, [k]: v }));
 
+  async function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      alert('Veuillez sélectionner une image (PNG, JPG, WEBP).');
+      return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      alert("L'image ne doit pas dépasser 2 Mo.");
+      return;
+    }
+    setUploading(true);
+    const supabase = createClient();
+    const ext = file.name.split('.').pop() ?? 'png';
+    const path = `${boxId}/${Date.now()}.${ext}`;
+    const { error: uploadError } = await supabase.storage
+      .from('tournament-banners')
+      .upload(path, file, { upsert: true, contentType: file.type });
+    if (uploadError) {
+      alert(`Erreur upload: ${uploadError.message}`);
+      setUploading(false);
+      return;
+    }
+    const { data: urlData } = supabase.storage
+      .from('tournament-banners')
+      .getPublicUrl(path);
+    setBannerUrl(urlData.publicUrl + '?t=' + Date.now());
+    setUploading(false);
+  }
+
+  function handleRemoveImage() {
+    setBannerUrl(null);
+    if (fileRef.current) fileRef.current.value = '';
+  }
+
   async function handleSubmit(e: React.FormEvent, publish = false) {
     e.preventDefault();
     setSaving(true);
     setError(null);
     const supabase = createClient();
-    const payload  = { ...form, box_id: boxId, status: publish ? 'open' : form.status };
+    const payload  = { ...form, box_id: boxId, status: publish ? 'open' : form.status, banner_url: bannerUrl };
     if (initial?.id) {
       const { error: err } = await supabase.from('tournaments').update(payload).eq('id', initial.id);
       setSaving(false);
@@ -75,6 +113,40 @@ export default function TournamentForm({ boxId, initial }: Props) {
           <label className={lbl}>Description</label>
           <textarea className={`${inp} min-h-[80px] resize-y`} value={form.description} onChange={e => set('description', e.target.value)} placeholder="Présentation du tournoi..." />
         </div>
+        {/* Image du tournoi */}
+        <div>
+          <label className={lbl}>Image du tournoi</label>
+          <input ref={fileRef} type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
+          {bannerUrl ? (
+            <div className="relative group">
+              <img src={bannerUrl} alt="Banner" className="w-full h-48 object-cover rounded-xl border border-white/10" />
+              <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity rounded-xl flex items-center justify-center gap-3">
+                <button type="button" onClick={() => fileRef.current?.click()}
+                  className="flex items-center gap-2 bg-white/20 hover:bg-white/30 text-white text-xs font-bold px-4 py-2 rounded-lg transition-colors">
+                  <Upload size={14} /> Changer
+                </button>
+                <button type="button" onClick={handleRemoveImage}
+                  className="flex items-center gap-2 bg-red-500/20 hover:bg-red-500/30 text-red-400 text-xs font-bold px-4 py-2 rounded-lg transition-colors">
+                  <Trash2 size={14} /> Supprimer
+                </button>
+              </div>
+            </div>
+          ) : (
+            <button type="button" onClick={() => fileRef.current?.click()} disabled={uploading}
+              className="w-full h-36 border-2 border-dashed border-white/10 hover:border-[#C9A227]/40 rounded-xl flex flex-col items-center justify-center gap-2 transition-colors">
+              {uploading ? (
+                <Loader2 size={24} className="text-[#C9A227] animate-spin" />
+              ) : (
+                <>
+                  <ImageIcon size={28} className="text-gray-600" />
+                  <span className="text-xs text-gray-500 font-semibold">Cliquer pour ajouter une image</span>
+                  <span className="text-[10px] text-gray-600">PNG, JPG, WEBP · Max 2 Mo</span>
+                </>
+              )}
+            </button>
+          )}
+        </div>
+
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className={lbl}>Niveau requis</label>

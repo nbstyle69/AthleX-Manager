@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { Upload, ImageIcon, Trash2, CheckCircle } from 'lucide-react';
+import { Upload, ImageIcon, Trash2, CheckCircle, Phone, MapPin, Calendar, User, Users } from 'lucide-react';
 import { getMyBox } from '@/lib/getMyBox';
 
 export default function SettingsPage() {
@@ -14,6 +14,18 @@ export default function SettingsPage() {
   const [uploading, setUploading] = useState(false);
   const [saved, setSaved] = useState(false);
 
+  const [name, setName] = useState('');
+  const [address, setAddress] = useState('');
+  const [websiteUrl, setWebsiteUrl] = useState('');
+  const [contactEmail, setContactEmail] = useState('');
+  const [phone, setPhone] = useState('');
+  const [googleMapsUrl, setGoogleMapsUrl] = useState('');
+  const [savingInfo, setSavingInfo] = useState(false);
+  const [savedInfo, setSavedInfo] = useState(false);
+  const [foundedAt, setFoundedAt] = useState('');
+  const [ownerName, setOwnerName] = useState('');
+  const [coaches, setCoaches] = useState<{id:string; username:string; avatar_url:string|null}[]>([]);
+
   useEffect(() => {
     async function load() {
       const { data: { user } } = await supabase.auth.getUser();
@@ -24,6 +36,34 @@ export default function SettingsPage() {
       if (data) {
         setBox(data);
         setLogoUrl(data.logo_url ?? null);
+        setName(data.name ?? '');
+        setAddress(data.address ?? '');
+        setWebsiteUrl(data.website_url ?? '');
+        setContactEmail(data.contact_email ?? '');
+        setPhone(data.phone ?? '');
+        setGoogleMapsUrl(data.google_maps_url ?? '');
+        setFoundedAt(data.founded_at ?? '');
+
+        // Fetch owner name
+        if (data.owner_id) {
+          const { data: ownerProfile } = await supabase
+            .from('profiles').select('username').eq('id', data.owner_id).single();
+          if (ownerProfile) setOwnerName(ownerProfile.username ?? '');
+        }
+
+        // Fetch coaches
+        const { data: coachMembers } = await supabase
+          .from('box_members')
+          .select('member_id, profiles:member_id(username, avatar_url)')
+          .eq('box_id', data.id)
+          .eq('role', 'coach');
+        if (coachMembers) {
+          setCoaches(coachMembers.map((c: any) => ({
+            id: c.member_id,
+            username: (Array.isArray(c.profiles) ? c.profiles[0] : c.profiles)?.username ?? 'Coach',
+            avatar_url: (Array.isArray(c.profiles) ? c.profiles[0] : c.profiles)?.avatar_url ?? null,
+          })));
+        }
       }
     }
     load();
@@ -97,6 +137,43 @@ export default function SettingsPage() {
     setUploading(false);
   }
 
+  async function handleSaveInfo() {
+    if (!box) return;
+    if (!name.trim()) { alert('Le nom de la box est requis.'); return; }
+    if (websiteUrl.trim() && !/^https?:\/\/.+/i.test(websiteUrl.trim())) {
+      alert('Le site web doit commencer par http:// ou https://');
+      return;
+    }
+    if (contactEmail.trim() && !contactEmail.trim().includes('@')) {
+      alert('Vérifie le format de l\'email.');
+      return;
+    }
+    if (googleMapsUrl.trim() && !/^https?:\/\/.+/i.test(googleMapsUrl.trim())) {
+      alert('Le lien Google Maps doit commencer par http:// ou https://');
+      return;
+    }
+
+    setSavingInfo(true);
+    setSavedInfo(false);
+    const { error } = await supabase.from('boxes').update({
+      name: name.trim(),
+      address: address.trim() || null,
+      website_url: websiteUrl.trim() || null,
+      contact_email: contactEmail.trim() || null,
+      phone: phone.trim() || null,
+      google_maps_url: googleMapsUrl.trim() || null,
+      founded_at: foundedAt || null,
+    }).eq('id', box.id);
+
+    if (error) {
+      alert(`Erreur: ${error.message}`);
+    } else {
+      setSavedInfo(true);
+      setTimeout(() => setSavedInfo(false), 3000);
+    }
+    setSavingInfo(false);
+  }
+
   if (!box) {
     return (
       <div className="flex items-center justify-center py-32">
@@ -167,6 +244,174 @@ export default function SettingsPage() {
                 Logo mis à jour !
               </div>
             )}
+          </div>
+        </div>
+      </div>
+
+      {/* Box info section */}
+      <div className="bg-[#111111] border border-white/[0.06] rounded-2xl p-6 space-y-5">
+        <div>
+          <h2 className="text-sm font-bold text-white mb-1">Informations de la box</h2>
+          <p className="text-xs text-gray-500">
+            Ces informations sont visibles par tous les membres dans l&apos;application mobile.
+          </p>
+        </div>
+
+        <div className="space-y-4">
+          <div>
+            <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">
+              Nom de la box *
+            </label>
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="CrossFit Lyon, Box Forge…"
+              className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-[#C9A227]/40 transition-colors"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">
+              Adresse
+            </label>
+            <input
+              type="text"
+              value={address}
+              onChange={(e) => setAddress(e.target.value)}
+              placeholder="12 rue du Sport, 69001 Lyon"
+              className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-[#C9A227]/40 transition-colors"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">
+              Site web
+            </label>
+            <input
+              type="url"
+              value={websiteUrl}
+              onChange={(e) => setWebsiteUrl(e.target.value)}
+              placeholder="https://www.mabox.fr"
+              className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-[#C9A227]/40 transition-colors"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">
+              Email de contact
+            </label>
+            <input
+              type="email"
+              value={contactEmail}
+              onChange={(e) => setContactEmail(e.target.value)}
+              placeholder="contact@mabox.fr"
+              className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-[#C9A227]/40 transition-colors"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">
+              Téléphone
+            </label>
+            <input
+              type="tel"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              placeholder="+33 6 12 34 56 78"
+              className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-[#C9A227]/40 transition-colors"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">
+              Lien Google Maps
+            </label>
+            <input
+              type="url"
+              value={googleMapsUrl}
+              onChange={(e) => setGoogleMapsUrl(e.target.value)}
+              placeholder="https://maps.google.com/..."
+              className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-[#C9A227]/40 transition-colors"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">
+              Date d&apos;ouverture de la salle
+            </label>
+            <input
+              type="date"
+              value={foundedAt}
+              onChange={(e) => setFoundedAt(e.target.value)}
+              className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-[#C9A227]/40 transition-colors"
+            />
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3 pt-1">
+          <button
+            onClick={handleSaveInfo}
+            disabled={savingInfo}
+            className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#C9A227] text-black text-sm font-bold hover:bg-[#d4ad2e] transition-colors disabled:opacity-50"
+          >
+            {savingInfo ? 'Enregistrement…' : 'Enregistrer'}
+          </button>
+
+          {savedInfo && (
+            <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-400">
+              <CheckCircle size={14} />
+              Informations mises à jour !
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Read-only info section */}
+      <div className="bg-[#111111] border border-white/[0.06] rounded-2xl p-6 space-y-5">
+        <div>
+          <h2 className="text-sm font-bold text-white mb-1">Détails de la box</h2>
+          <p className="text-xs text-gray-500">
+            Informations automatiques (non modifiables).
+          </p>
+        </div>
+
+        <div className="space-y-4">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-blue-500/10 flex items-center justify-center shrink-0">
+              <User size={16} className="text-blue-400" />
+            </div>
+            <div>
+              <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Propriétaire</p>
+              <p className="text-sm text-white font-semibold">{ownerName || '—'}</p>
+            </div>
+          </div>
+
+          <div className="flex items-start gap-3">
+            <div className="w-9 h-9 rounded-xl bg-purple-500/10 flex items-center justify-center shrink-0 mt-0.5">
+              <Users size={16} className="text-purple-400" />
+            </div>
+            <div>
+              <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Coachs</p>
+              {coaches.length === 0 ? (
+                <p className="text-sm text-gray-500 italic">Aucun coach assigné</p>
+              ) : (
+                <div className="flex flex-wrap gap-2 mt-1">
+                  {coaches.map(c => (
+                    <div key={c.id} className="flex items-center gap-2 bg-white/[0.04] border border-white/[0.06] rounded-lg px-3 py-1.5">
+                      {c.avatar_url ? (
+                        <img src={c.avatar_url} alt="" className="w-5 h-5 rounded-full object-cover" />
+                      ) : (
+                        <div className="w-5 h-5 rounded-full bg-purple-500/30 flex items-center justify-center text-[9px] font-black text-purple-300">
+                          {c.username[0]?.toUpperCase()}
+                        </div>
+                      )}
+                      <span className="text-sm text-white font-medium">{c.username}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>

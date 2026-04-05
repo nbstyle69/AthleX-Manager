@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import {
-  Plus, ChevronLeft, ChevronRight, Pencil, Trash2,
+  Plus, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, ArrowLeft, ArrowRight, Pencil, Trash2,
   Eye, EyeOff, X, Loader2, Dumbbell, Upload, Download, FileText, Calendar, LayoutGrid, List, Video,
 } from 'lucide-react';
 import { getMyBox } from '@/lib/getMyBox';
@@ -20,6 +20,7 @@ interface BoxWOD {
   video_url: string | null;
   notes: string | null; is_published: boolean;
   publish_at: string | null;
+  sort_order: number;
 }
 
 const WOD_TYPES: { value: WodType; label: string; color: string }[] = [
@@ -100,6 +101,7 @@ export default function WODsPage() {
   };
   const [showDateNav, setShowDateNav] = useState(false);
   const [groups, setGroups] = useState<{ id: string; name: string; color: string }[]>([]);
+  const [wodGroupMap, setWodGroupMap] = useState<Record<string, string[]>>({});
 
   const weekDates = getWeekDates(weekOffset);
   const todayISO  = toISO(new Date());
@@ -126,8 +128,26 @@ export default function WODsPage() {
       .eq('box_id', boxId)
       .gte('scheduled_date', toISO(weekDates[0]))
       .lte('scheduled_date', toISO(weekDates[6]))
-      .order('scheduled_date');
-    setWods((data ?? []) as BoxWOD[]);
+      .order('scheduled_date')
+      .order('sort_order');
+    const wodsArr = (data ?? []) as BoxWOD[];
+    setWods(wodsArr);
+    // Load group access for all WODs
+    const ids = wodsArr.map(w => w.id);
+    if (ids.length > 0) {
+      const { data: accessRows } = await supabase
+        .from('wod_group_access')
+        .select('wod_id, group_id')
+        .in('wod_id', ids);
+      const map: Record<string, string[]> = {};
+      (accessRows ?? []).forEach((r: any) => {
+        if (!map[r.wod_id]) map[r.wod_id] = [];
+        map[r.wod_id].push(r.group_id);
+      });
+      setWodGroupMap(map);
+    } else {
+      setWodGroupMap({});
+    }
     setLoading(false);
   }, [boxId, weekOffset]);
 
@@ -190,7 +210,9 @@ export default function WODsPage() {
       const { error } = await supabase.from('box_wods').update(payload).eq('id', editWOD.id);
       if (error) { setSaving(false); setFormError(error.message); return; }
     } else {
-      const { data: newWod, error } = await supabase.from('box_wods').insert(payload).select('id').single();
+      // Assign sort_order = next position for that date
+      const dayCount = wods.filter(w => w.scheduled_date === form.date).length;
+      const { data: newWod, error } = await supabase.from('box_wods').insert({ ...payload, sort_order: dayCount }).select('id').single();
       if (error || !newWod) { setSaving(false); setFormError(error?.message ?? 'Erreur'); return; }
       wodId = newWod.id;
     }
@@ -219,6 +241,34 @@ export default function WODsPage() {
     if (!confirm(`Supprimer "${wod.title}" ?`)) return;
     await supabase.from('box_wods').delete().eq('id', wod.id);
     load();
+  }
+
+  async function moveWod(dayISO: string, index: number, direction: 'up' | 'down') {
+    const dayWODs = wods.filter(w => w.scheduled_date === dayISO);
+    const target = direction === 'up' ? index - 1 : index + 1;
+    if (target < 0 || target >= dayWODs.length) return;
+    [dayWODs[index], dayWODs[target]] = [dayWODs[target], dayWODs[index]];
+    // Optimistic update
+    setWods(prev => {
+      const others = prev.filter(w => w.scheduled_date !== dayISO);
+      return [...others, ...dayWODs.map((w, i) => ({ ...w, sort_order: i }))];
+    });
+    // Persist
+    await Promise.all(dayWODs.map((w, i) =>
+      supabase.from('box_wods').update({ sort_order: i }).eq('id', w.id)
+    ));
+  }
+
+  async function moveWodToDay(wod: BoxWOD, direction: 'prev' | 'next') {
+    const d = new Date(wod.scheduled_date + 'T00:00:00');
+    d.setDate(d.getDate() + (direction === 'prev' ? -1 : 1));
+    const targetDate = toISO(d);
+    const targetDayCount = wods.filter(w => w.scheduled_date === targetDate).length;
+    // Optimistic update
+    setWods(prev => prev.map(w =>
+      w.id === wod.id ? { ...w, scheduled_date: targetDate, sort_order: targetDayCount } : w
+    ));
+    await supabase.from('box_wods').update({ scheduled_date: targetDate, sort_order: targetDayCount }).eq('id', wod.id);
   }
 
   // ── CSV Export ────────────────────────────────────────────────────────────
@@ -537,7 +587,7 @@ export default function WODsPage() {
                     </button>
                   ) : (
                     <>
-                      {dayWODs.map(wod => {
+                      {dayWODs.map((wod, wi) => {
                         const wt = wod.wod_type ?? '';
                         const color = TYPE_COLOR[wt] ?? '#6B7280';
                         return (
@@ -551,7 +601,37 @@ export default function WODsPage() {
                             </div>
                             <p className="text-xs font-bold text-white truncate">{wod.title}</p>
                             {wod.description && <p className="text-[10px] text-gray-500 truncate mt-0.5">{wod.description}</p>}
+                            {(wodGroupMap[wod.id] ?? []).length > 0 && (
+                              <div className="flex flex-wrap gap-1 mt-1">
+                                {(wodGroupMap[wod.id] ?? []).map(gid => {
+                                  const g = groups.find(gr => gr.id === gid);
+                                  if (!g) return null;
+                                  return (
+                                    <span key={gid} className="inline-flex items-center gap-0.5 text-[8px] font-bold px-1.5 py-0.5 rounded-full" style={{ backgroundColor: `${g.color}20`, color: g.color }}>
+                                      <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: g.color }} />
+                                      {g.name}
+                                    </span>
+                                  );
+                                })}
+                              </div>
+                            )}
                             <div className="flex items-center gap-0.5 mt-2 pt-1.5 border-t border-white/5">
+                              <button onClick={() => moveWodToDay(wod, 'prev')} className="p-1 rounded-lg hover:bg-white/10 transition-colors" title="Jour précédent">
+                                <ArrowLeft size={11} className="text-gray-400" />
+                              </button>
+                              <button onClick={() => moveWodToDay(wod, 'next')} className="p-1 rounded-lg hover:bg-white/10 transition-colors" title="Jour suivant">
+                                <ArrowRight size={11} className="text-gray-400" />
+                              </button>
+                              {dayWODs.length > 1 && (
+                                <>
+                                  <button onClick={() => moveWod(iso, wi, 'up')} disabled={wi === 0} className="p-1 rounded-lg hover:bg-white/10 transition-colors disabled:opacity-25" title="Monter">
+                                    <ChevronUp size={11} className="text-gray-400" />
+                                  </button>
+                                  <button onClick={() => moveWod(iso, wi, 'down')} disabled={wi === dayWODs.length - 1} className="p-1 rounded-lg hover:bg-white/10 transition-colors disabled:opacity-25" title="Descendre">
+                                    <ChevronDown size={11} className="text-gray-400" />
+                                  </button>
+                                </>
+                              )}
                               <button onClick={() => togglePublish(wod)} className="p-1 rounded-lg hover:bg-white/10 transition-colors" title={wod.is_published ? 'Dépublier' : 'Publier'}>
                                 {wod.is_published ? <Eye size={11} className="text-emerald-400" /> : <EyeOff size={11} className="text-gray-500" />}
                               </button>
@@ -617,11 +697,27 @@ export default function WODsPage() {
                   </button>
                 ) : (
                   <div className="border-t border-white/5 divide-y divide-white/5">
-                    {dayWODs.map(wod => {
+                    {dayWODs.map((wod, wi) => {
                       const wt = wod.wod_type ?? '';
                       const color = TYPE_COLOR[wt] ?? '#6B7280';
                       return (
                         <div key={wod.id} className={`flex items-center gap-4 px-5 py-3.5 ${!wod.is_published ? 'opacity-60' : ''}`}>
+                          <div className="flex flex-col gap-0.5 shrink-0">
+                            <button onClick={() => moveWod(iso, wi, 'up')} disabled={wi === 0 || dayWODs.length < 2} className="p-1 rounded-lg hover:bg-white/10 transition-colors disabled:opacity-25" title="Monter">
+                              <ChevronUp size={14} className="text-gray-400" />
+                            </button>
+                            <button onClick={() => moveWod(iso, wi, 'down')} disabled={wi === dayWODs.length - 1 || dayWODs.length < 2} className="p-1 rounded-lg hover:bg-white/10 transition-colors disabled:opacity-25" title="Descendre">
+                              <ChevronDown size={14} className="text-gray-400" />
+                            </button>
+                          </div>
+                          <div className="flex gap-1 shrink-0">
+                            <button onClick={() => moveWodToDay(wod, 'prev')} className="p-1 rounded-lg hover:bg-white/10 transition-colors" title="Jour précédent">
+                              <ArrowLeft size={14} className="text-gray-400" />
+                            </button>
+                            <button onClick={() => moveWodToDay(wod, 'next')} className="p-1 rounded-lg hover:bg-white/10 transition-colors" title="Jour suivant">
+                              <ArrowRight size={14} className="text-gray-400" />
+                            </button>
+                          </div>
                           <div className="w-1 h-10 rounded-full shrink-0" style={{ backgroundColor: wod.block_name ? (BLOCK_COLOR[wod.block_name] ?? color) : color }} />
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 mb-0.5 flex-wrap">
@@ -645,6 +741,16 @@ export default function WODsPage() {
                                   Brouillon
                                 </span>
                               )}
+                              {(wodGroupMap[wod.id] ?? []).map(gid => {
+                                const g = groups.find(gr => gr.id === gid);
+                                if (!g) return null;
+                                return (
+                                  <span key={gid} className="inline-flex items-center gap-0.5 text-[9px] font-bold px-1.5 py-0.5 rounded-full" style={{ backgroundColor: `${g.color}20`, color: g.color }}>
+                                    <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: g.color }} />
+                                    {g.name}
+                                  </span>
+                                );
+                              })}
                             </div>
                             <p className="text-sm font-bold text-white truncate">{wod.title}</p>
                             {wod.description && (
