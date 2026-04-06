@@ -24,8 +24,11 @@ export default function NewPhysicalCompetitionPage() {
   const [location, setLocation] = useState('');
   const [startTime, setStartTime] = useState('');
   const [endTime, setEndTime] = useState('');
-  const [format, setFormat] = useState('individual');
+  const [hasIndividual, setHasIndividual] = useState(false);
+  const [hasTeam, setHasTeam] = useState(false);
   const [teamSize, setTeamSize] = useState<number | null>(null);
+  const [individualGenders, setIndividualGenders] = useState<string[]>([]);
+  const [teamGenders, setTeamGenders] = useState<string[]>([]);
   const [registrationUrl, setRegistrationUrl] = useState('');
   const [price, setPrice] = useState('');
   const [logoFile, setLogoFile] = useState<File | null>(null);
@@ -47,8 +50,11 @@ export default function NewPhysicalCompetitionPage() {
         setLocation(data.location ?? '');
         setStartTime(data.start_time ?? '');
         setEndTime(data.end_time ?? '');
-        setFormat(data.format ?? 'individual');
+        setHasIndividual(data.has_individual ?? (data.format === 'individual' || data.format === 'both'));
+        setHasTeam(data.has_team ?? (data.format === 'team' || data.format === 'both'));
         setTeamSize(data.team_size ?? null);
+        setIndividualGenders(data.individual_genders ?? []);
+        setTeamGenders(data.team_genders ?? []);
         setRegistrationUrl(data.registration_url ?? '');
         setPrice(data.price ?? '');
         if (data.logo_url) setLogoPreview(data.logo_url);
@@ -91,8 +97,12 @@ export default function NewPhysicalCompetitionPage() {
       end_time: endTime || null,
       location: location.trim(),
       mode,
-      format,
-      team_size: (format === 'team' || format === 'both') ? teamSize : null,
+      format: hasIndividual && hasTeam ? 'both' : hasTeam ? 'team' : 'individual',
+      has_individual: hasIndividual,
+      has_team: hasTeam,
+      team_size: hasTeam ? teamSize : null,
+      individual_genders: hasIndividual ? individualGenders : [],
+      team_genders: hasTeam ? teamGenders : [],
       logo_url: logoUrl,
       registration_url: registrationUrl.trim() || null,
       price: mode === 'info' ? price.trim() || null : null,
@@ -329,49 +339,105 @@ export default function NewPhysicalCompetitionPage() {
           </>
         )}
 
-        {/* Format */}
+        {/* Format — multi-select toggles */}
         <div>
           <label className="text-[11px] font-extrabold uppercase tracking-widest text-gray-400 mb-2 block">Format</label>
           <div className="flex gap-3">
-            {(['individual', 'team', 'both'] as const).map(f => (
-              <button
-                key={f}
-                onClick={() => { setFormat(f); if (f === 'individual') setTeamSize(null); }}
-                className={`px-4 py-2.5 rounded-xl text-sm font-bold transition-all ${
-                  format === f
-                    ? `${accentBg} text-white`
-                    : 'bg-[#0A0A0A] border border-white/8 text-gray-400 hover:text-white'
-                }`}
-              >
-                {f === 'individual' ? 'Individuel' : f === 'team' ? 'Équipe' : 'Les deux'}
-              </button>
-            ))}
+            <button
+              onClick={() => { setHasIndividual(v => !v); if (hasIndividual) setIndividualGenders([]); }}
+              className={`px-4 py-2.5 rounded-xl text-sm font-bold transition-all ${
+                hasIndividual
+                  ? `${accentBg} text-white`
+                  : 'bg-[#0A0A0A] border border-white/8 text-gray-400 hover:text-white'
+              }`}
+            >
+              Individuel
+            </button>
+            <button
+              onClick={() => { setHasTeam(v => !v); if (hasTeam) { setTeamSize(null); setTeamGenders([]); } }}
+              className={`px-4 py-2.5 rounded-xl text-sm font-bold transition-all ${
+                hasTeam
+                  ? `${accentBg} text-white`
+                  : 'bg-[#0A0A0A] border border-white/8 text-gray-400 hover:text-white'
+              }`}
+            >
+              Équipe
+            </button>
           </div>
         </div>
 
-        {/* Team size — visible when team or both */}
-        {(format === 'team' || format === 'both') && (
+        {/* Individual genders */}
+        {hasIndividual && (
           <div>
-            <label className="text-[11px] font-extrabold uppercase tracking-widest text-gray-400 mb-2 block">
-              <Users size={12} className="inline mr-1 mb-0.5" />Taille d&apos;équipe
-            </label>
+            <label className="text-[11px] font-extrabold uppercase tracking-widest text-gray-400 mb-2 block">Catégories individuelles</label>
             <div className="flex gap-2">
-              {[2, 3, 4, 5, 6].map(n => (
-                <button
-                  key={n}
-                  onClick={() => setTeamSize(n)}
-                  className={`w-11 h-11 rounded-xl text-sm font-bold transition-all ${
-                    teamSize === n
-                      ? `${accentBg} text-white`
-                      : 'bg-[#0A0A0A] border border-white/8 text-gray-400 hover:text-white'
-                  }`}
-                >
-                  {n}
-                </button>
-              ))}
+              {['homme', 'femme'].map(g => {
+                const selected = individualGenders.includes(g);
+                return (
+                  <button
+                    key={g}
+                    onClick={() => setIndividualGenders(prev => selected ? prev.filter(x => x !== g) : [...prev, g])}
+                    className={`px-4 py-2.5 rounded-xl text-sm font-bold transition-all ${
+                      selected
+                        ? `${accentBg} text-white`
+                        : 'bg-[#0A0A0A] border border-white/8 text-gray-400 hover:text-white'
+                    }`}
+                  >
+                    {g === 'homme' ? 'Homme' : 'Femme'}
+                  </button>
+                );
+              })}
             </div>
-            <p className="text-[11px] text-gray-600 mt-1">Nombre de personnes par équipe</p>
           </div>
+        )}
+
+        {/* Team config */}
+        {hasTeam && (
+          <>
+            <div>
+              <label className="text-[11px] font-extrabold uppercase tracking-widest text-gray-400 mb-2 block">
+                <Users size={12} className="inline mr-1 mb-0.5" />Taille d&apos;équipe
+              </label>
+              <div className="flex gap-2">
+                {[2, 3, 4, 5, 6].map(n => (
+                  <button
+                    key={n}
+                    onClick={() => setTeamSize(n)}
+                    className={`w-11 h-11 rounded-xl text-sm font-bold transition-all ${
+                      teamSize === n
+                        ? `${accentBg} text-white`
+                        : 'bg-[#0A0A0A] border border-white/8 text-gray-400 hover:text-white'
+                    }`}
+                  >
+                    {n}
+                  </button>
+                ))}
+              </div>
+              <p className="text-[11px] text-gray-600 mt-1">Nombre de personnes par équipe</p>
+            </div>
+            <div>
+              <label className="text-[11px] font-extrabold uppercase tracking-widest text-gray-400 mb-2 block">Catégories équipe</label>
+              <div className="flex gap-2 flex-wrap">
+                {['homme', 'femme', 'mixte'].map(g => {
+                  const selected = teamGenders.includes(g);
+                  return (
+                    <button
+                      key={g}
+                      onClick={() => setTeamGenders(prev => selected ? prev.filter(x => x !== g) : [...prev, g])}
+                      className={`px-4 py-2.5 rounded-xl text-sm font-bold transition-all ${
+                        selected
+                          ? `${accentBg} text-white`
+                          : 'bg-[#0A0A0A] border border-white/8 text-gray-400 hover:text-white'
+                      }`}
+                    >
+                      {g === 'homme' ? 'Homme' : g === 'femme' ? 'Femme' : 'Mixte'}
+                    </button>
+                  );
+                })}
+              </div>
+              <p className="text-[11px] text-gray-600 mt-1">Types de composition d&apos;équipe autorisés</p>
+            </div>
+          </>
         )}
 
         {/* Registration URL — both modes */}
