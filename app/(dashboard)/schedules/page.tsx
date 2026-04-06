@@ -93,6 +93,8 @@ export default function SchedulesPage() {
   const [detailLoading, setDetailLoading] = useState(false);
   const [kicking,       setKicking]       = useState<string | null>(null);
 
+  const [coaches, setCoaches] = useState<{ id: string; username: string }[]>([]);
+
   const weekDates = getWeekDates(weekOffset);
   const todayISO  = toISO(new Date());
 
@@ -104,6 +106,24 @@ export default function SchedulesPage() {
       if (box?.id) setBoxId(box.id);
     })();
   }, []);
+
+  // Fetch coaches for the current box
+  useEffect(() => {
+    if (!boxId) return;
+    (async () => {
+      const { data } = await supabase
+        .from('box_members')
+        .select('member_id, profiles:member_id(username)')
+        .eq('box_id', boxId)
+        .eq('role', 'coach');
+      setCoaches(
+        (data ?? []).map((c: any) => ({
+          id: c.member_id,
+          username: (Array.isArray(c.profiles) ? c.profiles[0] : c.profiles)?.username ?? 'Coach',
+        }))
+      );
+    })();
+  }, [boxId]);
 
   const load = useCallback(async () => {
     if (!boxId) return;
@@ -510,11 +530,22 @@ export default function SchedulesPage() {
 
               <div>
                 <label className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 block">Coach (optionnel)</label>
-                <input
-                  className="w-full bg-[#0A0A0A] border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-[#C9A227]/50"
-                  value={form.coach} onChange={e => setForm(f => ({ ...f, coach: e.target.value }))}
-                  placeholder="Nom du coach"
-                />
+                {coaches.length > 0 ? (
+                  <div className="flex flex-wrap gap-2">
+                    {coaches.map(c => (
+                      <button key={c.id} onClick={() => setForm(f => ({ ...f, coach: f.coach === c.username ? '' : c.username }))}
+                        className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors ${
+                          form.coach === c.username
+                            ? 'bg-[#C9A227] border-[#C9A227] text-white'
+                            : 'bg-transparent border-white/10 text-gray-400 hover:border-white/20 hover:text-white'
+                        }`}>
+                        {c.username}
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-500">Aucun coach assigné à cette box</p>
+                )}
               </div>
 
               <div>

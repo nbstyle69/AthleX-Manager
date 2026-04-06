@@ -42,6 +42,24 @@ export default function TemplatesDrawer({ open, onClose, boxId }: Props) {
   const [form, setForm]           = useState(EMPTY_FORM);
   const [saving, setSaving]       = useState(false);
   const [deleting, setDeleting]   = useState<string | null>(null);
+  const [coaches, setCoaches]     = useState<{ id: string; username: string }[]>([]);
+
+  useEffect(() => {
+    if (!boxId) return;
+    (async () => {
+      const { data } = await supabase
+        .from('box_members')
+        .select('member_id, profiles:member_id(username)')
+        .eq('box_id', boxId)
+        .eq('role', 'coach');
+      setCoaches(
+        (data ?? []).map((c: any) => ({
+          id: c.member_id,
+          username: (Array.isArray(c.profiles) ? c.profiles[0] : c.profiles)?.username ?? 'Coach',
+        }))
+      );
+    })();
+  }, [boxId]);
 
   const load = useCallback(async () => {
     if (!boxId) return;
@@ -193,7 +211,22 @@ export default function TemplatesDrawer({ open, onClose, boxId }: Props) {
               </div>
               <div>
                 <label className="block text-xs font-semibold text-gray-400 mb-1.5">Coach</label>
-                <input type="text" placeholder="Nom du coach" value={form.coach} onChange={e => setForm(f => ({ ...f, coach: e.target.value }))} className="w-full bg-[#1a1a1a] border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white placeholder:text-gray-600" />
+                {coaches.length > 0 ? (
+                  <div className="flex flex-wrap gap-2">
+                    {coaches.map(c => (
+                      <button key={c.id} type="button" onClick={() => setForm(f => ({ ...f, coach: f.coach === c.username ? '' : c.username }))}
+                        className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors ${
+                          form.coach === c.username
+                            ? 'bg-[#C9A227] border-[#C9A227] text-white'
+                            : 'bg-transparent border-white/10 text-gray-400 hover:border-white/20 hover:text-white'
+                        }`}>
+                        {c.username}
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-500">Aucun coach assigné</p>
+                )}
               </div>
               <div>
                 <label className="block text-xs font-semibold text-gray-400 mb-1.5">Capacite max</label>
