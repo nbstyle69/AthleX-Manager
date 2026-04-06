@@ -26,7 +26,7 @@ export default function NewPhysicalCompetitionPage() {
   const [endTime, setEndTime] = useState('');
   const [hasIndividual, setHasIndividual] = useState(false);
   const [hasTeam, setHasTeam] = useState(false);
-  const [teamSize, setTeamSize] = useState<number | null>(null);
+  const [teamSizes, setTeamSizes] = useState<number[]>([]);
   const [individualGenders, setIndividualGenders] = useState<string[]>([]);
   const [teamGenders, setTeamGenders] = useState<string[]>([]);
   const [registrationUrl, setRegistrationUrl] = useState('');
@@ -52,7 +52,7 @@ export default function NewPhysicalCompetitionPage() {
         setEndTime(data.end_time ?? '');
         setHasIndividual(data.has_individual ?? (data.format === 'individual' || data.format === 'both'));
         setHasTeam(data.has_team ?? (data.format === 'team' || data.format === 'both'));
-        setTeamSize(data.team_size ?? null);
+        setTeamSizes(data.team_sizes ?? (data.team_size ? [data.team_size] : []));
         setIndividualGenders(data.individual_genders ?? []);
         setTeamGenders(data.team_genders ?? []);
         setRegistrationUrl(data.registration_url ?? '');
@@ -100,7 +100,8 @@ export default function NewPhysicalCompetitionPage() {
       format: hasIndividual && hasTeam ? 'both' : hasTeam ? 'team' : 'individual',
       has_individual: hasIndividual,
       has_team: hasTeam,
-      team_size: hasTeam ? teamSize : null,
+      team_size: hasTeam && teamSizes.length === 1 ? teamSizes[0] : null,
+      team_sizes: hasTeam ? teamSizes : [],
       individual_genders: hasIndividual ? individualGenders : [],
       team_genders: hasTeam ? teamGenders : [],
       logo_url: logoUrl,
@@ -354,7 +355,7 @@ export default function NewPhysicalCompetitionPage() {
               Individuel
             </button>
             <button
-              onClick={() => { setHasTeam(v => !v); if (hasTeam) { setTeamSize(null); setTeamGenders([]); } }}
+              onClick={() => { setHasTeam(v => !v); if (hasTeam) { setTeamSizes([]); setTeamGenders([]); } }}
               className={`px-4 py-2.5 rounded-xl text-sm font-bold transition-all ${
                 hasTeam
                   ? `${accentBg} text-white`
@@ -399,19 +400,22 @@ export default function NewPhysicalCompetitionPage() {
                 <Users size={12} className="inline mr-1 mb-0.5" />Taille d&apos;équipe
               </label>
               <div className="flex gap-2">
-                {[2, 3, 4, 5, 6].map(n => (
-                  <button
-                    key={n}
-                    onClick={() => setTeamSize(n)}
-                    className={`w-11 h-11 rounded-xl text-sm font-bold transition-all ${
-                      teamSize === n
-                        ? `${accentBg} text-white`
-                        : 'bg-[#0A0A0A] border border-white/8 text-gray-400 hover:text-white'
-                    }`}
-                  >
-                    {n}
-                  </button>
-                ))}
+                {[2, 3, 4, 5, 6].map(n => {
+                  const sel = teamSizes.includes(n);
+                  return (
+                    <button
+                      key={n}
+                      onClick={() => setTeamSizes(prev => sel ? prev.filter(x => x !== n) : [...prev, n].sort())}
+                      className={`w-11 h-11 rounded-xl text-sm font-bold transition-all ${
+                        sel
+                          ? `${accentBg} text-white`
+                          : 'bg-[#0A0A0A] border border-white/8 text-gray-400 hover:text-white'
+                      }`}
+                    >
+                      {n}
+                    </button>
+                  );
+                })}
               </div>
               <p className="text-[11px] text-gray-600 mt-1">Nombre de personnes par équipe</p>
             </div>
