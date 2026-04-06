@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import {
-  MapPin, ArrowLeft, Loader2, Check, Upload, Zap, Info,
+  MapPin, ArrowLeft, Loader2, Check, Upload, Zap, Info, Clock, Users,
 } from 'lucide-react';
 
 type Mode = 'qualification' | 'info';
@@ -22,7 +22,10 @@ export default function NewPhysicalCompetitionPage() {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [location, setLocation] = useState('');
+  const [startTime, setStartTime] = useState('');
+  const [endTime, setEndTime] = useState('');
   const [format, setFormat] = useState('individual');
+  const [teamSize, setTeamSize] = useState<number | null>(null);
   const [registrationUrl, setRegistrationUrl] = useState('');
   const [price, setPrice] = useState('');
   const [logoFile, setLogoFile] = useState<File | null>(null);
@@ -42,7 +45,10 @@ export default function NewPhysicalCompetitionPage() {
         setStartDate(data.start_date ?? '');
         setEndDate(data.end_date ?? '');
         setLocation(data.location ?? '');
+        setStartTime(data.start_time ?? '');
+        setEndTime(data.end_time ?? '');
         setFormat(data.format ?? 'individual');
+        setTeamSize(data.team_size ?? null);
         setRegistrationUrl(data.registration_url ?? '');
         setPrice(data.price ?? '');
         if (data.logo_url) setLogoPreview(data.logo_url);
@@ -74,15 +80,19 @@ export default function NewPhysicalCompetitionPage() {
 
     const logoUrl = await uploadLogo();
 
+    const effectiveStartDate = startDate || new Date().toISOString().slice(0, 10);
     const payload: Record<string, any> = {
       name: name.trim(),
       description: description.trim(),
-      date: mode === 'info' ? (date || new Date().toISOString().slice(0, 10)) : (startDate || new Date().toISOString().slice(0, 10)),
-      start_date: mode === 'qualification' ? (startDate || null) : null,
-      end_date: mode === 'qualification' ? (endDate || null) : null,
+      date: effectiveStartDate,
+      start_date: startDate || null,
+      end_date: endDate || null,
+      start_time: startTime || null,
+      end_time: endTime || null,
       location: location.trim(),
       mode,
       format,
+      team_size: (format === 'team' || format === 'both') ? teamSize : null,
       logo_url: logoUrl,
       registration_url: registrationUrl.trim() || null,
       price: mode === 'info' ? price.trim() || null : null,
@@ -249,6 +259,22 @@ export default function NewPhysicalCompetitionPage() {
                 />
               </div>
             </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="text-[11px] font-extrabold uppercase tracking-widest text-gray-400 mb-2 block">Heure de début</label>
+                <input
+                  type="time" value={startTime} onChange={e => setStartTime(e.target.value)}
+                  className="w-full bg-[#0A0A0A] border border-white/8 rounded-xl px-4 py-3 text-sm text-white focus:border-white/20 focus:outline-none transition-colors"
+                />
+              </div>
+              <div>
+                <label className="text-[11px] font-extrabold uppercase tracking-widest text-gray-400 mb-2 block">Heure de fin</label>
+                <input
+                  type="time" value={endTime} onChange={e => setEndTime(e.target.value)}
+                  className="w-full bg-[#0A0A0A] border border-white/8 rounded-xl px-4 py-3 text-sm text-white focus:border-white/20 focus:outline-none transition-colors"
+                />
+              </div>
+            </div>
             <div>
               <label className="text-[11px] font-extrabold uppercase tracking-widest text-gray-400 mb-2 block">Lieu</label>
               <input
@@ -259,13 +285,38 @@ export default function NewPhysicalCompetitionPage() {
             </div>
           </>
         ) : (
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="text-[11px] font-extrabold uppercase tracking-widest text-gray-400 mb-2 block">Date de l&apos;événement</label>
-              <input
-                type="date" value={date} onChange={e => setDate(e.target.value)}
-                className="w-full bg-[#0A0A0A] border border-white/8 rounded-xl px-4 py-3 text-sm text-white focus:border-white/20 focus:outline-none transition-colors"
-              />
+          <>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="text-[11px] font-extrabold uppercase tracking-widest text-gray-400 mb-2 block">Date de début</label>
+                <input
+                  type="date" value={startDate} onChange={e => setStartDate(e.target.value)}
+                  className="w-full bg-[#0A0A0A] border border-white/8 rounded-xl px-4 py-3 text-sm text-white focus:border-white/20 focus:outline-none transition-colors"
+                />
+              </div>
+              <div>
+                <label className="text-[11px] font-extrabold uppercase tracking-widest text-gray-400 mb-2 block">Date de fin</label>
+                <input
+                  type="date" value={endDate} onChange={e => setEndDate(e.target.value)}
+                  className="w-full bg-[#0A0A0A] border border-white/8 rounded-xl px-4 py-3 text-sm text-white focus:border-white/20 focus:outline-none transition-colors"
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="text-[11px] font-extrabold uppercase tracking-widest text-gray-400 mb-2 block">Heure de début</label>
+                <input
+                  type="time" value={startTime} onChange={e => setStartTime(e.target.value)}
+                  className="w-full bg-[#0A0A0A] border border-white/8 rounded-xl px-4 py-3 text-sm text-white focus:border-white/20 focus:outline-none transition-colors"
+                />
+              </div>
+              <div>
+                <label className="text-[11px] font-extrabold uppercase tracking-widest text-gray-400 mb-2 block">Heure de fin</label>
+                <input
+                  type="time" value={endTime} onChange={e => setEndTime(e.target.value)}
+                  className="w-full bg-[#0A0A0A] border border-white/8 rounded-xl px-4 py-3 text-sm text-white focus:border-white/20 focus:outline-none transition-colors"
+                />
+              </div>
             </div>
             <div>
               <label className="text-[11px] font-extrabold uppercase tracking-widest text-gray-400 mb-2 block">Lieu</label>
@@ -275,28 +326,53 @@ export default function NewPhysicalCompetitionPage() {
                 className="w-full bg-[#0A0A0A] border border-white/8 rounded-xl px-4 py-3 text-sm text-white placeholder:text-gray-600 focus:border-white/20 focus:outline-none transition-colors"
               />
             </div>
-          </div>
+          </>
         )}
 
         {/* Format */}
         <div>
           <label className="text-[11px] font-extrabold uppercase tracking-widest text-gray-400 mb-2 block">Format</label>
           <div className="flex gap-3">
-            {(['individual', 'team'] as const).map(f => (
+            {(['individual', 'team', 'both'] as const).map(f => (
               <button
                 key={f}
-                onClick={() => setFormat(f)}
+                onClick={() => { setFormat(f); if (f === 'individual') setTeamSize(null); }}
                 className={`px-4 py-2.5 rounded-xl text-sm font-bold transition-all ${
                   format === f
                     ? `${accentBg} text-white`
                     : 'bg-[#0A0A0A] border border-white/8 text-gray-400 hover:text-white'
                 }`}
               >
-                {f === 'individual' ? 'Individuel' : 'Équipe'}
+                {f === 'individual' ? 'Individuel' : f === 'team' ? 'Équipe' : 'Les deux'}
               </button>
             ))}
           </div>
         </div>
+
+        {/* Team size — visible when team or both */}
+        {(format === 'team' || format === 'both') && (
+          <div>
+            <label className="text-[11px] font-extrabold uppercase tracking-widest text-gray-400 mb-2 block">
+              <Users size={12} className="inline mr-1 mb-0.5" />Taille d&apos;équipe
+            </label>
+            <div className="flex gap-2">
+              {[2, 3, 4, 5, 6].map(n => (
+                <button
+                  key={n}
+                  onClick={() => setTeamSize(n)}
+                  className={`w-11 h-11 rounded-xl text-sm font-bold transition-all ${
+                    teamSize === n
+                      ? `${accentBg} text-white`
+                      : 'bg-[#0A0A0A] border border-white/8 text-gray-400 hover:text-white'
+                  }`}
+                >
+                  {n}
+                </button>
+              ))}
+            </div>
+            <p className="text-[11px] text-gray-600 mt-1">Nombre de personnes par équipe</p>
+          </div>
+        )}
 
         {/* Registration URL — both modes */}
         <div>
