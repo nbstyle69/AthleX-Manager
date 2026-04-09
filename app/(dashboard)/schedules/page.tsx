@@ -6,6 +6,7 @@ import TemplatesDrawer from '@/components/TemplatesDrawer';
 import {
   Plus, ChevronLeft, ChevronRight, Pencil, Trash2,
   Users, X, Loader2, Clock, Timer, CalendarCheck, LayoutTemplate, UserMinus,
+  Check, Download, UserPlus, Search,
 } from 'lucide-react';
 import { getMyBox } from '@/lib/getMyBox';
 
@@ -15,6 +16,7 @@ interface Participant {
   username: string;
   email: string;
   status: 'confirmed' | 'waiting';
+  attended: boolean | null;
   created_at: string;
 }
 
@@ -92,6 +94,11 @@ export default function SchedulesPage() {
   const [participants,  setParticipants]  = useState<Participant[]>([]);
   const [detailLoading, setDetailLoading] = useState(false);
   const [kicking,       setKicking]       = useState<string | null>(null);
+  const [togglingAtt,   setTogglingAtt]   = useState<string | null>(null);
+  const [addMemberOpen, setAddMemberOpen] = useState(false);
+  const [memberSearch,  setMemberSearch]  = useState('');
+  const [searchResults, setSearchResults] = useState<{ id: string; username: string; email: string }[]>([]);
+  const [searching,     setSearching]     = useState(false);
 
   const [coaches, setCoaches] = useState<{ id: string; username: string }[]>([]);
 
@@ -282,9 +289,11 @@ export default function SchedulesPage() {
     setDetailItem(item);
     setParticipants([]);
     setDetailLoading(true);
+    setAddMemberOpen(false);
+    setMemberSearch('');
     const { data } = await supabase
       .from('class_reservations')
-      .select('id, member_id, status, created_at, profile:profiles(username, email)')
+      .select('id, member_id, status, attended, created_at, profile:profiles(username, email)')
       .eq('schedule_id', item.id)
       .order('created_at', { ascending: true });
     const list: Participant[] = (data ?? []).map((r: any) => {
@@ -295,11 +304,88 @@ export default function SchedulesPage() {
         username: p?.username ?? '?',
         email: p?.email ?? '',
         status: r.status,
+        attended: r.attended ?? null,
         created_at: r.created_at,
       };
     });
     setParticipants(list);
     setDetailLoading(false);
+  }
+
+  async function toggleAttendance(reservationId: string, current: boolean | null) {
+    const next = current === true ? false : true;
+    setTogglingAtt(reservationId);
+    setParticipants(prev => prev.map(p => p.reservation_id === reservationId ? { ...p, attended: next } : p));
+    const { error } = await supabase
+      .from('class_reservations')
+      .update({ attended: next })
+      .eq('id', reservationId);
+    if (error) {
+      alert('Erreur : ' + error.message);
+      setParticipants(prev => prev.map(p => p.reservation_id === reservationId ? { ...p, attended: current } : p));
+    }
+    setTogglingAtt(null);
+  }
+
+  function exportAttendanceCSV() {
+    if (!detailItem || participants.length === 0) return;
+    const header = 'Nom,Email,Statut,Présent';
+    const rows = participants.map(p =>
+      `"${p.username}","${p.email}","${p.status}","${p.attended === true ? 'Oui' : p.attended === false ? 'Non' : '-'}"`
+    );
+    const csv = [header, ...rows].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `presence_${detailItem.title}_${detailItem.scheduled_date}_${detailItem.start_time}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  async function searchMembers(query: string) {
+    setMemberSearch(query);
+    if (query.length < 3 || !boxId) { setSearchResults([]); return; }
+    setSearching(true);
+    const { data } = await supabase
+      .from('box_members')
+      .select('member_id, profiles:member_id(id, username, email)')
+      .eq('box_id', boxId)
+      .eq('status', 'active');
+    const existingIds = new Set(participants.map(p => p.member_id));
+    const results = (data ?? [])
+      .map((m: any) => {
+        const pr = Array.isArray(m.profiles) ? m.profiles[0] : m.profiles;
+        return { id: pr?.id ?? m.member_id, username: pr?.username ?? '?', email: pr?.email ?? '' };
+      })
+      .filter((m: any) => !existingIds.has(m.id) && m.username.toLowerCase().includes(query.toLowerCase()));
+    setSearchResults(results);
+    setSearching(false);
+  }
+
+  async function addMemberToSlot(memberId: string, username: string, email: string) {
+    if (!detailItem || !boxId) return;
+    const { error } = await supabase
+      .from('class_reservations')
+      .insert({
+        schedule_id: detailItem.id,
+        member_id: memberId,
+        box_id: boxId,
+        status: 'confirmed',
+        attended: true,
+      });
+    if (error) {
+      if (error.code === '23505') alert('Ce membre est déjà inscrit à ce créneau.');
+      else alert('Erreur : ' + error.message);
+      return;
+    }
+    setParticipants(prev => [
+      ...prev,
+      { reservation_id: `tmp-${memberId}`, member_id: memberId, username, email, status: 'confirmed', attended: true, created_at: new Date().toISOString() },
+    ]);
+    setAddMemberOpen(false);
+    setMemberSearch('');
+    load();
   }
 
   async function kickMember(reservationId: string) {
@@ -610,7 +696,7 @@ export default function SchedulesPage() {
       )}
     </div>
 
-      {/* Detail modal — participants list */}
+      {/* Detail modal — participants + attendance */}
       {detailItem && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-[#111111] border border-white/10 rounded-2xl w-full max-w-lg shadow-2xl">
@@ -623,7 +709,7 @@ export default function SchedulesPage() {
                   {detailItem.coach && ` · ${detailItem.coach}`}
                 </p>
               </div>
-              <button onClick={() => setDetailItem(null)} className="text-gray-500 hover:text-white transition-colors">
+              <button onClick={() => { setDetailItem(null); setAddMemberOpen(false); }} className="text-gray-500 hover:text-white transition-colors">
                 <X size={20} />
               </button>
             </div>
@@ -633,12 +719,12 @@ export default function SchedulesPage() {
                 <div className="flex justify-center py-10">
                   <Loader2 size={24} className="animate-spin text-[#C9A227]" />
                 </div>
-              ) : participants.length === 0 ? (
+              ) : participants.length === 0 && !addMemberOpen ? (
                 <div className="text-center py-10">
                   <Users size={32} className="text-gray-600 mx-auto mb-3" />
                   <p className="text-sm text-gray-500">Aucun inscrit pour ce créneau</p>
                 </div>
-              ) : (
+              ) : !addMemberOpen ? (
                 <div className="space-y-4">
                   {/* Confirmed */}
                   {(() => {
@@ -654,9 +740,27 @@ export default function SchedulesPage() {
                         <div className="space-y-1">
                           {confirmed.map((p, i) => (
                             <div key={p.reservation_id} className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-white/[0.03] transition-colors group">
-                              <div className="w-8 h-8 rounded-full bg-green-500/20 flex items-center justify-center text-green-400 text-xs font-black shrink-0">
-                                {p.username[0].toUpperCase()}
-                              </div>
+                              {/* Attendance toggle */}
+                              <button
+                                onClick={() => toggleAttendance(p.reservation_id, p.attended)}
+                                disabled={togglingAtt === p.reservation_id}
+                                className={`w-7 h-7 rounded-lg border-2 flex items-center justify-center shrink-0 transition-all ${
+                                  p.attended === true
+                                    ? 'bg-emerald-500 border-emerald-500'
+                                    : p.attended === false
+                                    ? 'bg-red-500/20 border-red-500/50'
+                                    : 'bg-transparent border-white/20 hover:border-white/40'
+                                }`}
+                                title={p.attended === true ? 'Présent' : p.attended === false ? 'Absent' : 'Non marqué'}
+                              >
+                                {togglingAtt === p.reservation_id
+                                  ? <Loader2 size={12} className="animate-spin text-white" />
+                                  : p.attended === true
+                                  ? <Check size={14} className="text-white" strokeWidth={3} />
+                                  : p.attended === false
+                                  ? <X size={14} className="text-red-400" strokeWidth={3} />
+                                  : null}
+                              </button>
                               <div className="flex-1 min-w-0">
                                 <p className="text-sm font-semibold text-white truncate">{p.username}</p>
                                 <p className="text-xs text-gray-500 truncate">{p.email}</p>
@@ -687,15 +791,31 @@ export default function SchedulesPage() {
                         <div className="flex items-center gap-2 mb-3 mt-2">
                           <div className="w-2 h-2 rounded-full bg-amber-400" />
                           <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">
-                            Liste d'attente ({waiting.length})
+                            Liste d&apos;attente ({waiting.length})
                           </span>
                         </div>
                         <div className="space-y-1">
                           {waiting.map((p, i) => (
                             <div key={p.reservation_id} className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-white/[0.03] transition-colors group">
-                              <div className="w-8 h-8 rounded-full bg-amber-500/20 flex items-center justify-center text-amber-400 text-xs font-black shrink-0">
-                                {p.username[0].toUpperCase()}
-                              </div>
+                              <button
+                                onClick={() => toggleAttendance(p.reservation_id, p.attended)}
+                                disabled={togglingAtt === p.reservation_id}
+                                className={`w-7 h-7 rounded-lg border-2 flex items-center justify-center shrink-0 transition-all ${
+                                  p.attended === true
+                                    ? 'bg-emerald-500 border-emerald-500'
+                                    : p.attended === false
+                                    ? 'bg-red-500/20 border-red-500/50'
+                                    : 'bg-transparent border-white/20 hover:border-white/40'
+                                }`}
+                              >
+                                {togglingAtt === p.reservation_id
+                                  ? <Loader2 size={12} className="animate-spin text-white" />
+                                  : p.attended === true
+                                  ? <Check size={14} className="text-white" strokeWidth={3} />
+                                  : p.attended === false
+                                  ? <X size={14} className="text-red-400" strokeWidth={3} />
+                                  : null}
+                              </button>
                               <div className="flex-1 min-w-0">
                                 <p className="text-sm font-semibold text-white truncate">{p.username}</p>
                                 <p className="text-xs text-gray-500 truncate">{p.email}</p>
@@ -717,13 +837,91 @@ export default function SchedulesPage() {
                       </div>
                     );
                   })()}
+
+                  {/* Attendance summary */}
+                  {participants.length > 0 && (
+                    <div className="flex items-center gap-4 pt-3 border-t border-white/5">
+                      <div className="flex items-center gap-1.5">
+                        <div className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
+                        <span className="text-[11px] text-gray-400">{participants.filter(p => p.attended === true).length} présent{participants.filter(p => p.attended === true).length > 1 ? 's' : ''}</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <div className="w-2.5 h-2.5 rounded-full bg-red-500" />
+                        <span className="text-[11px] text-gray-400">{participants.filter(p => p.attended === false).length} absent{participants.filter(p => p.attended === false).length > 1 ? 's' : ''}</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <div className="w-2.5 h-2.5 rounded-full bg-gray-600" />
+                        <span className="text-[11px] text-gray-400">{participants.filter(p => p.attended === null).length} non marqué{participants.filter(p => p.attended === null).length > 1 ? 's' : ''}</span>
+                      </div>
+                    </div>
+                  )}
                 </div>
-              )}
+              ) : addMemberOpen ? (
+                /* Add member search */
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2 mb-2">
+                    <button onClick={() => { setAddMemberOpen(false); setMemberSearch(''); }} className="text-gray-500 hover:text-white transition-colors">
+                      <ChevronLeft size={18} />
+                    </button>
+                    <h3 className="text-sm font-bold text-white">Ajouter un membre</h3>
+                  </div>
+                  <div className="relative">
+                    <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
+                    <input
+                      className="w-full bg-[#0A0A0A] border border-white/10 rounded-xl pl-9 pr-4 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-[#C9A227]/50"
+                      placeholder="Rechercher par nom d'utilisateur..."
+                      value={memberSearch}
+                      onChange={e => searchMembers(e.target.value)}
+                      autoFocus
+                    />
+                  </div>
+                  {searching && (
+                    <div className="flex justify-center py-4">
+                      <Loader2 size={18} className="animate-spin text-[#C9A227]" />
+                    </div>
+                  )}
+                  {memberSearch.length >= 3 && !searching && searchResults.length === 0 && (
+                    <p className="text-center text-sm text-gray-500 py-4">Aucun résultat</p>
+                  )}
+                  {searchResults.map(m => (
+                    <button
+                      key={m.id}
+                      onClick={() => addMemberToSlot(m.id, m.username, m.email)}
+                      className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-white/[0.03] transition-colors text-left"
+                    >
+                      <div className="w-8 h-8 rounded-full bg-[#C9A227]/20 flex items-center justify-center text-[#C9A227] text-xs font-black shrink-0">
+                        {m.username[0].toUpperCase()}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-white truncate">{m.username}</p>
+                        <p className="text-xs text-gray-500 truncate">{m.email}</p>
+                      </div>
+                      <Plus size={16} className="text-[#C9A227] shrink-0" />
+                    </button>
+                  ))}
+                </div>
+              ) : null}
             </div>
 
-            <div className="px-6 py-4 border-t border-white/8">
-              <button onClick={() => setDetailItem(null)}
-                className="w-full px-4 py-2.5 rounded-xl border border-white/10 text-sm font-semibold text-gray-400 hover:text-white hover:border-white/20 transition-colors">
+            <div className="px-6 py-4 border-t border-white/8 flex gap-3">
+              <button
+                onClick={() => setAddMemberOpen(true)}
+                className="flex items-center gap-2 px-3 py-2.5 rounded-xl border border-white/10 text-xs font-semibold text-gray-400 hover:text-white hover:border-white/20 transition-colors"
+              >
+                <UserPlus size={14} />
+                Ajouter
+              </button>
+              <button
+                onClick={exportAttendanceCSV}
+                disabled={participants.length === 0}
+                className="flex items-center gap-2 px-3 py-2.5 rounded-xl border border-white/10 text-xs font-semibold text-gray-400 hover:text-white hover:border-white/20 transition-colors disabled:opacity-40"
+              >
+                <Download size={14} />
+                Exporter CSV
+              </button>
+              <div className="flex-1" />
+              <button onClick={() => { setDetailItem(null); setAddMemberOpen(false); }}
+                className="px-4 py-2.5 rounded-xl border border-white/10 text-sm font-semibold text-gray-400 hover:text-white hover:border-white/20 transition-colors">
                 Fermer
               </button>
             </div>

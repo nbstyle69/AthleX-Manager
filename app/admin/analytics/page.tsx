@@ -4,7 +4,8 @@ import { useEffect, useState, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import {
   BarChart3, Users, Trophy, Swords, MapPin, Loader2,
-  TrendingUp, Calendar, Activity, Target,
+  TrendingUp, Calendar, Activity, Target, MessageCircle,
+  CalendarCheck, Sparkles, Award, Dumbbell, Building2,
 } from 'lucide-react';
 
 interface Stats {
@@ -20,6 +21,17 @@ interface Stats {
   totalBoxes: number;
   usersByRole: Record<string, number>;
   registrationsByDay: { date: string; count: number }[];
+  totalReservations: number;
+  reservationsPeriod: number;
+  totalMessages: number;
+  messagesPeriod: number;
+  totalGeneratedWods: number;
+  generatedWodsPeriod: number;
+  totalBadgesEarned: number;
+  totalScores: number;
+  scoresPeriod: number;
+  retentionRate: number;
+  topBoxes: { name: string; members: number }[];
 }
 
 const EMPTY: Stats = {
@@ -28,6 +40,12 @@ const EMPTY: Stats = {
   totalPhysicalComps: 0, activePhysicalComps: 0,
   totalInterComps: 0, totalDailyContests: 0, totalBoxes: 0,
   usersByRole: {}, registrationsByDay: [],
+  totalReservations: 0, reservationsPeriod: 0,
+  totalMessages: 0, messagesPeriod: 0,
+  totalGeneratedWods: 0, generatedWodsPeriod: 0,
+  totalBadgesEarned: 0,
+  totalScores: 0, scoresPeriod: 0,
+  retentionRate: 0, topBoxes: [],
 };
 
 export default function AnalyticsPage() {
@@ -56,6 +74,17 @@ export default function AnalyticsPage() {
       { count: totalDailyContests },
       { count: totalBoxes },
       { data: recentProfiles },
+      { count: totalReservations },
+      { count: reservationsPeriod },
+      { count: totalMessages },
+      { count: messagesPeriod },
+      { count: totalGeneratedWods },
+      { count: generatedWodsPeriod },
+      { count: totalBadgesEarned },
+      { count: totalScores },
+      { count: scoresPeriod },
+      { count: activeUsers7d },
+      { data: topBoxesRaw },
     ] = await Promise.all([
       supabase.from('profiles').select('*', { count: 'exact', head: true }),
       supabase.from('profiles').select('*', { count: 'exact', head: true }).gte('created_at', d7),
@@ -69,6 +98,17 @@ export default function AnalyticsPage() {
       supabase.from('daily_contests').select('*', { count: 'exact', head: true }),
       supabase.from('boxes').select('*', { count: 'exact', head: true }),
       supabase.from('profiles').select('created_at').gte('created_at', dPeriod).order('created_at', { ascending: true }),
+      supabase.from('class_reservations').select('*', { count: 'exact', head: true }),
+      supabase.from('class_reservations').select('*', { count: 'exact', head: true }).gte('created_at', dPeriod),
+      supabase.from('box_messages').select('*', { count: 'exact', head: true }),
+      supabase.from('box_messages').select('*', { count: 'exact', head: true }).gte('created_at', dPeriod),
+      supabase.from('generated_wods').select('*', { count: 'exact', head: true }),
+      supabase.from('generated_wods').select('*', { count: 'exact', head: true }).gte('created_at', dPeriod),
+      supabase.from('earned_badges').select('*', { count: 'exact', head: true }),
+      supabase.from('wod_scores').select('*', { count: 'exact', head: true }),
+      supabase.from('wod_scores').select('*', { count: 'exact', head: true }).gte('submitted_at', dPeriod),
+      supabase.from('profiles').select('*', { count: 'exact', head: true }).gte('updated_at', d7),
+      supabase.from('boxes').select('id, name, box_members(count)').order('name').limit(10),
     ]);
 
     // Roles breakdown
@@ -88,6 +128,20 @@ export default function AnalyticsPage() {
       .map(([date, count]) => ({ date, count }))
       .sort((a, b) => a.date.localeCompare(b.date));
 
+    // Top boxes by member count
+    const topBoxes = (topBoxesRaw ?? [])
+      .map((b: any) => ({
+        name: b.name ?? '?',
+        members: b.box_members?.[0]?.count ?? 0,
+      }))
+      .sort((a: any, b: any) => b.members - a.members)
+      .slice(0, 8);
+
+    // Retention: active users in last 7d / total users
+    const retentionRate = (totalUsers ?? 0) > 0
+      ? Math.round(((activeUsers7d ?? 0) / (totalUsers ?? 1)) * 100)
+      : 0;
+
     setStats({
       totalUsers: totalUsers ?? 0,
       recentUsers7d: recentUsers7d ?? 0,
@@ -101,6 +155,17 @@ export default function AnalyticsPage() {
       totalBoxes: totalBoxes ?? 0,
       usersByRole,
       registrationsByDay,
+      totalReservations: totalReservations ?? 0,
+      reservationsPeriod: reservationsPeriod ?? 0,
+      totalMessages: totalMessages ?? 0,
+      messagesPeriod: messagesPeriod ?? 0,
+      totalGeneratedWods: totalGeneratedWods ?? 0,
+      generatedWodsPeriod: generatedWodsPeriod ?? 0,
+      totalBadgesEarned: totalBadgesEarned ?? 0,
+      totalScores: totalScores ?? 0,
+      scoresPeriod: scoresPeriod ?? 0,
+      retentionRate,
+      topBoxes,
     });
     setLoading(false);
   }, [period]);
@@ -171,7 +236,44 @@ export default function AnalyticsPage() {
         <KpiCard icon={TrendingUp} label="Inscrits (30j)" value={stats.recentUsers30d} sub="nouveaux" color="emerald" />
       </div>
 
-      {/* Registrations chart + Roles breakdown */}
+      {/* Engagement KPIs */}
+      <div>
+        <h2 className="text-sm font-black text-gray-400 uppercase tracking-wider mb-3">Engagement</h2>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <KpiCard icon={CalendarCheck} label="Réservations" value={stats.totalReservations} sub={`+${stats.reservationsPeriod} sur ${period}j`} color="emerald" />
+          <KpiCard icon={MessageCircle} label="Messages" value={stats.totalMessages} sub={`+${stats.messagesPeriod} sur ${period}j`} color="blue" />
+          <KpiCard icon={Sparkles} label="WODs générés" value={stats.totalGeneratedWods} sub={`+${stats.generatedWodsPeriod} sur ${period}j`} color="purple" />
+          <KpiCard icon={Dumbbell} label="Scores WOD" value={stats.totalScores} sub={`+${stats.scoresPeriod} sur ${period}j`} color="amber" />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <KpiCard icon={Award} label="Badges débloqués" value={stats.totalBadgesEarned} sub="total" color="amber" />
+        <KpiCard icon={Swords} label="Contestations" value={stats.totalDailyContests} sub="total" color="red" />
+        {/* Retention card */}
+        <div className="bg-[#111111] border border-white/8 rounded-2xl p-4 hover:border-white/15 transition-all col-span-2">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="w-8 h-8 rounded-lg bg-cyan-500/15 flex items-center justify-center">
+              <Activity size={16} className="text-cyan-400" />
+            </div>
+            <div>
+              <p className="text-[11px] font-bold text-gray-400">Rétention 7j</p>
+              <p className="text-[10px] text-gray-600">Utilisateurs actifs cette semaine / total</p>
+            </div>
+          </div>
+          <div className="flex items-end gap-3">
+            <p className="text-3xl font-black text-white">{stats.retentionRate}%</p>
+            <div className="flex-1 h-3 bg-white/5 rounded-full overflow-hidden mb-1.5">
+              <div
+                className="h-full bg-gradient-to-r from-cyan-500 to-emerald-500 rounded-full transition-all"
+                style={{ width: `${Math.min(100, stats.retentionRate)}%` }}
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Registrations chart + Roles breakdown + Top Boxes */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* Chart */}
         <div className="md:col-span-2 bg-[#111111] border border-white/8 rounded-2xl p-5">
@@ -217,6 +319,37 @@ export default function AnalyticsPage() {
           </div>
         </div>
       </div>
+
+      {/* Top Boxes */}
+      {stats.topBoxes.length > 0 && (
+        <div className="bg-[#111111] border border-white/8 rounded-2xl p-5">
+          <div className="flex items-center gap-2 mb-4">
+            <Building2 size={15} className="text-purple-400" />
+            <h2 className="text-sm font-black text-white">Top Boxes par membres</h2>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            {stats.topBoxes.map((box, i) => {
+              const maxMembers = Math.max(1, stats.topBoxes[0]?.members ?? 1);
+              return (
+                <div key={i} className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-white/[0.02] border border-white/5">
+                  <div className="w-7 h-7 rounded-lg bg-purple-500/15 flex items-center justify-center text-purple-400 text-[10px] font-black shrink-0">
+                    #{i + 1}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-bold text-white truncate">{box.name}</p>
+                    <div className="flex items-center gap-2 mt-1">
+                      <div className="flex-1 h-1.5 bg-white/5 rounded-full overflow-hidden">
+                        <div className="h-full bg-purple-500/50 rounded-full" style={{ width: `${(box.members / maxMembers) * 100}%` }} />
+                      </div>
+                      <span className="text-[10px] font-bold text-gray-400">{box.members}</span>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
