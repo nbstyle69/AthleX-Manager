@@ -104,7 +104,7 @@ export default function AnalyticsPage() {
       supabase.from('box_messages').select('*', { count: 'exact', head: true }).gte('created_at', dPeriod),
       supabase.from('generated_wods').select('*', { count: 'exact', head: true }),
       supabase.from('generated_wods').select('*', { count: 'exact', head: true }).gte('created_at', dPeriod),
-      supabase.from('earned_badges').select('*', { count: 'exact', head: true }),
+      supabase.from('athlete_badges').select('*', { count: 'exact', head: true }),
       supabase.from('wod_scores').select('*', { count: 'exact', head: true }),
       supabase.from('wod_scores').select('*', { count: 'exact', head: true }).gte('submitted_at', dPeriod),
       supabase.from('profiles').select('*', { count: 'exact', head: true }).gte('updated_at', d7),
