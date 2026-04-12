@@ -1,10 +1,22 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Zap } from 'lucide-react';
 
 export default function ManageSubscriptionPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-[#0A0A0A] text-white flex items-center justify-center">
+        <div className="w-6 h-6 border-2 border-[#C9A227]/30 border-t-[#C9A227] rounded-full animate-spin" />
+      </div>
+    }>
+      <ManageContent />
+    </Suspense>
+  );
+}
+
+function ManageContent() {
   const params = useSearchParams();
   const boxId = params.get('box_id');
   const [error, setError] = useState<string | null>(null);

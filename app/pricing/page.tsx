@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { Suspense, useState } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import {
@@ -26,6 +26,18 @@ const FEATURES = [
 ];
 
 export default function PricingPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-[#0A0A0A] text-white flex items-center justify-center">
+        <div className="w-6 h-6 border-2 border-[#C9A227]/30 border-t-[#C9A227] rounded-full animate-spin" />
+      </div>
+    }>
+      <PricingContent />
+    </Suspense>
+  );
+}
+
+function PricingContent() {
   const params = useSearchParams();
   const boxId = params.get('box_id');
   const [loading, setLoading] = useState(false);
