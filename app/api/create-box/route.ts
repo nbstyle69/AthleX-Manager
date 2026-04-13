@@ -64,30 +64,57 @@ export async function POST(req: NextRequest) {
         email_confirm: true,
         user_metadata: { display_name: box_name.trim() },
       });
-      if (signUpError || !signUpData.user) {
+
+      if (signUpError || !signUpData?.user) {
         const msg = signUpError?.message ?? 'Erreur création compte';
-        if (msg.toLowerCase().includes('already') || msg.toLowerCase().includes('exists')) {
-          return NextResponse.json({ error: 'Ce compte existe déjà. Utilisez "Se connecter".' }, { status: 409 });
+        const alreadyExists = msg.toLowerCase().includes('already') || msg.toLowerCase().includes('exists');
+
+        if (alreadyExists) {
+          // Auto-fallback: try login with provided credentials
+          const { data: loginData, error: loginErr } = await supabase.auth.signInWithPassword({
+            email,
+            password,
+          });
+          if (loginErr || !loginData.user) {
+            return NextResponse.json({
+              error: 'Ce compte existe déjà mais le mot de passe est incorrect. Utilisez "Se connecter" avec le bon mot de passe.',
+            }, { status: 409 });
+          }
+          userId = loginData.user.id;
+
+          // Check if already has a box
+          const { data: existingBoxes } = await supabase
+            .from('boxes')
+            .select('id')
+            .eq('owner_id', userId);
+          if (existingBoxes && existingBoxes.length > 0) {
+            return NextResponse.json({
+              box_id: existingBoxes[0].id,
+              already_exists: true,
+            });
+          }
+        } else {
+          return NextResponse.json({ error: msg }, { status: 400 });
         }
-        return NextResponse.json({ error: msg }, { status: 400 });
-      }
-      userId = signUpData.user.id;
+      } else {
+        userId = signUpData.user.id;
 
-      // Wait briefly for any auth trigger to create profile
-      await new Promise(r => setTimeout(r, 500));
+        // Wait briefly for any auth trigger to create profile
+        await new Promise(r => setTimeout(r, 500));
 
-      // Ensure profile exists (trigger may or may not have created it)
-      const username = email.split('@')[0] + '_' + Math.random().toString(36).slice(2, 6);
-      const { error: profileErr } = await supabase.from('profiles').upsert({
-        id: userId,
-        email,
-        username,
-        full_name: box_name.trim(),
-        role: 'box_owner',
-      }, { onConflict: 'id' });
+        // Ensure profile exists (trigger may or may not have created it)
+        const username = email.split('@')[0] + '_' + Math.random().toString(36).slice(2, 6);
+        const { error: profileErr } = await supabase.from('profiles').upsert({
+          id: userId,
+          email,
+          username,
+          full_name: box_name.trim(),
+          role: 'box_owner',
+        }, { onConflict: 'id' });
 
-      if (profileErr) {
-        console.error('Profile upsert error:', profileErr);
+        if (profileErr) {
+          console.error('Profile upsert error:', profileErr);
+        }
       }
 
       // Verify profile exists before proceeding
