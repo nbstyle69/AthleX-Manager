@@ -1,6 +1,7 @@
 ﻿import { redirect } from 'next/navigation';
 import { createClient, getOwnerBox, getServerProfile, getServerUser } from '@/lib/supabase/server';
 import Sidebar from '@/components/layout/Sidebar';
+import TrialBanner from '@/components/TrialBanner';
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const user = await getServerUser();
@@ -27,6 +28,22 @@ export default async function DashboardLayout({ children }: { children: React.Re
     );
   }
 
+  // Fetch subscription for this box
+  const { data: sub } = await supabase
+    .from('box_subscriptions')
+    .select('status, trial_ends_at, is_early_adopter, current_period_end')
+    .eq('box_id', box.id)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  const now = new Date();
+  const trialEndsAt = sub?.trial_ends_at ?? null;
+  const daysLeft = trialEndsAt
+    ? Math.max(0, Math.ceil((new Date(trialEndsAt).getTime() - now.getTime()) / (1000 * 60 * 60 * 24)))
+    : 0;
+  const subStatus = (sub?.status as string) ?? 'trialing';
+
   return (
     <div className="min-h-screen bg-[#0A0A0A] flex">
       <Sidebar
@@ -35,6 +52,13 @@ export default async function DashboardLayout({ children }: { children: React.Re
         unreadCount={0}
       />
       <main className="flex-1 ml-60 min-h-screen p-8 overflow-y-auto">
+        <TrialBanner
+          status={subStatus}
+          daysLeft={daysLeft}
+          trialEndsAt={trialEndsAt}
+          isEarlyAdopter={sub?.is_early_adopter ?? false}
+          boxId={box.id}
+        />
         {children}
       </main>
     </div>
