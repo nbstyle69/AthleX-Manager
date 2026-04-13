@@ -31,7 +31,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
   // Fetch subscription for this box
   const { data: sub } = await supabase
     .from('box_subscriptions')
-    .select('status, trial_ends_at, is_early_adopter, current_period_end')
+    .select('status, trial_ends_at, is_early_adopter, current_period_end, plan_tier')
     .eq('box_id', box.id)
     .order('created_at', { ascending: false })
     .limit(1)
@@ -47,7 +47,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
   return (
     <div className="min-h-screen bg-[#0A0A0A] flex">
       <Sidebar
-        box={{ name: box.name, plan: (box as any).plan ?? 'free' }}
+        box={{ name: box.name, plan: (sub?.plan_tier as string) ?? 'starter' }}
         email={user.email ?? ''}
         unreadCount={0}
       />
