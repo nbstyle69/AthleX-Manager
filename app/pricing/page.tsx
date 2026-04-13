@@ -61,8 +61,8 @@ function PricingContent() {
       } else {
         alert(data.error ?? 'Erreur lors de la création de la session');
       }
-    } catch {
-      alert('Erreur réseau');
+    } catch (err: any) {
+      alert('Erreur réseau: ' + (err?.message ?? 'inconnue'));
     }
     setLoading(false);
   }
