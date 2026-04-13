@@ -1,10 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import Link from 'next/link';
 import {
   Zap, Building2, Mail, Lock, ChevronRight, ArrowLeft, Check,
-  Eye, EyeOff, AlertCircle, Loader2, Crown,
+  Eye, EyeOff, AlertCircle, Loader2, Crown, ImagePlus, X,
 } from 'lucide-react';
 
 type Step = 'account' | 'box' | 'done';
@@ -22,6 +22,9 @@ export default function OnboardingPage() {
   // Box fields
   const [boxName, setBoxName] = useState('');
   const [boxDescription, setBoxDescription] = useState('');
+  const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [logoPreview, setLogoPreview] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // State
   const [loading, setLoading] = useState(false);
@@ -34,6 +37,21 @@ export default function OnboardingPage() {
     is_early_adopter: boolean;
     trial_days: number;
   } | null>(null);
+
+  function handleLogoChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 2 * 1024 * 1024) { setError('Le logo doit faire moins de 2 Mo'); return; }
+    setLogoFile(file);
+    setLogoPreview(URL.createObjectURL(file));
+    setError(null);
+  }
+
+  function removeLogo() {
+    setLogoFile(null);
+    setLogoPreview(null);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  }
 
   async function handleCreateBox() {
     if (!email || !password) { setError('Email et mot de passe requis'); return; }
@@ -56,7 +74,6 @@ export default function OnboardingPage() {
       const data = await res.json();
 
       if (data.already_exists && data.box_id) {
-        // User already has a box, redirect to pricing
         window.location.href = `/pricing?box_id=${data.box_id}`;
         return;
       }
@@ -65,6 +82,16 @@ export default function OnboardingPage() {
         setError(data.error ?? 'Erreur lors de la création');
         setLoading(false);
         return;
+      }
+
+      // Upload logo if selected
+      if (logoFile && data.box_id) {
+        try {
+          const fd = new FormData();
+          fd.append('box_id', data.box_id);
+          fd.append('logo', logoFile);
+          await fetch('/api/upload-box-logo', { method: 'POST', body: fd });
+        } catch { /* logo upload failure is non-blocking */ }
       }
 
       setResult(data);
@@ -227,6 +254,51 @@ export default function OnboardingPage() {
               </div>
 
               <div className="space-y-4">
+                {/* Logo upload */}
+                <div>
+                  <label className="block text-xs font-semibold text-gray-400 mb-1.5 uppercase tracking-wider">
+                    Logo de la box (optionnel)
+                  </label>
+                  <p className="text-[10px] text-gray-600 mb-2">Visible par tes membres dans l&apos;app. Carré, 512×512px min, max 2 Mo.</p>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/png,image/jpeg,image/jpg,image/webp"
+                    onChange={handleLogoChange}
+                    className="hidden"
+                  />
+                  <div className="flex items-center gap-4">
+                    {logoPreview ? (
+                      <div className="relative">
+                        <img
+                          src={logoPreview}
+                          alt="Logo preview"
+                          className="w-16 h-16 rounded-2xl object-cover border border-white/10"
+                        />
+                        <button
+                          type="button"
+                          onClick={removeLogo}
+                          className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center hover:bg-red-400 transition-colors"
+                        >
+                          <X size={10} className="text-white" />
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="w-16 h-16 rounded-2xl border-2 border-dashed border-white/10 flex items-center justify-center">
+                        <Building2 size={22} className="text-gray-600" />
+                      </div>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="flex items-center gap-2 bg-[#C9A227]/10 border border-[#C9A227]/20 text-[#C9A227] font-bold text-xs px-4 py-2.5 rounded-xl hover:bg-[#C9A227]/20 transition-colors"
+                    >
+                      <ImagePlus size={14} />
+                      {logoPreview ? 'Changer' : 'Ajouter un logo'}
+                    </button>
+                  </div>
+                </div>
+
                 <div>
                   <label className="block text-xs font-semibold text-gray-400 mb-1.5 uppercase tracking-wider">
                     Nom de la box *
