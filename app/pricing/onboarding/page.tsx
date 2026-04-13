@@ -4,7 +4,7 @@ import { useRef, useState } from 'react';
 import Link from 'next/link';
 import {
   Zap, Building2, Mail, Lock, ChevronRight, ArrowLeft, Check,
-  Eye, EyeOff, AlertCircle, Loader2, Crown, ImagePlus, X,
+  Eye, EyeOff, AlertCircle, Loader2, ImagePlus, X,
   MapPin, Globe, Phone, Calendar,
 } from 'lucide-react';
 
@@ -459,37 +459,64 @@ export default function OnboardingPage() {
               </div>
 
               <h2 className="text-2xl font-black mb-2">Box créée avec succès !</h2>
-              <p className="text-gray-400 text-sm mb-6">
-                Ton essai gratuit de <strong className="text-white">{result.trial_days} jours</strong> commence maintenant.
-              </p>
 
-              {result.is_early_adopter && (
+              {result.is_early_adopter ? (
                 <div className="bg-[#C9A227]/10 border border-[#C9A227]/20 rounded-xl px-4 py-3 mb-5">
                   <p className="text-sm font-bold text-[#C9A227]">🏅 Félicitations, tu es un Fondateur !</p>
-                  <p className="text-xs text-gray-500 mt-1">60 jours d&apos;essai gratuit + badge permanent</p>
+                  <p className="text-xs text-gray-400 mt-1">{result.trial_days} jours d&apos;essai gratuit + badge permanent</p>
+                </div>
+              ) : (
+                <div className="bg-green-500/10 border border-green-500/20 rounded-xl px-4 py-3 mb-5">
+                  <p className="text-sm font-bold text-green-400">✅ Essai gratuit activé</p>
+                  <p className="text-xs text-gray-400 mt-1">
+                    Tu as <strong className="text-white">{result.trial_days} jours</strong> pour tester toutes les fonctionnalités. Aucun paiement requis.
+                  </p>
                 </div>
               )}
 
               <div className="bg-white/[0.03] border border-white/8 rounded-xl p-4 mb-6 text-left">
+                <p className="text-xs text-gray-500 font-bold uppercase tracking-wider mb-3">Informations importantes</p>
                 <div className="space-y-2">
                   <p className="text-sm"><span className="text-gray-500">Code invitation :</span>{' '}
-                    <span className="font-mono font-bold text-[#C9A227]">{result.invite_code}</span>
+                    <span className="font-mono font-bold text-[#C9A227] text-base">{result.invite_code}</span>
                   </p>
                   <p className="text-xs text-gray-500">
-                    Partage ce code à tes membres pour qu&apos;ils rejoignent ta box dans l&apos;app.
+                    Partage ce code à tes adhérents pour qu&apos;ils rejoignent ta box dans l&apos;app mobile.
+                  </p>
+                  <div className="border-t border-white/5 my-2" />
+                  <p className="text-xs text-gray-500">
+                    <span className="text-gray-400 font-semibold">Email :</span> {email}
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    Connecte-toi avec cet email dans l&apos;app mobile pour accéder à ton dashboard Box Owner.
                   </p>
                 </div>
               </div>
 
               <div className="space-y-3">
-                <a
-                  href={`/pricing?box_id=${result.box_id}`}
-                  className="w-full flex items-center justify-center gap-2 bg-[#C9A227] hover:bg-[#B8911F] text-white font-bold py-3.5 rounded-xl transition-colors"
-                >
-                  <Crown size={16} /> Voir les offres d&apos;abonnement <ChevronRight size={14} />
-                </a>
-                <p className="text-xs text-gray-600">
-                  Tu peux aussi télécharger l&apos;app AthleX pour gérer ta box depuis ton téléphone.
+                <p className="text-sm text-gray-400 mb-2">
+                  Télécharge l&apos;app <strong className="text-white">AthleX</strong> pour gérer ta box :
+                </p>
+                <div className="flex gap-3 justify-center">
+                  <a
+                    href="https://apps.apple.com"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex-1 flex items-center justify-center gap-2 bg-white/5 border border-white/10 text-white font-bold py-3 rounded-xl hover:bg-white/10 transition-colors text-sm"
+                  >
+                    🍎 App Store
+                  </a>
+                  <a
+                    href="https://play.google.com"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex-1 flex items-center justify-center gap-2 bg-white/5 border border-white/10 text-white font-bold py-3 rounded-xl hover:bg-white/10 transition-colors text-sm"
+                  >
+                    🤖 Google Play
+                  </a>
+                </div>
+                <p className="text-[10px] text-gray-600 mt-3">
+                  L&apos;abonnement sera proposé automatiquement à la fin de ton essai gratuit.
                 </p>
               </div>
             </div>
