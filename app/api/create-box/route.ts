@@ -77,11 +77,13 @@ export async function POST(req: NextRequest) {
       await new Promise(r => setTimeout(r, 500));
 
       // Ensure profile exists (trigger may or may not have created it)
+      const username = email.split('@')[0] + '_' + Math.random().toString(36).slice(2, 6);
       const { error: profileErr } = await supabase.from('profiles').upsert({
         id: userId,
         email,
+        username,
+        full_name: box_name.trim(),
         role: 'box_owner',
-        display_name: box_name.trim(),
       }, { onConflict: 'id' });
 
       if (profileErr) {
