@@ -43,7 +43,7 @@ export async function POST(req: NextRequest) {
     const { data: sub } = await (supabase.from as any)('box_subscriptions')
       .select('stripe_customer_id, is_early_adopter, status, trial_ends_at')
       .eq('box_id', box_id)
-      .single();
+      .maybeSingle();
 
     let customerId = sub?.stripe_customer_id;
 
@@ -58,10 +58,23 @@ export async function POST(req: NextRequest) {
       });
       customerId = customer.id;
 
-      // Save customer ID
-      await (supabase.from as any)('box_subscriptions')
-        .update({ stripe_customer_id: customerId })
-        .eq('box_id', box_id);
+      if (sub) {
+        // Record exists but no customer → update
+        await (supabase.from as any)('box_subscriptions')
+          .update({ stripe_customer_id: customerId })
+          .eq('box_id', box_id);
+      } else {
+        // No record at all → create one
+        await (supabase.from as any)('box_subscriptions')
+          .insert({
+            box_id: box_id,
+            status: 'trialing',
+            stripe_customer_id: customerId,
+            plan_tier: 'complete',
+            trial_ends_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+            is_early_adopter: false,
+          });
+      }
     }
 
     // Calculate remaining trial days

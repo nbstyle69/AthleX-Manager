@@ -20,10 +20,10 @@ export async function POST(req: NextRequest) {
     const { data: sub } = await (supabase.from as any)('box_subscriptions')
       .select('stripe_customer_id, stripe_subscription_id, status')
       .eq('box_id', box_id)
-      .single();
+      .maybeSingle();
 
     if (!sub) {
-      return NextResponse.json({ error: 'No subscription found' }, { status: 404 });
+      return NextResponse.json({ status: 'none', message: 'No subscription record — go to pricing page to subscribe' });
     }
 
     // If already active, nothing to do

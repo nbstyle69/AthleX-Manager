@@ -54,6 +54,22 @@ export default function TrialBanner({ status: initialStatus, daysLeft, trialEnds
       .finally(() => setSyncing(false));
   }
 
+  if (status === 'none') {
+    return (
+      <Link
+        href={`/pricing?box_id=${boxId}`}
+        className="flex items-center gap-3 bg-[#C9A227]/8 border border-[#C9A227]/20 rounded-xl px-4 py-3 mb-6 hover:opacity-90 transition-opacity"
+      >
+        <Zap size={18} className="text-[#C9A227] shrink-0" />
+        <div className="flex-1">
+          <p className="text-sm font-bold text-[#C9A227]">Aucun abonnement</p>
+          <p className="text-xs text-gray-400">Active ton essai gratuit de 30 jours ou souscris directement</p>
+        </div>
+        <span className="text-xs font-bold text-[#C9A227]">Souscrire →</span>
+      </Link>
+    );
+  }
+
   if (status === 'active') {
     return (
       <div className="flex items-center gap-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl px-4 py-3 mb-6">

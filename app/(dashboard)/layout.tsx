@@ -42,7 +42,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
   const daysLeft = trialEndsAt
     ? Math.max(0, Math.ceil((new Date(trialEndsAt).getTime() - now.getTime()) / (1000 * 60 * 60 * 24)))
     : 0;
-  const subStatus = (sub?.status as string) ?? 'trialing';
+  const subStatus = sub ? (sub.status as string) : 'none';
 
   return (
     <div className="min-h-screen bg-[#0A0A0A] flex">
