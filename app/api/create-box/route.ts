@@ -73,13 +73,31 @@ export async function POST(req: NextRequest) {
       }
       userId = signUpData.user.id;
 
-      // Create profile
-      await supabase.from('profiles').upsert({
+      // Wait briefly for any auth trigger to create profile
+      await new Promise(r => setTimeout(r, 500));
+
+      // Ensure profile exists (trigger may or may not have created it)
+      const { error: profileErr } = await supabase.from('profiles').upsert({
         id: userId,
         email,
         role: 'box_owner',
         display_name: box_name.trim(),
-      });
+      }, { onConflict: 'id' });
+
+      if (profileErr) {
+        console.error('Profile upsert error:', profileErr);
+      }
+
+      // Verify profile exists before proceeding
+      let profileReady = false;
+      for (let i = 0; i < 5; i++) {
+        const { data: check } = await supabase.from('profiles').select('id').eq('id', userId).maybeSingle();
+        if (check) { profileReady = true; break; }
+        await new Promise(r => setTimeout(r, 300));
+      }
+      if (!profileReady) {
+        return NextResponse.json({ error: 'Erreur création profil. Réessayez.' }, { status: 500 });
+      }
     }
 
     // ── Generate unique invite code ──
