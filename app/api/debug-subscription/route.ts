@@ -6,14 +6,32 @@ export async function GET(req: NextRequest) {
   const boxName = req.nextUrl.searchParams.get('box_name');
 
   const supabase = createServiceClient();
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'NOT SET';
 
   // No params → list all boxes with their subscription
   if (!boxId && !boxName) {
-    const { data: boxes } = await supabase
+    const { data: boxes, error: boxErr, count } = await supabase
       .from('boxes')
-      .select('id, name, owner_id, plan, is_active, created_at')
+      .select('id, name, owner_id, plan, is_active, created_at', { count: 'exact' })
       .order('created_at', { ascending: false })
       .limit(20);
+
+    if (boxErr) {
+      return NextResponse.json({
+        error: boxErr.message,
+        code: boxErr.code,
+        supabase_url_prefix: supabaseUrl.substring(0, 30) + '...',
+      });
+    }
+
+    if (!boxes || boxes.length === 0) {
+      return NextResponse.json({
+        message: 'No boxes found',
+        count,
+        supabase_url_prefix: supabaseUrl.substring(0, 30) + '...',
+        has_service_key: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
+      });
+    }
 
     const results = [];
     for (const b of boxes ?? []) {
