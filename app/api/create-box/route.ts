@@ -1,0 +1,136 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { createClient } from '@supabase/supabase-js';
+
+function getSupabaseAdmin() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    { auth: { autoRefreshToken: false, persistSession: false } },
+  );
+}
+
+function generateInviteCode(): string {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let code = '';
+  for (let i = 0; i < 6; i++) code += chars[Math.floor(Math.random() * chars.length)];
+  return code;
+}
+
+export async function POST(req: NextRequest) {
+  try {
+    const { email, password, box_name, box_description, mode } = await req.json();
+
+    if (!email || !password) {
+      return NextResponse.json({ error: 'Email et mot de passe requis' }, { status: 400 });
+    }
+    if (!box_name?.trim()) {
+      return NextResponse.json({ error: 'Nom de la box requis' }, { status: 400 });
+    }
+
+    const supabase = getSupabaseAdmin();
+    let userId: string;
+
+    if (mode === 'login') {
+      // ── Login existing user ──
+      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+      if (authError || !authData.user) {
+        return NextResponse.json({ error: authError?.message ?? 'Identifiants incorrects' }, { status: 401 });
+      }
+      userId = authData.user.id;
+
+      // Check if already has a box
+      const { data: existingBoxes } = await supabase
+        .from('boxes')
+        .select('id')
+        .eq('owner_id', userId);
+      if (existingBoxes && existingBoxes.length > 0) {
+        return NextResponse.json({
+          box_id: existingBoxes[0].id,
+          already_exists: true,
+        });
+      }
+    } else {
+      // ── Sign up new user ──
+      const { data: signUpData, error: signUpError } = await supabase.auth.admin.createUser({
+        email,
+        password,
+        email_confirm: true,
+        user_metadata: { display_name: box_name.trim() },
+      });
+      if (signUpError || !signUpData.user) {
+        const msg = signUpError?.message ?? 'Erreur création compte';
+        if (msg.toLowerCase().includes('already') || msg.toLowerCase().includes('exists')) {
+          return NextResponse.json({ error: 'Ce compte existe déjà. Utilisez "Se connecter".' }, { status: 409 });
+        }
+        return NextResponse.json({ error: msg }, { status: 400 });
+      }
+      userId = signUpData.user.id;
+
+      // Create profile
+      await supabase.from('profiles').upsert({
+        id: userId,
+        email,
+        role: 'box_owner',
+        display_name: box_name.trim(),
+      });
+    }
+
+    // ── Generate unique invite code ──
+    let inviteCode = generateInviteCode();
+    let attempts = 0;
+    while (attempts < 5) {
+      const { data } = await supabase.from('boxes').select('id').eq('invite_code', inviteCode).maybeSingle();
+      if (!data) break;
+      inviteCode = generateInviteCode();
+      attempts++;
+    }
+
+    // ── Create box ──
+    const { data: box, error: boxError } = await supabase.from('boxes').insert({
+      owner_id: userId,
+      name: box_name.trim(),
+      description: box_description?.trim() || null,
+      invite_code: inviteCode,
+      is_active: true,
+    }).select().single();
+
+    if (boxError || !box) {
+      return NextResponse.json({ error: boxError?.message ?? 'Erreur création box' }, { status: 500 });
+    }
+
+    // Update profile role
+    await supabase.from('profiles').update({ role: 'box_owner' }).eq('id', userId);
+
+    // ── Early adopter check ──
+    let isEarlyAdopter = false;
+    try {
+      const { data: countData } = await (supabase.rpc as any)('get_total_box_count');
+      isEarlyAdopter = (Number(countData) || 0) <= 5;
+    } catch (_) { /* ignore */ }
+
+    const trialDays = isEarlyAdopter ? 60 : 30;
+    const trialEndsAt = new Date(Date.now() + trialDays * 24 * 60 * 60 * 1000).toISOString();
+
+    // ── Create trial subscription ──
+    await (supabase.from as any)('box_subscriptions').insert({
+      box_id: box.id,
+      plan_tier: 'trial',
+      status: 'trialing',
+      trial_ends_at: trialEndsAt,
+      is_early_adopter: isEarlyAdopter,
+    });
+
+    return NextResponse.json({
+      box_id: box.id,
+      invite_code: inviteCode,
+      is_early_adopter: isEarlyAdopter,
+      trial_days: trialDays,
+    });
+  } catch (err: any) {
+    console.error('create-box error:', err);
+    return NextResponse.json({ error: err.message }, { status: 500 });
+  }
+}

@@ -45,7 +45,7 @@ function PricingContent() {
 
   async function handleSubscribe() {
     if (!boxId) {
-      window.location.href = '/login';
+      window.location.href = '/pricing/onboarding';
       return;
     }
     setLoading(true);
