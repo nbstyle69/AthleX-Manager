@@ -78,6 +78,9 @@ export default function TrialBanner({ status: initialStatus, daysLeft, trialEnds
           <p className="text-sm font-bold text-emerald-400">Plan Complet actif</p>
           <p className="text-xs text-gray-400">Toutes les fonctionnalités sont débloquées</p>
         </div>
+        <Link href={`/pricing/manage?box_id=${boxId}`} className="text-xs font-bold text-gray-400 hover:text-white transition-colors">
+          Gérer →
+        </Link>
       </div>
     );
   }
