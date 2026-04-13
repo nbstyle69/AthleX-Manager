@@ -5,6 +5,7 @@ import Link from 'next/link';
 import {
   Zap, Building2, Mail, Lock, ChevronRight, ArrowLeft, Check,
   Eye, EyeOff, AlertCircle, Loader2, Crown, ImagePlus, X,
+  MapPin, Globe, Phone, Calendar,
 } from 'lucide-react';
 
 type Step = 'account' | 'box' | 'done';
@@ -21,7 +22,12 @@ export default function OnboardingPage() {
 
   // Box fields
   const [boxName, setBoxName] = useState('');
-  const [boxDescription, setBoxDescription] = useState('');
+  const [boxAddress, setBoxAddress] = useState('');
+  const [boxWebsite, setBoxWebsite] = useState('');
+  const [boxContactEmail, setBoxContactEmail] = useState('');
+  const [boxPhone, setBoxPhone] = useState('');
+  const [boxGoogleMaps, setBoxGoogleMaps] = useState('');
+  const [boxFoundedAt, setBoxFoundedAt] = useState('');
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -67,7 +73,12 @@ export default function OnboardingPage() {
           email,
           password,
           box_name: boxName,
-          box_description: boxDescription,
+          box_address: boxAddress,
+          box_website: boxWebsite,
+          box_contact_email: boxContactEmail,
+          box_phone: boxPhone,
+          box_google_maps: boxGoogleMaps,
+          box_founded_at: boxFoundedAt || null,
           mode,
         }),
       });
@@ -314,15 +325,92 @@ export default function OnboardingPage() {
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-gray-400 mb-1.5 uppercase tracking-wider">
-                    Description (optionnel)
+                    Adresse
                   </label>
-                  <textarea
-                    value={boxDescription}
-                    onChange={e => setBoxDescription(e.target.value)}
-                    placeholder="Présente ta box en quelques mots…"
-                    rows={3}
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-[#C9A227] transition-colors resize-none"
-                  />
+                  <div className="relative">
+                    <MapPin size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-600" />
+                    <input
+                      type="text"
+                      value={boxAddress}
+                      onChange={e => setBoxAddress(e.target.value)}
+                      placeholder="12 rue du Sport, 69001 Lyon"
+                      className="w-full bg-white/5 border border-white/10 rounded-xl pl-10 pr-4 py-3 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-[#C9A227] transition-colors"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-400 mb-1.5 uppercase tracking-wider">
+                    Site web
+                  </label>
+                  <div className="relative">
+                    <Globe size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-600" />
+                    <input
+                      type="url"
+                      value={boxWebsite}
+                      onChange={e => setBoxWebsite(e.target.value)}
+                      placeholder="https://www.mabox.com"
+                      className="w-full bg-white/5 border border-white/10 rounded-xl pl-10 pr-4 py-3 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-[#C9A227] transition-colors"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-400 mb-1.5 uppercase tracking-wider">
+                    Email de contact
+                  </label>
+                  <div className="relative">
+                    <Mail size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-600" />
+                    <input
+                      type="email"
+                      value={boxContactEmail}
+                      onChange={e => setBoxContactEmail(e.target.value)}
+                      placeholder="contact@mabox.com"
+                      className="w-full bg-white/5 border border-white/10 rounded-xl pl-10 pr-4 py-3 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-[#C9A227] transition-colors"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-400 mb-1.5 uppercase tracking-wider">
+                    Téléphone
+                  </label>
+                  <div className="relative">
+                    <Phone size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-600" />
+                    <input
+                      type="tel"
+                      value={boxPhone}
+                      onChange={e => setBoxPhone(e.target.value)}
+                      placeholder="+33600000000"
+                      className="w-full bg-white/5 border border-white/10 rounded-xl pl-10 pr-4 py-3 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-[#C9A227] transition-colors"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-400 mb-1.5 uppercase tracking-wider">
+                    Lien Google Maps
+                  </label>
+                  <div className="relative">
+                    <MapPin size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-600" />
+                    <input
+                      type="url"
+                      value={boxGoogleMaps}
+                      onChange={e => setBoxGoogleMaps(e.target.value)}
+                      placeholder="https://maps.app.goo.gl/..."
+                      className="w-full bg-white/5 border border-white/10 rounded-xl pl-10 pr-4 py-3 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-[#C9A227] transition-colors"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-400 mb-1.5 uppercase tracking-wider">
+                    Date d&apos;ouverture de la salle
+                  </label>
+                  <div className="relative">
+                    <Calendar size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-600" />
+                    <input
+                      type="date"
+                      value={boxFoundedAt}
+                      onChange={e => setBoxFoundedAt(e.target.value)}
+                      className="w-full bg-white/5 border border-white/10 rounded-xl pl-10 pr-4 py-3 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-[#C9A227] transition-colors [color-scheme:dark]"
+                    />
+                  </div>
                 </div>
               </div>
 
@@ -332,6 +420,8 @@ export default function OnboardingPage() {
                 <div className="space-y-1.5">
                   <p className="text-sm text-gray-300"><span className="text-gray-500">Email :</span> {email}</p>
                   <p className="text-sm text-gray-300"><span className="text-gray-500">Box :</span> {boxName || '—'}</p>
+                  {boxAddress && <p className="text-sm text-gray-300"><span className="text-gray-500">Adresse :</span> {boxAddress}</p>}
+                  {boxPhone && <p className="text-sm text-gray-300"><span className="text-gray-500">Tél :</span> {boxPhone}</p>}
                   <p className="text-sm text-gray-300"><span className="text-gray-500">Mode :</span> {mode === 'signup' ? 'Nouveau compte' : 'Connexion'}</p>
                 </div>
               </div>

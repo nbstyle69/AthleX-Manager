@@ -18,7 +18,11 @@ function generateInviteCode(): string {
 
 export async function POST(req: NextRequest) {
   try {
-    const { email, password, box_name, box_description, mode } = await req.json();
+    const {
+      email, password, box_name, mode,
+      box_address, box_website, box_contact_email,
+      box_phone, box_google_maps, box_founded_at,
+    } = await req.json();
 
     if (!email || !password) {
       return NextResponse.json({ error: 'Email et mot de passe requis' }, { status: 400 });
@@ -92,10 +96,15 @@ export async function POST(req: NextRequest) {
     const { data: box, error: boxError } = await supabase.from('boxes').insert({
       owner_id: userId,
       name: box_name.trim(),
-      description: box_description?.trim() || null,
       invite_code: inviteCode,
       is_active: true,
-    }).select().single();
+      address: box_address?.trim() || null,
+      website_url: box_website?.trim() || null,
+      contact_email: box_contact_email?.trim() || null,
+      phone: box_phone?.trim() || null,
+      google_maps_url: box_google_maps?.trim() || null,
+      founded_at: box_founded_at || null,
+    } as any).select().single();
 
     if (boxError || !box) {
       return NextResponse.json({ error: boxError?.message ?? 'Erreur création box' }, { status: 500 });
