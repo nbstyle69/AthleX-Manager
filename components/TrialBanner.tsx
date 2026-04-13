@@ -1,6 +1,8 @@
 'use client';
 
-import { Zap, AlertTriangle, Crown, Clock, CreditCard } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { Zap, AlertTriangle, Crown, Clock, CreditCard, RefreshCw } from 'lucide-react';
 import Link from 'next/link';
 
 interface Props {
@@ -11,7 +13,47 @@ interface Props {
   boxId: string;
 }
 
-export default function TrialBanner({ status, daysLeft, trialEndsAt, isEarlyAdopter, boxId }: Props) {
+export default function TrialBanner({ status: initialStatus, daysLeft, trialEndsAt, isEarlyAdopter, boxId }: Props) {
+  const router = useRouter();
+  const [status, setStatus] = useState(initialStatus);
+  const [syncing, setSyncing] = useState(false);
+
+  // Auto-verify on mount if not active (webhook may have been missed)
+  useEffect(() => {
+    if (initialStatus === 'active') return;
+    fetch('/api/verify-subscription', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ box_id: boxId }),
+    })
+      .then(r => r.json())
+      .then(data => {
+        if (data.status && data.status !== initialStatus) {
+          setStatus(data.status);
+          if (data.updated) router.refresh();
+        }
+      })
+      .catch(() => {});
+  }, [boxId, initialStatus, router]);
+
+  function handleSync(e: React.MouseEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    setSyncing(true);
+    fetch('/api/verify-subscription', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ box_id: boxId }),
+    })
+      .then(r => r.json())
+      .then(data => {
+        if (data.status) setStatus(data.status);
+        if (data.updated) router.refresh();
+      })
+      .catch(() => {})
+      .finally(() => setSyncing(false));
+  }
+
   if (status === 'active') {
     return (
       <div className="flex items-center gap-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl px-4 py-3 mb-6">
@@ -42,17 +84,24 @@ export default function TrialBanner({ status, daysLeft, trialEndsAt, isEarlyAdop
 
   if (status === 'canceled' || status === 'expired' || daysLeft <= 0) {
     return (
-      <Link
-        href={`/pricing?box_id=${boxId}`}
-        className="flex items-center gap-3 bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3 mb-6 hover:bg-red-500/15 transition-colors"
-      >
+      <div className="flex items-center gap-3 bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3 mb-6">
         <AlertTriangle size={18} className="text-red-400 shrink-0" />
         <div className="flex-1">
           <p className="text-sm font-bold text-red-400">Essai terminé</p>
           <p className="text-xs text-gray-400">Souscris pour continuer à utiliser le back-office</p>
         </div>
-        <span className="text-xs font-bold text-red-400">Souscrire →</span>
-      </Link>
+        <button
+          onClick={handleSync}
+          disabled={syncing}
+          className="text-xs font-bold text-gray-400 hover:text-white transition-colors px-2 py-1 rounded-lg hover:bg-white/5"
+          title="Vérifier le statut de l'abonnement"
+        >
+          <RefreshCw size={14} className={syncing ? 'animate-spin' : ''} />
+        </button>
+        <Link href={`/pricing?box_id=${boxId}`} className="text-xs font-bold text-red-400 hover:text-red-300">
+          Souscrire →
+        </Link>
+      </div>
     );
   }
 

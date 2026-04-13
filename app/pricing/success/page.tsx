@@ -1,10 +1,35 @@
 'use client';
 
+import { Suspense, useEffect, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { CheckCircle2, Zap, Smartphone, ChevronRight } from 'lucide-react';
+import { CheckCircle2, Zap, Smartphone, ChevronRight, Loader2 } from 'lucide-react';
+
+function SubscriptionVerifier() {
+  const searchParams = useSearchParams();
+  const boxId = searchParams.get('box_id');
+
+  useEffect(() => {
+    if (!boxId) return;
+    fetch('/api/verify-subscription', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ box_id: boxId }),
+    })
+      .then(r => r.json())
+      .then(data => console.log('Subscription verified:', data))
+      .catch(() => {});
+  }, [boxId]);
+
+  return null;
+}
 
 export default function SubscriptionSuccessPage() {
   return (
+    <>
+      <Suspense fallback={null}>
+        <SubscriptionVerifier />
+      </Suspense>
     <div className="min-h-screen bg-[#0A0A0A] text-white font-sans antialiased flex items-center justify-center p-6">
       <div className="max-w-md w-full text-center">
         {/* Success icon */}
@@ -48,6 +73,13 @@ export default function SubscriptionSuccessPage() {
         </a>
 
         <Link
+          href="/"
+          className="w-full flex items-center justify-center gap-2 bg-white/5 border border-white/10 text-white font-bold py-3.5 rounded-xl text-sm hover:bg-white/10 transition-colors mb-4"
+        >
+          Retour au dashboard
+        </Link>
+
+        <Link
           href="/landing"
           className="text-sm text-gray-500 hover:text-white transition-colors"
         >
@@ -55,5 +87,6 @@ export default function SubscriptionSuccessPage() {
         </Link>
       </div>
     </div>
+    </>
   );
 }
