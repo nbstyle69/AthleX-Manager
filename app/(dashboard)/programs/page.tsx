@@ -38,6 +38,7 @@ export default function BoxOwnerProgramsPage() {
   const [slugSaved, setSlugSaved] = useState<string>('');
   const [slugSaving, setSlugSaving] = useState(false);
   const [slugCopied, setSlugCopied] = useState(false);
+  const [slugEditing, setSlugEditing] = useState(false);
 
   const [programs, setPrograms] = useState<BoxProgram[]>([]);
   const [loading, setLoading] = useState(true);
@@ -90,6 +91,7 @@ export default function BoxOwnerProgramsPage() {
     if (!error) {
       setSlug(clean);
       setSlugSaved(clean);
+      setSlugEditing(false);
     }
     setSlugSaving(false);
   }
@@ -194,19 +196,37 @@ export default function BoxOwnerProgramsPage() {
           <div className="flex items-center bg-white/5 rounded-xl border border-white/10 overflow-hidden flex-1">
             <span className="text-xs text-gray-500 pl-3 pr-1 whitespace-nowrap">{SITE_BASE_URL}/box/</span>
             <input
-              className="flex-1 bg-transparent text-sm text-white py-2.5 pr-3 outline-none font-semibold"
+              className={`flex-1 bg-transparent text-sm py-2.5 pr-3 outline-none font-semibold ${slugEditing ? 'text-white' : 'text-gray-400'}`}
               value={slug}
               onChange={e => setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
               placeholder="mon-slug"
+              readOnly={!slugEditing}
             />
           </div>
-          <button
-            onClick={saveSlug}
-            disabled={slugSaving || slug === slugSaved || !slug.trim()}
-            className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-30 text-white text-sm font-bold transition-all whitespace-nowrap"
-          >
-            {slugSaving ? '...' : 'Enregistrer'}
-          </button>
+          {slugEditing ? (
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => { setSlug(slugSaved); setSlugEditing(false); }}
+                className="px-3 py-2.5 rounded-xl text-sm font-bold text-gray-400 hover:text-white hover:bg-white/5 transition-all whitespace-nowrap"
+              >
+                Annuler
+              </button>
+              <button
+                onClick={saveSlug}
+                disabled={slugSaving || slug === slugSaved || !slug.trim()}
+                className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-30 text-white text-sm font-bold transition-all whitespace-nowrap"
+              >
+                {slugSaving ? '...' : 'Enregistrer'}
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={() => setSlugEditing(true)}
+              className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-white text-sm font-bold transition-all whitespace-nowrap"
+            >
+              <Pencil size={14} /> Modifier
+            </button>
+          )}
         </div>
 
         {slugSaved && (
