@@ -29,7 +29,7 @@ const EMPTY_FORM = {
   sort_order: 0,
 };
 
-const SITE_BASE_URL = 'https://athlex-hub.vercel.app';
+const SITE_BASE_URL = 'https://the-hub-rho.vercel.app';
 
 export default function BoxOwnerProgramsPage() {
   const supabase = createClient();
