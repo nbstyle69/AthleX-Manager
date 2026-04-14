@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { Shield, LayoutDashboard, Swords, Users, Trophy, LogOut, Sun, Moon, Building2, Globe2, Award, Dumbbell, FileText, MapPin, BarChart3, BookOpen } from 'lucide-react';
+import { Shield, LayoutDashboard, Swords, Users, Trophy, LogOut, Sun, Moon, Building2, Globe2, Award, Dumbbell, FileText, MapPin, BarChart3, BookOpen, Handshake } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { cn } from '@/lib/utils';
 import { useTheme } from '@/components/ThemeProvider';
@@ -18,6 +18,7 @@ const NAV = [
   { href: '/admin/badges',              label: 'Badges',            icon: Award },
   { href: '/admin/movements',           label: 'Mouvements',        icon: Dumbbell },
   { href: '/admin/programs',             label: 'Programmation',     icon: BookOpen },
+  { href: '/admin/partners',             label: 'Partenaires',       icon: Handshake },
   { href: '/admin/analytics',            label: 'Statistiques',      icon: BarChart3 },
   { href: '/admin/changelog',           label: 'Changelog',         icon: FileText },
 ];
