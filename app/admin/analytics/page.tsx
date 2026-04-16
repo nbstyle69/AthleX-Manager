@@ -17,7 +17,8 @@ interface Stats {
   totalPhysicalComps: number;
   activePhysicalComps: number;
   totalInterComps: number;
-  totalDailyContests: number;
+  totalDailyTournaments: number;
+  contestedScores: number;
   totalBoxes: number;
   usersByRole: Record<string, number>;
   registrationsByDay: { date: string; count: number }[];
@@ -38,7 +39,7 @@ const EMPTY: Stats = {
   totalUsers: 0, recentUsers7d: 0, recentUsers30d: 0,
   totalTournaments: 0, activeTournaments: 0,
   totalPhysicalComps: 0, activePhysicalComps: 0,
-  totalInterComps: 0, totalDailyContests: 0, totalBoxes: 0,
+  totalInterComps: 0, totalDailyTournaments: 0, contestedScores: 0, totalBoxes: 0,
   usersByRole: {}, registrationsByDay: [],
   totalReservations: 0, reservationsPeriod: 0,
   totalMessages: 0, messagesPeriod: 0,
@@ -71,7 +72,7 @@ export default function AnalyticsPage() {
       { count: totalPhysicalComps },
       { count: activePhysicalComps },
       { count: totalInterComps },
-      { count: totalDailyContests },
+      { count: totalDailyTournaments },
       { count: totalBoxes },
       { data: recentProfiles },
       { count: totalReservations },
@@ -83,7 +84,9 @@ export default function AnalyticsPage() {
       { count: totalBadgesEarned },
       { count: totalScores },
       { count: scoresPeriod },
-      { count: activeUsers7d },
+      { count: contestedScores },
+      { data: activeScoreUsers },
+      { data: activeReservationUsers },
       { data: topBoxesRaw },
     ] = await Promise.all([
       supabase.from('profiles').select('*', { count: 'exact', head: true }),
@@ -95,7 +98,7 @@ export default function AnalyticsPage() {
       supabase.from('physical_competitions').select('*', { count: 'exact', head: true }),
       supabase.from('physical_competitions').select('*', { count: 'exact', head: true }).neq('status', 'closed'),
       supabase.from('inter_competitions').select('*', { count: 'exact', head: true }),
-      supabase.from('daily_contests').select('*', { count: 'exact', head: true }),
+      supabase.from('daily_tournaments').select('*', { count: 'exact', head: true }),
       supabase.from('boxes').select('*', { count: 'exact', head: true }),
       supabase.from('profiles').select('created_at').gte('created_at', dPeriod).order('created_at', { ascending: true }),
       supabase.from('class_reservations').select('*', { count: 'exact', head: true }),
@@ -107,7 +110,9 @@ export default function AnalyticsPage() {
       supabase.from('athlete_badges').select('*', { count: 'exact', head: true }),
       supabase.from('wod_scores').select('*', { count: 'exact', head: true }),
       supabase.from('wod_scores').select('*', { count: 'exact', head: true }).gte('submitted_at', dPeriod),
-      supabase.from('profiles').select('*', { count: 'exact', head: true }).gte('updated_at', d7),
+      supabase.from('daily_tournament_scores').select('*', { count: 'exact', head: true }).eq('status', 'contested'),
+      supabase.from('wod_scores').select('member_id').gte('submitted_at', d7),
+      supabase.from('class_reservations').select('member_id').gte('created_at', d7),
       supabase.from('boxes').select('id, name, box_members(count)').order('name').limit(10),
     ]);
 
@@ -137,9 +142,12 @@ export default function AnalyticsPage() {
       .sort((a: any, b: any) => b.members - a.members)
       .slice(0, 8);
 
-    // Retention: active users in last 7d / total users
+    // Retention: distinct active users in last 7d (scored or reserved) / total users
+    const activeUserIds = new Set<string>();
+    (activeScoreUsers ?? []).forEach((s: any) => { if (s.member_id) activeUserIds.add(s.member_id); });
+    (activeReservationUsers ?? []).forEach((r: any) => { if (r.member_id) activeUserIds.add(r.member_id); });
     const retentionRate = (totalUsers ?? 0) > 0
-      ? Math.round(((activeUsers7d ?? 0) / (totalUsers ?? 1)) * 100)
+      ? Math.round((activeUserIds.size / (totalUsers ?? 1)) * 100)
       : 0;
 
     setStats({
@@ -151,7 +159,8 @@ export default function AnalyticsPage() {
       totalPhysicalComps: totalPhysicalComps ?? 0,
       activePhysicalComps: activePhysicalComps ?? 0,
       totalInterComps: totalInterComps ?? 0,
-      totalDailyContests: totalDailyContests ?? 0,
+      totalDailyTournaments: totalDailyTournaments ?? 0,
+      contestedScores: contestedScores ?? 0,
       totalBoxes: totalBoxes ?? 0,
       usersByRole,
       registrationsByDay,
@@ -226,7 +235,7 @@ export default function AnalyticsPage() {
         <KpiCard icon={Users} label="Utilisateurs" value={stats.totalUsers} sub={`+${stats.recentUsers7d} cette semaine`} color="emerald" />
         <KpiCard icon={Trophy} label="Tournois" value={stats.totalTournaments} sub={`${stats.activeTournaments} actif${stats.activeTournaments > 1 ? 's' : ''}`} color="amber" />
         <KpiCard icon={MapPin} label="Compét. Physiques" value={stats.totalPhysicalComps} sub={`${stats.activePhysicalComps} actif${stats.activePhysicalComps > 1 ? 's' : ''}`} color="purple" />
-        <KpiCard icon={Swords} label="Contestations" value={stats.totalDailyContests} sub="total" color="red" />
+        <KpiCard icon={Swords} label="Contestations" value={stats.contestedScores} sub="scores contestés" color="red" />
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -249,7 +258,7 @@ export default function AnalyticsPage() {
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <KpiCard icon={Award} label="Badges débloqués" value={stats.totalBadgesEarned} sub="total" color="amber" />
-        <KpiCard icon={Swords} label="Contestations" value={stats.totalDailyContests} sub="total" color="red" />
+        <KpiCard icon={Trophy} label="Mini-Tournois" value={stats.totalDailyTournaments} sub="total" color="amber" />
         {/* Retention card */}
         <div className="bg-[#111111] border border-white/8 rounded-2xl p-4 hover:border-white/15 transition-all col-span-2">
           <div className="flex items-center gap-3 mb-3">
