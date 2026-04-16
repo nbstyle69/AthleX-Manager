@@ -79,7 +79,7 @@ export default function AnalyticsPage() {
       { count: reservationsPeriod },
       { count: totalMessages },
       { count: messagesPeriod },
-      { count: totalGeneratedWods },
+      { data: wodsGeneratedProfiles },
       { count: generatedWodsPeriod },
       { count: totalBadgesEarned },
       { count: totalScores },
@@ -105,7 +105,7 @@ export default function AnalyticsPage() {
       supabase.from('class_reservations').select('*', { count: 'exact', head: true }).gte('created_at', dPeriod),
       supabase.from('box_messages').select('*', { count: 'exact', head: true }),
       supabase.from('box_messages').select('*', { count: 'exact', head: true }).gte('created_at', dPeriod),
-      supabase.from('generated_wods').select('*', { count: 'exact', head: true }),
+      supabase.from('profiles').select('total_wods_generated'),
       supabase.from('generated_wods').select('*', { count: 'exact', head: true }).gte('created_at', dPeriod),
       supabase.from('athlete_badges').select('*', { count: 'exact', head: true }),
       supabase.from('wod_scores').select('*', { count: 'exact', head: true }),
@@ -142,6 +142,11 @@ export default function AnalyticsPage() {
       .sort((a: any, b: any) => b.members - a.members)
       .slice(0, 8);
 
+    // Total WODs generated (sum from all profiles)
+    const totalGeneratedWods = (wodsGeneratedProfiles ?? []).reduce(
+      (sum: number, p: any) => sum + ((p as any).total_wods_generated ?? 0), 0
+    );
+
     // Retention: distinct active users in last 7d (scored or reserved) / total users
     const activeUserIds = new Set<string>();
     (activeScoreUsers ?? []).forEach((s: any) => { if (s.member_id) activeUserIds.add(s.member_id); });
@@ -168,7 +173,7 @@ export default function AnalyticsPage() {
       reservationsPeriod: reservationsPeriod ?? 0,
       totalMessages: totalMessages ?? 0,
       messagesPeriod: messagesPeriod ?? 0,
-      totalGeneratedWods: totalGeneratedWods ?? 0,
+      totalGeneratedWods,
       generatedWodsPeriod: generatedWodsPeriod ?? 0,
       totalBadgesEarned: totalBadgesEarned ?? 0,
       totalScores: totalScores ?? 0,
