@@ -3,7 +3,6 @@
 import { useEffect, useState, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { Upload, ImageIcon, Trash2, CheckCircle, Phone, MapPin, Calendar, User, Users } from 'lucide-react';
-import { getMyBox } from '@/lib/getMyBox';
 
 export default function SettingsPage() {
   const supabase = createClient();
@@ -30,40 +29,57 @@ export default function SettingsPage() {
     async function load() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
-      const myBox = await getMyBox(supabase, user.id);
-      if (!myBox) return;
-      const { data } = await supabase.from('boxes').select('*').eq('id', myBox.id).single();
-      if (data) {
-        setBox(data);
-        setLogoUrl(data.logo_url ?? null);
-        setName(data.name ?? '');
-        setAddress(data.address ?? '');
-        setWebsiteUrl(data.website_url ?? '');
-        setContactEmail(data.contact_email ?? '');
-        setPhone(data.phone ?? '');
-        setGoogleMapsUrl(data.google_maps_url ?? '');
-        setFoundedAt(data.founded_at ?? '');
 
-        // Fetch owner name
-        if (data.owner_id) {
-          const { data: ownerProfile } = await supabase
-            .from('profiles').select('username').eq('id', data.owner_id).single();
-          if (ownerProfile) setOwnerName(ownerProfile.username ?? '');
+      // Fetch box directly (skip redundant getMyBox + second query)
+      let boxData: any = null;
+      const { data: ownedBox } = await supabase
+        .from('boxes').select('*').eq('owner_id', user.id).maybeSingle();
+
+      if (ownedBox) {
+        boxData = ownedBox;
+      } else {
+        const { data: membership } = await supabase
+          .from('box_members').select('box_id')
+          .eq('member_id', user.id).eq('role', 'owner').eq('status', 'active').maybeSingle();
+        if (membership) {
+          const { data: coBox } = await supabase
+            .from('boxes').select('*').eq('id', membership.box_id).maybeSingle();
+          boxData = coBox;
         }
+      }
 
-        // Fetch coaches
-        const { data: coachMembers } = await supabase
+      if (!boxData) return;
+
+      // Set box immediately → spinner disappears
+      setBox(boxData);
+      setLogoUrl(boxData.logo_url ?? null);
+      setName(boxData.name ?? '');
+      setAddress(boxData.address ?? '');
+      setWebsiteUrl(boxData.website_url ?? '');
+      setContactEmail(boxData.contact_email ?? '');
+      setPhone(boxData.phone ?? '');
+      setGoogleMapsUrl(boxData.google_maps_url ?? '');
+      setFoundedAt(boxData.founded_at ?? '');
+
+      // Fetch owner + coaches in parallel
+      const [ownerRes, coachRes] = await Promise.all([
+        boxData.owner_id
+          ? supabase.from('profiles').select('username').eq('id', boxData.owner_id).maybeSingle()
+          : Promise.resolve({ data: null }),
+        supabase
           .from('box_members')
           .select('member_id, profiles:member_id(username, avatar_url)')
-          .eq('box_id', data.id)
-          .eq('role', 'coach');
-        if (coachMembers) {
-          setCoaches(coachMembers.map((c: any) => ({
-            id: c.member_id,
-            username: (Array.isArray(c.profiles) ? c.profiles[0] : c.profiles)?.username ?? 'Coach',
-            avatar_url: (Array.isArray(c.profiles) ? c.profiles[0] : c.profiles)?.avatar_url ?? null,
-          })));
-        }
+          .eq('box_id', boxData.id)
+          .eq('role', 'coach'),
+      ]);
+
+      if (ownerRes.data) setOwnerName((ownerRes.data as any).username ?? '');
+      if (coachRes.data) {
+        setCoaches((coachRes.data as any[]).map((c: any) => ({
+          id: c.member_id,
+          username: (Array.isArray(c.profiles) ? c.profiles[0] : c.profiles)?.username ?? 'Coach',
+          avatar_url: (Array.isArray(c.profiles) ? c.profiles[0] : c.profiles)?.avatar_url ?? null,
+        })));
       }
     }
     load();

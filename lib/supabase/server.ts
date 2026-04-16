@@ -1,5 +1,6 @@
 import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
+import { cache } from 'react';
 
 const SUPABASE_URL     = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
@@ -10,7 +11,7 @@ export async function getAccessToken(): Promise<string | null> {
   return cookieStore.get('sb-access-token')?.value ?? null;
 }
 
-export async function getServerUser() {
+export const getServerUser = cache(async () => {
   const accessToken = await getAccessToken();
   if (!accessToken) return null;
   const res = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
@@ -20,7 +21,7 @@ export async function getServerUser() {
   if (!res.ok) return null;
   const user = await res.json();
   return user?.id ? user : null;
-}
+});
 
 export async function createClient() {
   const accessToken = await getAccessToken();
@@ -36,19 +37,19 @@ export function createServiceClient() {
   });
 }
 
-export async function getServerProfile(supabase: Awaited<ReturnType<typeof createClient>>) {
-  const user = await getServerUser();
-  if (!user) return null;
+export async function getServerProfile(supabase: Awaited<ReturnType<typeof createClient>>, userId?: string) {
+  const uid = userId ?? (await getServerUser())?.id;
+  if (!uid) return null;
   const { data } = await supabase
-    .from('profiles').select('id, username, role, level, elo').eq('id', user.id).single();
+    .from('profiles').select('id, username, role, level, elo').eq('id', uid).single();
   return data as {
     id: string; username: string; role: string; level: string; elo: number;
   } | null;
 }
 
-export async function getOwnerBox(supabase: Awaited<ReturnType<typeof createClient>>) {
-  const user = await getServerUser();
-  if (!user) return null;
+export async function getOwnerBox(supabase: Awaited<ReturnType<typeof createClient>>, userId?: string) {
+  const uid = userId ?? (await getServerUser())?.id;
+  if (!uid) return null;
 
   type BoxRow = {
     id: string; name: string; slug: string; owner_id: string;
@@ -58,12 +59,12 @@ export async function getOwnerBox(supabase: Awaited<ReturnType<typeof createClie
 
   // 1. Primary owner (boxes.owner_id)
   const { data: box } = await supabase
-    .from('boxes').select('*').eq('owner_id', user.id).single();
+    .from('boxes').select('*').eq('owner_id', uid).maybeSingle();
   if (box) return box as BoxRow;
 
   // 2. Co-owner (box_members.role = 'owner')
   const { data: membership } = await supabase
-    .from('box_members').select('box_id').eq('member_id', user.id).eq('role', 'owner').eq('status', 'active').single();
+    .from('box_members').select('box_id').eq('member_id', uid).eq('role', 'owner').eq('status', 'active').maybeSingle();
   if (!membership) return null;
 
   const { data: coBox } = await supabase

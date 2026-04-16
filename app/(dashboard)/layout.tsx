@@ -10,12 +10,12 @@ export default async function DashboardLayout({ children }: { children: React.Re
   const supabase = await createClient();
 
   // Super admin → redirect to /admin section
-  const profile = await getServerProfile(supabase);
+  const profile = await getServerProfile(supabase, user.id);
   if (profile?.role === 'super_admin' || profile?.role === 'admin') {
     redirect('/admin');
   }
 
-  const box = await getOwnerBox(supabase);
+  const box = await getOwnerBox(supabase, user.id);
   if (!box) {
     return (
       <div className="min-h-screen bg-[#0A0A0A] flex items-center justify-center">
