@@ -36,14 +36,16 @@ interface Box {
   member_count?: number;
 }
 
-interface BoxProgram {
+interface Program {
   id: string;
-  name: string;
+  title: string;
   description?: string;
-  price?: number;
-  currency: string;
-  url: string;
+  price_cents: number;
+  type: 'fixed' | 'ongoing';
+  duration_weeks?: number;
+  days_per_week: number;
   image_url?: string;
+  invite_code: string;
 }
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
@@ -97,19 +99,18 @@ export default async function BoxPublicPage({ params }: { params: Promise<{ slug
 
   // Fetch programs
   const { data: programs } = await supabase
-    .from('box_programs')
-    .select('id, name, description, price, currency, url, image_url')
+    .from('programs')
+    .select('id, title, description, price_cents, type, duration_weeks, days_per_week, image_url, invite_code')
     .eq('box_id', b.id)
     .eq('is_active', true)
-    .order('sort_order', { ascending: true });
+    .order('created_at', { ascending: false });
 
-  const progs = (programs ?? []) as BoxProgram[];
+  const progs = (programs ?? []) as Program[];
   const foundedYear = b.founded_at ? new Date(b.founded_at).getFullYear() : null;
 
-  const formatPrice = (price?: number, currency = 'EUR') => {
-    if (price == null) return 'Gratuit';
-    const sym = currency === 'EUR' ? '€' : currency === 'USD' ? '$' : currency;
-    return `${price.toFixed(2)}${sym}/mois`;
+  const formatPrice = (cents: number) => {
+    if (cents === 0) return 'Gratuit';
+    return `${(cents / 100).toFixed(2)} €`;
   };
 
   return (
@@ -256,26 +257,35 @@ export default async function BoxPublicPage({ params }: { params: Promise<{ slug
                       <img src={p.image_url} alt="" className="w-full h-36 object-cover" />
                     )}
                     <div className="p-4">
-                      <h3 className="font-bold text-white">{p.name}</h3>
+                      <div className="flex items-center gap-2">
+                        <h3 className="font-bold text-white">{p.title}</h3>
+                        <span className={`text-[10px] px-2 py-0.5 rounded-md font-bold ${
+                          p.type === 'fixed'
+                            ? 'bg-blue-500/15 text-blue-400'
+                            : 'bg-purple-500/15 text-purple-400'
+                        }`}>
+                          {p.type === 'fixed' ? `${p.duration_weeks} sem.` : 'Ongoing'}
+                        </span>
+                      </div>
                       {p.description && (
                         <p className="text-xs text-gray-500 mt-1 line-clamp-2">{p.description}</p>
                       )}
+                      <div className="flex items-center gap-2 mt-2 text-xs text-gray-500">
+                        <Calendar size={12} /> {p.days_per_week} jours/semaine
+                      </div>
                       <div className="flex items-center justify-between mt-4">
                         <span
                           className="text-sm font-black px-3 py-1 rounded-lg"
                           style={{ color: GOLD, backgroundColor: `${GOLD}15` }}
                         >
-                          {formatPrice(p.price, p.currency)}
+                          {formatPrice(p.price_cents)}
                         </span>
-                        <a
-                          href={p.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex items-center gap-1.5 text-xs font-bold text-white px-4 py-2 rounded-lg transition-colors"
+                        <span
+                          className="text-xs font-bold text-white px-4 py-2 rounded-lg cursor-default"
                           style={{ backgroundColor: GOLD }}
                         >
-                          <ExternalLink size={13} /> Acheter
-                        </a>
+                          Contactez la box
+                        </span>
                       </div>
                     </div>
                   </div>
