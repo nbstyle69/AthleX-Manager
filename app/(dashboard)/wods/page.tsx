@@ -67,7 +67,7 @@ function toISO(d: Date): string {
   return `${y}-${m}-${day}`;
 }
 
-const EMPTY = { title: '', description: '', wod_type: '' as string, block: '' as string, date: '', timeCap: '', rounds: '', notes: '', videoUrl: '', published: true, leaderboard: true, groupIds: [] as string[], publishMode: 'now' as 'now' | 'scheduled', publishHour: '06', publishMin: '00' };
+const EMPTY = { title: '', description: '', wod_type: '' as string, block: '' as string, date: '', timeCap: '', rounds: '', notes: '', videoUrl: '', published: true, leaderboard: true, groupIds: [] as string[], programIds: [] as string[], publishMode: 'now' as 'now' | 'scheduled', publishHour: '06', publishMin: '00' };
 
 export default function WODsPage() {
   const supabase = createClient();
@@ -102,6 +102,8 @@ export default function WODsPage() {
   const [showDateNav, setShowDateNav] = useState(false);
   const [groups, setGroups] = useState<{ id: string; name: string; color: string }[]>([]);
   const [wodGroupMap, setWodGroupMap] = useState<Record<string, string[]>>({});
+  const [boxPrograms, setBoxPrograms] = useState<{ id: string; title: string; type: string }[]>([]);
+  const [wodProgramMap, setWodProgramMap] = useState<Record<string, string[]>>({});
 
   const weekDates = getWeekDates(weekOffset);
   const todayISO  = toISO(new Date());
@@ -116,6 +118,8 @@ export default function WODsPage() {
         setBoxId(box.id);
         const { data: g } = await supabase.from('message_groups').select('id, name, color').eq('box_id', box.id).order('name');
         setGroups(g ?? []);
+        const { data: progs } = await supabase.from('programs').select('id, title, type').eq('box_id', box.id).eq('is_active', true).order('title');
+        setBoxPrograms((progs ?? []) as any[]);
       }
     })();
   }, []);
@@ -145,8 +149,17 @@ export default function WODsPage() {
         map[r.wod_id].push(r.group_id);
       });
       setWodGroupMap(map);
+      // Load program access
+      const { data: progAccessRows } = await supabase.from('wod_program_access').select('wod_id, program_id').in('wod_id', ids);
+      const pMap: Record<string, string[]> = {};
+      (progAccessRows ?? []).forEach((r: any) => {
+        if (!pMap[r.wod_id]) pMap[r.wod_id] = [];
+        pMap[r.wod_id].push(r.program_id);
+      });
+      setWodProgramMap(pMap);
     } else {
       setWodGroupMap({});
+      setWodProgramMap({});
     }
     setLoading(false);
   }, [boxId, weekOffset]);
@@ -168,6 +181,8 @@ export default function WODsPage() {
   async function openEdit(wod: BoxWOD) {
     setEditWOD(wod);
     const gIds = await loadWodGroups(wod.id);
+    const { data: pRows } = await supabase.from('wod_program_access').select('program_id').eq('wod_id', wod.id);
+    const pIds = (pRows ?? []).map((r: any) => r.program_id);
     setForm({
       title: wod.title, description: wod.description ?? '',
       wod_type: wod.wod_type ?? '', block: wod.block_name ?? '',
@@ -177,6 +192,7 @@ export default function WODsPage() {
       notes: wod.notes ?? '', videoUrl: wod.video_url ?? '', published: wod.is_published,
       leaderboard: (wod as any).leaderboard_enabled ?? true,
       groupIds: gIds,
+      programIds: pIds,
       publishMode: wod.publish_at ? 'scheduled' : 'now',
       publishHour: wod.publish_at ? new Date(wod.publish_at).getHours().toString().padStart(2, '0') : '06',
       publishMin: wod.publish_at ? new Date(wod.publish_at).getMinutes().toString().padStart(2, '0') : '00',
@@ -223,6 +239,13 @@ export default function WODsPage() {
       if (form.groupIds.length > 0) {
         await supabase.from('wod_group_access').insert(
           form.groupIds.map(gid => ({ wod_id: wodId, group_id: gid }))
+        );
+      }
+      // Save program access
+      await supabase.from('wod_program_access').delete().eq('wod_id', wodId);
+      if (form.programIds.length > 0) {
+        await supabase.from('wod_program_access').insert(
+          form.programIds.map(pid => ({ wod_id: wodId, program_id: pid }))
         );
       }
     }
@@ -613,6 +636,17 @@ export default function WODsPage() {
                                     </span>
                                   );
                                 })}
+                                {(wodProgramMap[wod.id] ?? []).map(pid => {
+                                  const pr = boxPrograms.find(p => p.id === pid);
+                                  if (!pr) return null;
+                                  const pc = pr.type === 'fixed' ? '#3B82F6' : '#8B5CF6';
+                                  return (
+                                    <span key={pid} className="inline-flex items-center gap-0.5 text-[8px] font-bold px-1.5 py-0.5 rounded-full" style={{ backgroundColor: `${pc}20`, color: pc }}>
+                                      <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: pc }} />
+                                      {pr.title}
+                                    </span>
+                                  );
+                                })}
                               </div>
                             )}
                             <div className="flex items-center gap-0.5 mt-2 pt-1.5 border-t border-white/5">
@@ -751,6 +785,17 @@ export default function WODsPage() {
                                   </span>
                                 );
                               })}
+                              {(wodProgramMap[wod.id] ?? []).map(pid => {
+                                const pr = boxPrograms.find(p => p.id === pid);
+                                if (!pr) return null;
+                                const pc = pr.type === 'fixed' ? '#3B82F6' : '#8B5CF6';
+                                return (
+                                  <span key={pid} className="inline-flex items-center gap-0.5 text-[9px] font-bold px-1.5 py-0.5 rounded-full" style={{ backgroundColor: `${pc}20`, color: pc }}>
+                                    <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: pc }} />
+                                    {pr.title}
+                                  </span>
+                                );
+                              })}
                             </div>
                             <p className="text-sm font-bold text-white truncate">{wod.title}</p>
                             {wod.description && (
@@ -832,6 +877,39 @@ export default function WODsPage() {
                   </div>
                   {form.groupIds.length > 0 && (
                     <p className="text-[11px] text-gray-500 mt-1.5">Seuls les membres de ces groupes verront ce WOD.</p>
+                  )}
+                </div>
+              )}
+
+              {/* Program access */}
+              {boxPrograms.length > 0 && (
+                <div>
+                  <label className="block text-xs font-semibold text-gray-400 mb-2 uppercase tracking-wider">Programmes assignés <span className="text-gray-600 normal-case tracking-normal">(vide = aucun programme)</span></label>
+                  <div className="flex flex-wrap gap-2">
+                    {boxPrograms.map(p => {
+                      const selected = form.programIds.includes(p.id);
+                      const pColor = p.type === 'fixed' ? '#3B82F6' : '#8B5CF6';
+                      return (
+                        <button key={p.id} type="button"
+                          onClick={() => setForm(f => ({
+                            ...f,
+                            programIds: selected ? f.programIds.filter(id => id !== p.id) : [...f.programIds, p.id],
+                          }))}
+                          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all border ${
+                            selected
+                              ? 'border-transparent scale-105'
+                              : 'border-white/10 text-gray-400 hover:text-white hover:border-white/20'
+                          }`}
+                          style={selected ? { backgroundColor: `${pColor}25`, color: pColor, borderColor: `${pColor}50` } : {}}
+                        >
+                          <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: pColor }} />
+                          {p.title}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {form.programIds.length > 0 && (
+                    <p className="text-[11px] text-gray-500 mt-1.5">Ce WOD apparaîtra dans le whiteboard des membres de ces programmes.</p>
                   )}
                 </div>
               )}
