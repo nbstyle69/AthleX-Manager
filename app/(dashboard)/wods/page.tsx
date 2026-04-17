@@ -624,7 +624,7 @@ export default function WODsPage() {
                             </div>
                             <p className="text-xs font-bold text-white truncate">{wod.title}</p>
                             {wod.description && <p className="text-[10px] text-gray-500 truncate mt-0.5">{wod.description}</p>}
-                            {(wodGroupMap[wod.id] ?? []).length > 0 && (
+                            {((wodGroupMap[wod.id] ?? []).length > 0 || (wodProgramMap[wod.id] ?? []).length > 0) && (
                               <div className="flex flex-wrap gap-1 mt-1">
                                 {(wodGroupMap[wod.id] ?? []).map(gid => {
                                   const g = groups.find(gr => gr.id === gid);
