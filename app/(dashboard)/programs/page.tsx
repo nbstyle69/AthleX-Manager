@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import {
   BookOpen, Plus, Pencil, Trash2, X, Globe, Eye, Copy, Check,
-  Users, Calendar, Clock, Hash,
+  Users, Calendar, Clock, Hash, ChevronLeft, ChevronRight, FileText,
 } from 'lucide-react';
 
 interface Program {
@@ -24,6 +24,29 @@ interface Program {
   created_at: string;
   member_count?: number;
 }
+
+interface ProgramWOD {
+  id: string;
+  program_id: string;
+  day_number: number | null;
+  week_number: number | null;
+  title: string;
+  description: string;
+  wod_type: string | null;
+  time_cap_seconds: number | null;
+  notes: string | null;
+  sort_order: number;
+}
+
+const WOD_TYPES = [
+  { value: 'for-time', label: 'For Time', color: '#EF4444' },
+  { value: 'amrap', label: 'AMRAP', color: '#3B82F6' },
+  { value: 'emom', label: 'EMOM', color: '#8B5CF6' },
+  { value: 'strength', label: 'Force', color: '#16A34A' },
+  { value: 'custom', label: 'Custom', color: '#6B7280' },
+];
+
+const DAY_LABELS = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
 
 const EMPTY_FORM = {
   title: '',
@@ -63,6 +86,17 @@ export default function BoxOwnerProgramsPage() {
   const [saving, setSaving] = useState(false);
 
   const [codeCopied, setCodeCopied] = useState<string | null>(null);
+
+  // WOD Editor state
+  const [editorProgram, setEditorProgram] = useState<Program | null>(null);
+  const [wods, setWods] = useState<ProgramWOD[]>([]);
+  const [wodsLoading, setWodsLoading] = useState(false);
+  const [weekIdx, setWeekIdx] = useState(0);
+  const [showWodForm, setShowWodForm] = useState(false);
+  const [editWodId, setEditWodId] = useState<string | null>(null);
+  const [wodForm, setWodForm] = useState({ title: '', description: '', wod_type: 'custom', time_cap: '', notes: '' });
+  const [wodDayNumber, setWodDayNumber] = useState(1);
+  const [wodSaving, setWodSaving] = useState(false);
 
   useEffect(() => { loadAll(); }, []);
 
@@ -182,6 +216,100 @@ export default function BoxOwnerProgramsPage() {
     loadAll();
   }
 
+  // ── WOD Editor functions ──
+  async function openEditor(p: Program) {
+    setEditorProgram(p);
+    setWeekIdx(0);
+    await loadWods(p.id);
+  }
+
+  async function loadWods(programId: string) {
+    setWodsLoading(true);
+    const { data } = await supabase
+      .from('program_wods')
+      .select('*')
+      .eq('program_id', programId)
+      .order('day_number')
+      .order('sort_order');
+    setWods((data ?? []) as ProgramWOD[]);
+    setWodsLoading(false);
+  }
+
+  function wodsForDay(dayNum: number) {
+    return wods.filter(w => w.day_number === dayNum);
+  }
+
+  function openWodCreate(dayNumber: number) {
+    setEditWodId(null);
+    setWodForm({ title: '', description: '', wod_type: 'custom', time_cap: '', notes: '' });
+    setWodDayNumber(dayNumber);
+    setShowWodForm(true);
+  }
+
+  function openWodEdit(w: ProgramWOD) {
+    setEditWodId(w.id);
+    setWodForm({
+      title: w.title,
+      description: w.description,
+      wod_type: w.wod_type ?? 'custom',
+      time_cap: w.time_cap_seconds ? String(Math.floor(w.time_cap_seconds / 60)) : '',
+      notes: w.notes ?? '',
+    });
+    setWodDayNumber(w.day_number ?? 1);
+    setShowWodForm(true);
+  }
+
+  async function saveWod() {
+    if (!wodForm.title.trim() || !wodForm.description.trim() || !editorProgram) return;
+    setWodSaving(true);
+    const payload: any = {
+      program_id: editorProgram.id,
+      day_number: wodDayNumber,
+      week_number: Math.ceil(wodDayNumber / 7),
+      title: wodForm.title.trim(),
+      description: wodForm.description.trim(),
+      wod_type: wodForm.wod_type,
+      time_cap_seconds: wodForm.time_cap ? parseInt(wodForm.time_cap) * 60 : null,
+      notes: wodForm.notes.trim() || null,
+    };
+    if (editWodId) {
+      await supabase.from('program_wods').update(payload).eq('id', editWodId);
+    } else {
+      payload.sort_order = wodsForDay(wodDayNumber).length;
+      await supabase.from('program_wods').insert(payload);
+    }
+    setShowWodForm(false);
+    setWodSaving(false);
+    loadWods(editorProgram.id);
+  }
+
+  async function deleteWod(id: string) {
+    if (!confirm('Supprimer ce WOD ?') || !editorProgram) return;
+    await supabase.from('program_wods').delete().eq('id', id);
+    loadWods(editorProgram.id);
+  }
+
+  async function duplicateWeek() {
+    if (!editorProgram) return;
+    const weekStart = weekIdx * 7;
+    const currentWods = wods.filter(w => (w.day_number ?? 0) > weekStart && (w.day_number ?? 0) <= weekStart + 7);
+    if (currentWods.length === 0) { alert('Aucun WOD cette semaine.'); return; }
+    const inserts = currentWods.map(w => ({
+      program_id: editorProgram.id,
+      day_number: (w.day_number ?? 1) + 7,
+      week_number: (w.week_number ?? 1) + 1,
+      title: w.title,
+      description: w.description,
+      wod_type: w.wod_type,
+      time_cap_seconds: w.time_cap_seconds,
+      notes: w.notes,
+      sort_order: w.sort_order,
+    }));
+    await supabase.from('program_wods').insert(inserts);
+    setWeekIdx(prev => prev + 1);
+    loadWods(editorProgram.id);
+  }
+
   const formatPrice = (cents: number) => {
     if (cents === 0) return 'Gratuit';
     return `${(cents / 100).toFixed(2)} €`;
@@ -286,6 +414,9 @@ export default function BoxOwnerProgramsPage() {
                 </div>
 
                 <div className="flex items-center gap-2 mt-4 pt-3 border-t border-white/[0.06]">
+                  <button onClick={() => openEditor(p)} className="flex items-center gap-1.5 px-3 py-2 rounded-lg hover:bg-emerald-500/10 text-emerald-400 hover:text-emerald-300 text-xs font-semibold transition-all">
+                    <FileText size={13} /> Séances
+                  </button>
                   <button onClick={() => openEdit(p)} className="flex items-center gap-1.5 px-3 py-2 rounded-lg hover:bg-white/5 text-gray-400 hover:text-white text-xs font-semibold transition-all">
                     <Pencil size={13} /> Modifier
                   </button>
@@ -407,6 +538,203 @@ export default function BoxOwnerProgramsPage() {
                 className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white text-sm font-bold transition-all"
               >
                 {saving ? 'Enregistrement…' : editId ? 'Modifier' : 'Créer le programme'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* WOD Editor panel */}
+      {editorProgram && (
+        <div className="fixed inset-0 z-50 bg-[#0A0A0A] overflow-y-auto">
+          {/* Editor Header */}
+          <div className="sticky top-0 z-10 bg-[#0A0A0A]/95 backdrop-blur-xl border-b border-white/[0.06]">
+            <div className="max-w-5xl mx-auto px-6 py-4 flex items-center gap-4">
+              <button onClick={() => setEditorProgram(null)} className="text-gray-400 hover:text-white">
+                <ChevronLeft size={20} />
+              </button>
+              <div className="flex-1">
+                <h2 className="text-lg font-black text-white">{editorProgram.title}</h2>
+                <p className="text-xs text-gray-500">
+                  {editorProgram.type === 'fixed' ? `${editorProgram.duration_weeks} semaines` : 'Ongoing'} · {editorProgram.days_per_week}j/sem · {wods.length} séance{wods.length > 1 ? 's' : ''}
+                </p>
+              </div>
+              <button onClick={duplicateWeek} className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-xs font-semibold text-gray-300 transition-all">
+                <Copy size={13} /> Dupliquer sem. {weekIdx + 1} → {weekIdx + 2}
+              </button>
+            </div>
+
+            {/* Week navigation */}
+            <div className="max-w-5xl mx-auto px-6 pb-3 flex items-center gap-4">
+              <button
+                onClick={() => setWeekIdx(w => Math.max(0, w - 1))}
+                disabled={weekIdx === 0}
+                className="p-1.5 rounded-lg hover:bg-white/5 disabled:opacity-30 transition-all"
+              >
+                <ChevronLeft size={18} className="text-gray-400" />
+              </button>
+              <span className="text-sm font-bold text-white">
+                Semaine {weekIdx + 1}{editorProgram.type === 'fixed' ? ` / ${editorProgram.duration_weeks}` : ''}
+              </span>
+              <button
+                onClick={() => setWeekIdx(w => editorProgram.type === 'fixed' ? Math.min((editorProgram.duration_weeks ?? 12) - 1, w + 1) : w + 1)}
+                disabled={editorProgram.type === 'fixed' && weekIdx >= (editorProgram.duration_weeks ?? 12) - 1}
+                className="p-1.5 rounded-lg hover:bg-white/5 disabled:opacity-30 transition-all"
+              >
+                <ChevronRight size={18} className="text-gray-400" />
+              </button>
+            </div>
+          </div>
+
+          {/* Days grid */}
+          <div className="max-w-5xl mx-auto px-6 py-6">
+            {wodsLoading ? (
+              <div className="text-center py-20 text-gray-500">Chargement…</div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                {Array.from({ length: 7 }, (_, i) => {
+                  const dayNum = weekIdx * 7 + i + 1;
+                  const dayWods = wodsForDay(dayNum);
+                  const isRest = i >= editorProgram.days_per_week;
+                  return (
+                    <div key={dayNum} className={`rounded-2xl border p-4 ${isRest ? 'border-white/[0.03] bg-white/[0.01]' : 'border-white/[0.06] bg-[#111]'}`}>
+                      <div className="flex items-center justify-between mb-3">
+                        <span className={`text-xs font-bold ${isRest ? 'text-gray-600' : 'text-gray-400'}`}>
+                          {DAY_LABELS[i]} — J{dayNum}
+                        </span>
+                        {isRest && <span className="text-[10px] text-gray-600 font-bold">REPOS</span>}
+                      </div>
+
+                      {dayWods.map(w => {
+                        const typeInfo = WOD_TYPES.find(t => t.value === w.wod_type);
+                        return (
+                          <div key={w.id} className="bg-white/[0.03] rounded-xl p-3 mb-2">
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className="text-xs font-bold text-white flex-1" title={w.title}>{w.title}</span>
+                              {typeInfo && (
+                                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded" style={{ backgroundColor: `${typeInfo.color}20`, color: typeInfo.color }}>
+                                  {typeInfo.label}
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-[11px] text-gray-500 line-clamp-3 whitespace-pre-line mb-2">{w.description}</p>
+                            {w.time_cap_seconds && (
+                              <div className="flex items-center gap-1 text-[10px] text-gray-600 mb-2">
+                                <Clock size={10} /> {Math.floor(w.time_cap_seconds / 60)} min
+                              </div>
+                            )}
+                            <div className="flex items-center gap-1">
+                              <button onClick={() => openWodEdit(w)} className="text-[10px] font-semibold text-gray-500 hover:text-white px-2 py-1 rounded hover:bg-white/5 transition-all">
+                                <Pencil size={10} />
+                              </button>
+                              <button onClick={() => deleteWod(w.id)} className="text-[10px] font-semibold text-gray-500 hover:text-red-400 px-2 py-1 rounded hover:bg-red-500/10 transition-all">
+                                <Trash2 size={10} />
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
+
+                      {!isRest && (
+                        <button
+                          onClick={() => openWodCreate(dayNum)}
+                          className="w-full flex items-center justify-center gap-1.5 py-2 rounded-xl border border-dashed border-white/10 hover:border-emerald-500/50 hover:bg-emerald-500/5 text-xs font-semibold text-gray-500 hover:text-emerald-400 transition-all"
+                        >
+                          <Plus size={14} /> Ajouter
+                        </button>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* WOD create/edit modal */}
+      {showWodForm && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="w-full max-w-lg bg-[#111] border border-white/[0.06] rounded-2xl p-6 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-5">
+              <h2 className="text-lg font-black text-white">
+                {editWodId ? 'Modifier la séance' : `Nouvelle séance — J${wodDayNumber}`}
+              </h2>
+              <button onClick={() => setShowWodForm(false)} className="text-gray-500 hover:text-white"><X size={20} /></button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="text-xs font-bold text-gray-400 mb-1 block">Titre *</label>
+                <input
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white outline-none focus:border-emerald-500/50"
+                  value={wodForm.title} onChange={e => setWodForm({ ...wodForm, title: e.target.value })}
+                  placeholder="Back Squat 5x5 + MetCon"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-gray-400 mb-1 block">Contenu de la séance *</label>
+                <textarea
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white outline-none focus:border-emerald-500/50 min-h-[140px] font-mono"
+                  value={wodForm.description} onChange={e => setWodForm({ ...wodForm, description: e.target.value })}
+                  placeholder={"A) Back Squat 5x5 @80%\nRest 2:00\n\nB) 3 Rounds For Time:\n12 Thrusters 42.5/30\n12 C2B Pull-ups\n400m Run"}
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-gray-400 mb-2 block">Type</label>
+                <div className="flex flex-wrap gap-2">
+                  {WOD_TYPES.map(t => (
+                    <button
+                      key={t.value}
+                      onClick={() => setWodForm({ ...wodForm, wod_type: t.value })}
+                      className={`text-xs font-bold px-3 py-1.5 rounded-lg transition-all ${wodForm.wod_type === t.value ? 'ring-2 ring-offset-1 ring-offset-[#111]' : 'opacity-50 hover:opacity-80'}`}
+                      style={{ backgroundColor: `${t.color}20`, color: t.color, ...(wodForm.wod_type === t.value ? { ringColor: t.color } : {}) }}
+                    >
+                      {t.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-bold text-gray-400 mb-1 block">Time Cap (min)</label>
+                  <input
+                    type="number"
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white outline-none focus:border-emerald-500/50"
+                    value={wodForm.time_cap} onChange={e => setWodForm({ ...wodForm, time_cap: e.target.value })}
+                    placeholder="12"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-gray-400 mb-1 block">Jour</label>
+                  <input
+                    type="number"
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white outline-none focus:border-emerald-500/50"
+                    value={wodDayNumber} onChange={e => setWodDayNumber(parseInt(e.target.value) || 1)}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-gray-400 mb-1 block">Notes coach</label>
+                <textarea
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white outline-none focus:border-emerald-500/50 min-h-[60px]"
+                  value={wodForm.notes} onChange={e => setWodForm({ ...wodForm, notes: e.target.value })}
+                  placeholder="Scaling: 35/25kg, Pull-ups stricts…"
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-3 mt-6">
+              <button onClick={() => setShowWodForm(false)} className="px-4 py-2.5 rounded-xl text-sm font-bold text-gray-400 hover:text-white hover:bg-white/5 transition-all">Annuler</button>
+              <button
+                onClick={saveWod}
+                disabled={wodSaving || !wodForm.title.trim() || !wodForm.description.trim()}
+                className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white text-sm font-bold transition-all"
+              >
+                {wodSaving ? 'Enregistrement…' : editWodId ? 'Modifier' : 'Ajouter la séance'}
               </button>
             </div>
           </div>
