@@ -21,6 +21,9 @@ interface BoxWOD {
   notes: string | null; is_published: boolean;
   publish_at: string | null;
   sort_order: number;
+  emom_interval_minutes: number | null;
+  tabata_work_seconds: number | null;
+  tabata_rest_seconds: number | null;
 }
 
 const WOD_TYPES: { value: WodType; label: string; color: string }[] = [
@@ -67,7 +70,7 @@ function toISO(d: Date): string {
   return `${y}-${m}-${day}`;
 }
 
-const EMPTY = { title: '', description: '', wod_type: '' as string, block: '' as string, date: '', timeCap: '', rounds: '', notes: '', videoUrl: '', published: true, leaderboard: true, groupIds: [] as string[], programIds: [] as string[], publishMode: 'now' as 'now' | 'scheduled', publishHour: '06', publishMin: '00' };
+const EMPTY = { title: '', description: '', wod_type: '' as string, block: '' as string, date: '', timeCap: '', rounds: '', notes: '', videoUrl: '', published: true, leaderboard: true, groupIds: [] as string[], programIds: [] as string[], publishMode: 'now' as 'now' | 'scheduled', publishHour: '06', publishMin: '00', emomInterval: '1', tabataWork: '20', tabataRest: '10' };
 
 export default function WODsPage() {
   const supabase = createClient();
@@ -196,6 +199,9 @@ export default function WODsPage() {
       publishMode: wod.publish_at ? 'scheduled' : 'now',
       publishHour: wod.publish_at ? new Date(wod.publish_at).getHours().toString().padStart(2, '0') : '06',
       publishMin: wod.publish_at ? new Date(wod.publish_at).getMinutes().toString().padStart(2, '0') : '00',
+      emomInterval: wod.emom_interval_minutes ? String(wod.emom_interval_minutes) : '1',
+      tabataWork: wod.tabata_work_seconds ? String(wod.tabata_work_seconds) : '20',
+      tabataRest: wod.tabata_rest_seconds != null ? String(wod.tabata_rest_seconds) : '10',
     });
     setFormError(null);
     setModal(true);
@@ -219,6 +225,15 @@ export default function WODsPage() {
       leaderboard_enabled: form.leaderboard,
       publish_at: form.published && form.publishMode === 'scheduled'
         ? `${form.date}T${form.publishHour.padStart(2,'0')}:${form.publishMin.padStart(2,'0')}:00`
+        : null,
+      emom_interval_minutes: form.wod_type === 'emom'
+        ? Math.min(5, Math.max(1, parseInt(form.emomInterval) || 1))
+        : null,
+      tabata_work_seconds: form.wod_type === 'tabata'
+        ? Math.max(5, parseInt(form.tabataWork) || 20)
+        : null,
+      tabata_rest_seconds: form.wod_type === 'tabata'
+        ? Math.max(0, parseInt(form.tabataRest) || 10)
         : null,
     };
     let wodId = editWOD?.id;
@@ -940,6 +955,49 @@ export default function WODsPage() {
                   </select>
                 </div>
               </div>
+
+              {form.wod_type === 'emom' && (
+                <div>
+                  <label className="block text-xs font-semibold text-gray-400 mb-1.5 uppercase tracking-wider">Intervalle EMOM</label>
+                  <div className="grid grid-cols-5 gap-2">
+                    {[1, 2, 3, 4, 5].map(v => {
+                      const selected = parseInt(form.emomInterval) === v;
+                      return (
+                        <button
+                          key={v}
+                          type="button"
+                          onClick={() => setForm(f => ({ ...f, emomInterval: String(v) }))}
+                          className={`py-2 rounded-lg text-xs font-bold border transition-colors ${
+                            selected
+                              ? 'bg-[#8B5CF6]/25 text-[#C4B5FD] border-[#8B5CF6]/60'
+                              : 'bg-white/5 text-gray-400 border-white/10 hover:text-white hover:border-white/20'
+                          }`}
+                        >
+                          {v === 1 ? 'EMOM' : `E${v}MOM`}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <p className="text-[11px] text-gray-500 mt-1.5">Un intervalle = {form.emomInterval} min entre chaque départ.</p>
+                </div>
+              )}
+
+              {form.wod_type === 'tabata' && (
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-400 mb-1.5 uppercase tracking-wider">Travail (sec)</label>
+                    <input type="number" min={5} max={300} className={inp} value={form.tabataWork}
+                      onChange={e => setForm(f => ({ ...f, tabataWork: e.target.value }))}
+                      placeholder="20" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-400 mb-1.5 uppercase tracking-wider">Repos (sec)</label>
+                    <input type="number" min={0} max={300} className={inp} value={form.tabataRest}
+                      onChange={e => setForm(f => ({ ...f, tabataRest: e.target.value }))}
+                      placeholder="10" />
+                  </div>
+                </div>
+              )}
 
               <div>
                 <label className="block text-xs font-semibold text-gray-400 mb-1.5 uppercase tracking-wider">Titre *</label>
