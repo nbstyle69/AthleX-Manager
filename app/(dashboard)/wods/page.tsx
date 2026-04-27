@@ -394,11 +394,24 @@ export default function WODsPage() {
       setPdfAnalyzing(true);
       const pdfBase64 = await fileToBase64(file);
       const defaultStart = toISO(weekDates[0]);
-      const { data, error } = await supabase.functions.invoke('parse-wod-pdf', {
-        body: { box_id: boxId, pdf_base64: pdfBase64, default_start_date: defaultStart },
+      // Direct fetch to Edge Function so we can read non-2xx error body
+      const { data: { session } } = await supabase.auth.getSession();
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+      const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+      const res = await fetch(`${supabaseUrl}/functions/v1/parse-wod-pdf`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session?.access_token ?? anonKey}`,
+          'apikey': anonKey,
+        },
+        body: JSON.stringify({ box_id: boxId, pdf_base64: pdfBase64, default_start_date: defaultStart }),
       });
-      if (error) throw error;
-      const parsed = (data as any)?.wods as ParsedPdfWOD[] | undefined;
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(json?.error ?? `HTTP ${res.status}`);
+      }
+      const parsed = json?.wods as ParsedPdfWOD[] | undefined;
       if (!parsed || parsed.length === 0) {
         setImportResult({ ok: 0, errors: ['Aucun WOD détecté dans le PDF.'] });
         return;
