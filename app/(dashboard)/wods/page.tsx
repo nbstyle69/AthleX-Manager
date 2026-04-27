@@ -88,6 +88,24 @@ export default function WODsPage() {
   const [formError,   setFormError]   = useState<string | null>(null);
   const [importing,   setImporting]   = useState(false);
   const [importResult, setImportResult] = useState<{ ok: number; errors: string[] } | null>(null);
+
+  // PDF AI import
+  interface ParsedPdfWOD {
+    scheduled_date: string;
+    title: string;
+    wod_type: WodType;
+    description: string | null;
+    time_cap_seconds: number | null;
+    rounds: number | null;
+    notes: string | null;
+    block_name: string | null;
+  }
+  const [pdfAnalyzing, setPdfAnalyzing] = useState(false);
+  const [pdfPreview, setPdfPreview] = useState<{
+    wods: ParsedPdfWOD[];
+    selected: boolean[];
+    inserting: boolean;
+  } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [layout, setLayoutRaw] = useState<'rows' | 'columns'>(() => {
     if (typeof window !== 'undefined') {
@@ -355,10 +373,87 @@ export default function WODsPage() {
     a.click(); URL.revokeObjectURL(url);
   }
 
-  // ── CSV / JSON Import ──────────────────────────────────────────────────────
+  // ── PDF AI Import (Claude) ──────────────────────────────────────────────────────────────────
+  async function fileToBase64(file: File): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const result = reader.result as string;
+        // strip 'data:application/pdf;base64,'
+        const base64 = result.split(',')[1] ?? '';
+        resolve(base64);
+      };
+      reader.onerror = () => reject(reader.error);
+      reader.readAsDataURL(file);
+    });
+  }
+
+  async function importPdfWods(file: File) {
+    if (!boxId) return;
+    try {
+      setPdfAnalyzing(true);
+      const pdfBase64 = await fileToBase64(file);
+      const defaultStart = toISO(weekDates[0]);
+      const { data, error } = await supabase.functions.invoke('parse-wod-pdf', {
+        body: { box_id: boxId, pdf_base64: pdfBase64, default_start_date: defaultStart },
+      });
+      if (error) throw error;
+      const parsed = (data as any)?.wods as ParsedPdfWOD[] | undefined;
+      if (!parsed || parsed.length === 0) {
+        setImportResult({ ok: 0, errors: ['Aucun WOD détecté dans le PDF.'] });
+        return;
+      }
+      setPdfPreview({ wods: parsed, selected: parsed.map(() => true), inserting: false });
+    } catch (e: any) {
+      setImportResult({ ok: 0, errors: [`Erreur IA : ${e?.message ?? 'analyse PDF impossible'}`] });
+    } finally {
+      setPdfAnalyzing(false);
+    }
+  }
+
+  async function confirmPdfImport() {
+    if (!pdfPreview || !boxId || !userId) return;
+    const selected = pdfPreview.wods.filter((_, i) => pdfPreview.selected[i]);
+    if (selected.length === 0) return;
+    setPdfPreview(p => p ? { ...p, inserting: true } : p);
+    const payloads = selected.map((w, i) => ({
+      box_id: boxId,
+      created_by: userId,
+      title: w.title,
+      description: w.description,
+      wod_type: w.wod_type,
+      scheduled_date: w.scheduled_date,
+      time_cap_seconds: w.time_cap_seconds,
+      rounds: w.rounds,
+      notes: w.notes,
+      block_name: w.block_name,
+      is_published: true,
+      leaderboard_enabled: true,
+      sort_order: i,
+    }));
+    const { error } = await supabase.from('box_wods').insert(payloads);
+    if (error) {
+      setImportResult({ ok: 0, errors: [error.message] });
+    } else {
+      setImportResult({ ok: selected.length, errors: [] });
+      load();
+    }
+    setPdfPreview(null);
+  }
+
+  // ── CSV / JSON / PDF Import ──────────────────────────────────────────────────────────────
   async function handleImport(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file || !boxId || !userId) return;
+
+    // PDF → IA Claude
+    if (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) {
+      // reset input so user can re-pick same file
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      await importPdfWods(file);
+      return;
+    }
+
     setImporting(true);
     setImportResult(null);
     const text = await file.text();
@@ -516,7 +611,7 @@ export default function WODsPage() {
           <label className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold border border-white/10 text-gray-400 hover:text-white hover:border-white/20 transition-colors cursor-pointer ${importing ? 'opacity-60 pointer-events-none' : ''}`}>
             {importing ? <Loader2 size={13} className="animate-spin" /> : <Upload size={13} />}
             {importing ? 'Import…' : 'Importer'}
-            <input ref={fileInputRef} type="file" accept=".csv,.json" className="hidden" onChange={handleImport} />
+            <input ref={fileInputRef} type="file" accept=".csv,.json,.pdf" className="hidden" onChange={handleImport} />
           </label>
           <button
             onClick={() => setLayout(l => l === 'rows' ? 'columns' : 'rows')}
@@ -534,6 +629,118 @@ export default function WODsPage() {
           </button>
         </div>
       </div>
+
+      {/* PDF AI loading overlay */}
+      {pdfAnalyzing && (
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center">
+          <div className="bg-[#111111] border border-white/10 rounded-2xl p-8 max-w-sm text-center">
+            <Loader2 size={40} className="animate-spin text-[#C9A227] mx-auto mb-3" />
+            <h3 className="text-lg font-bold text-white mb-1">Analyse IA en cours…</h3>
+            <p className="text-sm text-gray-400">Claude lit ton PDF et extrait les WODs.</p>
+            <p className="text-xs text-gray-500 mt-3">Cela peut prendre 10 à 30 secondes.</p>
+          </div>
+        </div>
+      )}
+
+      {/* PDF AI preview modal */}
+      {pdfPreview && (
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-[#0a0a0a] border border-white/10 rounded-2xl w-full max-w-3xl max-h-[90vh] flex flex-col">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-white/8">
+              <div>
+                <h3 className="text-lg font-bold text-white">WODs détectés</h3>
+                <p className="text-xs text-gray-400 mt-0.5">
+                  {pdfPreview.wods.length} WOD(s) — coche ceux à importer
+                </p>
+              </div>
+              <button
+                onClick={() => !pdfPreview.inserting && setPdfPreview(null)}
+                disabled={pdfPreview.inserting}
+                className="text-gray-500 hover:text-white disabled:opacity-40"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto px-6 py-4 space-y-2">
+              {pdfPreview.wods.map((wod, i) => {
+                const tc = TYPE_COLOR[wod.wod_type] ?? '#6B7280';
+                const checked = pdfPreview.selected[i];
+                return (
+                  <button
+                    key={i}
+                    onClick={() => {
+                      setPdfPreview(p => p ? {
+                        ...p,
+                        selected: p.selected.map((s, idx) => idx === i ? !s : s),
+                      } : p);
+                    }}
+                    className={`w-full text-left flex items-stretch bg-[#111111] border rounded-xl overflow-hidden transition-all ${
+                      checked ? 'border-white/15' : 'border-white/5 opacity-50'
+                    }`}
+                  >
+                    <div className="w-1.5" style={{ backgroundColor: tc }} />
+                    <div className="flex-1 px-4 py-3">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-[10px] font-extrabold tracking-wider" style={{ color: tc }}>
+                          {wod.wod_type.toUpperCase()}
+                        </span>
+                        <span className="text-[11px] text-gray-400 font-bold">{wod.scheduled_date}</span>
+                        {wod.block_name && (
+                          <span className="text-[9px] font-bold text-gray-500 bg-white/5 px-1.5 py-0.5 rounded">
+                            {wod.block_name}
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-sm font-bold text-white truncate">{wod.title}</p>
+                      {wod.description && (
+                        <p className="text-xs text-gray-400 line-clamp-3 mt-1 whitespace-pre-line">{wod.description}</p>
+                      )}
+                      <div className="flex gap-3 mt-2">
+                        {wod.time_cap_seconds != null && (
+                          <span className="text-[11px] text-gray-500 font-bold">⏱ {Math.floor(wod.time_cap_seconds / 60)} min</span>
+                        )}
+                        {wod.rounds != null && (
+                          <span className="text-[11px] text-gray-500 font-bold">🔁 {wod.rounds} rounds</span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="px-4 flex items-center">
+                      <div className={`w-5 h-5 rounded border-2 flex items-center justify-center ${
+                        checked ? 'bg-[#C9A227] border-[#C9A227]' : 'border-gray-600'
+                      }`}>
+                        {checked && <span className="text-black text-xs font-black">✓</span>}
+                      </div>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+
+            <div className="flex items-center gap-3 px-6 py-4 border-t border-white/8">
+              <button
+                onClick={() => {
+                  if (!pdfPreview) return;
+                  const allSelected = pdfPreview.selected.every(Boolean);
+                  setPdfPreview({ ...pdfPreview, selected: pdfPreview.selected.map(() => !allSelected) });
+                }}
+                className="px-4 py-2.5 rounded-xl text-xs font-bold border border-white/10 text-gray-300 hover:text-white hover:border-white/20 transition-colors"
+              >
+                {pdfPreview.selected.every(Boolean) ? 'Tout décocher' : 'Tout cocher'}
+              </button>
+              <button
+                onClick={confirmPdfImport}
+                disabled={pdfPreview.inserting || pdfPreview.selected.filter(Boolean).length === 0}
+                className="flex-1 px-4 py-2.5 rounded-xl text-sm font-bold bg-[#C9A227] text-black hover:bg-[#b89222] disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
+              >
+                {pdfPreview.inserting
+                  ? <><Loader2 size={14} className="animate-spin" /> Import…</>
+                  : <>Importer {pdfPreview.selected.filter(Boolean).length} WOD(s)</>}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Import result */}
       {importResult && (
