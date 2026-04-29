@@ -49,9 +49,9 @@ export default function LoginPage() {
   return (
     <div className="w-full max-w-sm mx-auto px-4">
       <div className="flex flex-col items-center mb-10 gap-3">
-        <img src="/logo.png" alt="Test" width={56} height={56} className="w-14 h-14 object-contain" />
+        <img src="/logo.png" alt="Athex" width={96} height={96} className="w-24 h-24 object-contain" />
         <div className="text-center">
-          <h1 className="text-2xl font-black text-white tracking-tight">Test</h1>
+          <h1 className="text-2xl font-black text-white tracking-tight">Athex</h1>
           <p className="text-sm text-gray-400 font-medium mt-0.5">Back Office Box Owner</p>
         </div>
       </div>
