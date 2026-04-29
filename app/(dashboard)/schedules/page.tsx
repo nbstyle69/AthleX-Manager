@@ -232,11 +232,14 @@ export default function SchedulesPage() {
   async function generateFromTemplate() {
     if (!boxId) return;
     setGenerating(true);
+
+    // Pre-check: at least one active template
     const { data: tpls } = await supabase
       .from('schedule_templates')
-      .select('*')
+      .select('id')
       .eq('box_id', boxId)
-      .eq('is_active', true);
+      .eq('is_active', true)
+      .limit(1);
 
     if (!tpls || tpls.length === 0) {
       alert('Aucun modèle actif. Crée des créneaux types dans "Modèle semaine" d\'abord.');
@@ -244,44 +247,22 @@ export default function SchedulesPage() {
       return;
     }
 
-    // Fetch existing schedules for the week to avoid duplicates
-    const start = toISO(weekDates[0]);
-    const end   = toISO(weekDates[6]);
-    const { data: existing } = await supabase
-      .from('class_schedules')
-      .select('scheduled_date, start_time, title')
-      .eq('box_id', boxId)
-      .gte('scheduled_date', start)
-      .lte('scheduled_date', end);
-
-    const existingSet = new Set(
-      (existing ?? []).map((s: any) => `${s.scheduled_date}|${s.start_time}|${s.title}`)
-    );
-
-    // day_of_week: 1=Lundi ... 7=Dimanche. weekDates[0]=Lundi
-    const toInsert = tpls
-      .map((t: any) => ({
-        box_id: boxId,
-        title: t.title,
-        description: t.description,
-        coach: t.coach,
-        scheduled_date: toISO(weekDates[t.day_of_week - 1]),
-        start_time: t.start_time,
-        end_time: t.end_time,
-        max_capacity: t.max_capacity,
-      }))
-      .filter((s: any) => !existingSet.has(`${s.scheduled_date}|${s.start_time}|${s.title}`));
-
-    if (toInsert.length === 0) {
-      setGenerating(false);
-      alert('Tous les créneaux du modèle existent déjà pour cette semaine.');
-      return;
-    }
-
-    const { error } = await supabase.from('class_schedules').insert(toInsert);
+    // Generate 8 weeks ahead via RPC (idempotent, server-side).
+    // A daily cron then maintains the 8-week rolling window automatically.
+    const { data, error } = await supabase.rpc('generate_class_schedules_from_templates', {
+      p_box_id: boxId,
+      p_weeks_ahead: 8,
+    });
 
     setGenerating(false);
     if (error) { alert('Erreur : ' + error.message); return; }
+
+    const inserted = (data as number) ?? 0;
+    if (inserted === 0) {
+      alert('Tous les créneaux des 8 prochaines semaines sont déjà générés.');
+    } else {
+      alert(`${inserted} créneaux générés sur 8 semaines.\nLa génération se prolongera automatiquement chaque jour.`);
+    }
     load();
   }
 
@@ -451,7 +432,7 @@ export default function SchedulesPage() {
             className="flex items-center gap-2 border border-[#C9A227] text-[#C9A227] hover:bg-[#C9A227]/10 text-sm font-bold px-4 py-2.5 rounded-xl transition-colors disabled:opacity-50"
           >
             {generating ? <Loader2 size={16} className="animate-spin" /> : <CalendarCheck size={16} />}
-            Générer la semaine
+            Générer 8 semaines
           </button>
           <button
             onClick={() => openCreate(todayISO)}
