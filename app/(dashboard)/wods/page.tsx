@@ -121,6 +121,13 @@ export default function WODsPage() {
     });
   };
   const [showDateNav, setShowDateNav] = useState(false);
+  const [confirmDialog, setConfirmDialog] = useState<{
+    title: string;
+    message: string;
+    confirmLabel?: string;
+    danger?: boolean;
+    onConfirm: () => void | Promise<void>;
+  } | null>(null);
   const [groups, setGroups] = useState<{ id: string; name: string; color: string }[]>([]);
   const [wodGroupMap, setWodGroupMap] = useState<Record<string, string[]>>({});
   const [boxPrograms, setBoxPrograms] = useState<{ id: string; title: string; type: string }[]>([]);
@@ -293,26 +300,39 @@ export default function WODsPage() {
     load();
   }
 
-  async function deleteWOD(wod: BoxWOD) {
-    if (!confirm(`Supprimer "${wod.title}" ?`)) return;
-    await supabase.from('box_wods').delete().eq('id', wod.id);
-    load();
+  function deleteWOD(wod: BoxWOD) {
+    setConfirmDialog({
+      title: 'Supprimer ce WOD ?',
+      message: `"${wod.title}" sera définitivement supprimé.`,
+      confirmLabel: 'Supprimer',
+      danger: true,
+      onConfirm: async () => {
+        await supabase.from('box_wods').delete().eq('id', wod.id);
+        load();
+      },
+    });
   }
 
-  async function deleteAllWodsThisWeek() {
+  function deleteAllWodsThisWeek() {
     if (!boxId || wods.length === 0) return;
     const startISO = toISO(weekDates[0]);
     const endISO   = toISO(weekDates[6]);
     const count    = wods.length;
-    if (!confirm(`Supprimer TOUS les ${count} WOD(s) de la semaine du ${weekDates[0].toLocaleDateString('fr-FR')} au ${weekDates[6].toLocaleDateString('fr-FR')} ?\n\nCette action est irréversible.`)) return;
-    if (!confirm(`Confirme une dernière fois : supprimer les ${count} WODs ?`)) return;
-    await supabase
-      .from('box_wods')
-      .delete()
-      .eq('box_id', boxId)
-      .gte('scheduled_date', startISO)
-      .lte('scheduled_date', endISO);
-    load();
+    setConfirmDialog({
+      title: `Supprimer ${count} WODs ?`,
+      message: `Tous les WODs de la semaine du ${weekDates[0].toLocaleDateString('fr-FR')} au ${weekDates[6].toLocaleDateString('fr-FR')} seront supprimés. Cette action est irréversible.`,
+      confirmLabel: 'Tout supprimer',
+      danger: true,
+      onConfirm: async () => {
+        await supabase
+          .from('box_wods')
+          .delete()
+          .eq('box_id', boxId)
+          .gte('scheduled_date', startISO)
+          .lte('scheduled_date', endISO);
+        load();
+      },
+    });
   }
 
   async function moveWod(dayISO: string, index: number, direction: 'up' | 'down') {
@@ -675,6 +695,41 @@ export default function WODsPage() {
             <h3 className="text-lg font-bold text-white mb-1">Analyse IA en cours…</h3>
             <p className="text-sm text-gray-400">Claude lit ton PDF et extrait les WODs.</p>
             <p className="text-xs text-gray-500 mt-3">Cela peut prendre 10 à 30 secondes.</p>
+          </div>
+        </div>
+      )}
+
+      {/* Confirm dialog (custom — replaces native confirm() which can be blocked by browser) */}
+      {confirmDialog && (
+        <div className="fixed inset-0 z-[60] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-[#0a0a0a] border border-white/10 rounded-2xl w-full max-w-md p-6">
+            <div className="flex items-start gap-3 mb-4">
+              <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${confirmDialog.danger ? 'bg-red-500/15' : 'bg-[#C9A227]/15'}`}>
+                <Trash2 size={18} className={confirmDialog.danger ? 'text-red-400' : 'text-[#C9A227]'} />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-base font-bold text-white mb-1">{confirmDialog.title}</h3>
+                <p className="text-sm text-gray-400 leading-relaxed">{confirmDialog.message}</p>
+              </div>
+            </div>
+            <div className="flex gap-2 justify-end">
+              <button
+                onClick={() => setConfirmDialog(null)}
+                className="px-4 py-2 rounded-xl text-sm font-bold border border-white/10 text-gray-300 hover:bg-white/5 transition-colors"
+              >
+                Annuler
+              </button>
+              <button
+                onClick={async () => {
+                  const cb = confirmDialog.onConfirm;
+                  setConfirmDialog(null);
+                  await cb();
+                }}
+                className={`px-4 py-2 rounded-xl text-sm font-bold transition-colors ${confirmDialog.danger ? 'bg-red-500 hover:bg-red-600 text-white' : 'bg-[#C9A227] hover:bg-[#C9A227]/90 text-black'}`}
+              >
+                {confirmDialog.confirmLabel ?? 'Confirmer'}
+              </button>
+            </div>
           </div>
         </div>
       )}
