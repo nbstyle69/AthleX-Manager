@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { Shield, LayoutDashboard, Swords, Users, Trophy, LogOut, Sun, Moon, Building2, Globe2, Award, Dumbbell, FileText, MapPin, BarChart3, Handshake } from 'lucide-react';
+import { Shield, LayoutDashboard, Swords, Users, Trophy, LogOut, Sun, Moon, Building2, Globe2, Award, Dumbbell, FileText, MapPin, BarChart3, Handshake, Flag } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { cn } from '@/lib/utils';
 import { useTheme } from '@/components/ThemeProvider';
@@ -12,6 +12,7 @@ const NAV = [
   { href: '/admin/daily-contests', label: 'Contestations',  icon: Swords },
   { href: '/admin/tournaments',    label: 'Tournois',       icon: Trophy },
   { href: '/admin/users',          label: 'Utilisateurs',   icon: Users },
+  { href: '/admin/reports',        label: 'Signalements',   icon: Flag },
   { href: '/admin/boxes',            label: 'Boxes',            icon: Building2 },
   { href: '/admin/inter-competitions', label: 'Compet. Inter-box', icon: Globe2 },
   { href: '/admin/physical-competitions', label: 'Compet. Physiques', icon: MapPin },

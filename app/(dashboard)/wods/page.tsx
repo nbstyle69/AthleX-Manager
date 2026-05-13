@@ -299,6 +299,22 @@ export default function WODsPage() {
     load();
   }
 
+  async function deleteAllWodsThisWeek() {
+    if (!boxId || wods.length === 0) return;
+    const startISO = toISO(weekDates[0]);
+    const endISO   = toISO(weekDates[6]);
+    const count    = wods.length;
+    if (!confirm(`Supprimer TOUS les ${count} WOD(s) de la semaine du ${weekDates[0].toLocaleDateString('fr-FR')} au ${weekDates[6].toLocaleDateString('fr-FR')} ?\n\nCette action est irréversible.`)) return;
+    if (!confirm(`Confirme une dernière fois : supprimer les ${count} WODs ?`)) return;
+    await supabase
+      .from('box_wods')
+      .delete()
+      .eq('box_id', boxId)
+      .gte('scheduled_date', startISO)
+      .lte('scheduled_date', endISO);
+    load();
+  }
+
   async function moveWod(dayISO: string, index: number, direction: 'up' | 'down') {
     const dayWODs = wods.filter(w => w.scheduled_date === dayISO);
     const target = direction === 'up' ? index - 1 : index + 1;
@@ -633,6 +649,14 @@ export default function WODsPage() {
           >
             {layout === 'rows' ? <LayoutGrid size={13} /> : <List size={13} />}
             {layout === 'rows' ? 'Colonnes' : 'Lignes'}
+          </button>
+          <button
+            onClick={deleteAllWodsThisWeek}
+            disabled={!wods.length}
+            title="Supprimer tous les WODs de la semaine affichée"
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold border border-red-500/20 text-red-400 hover:text-red-300 hover:border-red-500/40 hover:bg-red-500/5 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          >
+            <Trash2 size={13} /> Tout supprimer
           </button>
           <button
             onClick={() => openCreate(todayISO)}
