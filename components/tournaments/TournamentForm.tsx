@@ -12,29 +12,49 @@ const STATUSES = [
   { value: 'active', label: 'En cours' },
 ];
 
+const FORMAT_META: Record<string, { label: string; desc: string }> = {
+  simple:     { label: 'Classique',           desc: 'Classement par points cumulés sur les WODs.' },
+  bracket:    { label: 'Bracket (élimination simple)', desc: 'Tableau à élimination directe. Le perdant est éliminé.' },
+  swiss:      { label: 'Swiss (double élimination)',   desc: 'Winner Bracket + Loser Bracket. Le champion WB choisit le WOD de la grande finale.' },
+  league_div: { label: 'Ligue avec divisions',         desc: 'Plusieurs divisions avec promotion/relégation en fin de saison.' },
+};
+
 interface Props {
   boxId: string;
   initial?: any;
+  allowedFormats?: string[];
 }
 
-export default function TournamentForm({ boxId, initial }: Props) {
+export default function TournamentForm({ boxId, initial, allowedFormats = ['simple'] }: Props) {
   const router = useRouter();
   const fileRef = useRef<HTMLInputElement>(null);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [bannerUrl, setBannerUrl] = useState<string | null>(initial?.banner_url ?? null);
   const [error, setError]   = useState<string | null>(null);
+  const defaultFormat = (allowedFormats.includes(initial?.format) ? initial.format : allowedFormats[0]) ?? 'simple';
   const [form, setForm] = useState({
-    name:             initial?.name             ?? '',
-    description:      initial?.description      ?? '',
-    level:            initial?.level            ?? 'rx',
-    status:           initial?.status           ?? 'draft',
-    start_date:       initial?.start_date       ?? '',
-    end_date:         initial?.end_date         ?? '',
-    max_participants: initial?.max_participants ?? 32,
-    prize:            initial?.prize            ?? '',
-    rules:            initial?.rules            ?? `1. Les scores doivent être soumis dans les 24h suivant l'ouverture du WOD.\n2. Une vidéo YouTube publique est obligatoire pour chaque soumission.\n3. Tout score sans vidéo sera automatiquement rejeté.\n4. Les scores sont validés par l'organisateur sous 48h.\n5. Tout comportement antisportif entraîne la disqualification.`,
+    name:                initial?.name                ?? '',
+    description:         initial?.description         ?? '',
+    level:               initial?.level               ?? 'rx',
+    status:              initial?.status              ?? 'draft',
+    start_date:          initial?.start_date          ?? '',
+    end_date:            initial?.end_date            ?? '',
+    max_participants:    initial?.max_participants    ?? 32,
+    prize:               initial?.prize               ?? '',
+    format:              defaultFormat,
+    require_video_proof: initial?.require_video_proof ?? false,
+    rules:               initial?.rules               ?? `1. Les scores doivent être soumis dans les 24h suivant l'ouverture du WOD.\n2. Une vidéo YouTube publique est obligatoire pour chaque soumission.\n3. Tout score sans vidéo sera automatiquement rejeté.\n4. Les scores sont validés par l'organisateur sous 48h.\n5. Tout comportement antisportif entraîne la disqualification.`,
   });
+
+  // Divisions config (only for league_div, only at create time)
+  const [divisions, setDivisions] = useState<Array<{ name: string; max_members: number; promote_count: number; relegate_count: number }>>(
+    initial ? [] : [
+      { name: 'D1', max_members: 16, promote_count: 0, relegate_count: 3 },
+      { name: 'D2', max_members: 16, promote_count: 3, relegate_count: 3 },
+      { name: 'D3', max_members: 16, promote_count: 3, relegate_count: 0 },
+    ]
+  );
 
   const set = (k: string, v: any) => setForm(f => ({ ...f, [k]: v }));
 
@@ -86,9 +106,23 @@ export default function TournamentForm({ boxId, initial }: Props) {
       router.push(`/tournaments/${initial.id}`);
     } else {
       const { data, error: err } = await supabase.from('tournaments').insert(payload).select('id').single();
+      if (err) { setSaving(false); setError(err.message); return; }
+      // Bootstrap divisions for league_div
+      if (form.format === 'league_div' && divisions.length > 0) {
+        const rows = divisions.map((d, idx) => ({
+          tournament_id:  data.id,
+          name:           d.name,
+          level:          idx + 1,
+          max_members:    d.max_members,
+          promote_count:  d.promote_count,
+          relegate_count: d.relegate_count,
+        }));
+        const { error: dErr } = await supabase.from('tournament_divisions').insert(rows);
+        if (dErr) { setSaving(false); setError(`Tournoi créé mais divisions: ${dErr.message}`); return; }
+      }
       setSaving(false);
-      if (err) { setError(err.message); return; }
       router.push(`/tournaments/${data.id}/wods`);
+      return;
     }
     router.refresh();
   }
@@ -100,6 +134,37 @@ export default function TournamentForm({ boxId, initial }: Props) {
     <form onSubmit={handleSubmit} className="space-y-8">
       {error && (
         <div className="bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3 text-sm text-red-400">{error}</div>
+      )}
+
+      {/* Format */}
+      {!initial && allowedFormats.length > 1 && (
+        <div className="bg-[#111111] border border-white/8 rounded-2xl p-6 space-y-4">
+          <h2 className="text-sm font-bold text-white uppercase tracking-wider">Format du tournoi</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {allowedFormats.map(fmt => {
+              const meta = FORMAT_META[fmt] ?? { label: fmt, desc: '' };
+              const active = form.format === fmt;
+              return (
+                <button key={fmt} type="button" onClick={() => set('format', fmt)}
+                  className={`text-left rounded-xl border p-4 transition-colors ${active ? 'border-[#C9A227] bg-[#C9A227]/10' : 'border-white/10 hover:border-white/20 bg-white/[0.02]'}`}>
+                  <div className="text-sm font-bold text-white">{meta.label}</div>
+                  <div className="text-xs text-gray-400 mt-1">{meta.desc}</div>
+                </button>
+              );
+            })}
+          </div>
+          {(form.format === 'bracket' || form.format === 'swiss') && (
+            <label className="flex items-center gap-3 mt-2 cursor-pointer">
+              <input type="checkbox" checked={form.require_video_proof}
+                onChange={e => set('require_video_proof', e.target.checked)}
+                className="w-4 h-4 accent-[#C9A227]" />
+              <span className="text-sm text-gray-300">Exiger une preuve vidéo pour valider les scores</span>
+            </label>
+          )}
+        </div>
+      )}
+      {!initial && allowedFormats.length === 1 && (
+        <input type="hidden" value={form.format} />
       )}
 
       {/* Section générale */}
@@ -182,6 +247,49 @@ export default function TournamentForm({ boxId, initial }: Props) {
           </div>
         </div>
       </div>
+
+      {/* Divisions (league_div uniquement) */}
+      {!initial && form.format === 'league_div' && (
+        <div className="bg-[#111111] border border-white/8 rounded-2xl p-6 space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-bold text-white uppercase tracking-wider">Divisions</h2>
+            <button type="button"
+              onClick={() => setDivisions(d => [...d, { name: `D${d.length + 1}`, max_members: 16, promote_count: 3, relegate_count: 3 }])}
+              className="text-xs font-semibold text-[#C9A227] hover:text-[#e0b730]">+ Ajouter une division</button>
+          </div>
+          <p className="text-xs text-gray-500">La D1 est la division supérieure. Les promus montent (level - 1), les relégués descendent (level + 1).</p>
+          <div className="space-y-2">
+            {divisions.map((d, idx) => (
+              <div key={idx} className="grid grid-cols-12 gap-2 items-center bg-white/[0.02] border border-white/10 rounded-xl p-3">
+                <div className="col-span-1 text-xs font-bold text-gray-500">#{idx + 1}</div>
+                <input className={`${inp} col-span-3`} value={d.name}
+                  onChange={e => setDivisions(arr => arr.map((x, i) => i === idx ? { ...x, name: e.target.value } : x))}
+                  placeholder="Nom" />
+                <div className="col-span-2">
+                  <div className="text-[10px] text-gray-500 uppercase mb-1">Max</div>
+                  <input type="number" min={2} className={inp} value={d.max_members}
+                    onChange={e => setDivisions(arr => arr.map((x, i) => i === idx ? { ...x, max_members: parseInt(e.target.value) || 0 } : x))} />
+                </div>
+                <div className="col-span-2">
+                  <div className="text-[10px] text-gray-500 uppercase mb-1">Promus ↑</div>
+                  <input type="number" min={0} className={inp} value={d.promote_count} disabled={idx === 0}
+                    onChange={e => setDivisions(arr => arr.map((x, i) => i === idx ? { ...x, promote_count: parseInt(e.target.value) || 0 } : x))} />
+                </div>
+                <div className="col-span-2">
+                  <div className="text-[10px] text-gray-500 uppercase mb-1">Relégués ↓</div>
+                  <input type="number" min={0} className={inp} value={d.relegate_count} disabled={idx === divisions.length - 1}
+                    onChange={e => setDivisions(arr => arr.map((x, i) => i === idx ? { ...x, relegate_count: parseInt(e.target.value) || 0 } : x))} />
+                </div>
+                <div className="col-span-2 flex justify-end">
+                  <button type="button" disabled={divisions.length <= 1}
+                    onClick={() => setDivisions(arr => arr.filter((_, i) => i !== idx))}
+                    className="text-xs text-red-400 hover:text-red-300 disabled:opacity-40">Supprimer</button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Règlement */}
       <div className="bg-[#111111] border border-white/8 rounded-2xl p-6 space-y-5">

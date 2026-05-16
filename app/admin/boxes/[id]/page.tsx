@@ -278,6 +278,14 @@ export default function BoxDetailPage() {
               <StatCard icon={Dumbbell} label="WODs" value={wods.length} color="text-emerald-400" bg="bg-emerald-500/15" />
               <StatCard icon={Trophy} label="Tournois" value={competitions.length} color="text-purple-400" bg="bg-purple-500/15" />
             </div>
+
+            {/* Formats de tournoi autorisés */}
+            <FormatPermissions
+              boxId={box.id}
+              current={Array.isArray(box.allowed_tournament_formats) && box.allowed_tournament_formats.length > 0
+                ? box.allowed_tournament_formats : ['simple']}
+              onSaved={loadData}
+            />
           </div>
         </div>
       )}
@@ -510,6 +518,79 @@ function StatCard({ icon: Icon, label, value, color, bg }: { icon: any; label: s
       </div>
       <p className="text-xl font-black text-white">{value}</p>
       <p className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">{label}</p>
+    </div>
+  );
+}
+
+const TOURNAMENT_FORMATS: Array<{ key: string; label: string; desc: string }> = [
+  { key: 'simple',     label: 'Classique',                   desc: 'Classement points cumulés' },
+  { key: 'bracket',    label: 'Bracket (élimination simple)', desc: 'Tableau à élimination directe' },
+  { key: 'swiss',      label: 'Swiss (double élimination)',   desc: 'Winner + Loser brackets, grande finale' },
+  { key: 'league_div', label: 'Ligue avec divisions',         desc: 'Promotion/relégation entre divisions' },
+];
+
+function FormatPermissions({ boxId, current, onSaved }: { boxId: string; current: string[]; onSaved: () => void }) {
+  const [selected, setSelected] = useState<string[]>(current);
+  const [saving, setSaving] = useState(false);
+  const [msg, setMsg] = useState<string | null>(null);
+
+  const dirty = selected.length !== current.length || selected.some(f => !current.includes(f));
+
+  function toggle(fmt: string) {
+    setSelected(prev => prev.includes(fmt) ? prev.filter(f => f !== fmt) : [...prev, fmt]);
+  }
+
+  async function save() {
+    setSaving(true); setMsg(null);
+    const res = await fetch(`/api/admin/boxes/${boxId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ allowed_tournament_formats: selected.length > 0 ? selected : ['simple'] }),
+    });
+    setSaving(false);
+    if (res.ok) { setMsg('Sauvegardé'); onSaved(); }
+    else { const j = await res.json().catch(() => ({})); setMsg(j.error ?? 'Erreur'); }
+  }
+
+  return (
+    <div className="bg-[#111111] border border-white/[0.06] rounded-2xl p-6 space-y-3">
+      <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider flex items-center gap-2">
+        <Trophy size={14} /> Formats de tournoi autorisés
+      </h3>
+      <p className="text-xs text-gray-500">L'owner ne peut créer que les formats que tu coches ici.</p>
+      <div className="space-y-2">
+        {TOURNAMENT_FORMATS.map(f => {
+          const on = selected.includes(f.key);
+          const isSimple = f.key === 'simple';
+          return (
+            <label key={f.key}
+              className={cn(
+                'flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-colors',
+                on ? 'border-emerald-500/40 bg-emerald-500/5' : 'border-white/10 bg-white/[0.02] hover:border-white/20',
+                isSimple && 'opacity-90'
+              )}
+            >
+              <input type="checkbox" checked={on} disabled={isSimple}
+                onChange={() => !isSimple && toggle(f.key)}
+                className="mt-0.5 w-4 h-4 accent-emerald-500" />
+              <div className="flex-1 min-w-0">
+                <div className="text-sm font-bold text-white flex items-center gap-2">
+                  {f.label}
+                  {isSimple && <span className="text-[9px] font-black text-gray-500 uppercase">par défaut</span>}
+                </div>
+                <div className="text-xs text-gray-500">{f.desc}</div>
+              </div>
+            </label>
+          );
+        })}
+      </div>
+      <div className="flex items-center justify-between pt-2">
+        {msg && <span className="text-xs text-gray-400">{msg}</span>}
+        <button onClick={save} disabled={!dirty || saving}
+          className="ml-auto flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 disabled:opacity-50 text-white text-sm font-bold transition-colors">
+          <Save size={14} /> {saving ? 'Sauvegarde...' : 'Enregistrer'}
+        </button>
+      </div>
     </div>
   );
 }

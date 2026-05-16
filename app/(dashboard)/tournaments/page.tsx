@@ -11,7 +11,7 @@ export default async function TournamentsPage() {
 
   const { data: tournaments } = await supabase
     .from('tournaments')
-    .select('id, name, status, level, max_participants, created_at, start_date')
+    .select('id, name, status, level, max_participants, created_at, start_date, format')
     .eq('box_id', box.id)
     .order('created_at', { ascending: false });
 
@@ -57,7 +57,14 @@ export default async function TournamentsPage() {
                 return (
                   <tr key={t.id} className={`border-b border-white/5 last:border-0 hover:bg-white/3 transition-colors ${i % 2 === 0 ? '' : 'bg-white/[0.01]'}`}>
                     <td className="px-5 py-4">
-                      <p className="text-sm font-semibold text-white">{t.name}</p>
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-semibold text-white">{t.name}</p>
+                        {t.format && t.format !== 'simple' && (
+                          <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-[#C9A227]/15 text-[#C9A227]">
+                            {t.format === 'bracket' ? 'Bracket' : t.format === 'swiss' ? 'Swiss' : t.format === 'league_div' ? 'Ligue' : t.format}
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="px-5 py-4">
                       <span className="text-xs font-bold uppercase text-gray-400">{t.level ?? 'RX'}</span>

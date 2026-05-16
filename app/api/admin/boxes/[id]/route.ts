@@ -69,6 +69,13 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   if (body.city !== undefined) updates.city = body.city;
   if (body.is_active !== undefined) updates.is_active = body.is_active;
   if (body.plan !== undefined) updates.plan = body.plan;
+  if (body.allowed_tournament_formats !== undefined) {
+    const valid = ['simple','bracket','swiss','league_div'];
+    const fmts = Array.isArray(body.allowed_tournament_formats)
+      ? body.allowed_tournament_formats.filter((f: string) => valid.includes(f))
+      : ['simple'];
+    updates.allowed_tournament_formats = fmts.length > 0 ? fmts : ['simple'];
+  }
 
   if (Object.keys(updates).length === 0) {
     return NextResponse.json({ error: 'No fields to update' }, { status: 400 });

@@ -1,7 +1,7 @@
 ﻿import { createClient, createServiceClient, getOwnerBox } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
-import { ChevronLeft, Dumbbell, Users, BarChart2, Trophy, Pencil, ClipboardCheck } from 'lucide-react';
+import { ChevronLeft, Dumbbell, Users, BarChart2, Trophy, Pencil, ClipboardCheck, GitBranch, Layers } from 'lucide-react';
 import CloseTournamentButton from '@/components/tournaments/CloseTournamentButton';
 import DeleteTournamentButton from '@/components/tournaments/DeleteTournamentButton';
 
@@ -128,6 +128,39 @@ export default async function TournamentDetailPage({ params }: { params: Promise
           <p className="text-xs text-gray-400 font-semibold mt-0.5">Leaderboard</p>
         </Link>
       </div>
+
+      {/* Format-specific section */}
+      {(t.format === 'bracket' || t.format === 'swiss') && (
+        <Link href={`/tournaments/${id}/bracket`}
+          className="block bg-[#111111] border border-white/8 rounded-2xl p-5 hover:border-[#C9A227]/30 transition-colors">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-xl bg-purple-500/15 flex items-center justify-center">
+              <GitBranch size={20} className="text-purple-400" />
+            </div>
+            <div className="flex-1">
+              <p className="text-sm font-bold text-white">Tableau du bracket</p>
+              <p className="text-xs text-gray-500 mt-0.5">
+                {t.format === 'swiss' ? 'Winner Bracket + Loser Bracket + Grande finale' : 'Élimination directe'}
+                {t.require_video_proof ? ' · preuve vidéo requise' : ''}
+              </p>
+            </div>
+          </div>
+        </Link>
+      )}
+      {t.format === 'league_div' && (
+        <Link href={`/tournaments/${id}/divisions`}
+          className="block bg-[#111111] border border-white/8 rounded-2xl p-5 hover:border-[#C9A227]/30 transition-colors">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-xl bg-purple-500/15 flex items-center justify-center">
+              <Layers size={20} className="text-purple-400" />
+            </div>
+            <div className="flex-1">
+              <p className="text-sm font-bold text-white">Divisions</p>
+              <p className="text-xs text-gray-500 mt-0.5">Standings, gestion des athlètes, promotion/relégation</p>
+            </div>
+          </div>
+        </Link>
+      )}
 
       {/* Règlement */}
       {t.rules && (
