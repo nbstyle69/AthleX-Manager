@@ -6,7 +6,7 @@ import TemplatesDrawer from '@/components/TemplatesDrawer';
 import {
   Plus, ChevronLeft, ChevronRight, Pencil, Trash2,
   Users, X, Loader2, Clock, Timer, CalendarCheck, LayoutTemplate, UserMinus,
-  Check, Download, UserPlus, Search,
+  Check, Download, UserPlus, Search, AlertTriangle, AlertCircle,
 } from 'lucide-react';
 import { getMyBox } from '@/lib/getMyBox';
 
@@ -102,6 +102,9 @@ export default function SchedulesPage() {
 
   const [coaches, setCoaches] = useState<{ id: string; username: string }[]>([]);
 
+  // Coverage: how many days until the last generated slot?
+  const [lastDateISO, setLastDateISO] = useState<string | null>(null);
+
   const weekDates = getWeekDates(weekOffset);
   const todayISO  = toISO(new Date());
 
@@ -131,6 +134,21 @@ export default function SchedulesPage() {
       );
     })();
   }, [boxId]);
+
+  // Fetch the furthest generated scheduled_date (coverage horizon)
+  const loadCoverage = useCallback(async () => {
+    if (!boxId) return;
+    const { data } = await supabase
+      .from('class_schedules')
+      .select('scheduled_date')
+      .eq('box_id', boxId)
+      .gte('scheduled_date', todayISO)
+      .order('scheduled_date', { ascending: false })
+      .limit(1);
+    setLastDateISO(data?.[0]?.scheduled_date ?? null);
+  }, [boxId, todayISO]);
+
+  useEffect(() => { loadCoverage(); }, [loadCoverage]);
 
   const load = useCallback(async () => {
     if (!boxId) return;
@@ -264,6 +282,7 @@ export default function SchedulesPage() {
       alert(`${inserted} créneaux générés sur 8 semaines.\nLa génération se prolongera automatiquement chaque jour.`);
     }
     load();
+    loadCoverage();
   }
 
   async function openDetail(item: ClassSchedule) {
@@ -443,6 +462,58 @@ export default function SchedulesPage() {
           </button>
         </div>
       </div>
+
+      {/* Coverage reminder banner */}
+      {(() => {
+        if (!lastDateISO) return null;
+        const today = new Date(); today.setHours(0, 0, 0, 0);
+        const last = new Date(lastDateISO + 'T00:00:00');
+        const daysLeft = Math.round((last.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+        if (daysLeft >= 14) return null;
+
+        const urgent = daysLeft < 7;
+        const expired = daysLeft < 0;
+        const Icon = urgent ? AlertCircle : AlertTriangle;
+        const lastFr = last.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
+
+        return (
+          <div
+            className={`flex items-start gap-3 rounded-2xl px-5 py-4 border ${
+              urgent
+                ? 'bg-red-500/10 border-red-500/30'
+                : 'bg-amber-500/10 border-amber-500/30'
+            }`}
+          >
+            <Icon size={20} className={urgent ? 'text-red-400 mt-0.5 shrink-0' : 'text-amber-400 mt-0.5 shrink-0'} />
+            <div className="flex-1 min-w-0">
+              <p className={`text-sm font-bold ${urgent ? 'text-red-300' : 'text-amber-300'}`}>
+                {expired
+                  ? 'Plus aucun créneau futur !'
+                  : urgent
+                    ? `Plus que ${daysLeft} jour${daysLeft > 1 ? 's' : ''} de créneaux générés`
+                    : `${daysLeft} jours de créneaux restants`}
+              </p>
+              <p className="text-xs text-gray-400 mt-1">
+                {expired
+                  ? `Le dernier créneau était le ${lastFr}. Génère 8 nouvelles semaines pour permettre aux membres de réserver.`
+                  : `Dernier créneau planifié : ${lastFr}. Pense à relancer la génération pour étendre la fenêtre de réservation.`}
+              </p>
+            </div>
+            <button
+              onClick={generateFromTemplate}
+              disabled={generating}
+              className={`flex items-center gap-2 text-xs font-bold px-3 py-2 rounded-xl transition-colors shrink-0 ${
+                urgent
+                  ? 'bg-red-500 hover:bg-red-600 text-white'
+                  : 'bg-amber-500 hover:bg-amber-600 text-black'
+              } disabled:opacity-50`}
+            >
+              {generating ? <Loader2 size={14} className="animate-spin" /> : <CalendarCheck size={14} />}
+              Générer 8 semaines
+            </button>
+          </div>
+        );
+      })()}
 
       {/* Week nav */}
       <div className="flex items-center gap-4 bg-[#111111] border border-white/8 rounded-2xl px-5 py-3">
