@@ -19,13 +19,13 @@ export default async function DivisionsPage({ params }: { params: Promise<{ id: 
   const [{ data: divisions }, { data: members }, { data: participants }, { data: history }] = await Promise.all([
     svc.from('tournament_divisions').select('*').eq('tournament_id', id).order('level'),
     svc.from('tournament_division_members')
-       .select('*, athlete:profiles!tournament_division_members_athlete_id_fkey(id, username, level, elo)')
+       .select('id, division_id, athlete_id, points, rank, joined_at')
        .order('points', { ascending: false }),
     svc.from('tournament_participants')
-       .select('athlete_id, profile:profiles!tournament_participants_athlete_id_fkey(id, username, level, elo)')
+       .select('athlete_id')
        .eq('tournament_id', id),
     svc.from('tournament_season_history')
-       .select('*, athlete:profiles!tournament_season_history_athlete_id_fkey(id, username, level)')
+       .select('*')
        .eq('tournament_id', id)
        .order('season_number', { ascending: false })
        .order('division_level', { ascending: true })
@@ -36,11 +36,37 @@ export default async function DivisionsPage({ params }: { params: Promise<{ id: 
   const divIds = new Set((divisions ?? []).map((d: any) => d.id));
   const tournamentMembers = (members ?? []).filter((m: any) => divIds.has(m.division_id));
 
+  // Collect all athlete ids needed (members + participants + history)
+  const allAthleteIds = new Set<string>();
+  tournamentMembers.forEach((m: any) => allAthleteIds.add(m.athlete_id));
+  (participants ?? []).forEach((p: any) => allAthleteIds.add(p.athlete_id));
+  (history ?? []).forEach((h: any) => allAthleteIds.add(h.athlete_id));
+
+  // Fetch all profiles in one go
+  let profileMap: Record<string, { id: string; username: string; level: string; elo: number }> = {};
+  if (allAthleteIds.size > 0) {
+    const { data: profs } = await svc.from('profiles')
+      .select('id, username, level, elo')
+      .in('id', Array.from(allAthleteIds));
+    (profs ?? []).forEach((p: any) => { profileMap[p.id] = p; });
+  }
+
+  // Attach profiles to members and history
+  const tournamentMembersWithProfile = tournamentMembers.map((m: any) => ({
+    ...m,
+    athlete: profileMap[m.athlete_id] ?? { id: m.athlete_id, username: '?', level: 'rx', elo: 1000 },
+  }));
+  const historyWithProfile = (history ?? []).map((h: any) => ({
+    ...h,
+    athlete: profileMap[h.athlete_id] ?? { id: h.athlete_id, username: '?', level: 'rx' },
+  }));
+
   // Build pool of athletes registered to the tournament but not yet in any division
   const memberAthleteIds = new Set(tournamentMembers.map((m: any) => m.athlete_id));
   const unassigned = (participants ?? [])
-    .map((p: any) => Array.isArray(p.profile) ? p.profile[0] : p.profile)
-    .filter((p: any) => p && !memberAthleteIds.has(p.id));
+    .filter((p: any) => !memberAthleteIds.has(p.athlete_id))
+    .map((p: any) => profileMap[p.athlete_id])
+    .filter(Boolean);
 
   return (
     <div className="max-w-6xl space-y-6">
@@ -58,9 +84,9 @@ export default async function DivisionsPage({ params }: { params: Promise<{ id: 
         tournamentId={id}
         currentSeason={t.current_season ?? 1}
         initialDivisions={(divisions ?? []) as any}
-        initialMembers={tournamentMembers as any}
+        initialMembers={tournamentMembersWithProfile as any}
         unassigned={unassigned as any}
-        seasonHistory={(history ?? []) as any}
+        seasonHistory={historyWithProfile as any}
       />
     </div>
   );

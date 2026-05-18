@@ -39,7 +39,7 @@ export default async function LeaderboardPage({ params }: { params: Promise<{ id
   const svc = createServiceClient();
 
   const [{ data: tournament }, { data: rawParticipants }, { data: wods }, { data: validatedScores }, { data: divisionsRaw }, { data: divMembersRaw }] = await Promise.all([
-    svc.from('tournaments').select('name, box_id, format, current_season').eq('id', tournamentId).single(),
+    svc.from('tournaments').select('*').eq('id', tournamentId).single(),
     svc.from('tournament_participants').select('athlete_id, score').eq('tournament_id', tournamentId).order('score', { ascending: false }),
     svc.from('tournament_wods').select('id, title, order_index').eq('tournament_id', tournamentId).order('order_index'),
     svc.from('tournament_scores').select('athlete_id, tournament_wod_id, score_value').eq('tournament_id', tournamentId).eq('status', 'validated'),

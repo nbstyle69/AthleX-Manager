@@ -23,16 +23,26 @@ export default async function TournamentParticipantsPage({ params }: { params: P
   const [{ data: tournament }, { data: tp }] = await Promise.all([
     svc.from('tournaments').select('name, box_id').eq('id', tournamentId).single(),
     svc.from('tournament_participants')
-      .select('athlete_id, score, created_at, profile:profiles!tournament_participants_athlete_id_fkey(username, level, elo, box_members(box:boxes(name)))')
+      .select('athlete_id, score, created_at')
       .eq('tournament_id', tournamentId)
       .order('created_at', { ascending: true }),
   ]);
 
   if (!tournament || (tournament as any).box_id !== box.id) redirect('/tournaments');
 
+  // Fetch profiles separately (avoid relying on FK embed)
+  const athleteIds = [...new Set((tp ?? []).map((p: any) => p.athlete_id))];
+  let profileMap: Record<string, any> = {};
+  if (athleteIds.length > 0) {
+    const { data: profs } = await svc.from('profiles')
+      .select('id, username, level, elo, box_members(box:boxes(name))')
+      .in('id', athleteIds);
+    (profs ?? []).forEach((p: any) => { profileMap[p.id] = p; });
+  }
+
   const participants = (tp ?? []).map((p: any) => ({
     ...p,
-    profile: Array.isArray(p.profile) ? p.profile[0] ?? null : p.profile,
+    profile: profileMap[p.athlete_id] ?? null,
   }));
 
   return (
