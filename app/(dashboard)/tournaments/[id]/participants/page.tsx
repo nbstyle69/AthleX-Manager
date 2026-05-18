@@ -1,4 +1,4 @@
-import { createClient, createServiceClient, getOwnerBox } from '@/lib/supabase/server';
+import { createClient, getOwnerBox } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, Users, Star, Building2, CalendarDays, ShieldAlert } from 'lucide-react';
@@ -19,13 +19,11 @@ export default async function TournamentParticipantsPage({ params }: { params: P
   const box = await getOwnerBox(userClient);
   if (!box) redirect('/login');
 
-  const svc = createServiceClient();
   const [{ data: tournament }, { data: tp }] = await Promise.all([
-    svc.from('tournaments').select('name, box_id').eq('id', tournamentId).single(),
-    svc.from('tournament_participants')
-      .select('athlete_id, score, created_at')
-      .eq('tournament_id', tournamentId)
-      .order('created_at', { ascending: true }),
+    userClient.from('tournaments').select('name, box_id').eq('id', tournamentId).single(),
+    userClient.from('tournament_participants')
+      .select('athlete_id, score')
+      .eq('tournament_id', tournamentId),
   ]);
 
   if (!tournament || (tournament as any).box_id !== box.id) redirect('/tournaments');
@@ -34,7 +32,7 @@ export default async function TournamentParticipantsPage({ params }: { params: P
   const athleteIds = [...new Set((tp ?? []).map((p: any) => p.athlete_id))];
   let profileMap: Record<string, any> = {};
   if (athleteIds.length > 0) {
-    const { data: profs } = await svc.from('profiles')
+    const { data: profs } = await userClient.from('profiles')
       .select('id, username, level, elo, box_members(box:boxes(name))')
       .in('id', athleteIds);
     (profs ?? []).forEach((p: any) => { profileMap[p.id] = p; });
@@ -79,9 +77,6 @@ export default async function TournamentParticipantsPage({ params }: { params: P
             const lvl = (p.profile?.level ?? 'rx').toLowerCase();
             const lc  = LEVEL_COLORS[lvl] ?? LEVEL_COLORS.rx;
             const boxName = p.profile?.box_members?.[0]?.box?.name ?? null;
-            const regDate = new Date(p.created_at).toLocaleDateString('fr-FR', {
-              day: '2-digit', month: 'short', year: 'numeric',
-            });
             return (
               <div key={p.athlete_id}
                 className="bg-[#111111] border border-white/8 rounded-2xl p-4 flex items-center gap-4 hover:border-white/15 transition-colors">
@@ -109,10 +104,6 @@ export default async function TournamentParticipantsPage({ params }: { params: P
                         {boxName}
                       </span>
                     )}
-                    <span className="flex items-center gap-1 text-xs text-gray-500">
-                      <CalendarDays size={10} />
-                      Inscrit le {regDate}
-                    </span>
                   </div>
                 </div>
                 {p.score > 0 && (
