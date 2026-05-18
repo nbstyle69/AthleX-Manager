@@ -16,7 +16,7 @@ export default async function DivisionsPage({ params }: { params: Promise<{ id: 
   if (t.format !== 'league_div') redirect(`/tournaments/${id}`);
 
   const svc = createServiceClient();
-  const [{ data: divisions }, { data: members }, { data: participants }] = await Promise.all([
+  const [{ data: divisions }, { data: members }, { data: participants }, { data: history }] = await Promise.all([
     svc.from('tournament_divisions').select('*').eq('tournament_id', id).order('level'),
     svc.from('tournament_division_members')
        .select('*, athlete:profiles!tournament_division_members_athlete_id_fkey(id, username, level, elo)')
@@ -24,6 +24,12 @@ export default async function DivisionsPage({ params }: { params: Promise<{ id: 
     svc.from('tournament_participants')
        .select('athlete_id, profile:profiles!tournament_participants_athlete_id_fkey(id, username, level, elo)')
        .eq('tournament_id', id),
+    svc.from('tournament_season_history')
+       .select('*, athlete:profiles!tournament_season_history_athlete_id_fkey(id, username, level)')
+       .eq('tournament_id', id)
+       .order('season_number', { ascending: false })
+       .order('division_level', { ascending: true })
+       .order('final_rank', { ascending: true }),
   ]);
 
   // Filter members to those of this tournament's divisions
@@ -50,9 +56,11 @@ export default async function DivisionsPage({ params }: { params: Promise<{ id: 
 
       <DivisionsManager
         tournamentId={id}
+        currentSeason={t.current_season ?? 1}
         initialDivisions={(divisions ?? []) as any}
         initialMembers={tournamentMembers as any}
         unassigned={unassigned as any}
+        seasonHistory={(history ?? []) as any}
       />
     </div>
   );

@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
-import { Loader2, UserPlus, ArrowUp, ArrowDown, X, AlertTriangle, Trophy, Plus } from 'lucide-react';
+import { Loader2, UserPlus, ArrowUp, ArrowDown, X, AlertTriangle, Trophy, Plus, Crown, History } from 'lucide-react';
 
 interface Division {
   id: string;
@@ -27,14 +27,35 @@ interface MemberRow {
   athlete: Profile | Profile[];
 }
 
+interface SeasonHistoryRow {
+  id: string;
+  season_number: number;
+  division_level: number;
+  division_name: string;
+  athlete_id: string;
+  final_rank: number;
+  final_points: number;
+  outcome: 'champion' | 'promoted' | 'relegated' | 'stayed';
+  athlete: { id: string; username: string; level: string } | { id: string; username: string; level: string }[] | null;
+}
+
 interface Props {
   tournamentId: string;
+  currentSeason: number;
   initialDivisions: Division[];
   initialMembers: MemberRow[];
   unassigned: Profile[];
+  seasonHistory: SeasonHistoryRow[];
 }
 
-export default function DivisionsManager({ tournamentId, initialDivisions, initialMembers, unassigned: initialUnassigned }: Props) {
+export default function DivisionsManager({
+  tournamentId,
+  currentSeason,
+  initialDivisions,
+  initialMembers,
+  unassigned: initialUnassigned,
+  seasonHistory,
+}: Props) {
   const router = useRouter();
   const supabase = createClient();
   const [divisions, setDivisions] = useState<Division[]>(initialDivisions);
@@ -93,10 +114,15 @@ export default function DivisionsManager({ tournamentId, initialDivisions, initi
     setMembers(prev => prev.map(m => m.id === memberRowId ? { ...m, points } : m));
   }
 
-  async function runPromoteRelegate() {
-    if (!confirm('Lancer la promotion/relégation de fin de saison ? Cette action déplace les athlètes entre divisions et reset leurs points.')) return;
+  async function endSeasonAndAdvance() {
+    const msg = `Clôturer la saison ${currentSeason} et démarrer la saison ${currentSeason + 1} ?\n\n` +
+                `• Snapshot du classement final dans l'historique\n` +
+                `• Promus / relégués déplacés entre divisions\n` +
+                `• Points remis à 0 pour tous les athlètes\n\n` +
+                `Cette action est irréversible.`;
+    if (!confirm(msg)) return;
     setBusy('promote'); setError(null);
-    const { error: err } = await supabase.rpc('promote_relegate_divisions', { p_tournament_id: tournamentId });
+    const { error: err } = await supabase.rpc('end_season_and_advance', { p_tournament_id: tournamentId });
     setBusy(null);
     if (err) { setError(err.message); return; }
     router.refresh();
@@ -133,21 +159,32 @@ export default function DivisionsManager({ tournamentId, initialDivisions, initi
         </div>
       )}
 
-      <div className="flex items-center justify-between">
-        <div className="text-xs text-gray-500">
-          {divisions.length} division(s) · {members.length} athlète(s) répartis · {unassigned.length} non assigné(s)
+      {/* Season banner */}
+      <div className="flex items-center justify-between gap-4 flex-wrap bg-gradient-to-r from-purple-500/10 to-[#C9A227]/10 border border-purple-500/20 rounded-2xl px-5 py-4">
+        <div className="flex items-center gap-3">
+          <div className="w-11 h-11 rounded-xl bg-purple-500/20 flex items-center justify-center">
+            <Trophy size={20} className="text-purple-300" />
+          </div>
+          <div>
+            <div className="text-[10px] font-bold text-purple-300 uppercase tracking-wider">Saison en cours</div>
+            <div className="text-xl font-black text-white">Saison {currentSeason}</div>
+          </div>
         </div>
         <div className="flex items-center gap-2">
           <button onClick={addDivision} disabled={busy === 'add-div'}
             className="inline-flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold bg-white/5 hover:bg-white/10 text-white border border-white/10 transition-colors">
             <Plus size={12} /> Division
           </button>
-          <button onClick={runPromoteRelegate} disabled={busy === 'promote'}
-            className="inline-flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold bg-[#C9A227] hover:bg-[#e0b730] text-white disabled:opacity-50 transition-colors">
+          <button onClick={endSeasonAndAdvance} disabled={busy === 'promote' || members.length === 0}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold bg-[#C9A227] hover:bg-[#e0b730] text-white disabled:opacity-50 transition-colors">
             {busy === 'promote' ? <Loader2 size={12} className="animate-spin" /> : <Trophy size={12} />}
-            Fin de saison (promus/relégués)
+            Clôturer saison {currentSeason} → {currentSeason + 1}
           </button>
         </div>
+      </div>
+
+      <div className="text-xs text-gray-500">
+        {divisions.length} division(s) · {members.length} athlète(s) répartis · {unassigned.length} non assigné(s)
       </div>
 
       {/* Unassigned pool */}
@@ -275,6 +312,84 @@ export default function DivisionsManager({ tournamentId, initialDivisions, initi
           </div>
         );
       })}
+
+      {/* Season history */}
+      {seasonHistory.length > 0 && (
+        <div className="bg-[#111111] border border-white/8 rounded-2xl overflow-hidden">
+          <div className="px-5 py-4 border-b border-white/8 bg-white/[0.02] flex items-center gap-3">
+            <History size={16} className="text-gray-400" />
+            <h3 className="text-sm font-bold text-white">Historique des saisons clôturées</h3>
+          </div>
+          <div className="divide-y divide-white/5">
+            {Array.from(new Set(seasonHistory.map(h => h.season_number))).map(season => {
+              const seasonRows = seasonHistory.filter(h => h.season_number === season);
+              const champion = seasonRows.find(r => r.outcome === 'champion');
+              const champProfile = champion
+                ? (Array.isArray(champion.athlete) ? champion.athlete[0] : champion.athlete)
+                : null;
+              const promotedCount = seasonRows.filter(r => r.outcome === 'promoted').length;
+              const relegatedCount = seasonRows.filter(r => r.outcome === 'relegated').length;
+              return (
+                <details key={season} className="group">
+                  <summary className="px-5 py-4 flex items-center justify-between gap-4 cursor-pointer hover:bg-white/[0.02] transition-colors list-none">
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-xl bg-[#C9A227]/15 flex items-center justify-center text-[#C9A227] font-black text-sm">
+                        S{season}
+                      </div>
+                      <div>
+                        <div className="text-sm font-bold text-white">Saison {season}</div>
+                        {champProfile && (
+                          <div className="text-[11px] text-gray-400 flex items-center gap-1.5 mt-0.5">
+                            <Crown size={10} className="text-yellow-400" />
+                            Champion : <span className="text-yellow-300 font-bold">{champProfile.username}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3 text-[11px] text-gray-400">
+                      <span className="flex items-center gap-1 text-emerald-400"><ArrowUp size={10} />{promotedCount}</span>
+                      <span className="flex items-center gap-1 text-red-400"><ArrowDown size={10} />{relegatedCount}</span>
+                      <span className="text-gray-500">{seasonRows.length} athlètes</span>
+                    </div>
+                  </summary>
+                  <div className="px-5 pb-4 space-y-3">
+                    {Array.from(new Set(seasonRows.map(r => r.division_level))).sort().map(lvl => {
+                      const divRows = seasonRows
+                        .filter(r => r.division_level === lvl)
+                        .sort((a, b) => a.final_rank - b.final_rank);
+                      const divName = divRows[0]?.division_name ?? `D${lvl}`;
+                      return (
+                        <div key={lvl} className="bg-white/[0.02] rounded-xl p-3">
+                          <div className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-2">
+                            {divName} (niveau {lvl})
+                          </div>
+                          <div className="space-y-1">
+                            {divRows.map(r => {
+                              const a = Array.isArray(r.athlete) ? r.athlete[0] : r.athlete;
+                              return (
+                                <div key={r.id} className="flex items-center justify-between text-xs py-1 px-2 rounded-lg hover:bg-white/[0.02]">
+                                  <div className="flex items-center gap-2 flex-1 min-w-0">
+                                    <span className="text-gray-500 font-bold w-6">{r.final_rank}</span>
+                                    <span className="text-white font-semibold truncate">{a?.username ?? '—'}</span>
+                                    {r.outcome === 'champion' && <Crown size={11} className="text-yellow-400 shrink-0" />}
+                                    {r.outcome === 'promoted' && <span className="text-[9px] font-black text-emerald-400 bg-emerald-500/15 px-1.5 py-0.5 rounded inline-flex items-center gap-0.5"><ArrowUp size={8} />PROMU</span>}
+                                    {r.outcome === 'relegated' && <span className="text-[9px] font-black text-red-400 bg-red-500/15 px-1.5 py-0.5 rounded inline-flex items-center gap-0.5"><ArrowDown size={8} />RELÉG.</span>}
+                                  </div>
+                                  <span className="text-[#C9A227] font-bold shrink-0">{r.final_points} pts</span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </details>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
