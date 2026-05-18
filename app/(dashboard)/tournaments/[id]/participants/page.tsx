@@ -1,7 +1,7 @@
 import { createClient, getOwnerBox } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Users, Star, Building2, CalendarDays, ShieldAlert } from 'lucide-react';
+import { ArrowLeft, Users, Star, Building2, ShieldAlert, Layers } from 'lucide-react';
 import KickButton from './KickButton';
 
 const LEVEL_COLORS: Record<string, { bg: string; text: string }> = {
@@ -20,13 +20,36 @@ export default async function TournamentParticipantsPage({ params }: { params: P
   if (!box) redirect('/login');
 
   const [{ data: tournament }, { data: tp }] = await Promise.all([
-    userClient.from('tournaments').select('name, box_id').eq('id', tournamentId).single(),
+    userClient.from('tournaments').select('name, box_id, format').eq('id', tournamentId).single(),
     userClient.from('tournament_participants')
       .select('athlete_id, score')
       .eq('tournament_id', tournamentId),
   ]);
 
   if (!tournament || (tournament as any).box_id !== box.id) redirect('/tournaments');
+
+  const isLeague = (tournament as any).format === 'league_div';
+
+  // ── Fetch divisions + members map (league_div only) ─────────────────
+  const divisionByAthlete: Record<string, { name: string; level: number }> = {};
+  if (isLeague) {
+    const { data: divs } = await userClient
+      .from('tournament_divisions')
+      .select('id, name, level')
+      .eq('tournament_id', tournamentId);
+    const divList = (divs ?? []) as any[];
+    const divIds = divList.map(d => d.id);
+    if (divIds.length > 0) {
+      const { data: mems } = await userClient
+        .from('tournament_division_members')
+        .select('division_id, athlete_id')
+        .in('division_id', divIds);
+      (mems ?? []).forEach((m: any) => {
+        const d = divList.find(dd => dd.id === m.division_id);
+        if (d) divisionByAthlete[m.athlete_id] = { name: d.name, level: d.level };
+      });
+    }
+  }
 
   // Fetch profiles separately (avoid relying on FK embed)
   const athleteIds = [...new Set((tp ?? []).map((p: any) => p.athlete_id))];
@@ -77,6 +100,7 @@ export default async function TournamentParticipantsPage({ params }: { params: P
             const lvl = (p.profile?.level ?? 'rx').toLowerCase();
             const lc  = LEVEL_COLORS[lvl] ?? LEVEL_COLORS.rx;
             const boxName = p.profile?.box_members?.[0]?.box?.name ?? null;
+            const div = divisionByAthlete[p.athlete_id];
             return (
               <div key={p.athlete_id}
                 className="bg-[#111111] border border-white/8 rounded-2xl p-4 flex items-center gap-4 hover:border-white/15 transition-colors">
@@ -106,6 +130,20 @@ export default async function TournamentParticipantsPage({ params }: { params: P
                     )}
                   </div>
                 </div>
+                {isLeague && (
+                  <div className="shrink-0">
+                    {div ? (
+                      <span className="inline-flex items-center gap-1 text-[10px] font-black px-2 py-1 rounded-md bg-purple-500/15 text-purple-300 border border-purple-500/30">
+                        <Layers size={10} />
+                        D{div.level} · {div.name}
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded-md bg-gray-500/15 text-gray-400 border border-gray-500/30">
+                        —
+                      </span>
+                    )}
+                  </div>
+                )}
                 {p.score > 0 && (
                   <div className="shrink-0 text-right">
                     <p className="text-sm font-black text-[#C9A227]">{p.score}</p>
