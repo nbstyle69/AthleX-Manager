@@ -12,18 +12,19 @@ export default async function TournamentWODsPage({ params }: { params: Promise<{
 
   const { data: tournament } = await supabase
     .from('tournaments')
-    .select('id, name, level, status')
+    .select('id, name, level, status, format')
     .eq('id', id)
     .eq('box_id', box.id)
     .single();
 
   if (!tournament) redirect('/tournaments');
 
-  const { data: wods } = await supabase
-    .from('tournament_wods')
-    .select('*')
-    .eq('tournament_id', id)
-    .order('created_at');
+  const [{ data: wods }, { data: divisions }] = await Promise.all([
+    supabase.from('tournament_wods').select('*').eq('tournament_id', id).order('created_at'),
+    supabase.from('tournament_divisions').select('id, name, level').eq('tournament_id', id).order('level'),
+  ]);
+
+  const isLeague = tournament.format === 'league_div';
 
   return (
     <div className="max-w-3xl space-y-6">
@@ -55,7 +56,12 @@ export default async function TournamentWODsPage({ params }: { params: Promise<{
       </div>
 
       {/* WOD Manager */}
-      <TournamentWODManager tournamentId={id} initialWODs={wods ?? []} />
+      <TournamentWODManager
+        tournamentId={id}
+        initialWODs={wods ?? []}
+        divisions={(divisions ?? []) as any}
+        isLeague={isLeague}
+      />
     </div>
   );
 }

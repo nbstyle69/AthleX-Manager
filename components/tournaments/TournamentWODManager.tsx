@@ -2,8 +2,10 @@
 
 import { useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { Plus, Pencil, Trash2, Timer, CheckCircle, Clock } from 'lucide-react';
+import { Plus, Pencil, Trash2, Timer, CheckCircle, Clock, Layers, Globe } from 'lucide-react';
 import WODForm from './WODForm';
+
+interface Division { id: string; name: string; level: number; }
 
 const TYPE_COLORS: Record<string, string> = {
   'For Time': '#EF4444',
@@ -29,9 +31,12 @@ function timerLabel(wod: any) {
 interface Props {
   tournamentId: string;
   initialWODs: any[];
+  divisions?: Division[];
+  isLeague?: boolean;
 }
 
-export default function TournamentWODManager({ tournamentId, initialWODs }: Props) {
+export default function TournamentWODManager({ tournamentId, initialWODs, divisions = [], isLeague = false }: Props) {
+  const divisionMap = Object.fromEntries(divisions.map(d => [d.id, d]));
   const [wods,     setWods]     = useState<any[]>(initialWODs);
   const [showForm, setShowForm] = useState(false);
   const [editWOD,  setEditWOD]  = useState<any | null>(null);
@@ -114,6 +119,19 @@ export default function TournamentWODManager({ tournamentId, initialWODs }: Prop
                       {wod.type}
                     </span>
                     <h3 className="text-white font-bold">{wod.title}</h3>
+                    {isLeague && (
+                      wod.division_id && divisionMap[wod.division_id] ? (
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-purple-500/15 text-purple-300 inline-flex items-center gap-1">
+                          <Layers size={9} />
+                          {divisionMap[wod.division_id].name}
+                        </span>
+                      ) : (
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-blue-500/15 text-blue-300 inline-flex items-center gap-1">
+                          <Globe size={9} />
+                          Général
+                        </span>
+                      )
+                    )}
                     <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ml-auto ${
                       wod.status === 'active'
                         ? 'bg-green-500/20 text-green-400'
@@ -190,6 +208,8 @@ export default function TournamentWODManager({ tournamentId, initialWODs }: Prop
             <div className="overflow-y-auto flex-1 p-6">
               <WODForm
                 tournamentId={tournamentId}
+                divisions={divisions}
+                isLeague={isLeague}
                 initial={editWOD}
                 onSaved={onSaved}
                 onCancel={onCancel}

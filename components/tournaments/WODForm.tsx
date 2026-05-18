@@ -387,14 +387,18 @@ function localGenerate(type: string, level: string, duration: number, eqList: st
 
 // ─────────────────────────────────────────────────────────────────────────
 
+interface Division { id: string; name: string; level: number; }
+
 interface Props {
   tournamentId: string;
+  divisions?: Division[];
+  isLeague?: boolean;
   initial?: any;
   onSaved: () => void;
   onCancel: () => void;
 }
 
-export default function WODForm({ tournamentId, initial, onSaved, onCancel }: Props) {
+export default function WODForm({ tournamentId, divisions = [], isLeague = false, initial, onSaved, onCancel }: Props) {
   const [saving, setSaving] = useState(false);
   const [error, setError]   = useState<string | null>(null);
 
@@ -413,6 +417,7 @@ export default function WODForm({ tournamentId, initial, onSaved, onCancel }: Pr
     rounds:           initial?.rounds           ?? 8,
     work_seconds:     initial?.work_seconds     ?? 20,
     rest_seconds:     initial?.rest_seconds     ?? 10,
+    division_id:      initial?.division_id      ?? '',
   });
 
   const [movements, setMovements] = useState<string[]>(
@@ -525,6 +530,7 @@ export default function WODForm({ tournamentId, initial, onSaved, onCancel }: Pr
       rounds:           ['EMOM', 'Tabata'].includes(form.type) ? form.rounds : null,
       work_seconds:     form.type === 'Tabata' ? form.work_seconds : null,
       rest_seconds:     form.type === 'Tabata' ? form.rest_seconds : null,
+      division_id:      isLeague ? (form.division_id || null) : null,
     };
 
     let err;
@@ -719,6 +725,24 @@ export default function WODForm({ tournamentId, initial, onSaved, onCancel }: Pr
           </select>
         </div>
       </div>
+
+      {/* ── Division (league only) ── */}
+      {isLeague && (
+        <div>
+          <label className={lbl}>Assigner à</label>
+          <select className={inp} value={form.division_id} onChange={e => set('division_id', e.target.value)}>
+            <option value="" className="text-black">🌐 Général (toutes les divisions)</option>
+            {divisions.map(d => (
+              <option key={d.id} value={d.id} className="text-black">
+                Division {d.level} — {d.name}
+              </option>
+            ))}
+          </select>
+          <p className="text-[11px] text-gray-500 mt-1.5">
+            Un WOD général est visible par tous les participants. Un WOD assigné à une division ne sera visible que par les athlètes de cette division.
+          </p>
+        </div>
+      )}
 
       {/* ── Timer config (adapts to type) ── */}
       <div className="bg-white/5 rounded-xl p-4 space-y-3 border border-white/5">
