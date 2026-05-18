@@ -15,6 +15,19 @@ export default async function TournamentsPage() {
     .eq('box_id', box.id)
     .order('created_at', { ascending: false });
 
+  // Fetch participant counts for all tournaments in one query
+  const participantCounts: Record<string, number> = {};
+  if (tournaments && tournaments.length > 0) {
+    const tournamentIds = tournaments.map((t: any) => t.id);
+    const { data: parts } = await supabase
+      .from('tournament_participants')
+      .select('tournament_id')
+      .in('tournament_id', tournamentIds);
+    (parts ?? []).forEach((p: any) => {
+      participantCounts[p.tournament_id] = (participantCounts[p.tournament_id] ?? 0) + 1;
+    });
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -72,7 +85,7 @@ export default async function TournamentsPage() {
                     <td className="px-5 py-4">
                       <div className="flex items-center gap-1.5 text-sm text-gray-300">
                         <Users size={13} className="text-gray-500" />
-                        0 / {t.max_participants}
+                        {participantCounts[t.id] ?? 0} / {t.max_participants}
                       </div>
                     </td>
                     <td className="px-5 py-4">
