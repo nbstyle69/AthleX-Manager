@@ -16,9 +16,10 @@ interface Props {
   tournamentId: string;
   pendingCount:  number;
   status: string;
+  format?: string;
 }
 
-export default function CloseTournamentButton({ tournamentId, pendingCount, status }: Props) {
+export default function CloseTournamentButton({ tournamentId, pendingCount, status, format }: Props) {
   const router  = useRouter();
   const [open,    setOpen]    = useState(false);
   const [closing, setClosing] = useState(false);
@@ -33,24 +34,42 @@ export default function CloseTournamentButton({ tournamentId, pendingCount, stat
     );
   }
 
+  // For league_div: closing is done per-season via end_season_and_advance (Divisions tab)
+  if (format === 'league_div') {
+    return null;
+  }
+
   async function handleClose() {
     setClosing(true);
     setError(null);
     const supabase = createClient();
 
-    const { data: tp } = await supabase
+    const { data: tp, error: tpErr } = await supabase
       .from('tournament_participants')
-      .select('athlete_id, score, profile:profiles(id, username, elo)')
+      .select('athlete_id, score')
       .eq('tournament_id', tournamentId)
       .order('score', { ascending: false });
 
+    if (tpErr) {
+      setError(tpErr.message);
+      setClosing(false);
+      return;
+    }
     if (!tp || tp.length === 0) {
       setError('Aucun participant trouvé.');
       setClosing(false);
       return;
     }
 
-    const getProf = (p: any) => Array.isArray(p.profile) ? p.profile[0] : p.profile;
+    // Fetch profiles separately (no FK embed reliance)
+    const athleteIds = tp.map((p: any) => p.athlete_id);
+    const { data: profs } = await supabase
+      .from('profiles')
+      .select('id, username, elo')
+      .in('id', athleteIds);
+    const profMap: Record<string, any> = {};
+    (profs ?? []).forEach((pr: any) => { profMap[pr.id] = pr; });
+    const getProf = (p: any) => profMap[p.athlete_id] ?? null;
     const avgElo  = Math.round(tp.reduce((s: number, p: any) => s + (getProf(p)?.elo ?? 1000), 0) / tp.length);
     const changes: { name: string; rank: number; change: number }[] = [];
 
