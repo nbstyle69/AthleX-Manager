@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
-import { Loader2, UserPlus, ArrowUp, ArrowDown, X, AlertTriangle, Trophy, Plus, Crown, History } from 'lucide-react';
+import { Loader2, UserPlus, ArrowUp, ArrowDown, X, AlertTriangle, Trophy, Plus, Crown, History, RefreshCw } from 'lucide-react';
 
 interface Division {
   id: string;
@@ -125,7 +125,8 @@ export default function DivisionsManager({
     const { error: err } = await supabase.rpc('end_season_and_advance', { p_tournament_id: tournamentId });
     setBusy(null);
     if (err) { setError(err.message); return; }
-    router.refresh();
+    // Full page reload to refetch server-side data (local state from initialProps won't update with router.refresh)
+    window.location.reload();
   }
 
   async function addDivision() {
@@ -171,6 +172,10 @@ export default function DivisionsManager({
           </div>
         </div>
         <div className="flex items-center gap-2">
+          <button onClick={() => window.location.reload()} title="Recharger les données"
+            className="inline-flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold bg-white/5 hover:bg-white/10 text-white border border-white/10 transition-colors">
+            <RefreshCw size={12} /> Rafraîchir
+          </button>
           <button onClick={addDivision} disabled={busy === 'add-div'}
             className="inline-flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold bg-white/5 hover:bg-white/10 text-white border border-white/10 transition-colors">
             <Plus size={12} /> Division
