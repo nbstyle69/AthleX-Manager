@@ -30,6 +30,8 @@ export default function BoxStatsPage() {
   const [avgResaPerMember, setAvgResaPerMember] = useState(0);
   const [totalResaWeek, setTotalResaWeek] = useState(0);
   const [totalResaToday, setTotalResaToday] = useState(0);
+  const [activeWeek, setActiveWeek] = useState(0);
+  const [activeMonth, setActiveMonth] = useState(0);
   const [topPage, setTopPage] = useState(0);
   const [genderFilter, setGenderFilter] = useState<'all' | 'male' | 'female'>('all');
 
@@ -117,18 +119,24 @@ export default function BoxStatsPage() {
     const resas = (resaData ?? []) as { created_at: string; member_id: string }[];
     const todayStr = new Date().toISOString().slice(0, 10);
     const weekAgo = new Date(Date.now() - 7 * 86400000).toISOString().slice(0, 10);
+    const monthAgo = new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10);
     const resaByDate: Record<string, number> = {};
     let resaToday = 0;
     let resaWeek = 0;
     const uniqueMembers = new Set<string>();
+    const activeWeekSet = new Set<string>();
+    const activeMonthSet = new Set<string>();
     for (const r of resas) {
       const d = r.created_at?.slice(0, 10);
       if (!d) continue;
       resaByDate[d] = (resaByDate[d] ?? 0) + 1;
       if (d === todayStr) resaToday++;
-      if (d >= weekAgo) resaWeek++;
+      if (d >= weekAgo) { resaWeek++; activeWeekSet.add(r.member_id); }
+      if (d >= monthAgo) activeMonthSet.add(r.member_id);
       uniqueMembers.add(r.member_id);
     }
+    setActiveWeek(activeWeekSet.size);
+    setActiveMonth(activeMonthSet.size);
     setResaChart(Object.entries(resaByDate).map(([date, count]) => ({ date, count })).sort((a, b) => a.date.localeCompare(b.date)));
     setTotalResaToday(resaToday);
     setTotalResaWeek(resaWeek);
@@ -190,15 +198,30 @@ export default function BoxStatsPage() {
 
       {/* KPIs */}
       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
-        {kpis.map(({ label, value, icon: Icon, color }) => (
-          <div key={label} className="bg-[#111111] border border-white/8 rounded-2xl p-4">
-            <div className="w-9 h-9 rounded-xl flex items-center justify-center mb-3" style={{ backgroundColor: `${color}20` }}>
-              <Icon size={18} style={{ color }} />
+        {kpis.map(({ label, value, icon: Icon, color }) => {
+          const isActiveCard = label === 'Membres actifs';
+          return (
+            <div key={label} className="bg-[#111111] border border-white/8 rounded-2xl p-4">
+              <div className="w-9 h-9 rounded-xl flex items-center justify-center mb-3" style={{ backgroundColor: `${color}20` }}>
+                <Icon size={18} style={{ color }} />
+              </div>
+              <p className="text-2xl font-black text-white">{value}</p>
+              <p className="text-[11px] text-gray-400 font-medium mt-1">{label}</p>
+              {isActiveCard && (
+                <div className="mt-3 pt-3 border-t border-white/5 space-y-1.5">
+                  <div className="flex items-center justify-between text-[11px]">
+                    <span className="text-gray-500">7 derniers jours</span>
+                    <span className="font-bold text-emerald-400">{activeWeek}</span>
+                  </div>
+                  <div className="flex items-center justify-between text-[11px]">
+                    <span className="text-gray-500">30 derniers jours</span>
+                    <span className="font-bold text-blue-400">{activeMonth}</span>
+                  </div>
+                </div>
+              )}
             </div>
-            <p className="text-2xl font-black text-white">{value}</p>
-            <p className="text-[11px] text-gray-400 font-medium mt-1">{label}</p>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
