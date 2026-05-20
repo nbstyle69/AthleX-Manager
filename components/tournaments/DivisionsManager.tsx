@@ -105,6 +105,16 @@ export default function DivisionsManager({
     setUnassigned(prev => [...prev, athlete]);
   }
 
+  async function moveMember(memberRowId: string, newDivisionId: string) {
+    setBusy(`mv-${memberRowId}`); setError(null);
+    const { error: err } = await supabase.from('tournament_division_members')
+      .update({ division_id: newDivisionId, points: 0, rank: null })
+      .eq('id', memberRowId);
+    setBusy(null);
+    if (err) { setError(err.message); return; }
+    setMembers(prev => prev.map(m => m.id === memberRowId ? { ...m, division_id: newDivisionId, points: 0, rank: null } : m));
+  }
+
   async function updatePoints(memberRowId: string, points: number) {
     setBusy(`pts-${memberRowId}`); setError(null);
     const { error: err } = await supabase.from('tournament_division_members')
@@ -303,10 +313,36 @@ export default function DivisionsManager({
                             className="w-20 bg-white/5 border border-white/10 rounded-lg px-2 py-1 text-xs text-white" />
                         </td>
                         <td className="px-5 py-3 text-right">
-                          <button onClick={() => removeMember(row.id, p)} disabled={busy === `del-${row.id}`}
-                            className="text-red-400 hover:text-red-300 disabled:opacity-50">
-                            <X size={14} />
-                          </button>
+                          <div className="inline-flex items-center gap-2 justify-end">
+                            <select
+                              value={d.id}
+                              disabled={busy === `mv-${row.id}` || divisions.length <= 1}
+                              onChange={e => {
+                                const next = e.target.value;
+                                if (next !== d.id) {
+                                  const target = divisions.find(x => x.id === next);
+                                  const targetCount = (byDiv[next]?.length ?? 0);
+                                  if (target && targetCount >= target.max_members) {
+                                    setError(`${target.name} est pleine (${targetCount}/${target.max_members}).`);
+                                    return;
+                                  }
+                                  if (confirm(`Déplacer ${p?.username ?? 'cet athlète'} vers ${target?.name ?? '?'} ?\nLes points seront remis à 0.`)) {
+                                    moveMember(row.id, next);
+                                  }
+                                }
+                              }}
+                              title="Déplacer vers une autre division"
+                              className="bg-white/5 border border-white/10 rounded-lg px-2 py-1 text-[11px] text-white hover:bg-white/10 cursor-pointer disabled:opacity-50"
+                            >
+                              {divisions.map(dd => (
+                                <option key={dd.id} value={dd.id} className="bg-[#111111]">{dd.name}</option>
+                              ))}
+                            </select>
+                            <button onClick={() => removeMember(row.id, p)} disabled={busy === `del-${row.id}`}
+                              className="text-red-400 hover:text-red-300 disabled:opacity-50">
+                              <X size={14} />
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     );
