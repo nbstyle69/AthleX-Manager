@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createServiceClient } from '@/lib/supabase/server';
+import { createServiceClient, getAdminUser } from '@/lib/supabase/server';
 
 export async function POST(req: NextRequest) {
+  if (!(await getAdminUser())) {
+    return NextResponse.json({ error: 'Non autorisé' }, { status: 403 });
+  }
   const supabase = createServiceClient();
   const body = await req.json();
 

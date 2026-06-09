@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createServiceClient } from '@/lib/supabase/server';
+import { createServiceClient, getAdminUser } from '@/lib/supabase/server';
 
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  if (!(await getAdminUser())) {
+    return NextResponse.json({ error: 'Non autorisé' }, { status: 403 });
+  }
   const { id } = await params;
   const supabase = createServiceClient();
 
@@ -59,6 +62,9 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
 }
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  if (!(await getAdminUser())) {
+    return NextResponse.json({ error: 'Non autorisé' }, { status: 403 });
+  }
   const { id } = await params;
   const supabase = createServiceClient();
   const body = await req.json();

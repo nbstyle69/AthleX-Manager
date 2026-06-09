@@ -37,6 +37,16 @@ export function createServiceClient() {
   });
 }
 
+export async function getAdminUser() {
+  const user = await getServerUser();
+  if (!user) return null;
+  const service = createServiceClient();
+  const { data: profile } = await service
+    .from('profiles').select('role').eq('id', user.id).single();
+  if (!profile || !['super_admin', 'admin'].includes(profile.role)) return null;
+  return user as { id: string; email?: string };
+}
+
 export async function getServerProfile(supabase: Awaited<ReturnType<typeof createClient>>, userId?: string) {
   const uid = userId ?? (await getServerUser())?.id;
   if (!uid) return null;

@@ -1,7 +1,10 @@
 ﻿import { NextResponse } from 'next/server';
-import { createClient, getServerUser } from '@/lib/supabase/server';
+import { createClient, getServerUser, getAdminUser } from '@/lib/supabase/server';
 
 export async function GET() {
+  if (!(await getAdminUser())) {
+    return NextResponse.json({ error: 'Non autorisé' }, { status: 403 });
+  }
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'NOT SET';
   const keyOk = !!(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
 
