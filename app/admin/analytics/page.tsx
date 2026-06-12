@@ -6,12 +6,14 @@ import {
   BarChart3, Users, Trophy, Swords, MapPin, Loader2,
   TrendingUp, Calendar, Activity, Target, MessageCircle,
   CalendarCheck, Sparkles, Award, Dumbbell, Building2,
+  Download, AlertTriangle, TrendingDown, Info, Zap,
 } from 'lucide-react';
 
 interface Stats {
   totalUsers: number;
   recentUsers7d: number;
   recentUsers30d: number;
+  eloDistribution: { label: string; count: number; color: string }[];
   totalTournaments: number;
   activeTournaments: number;
   totalPhysicalComps: number;
@@ -35,8 +37,60 @@ interface Stats {
   topBoxes: { name: string; members: number }[];
 }
 
+const ELO_LEVELS = [
+  { label: 'Scaled',  min: 0,    max: 599,  color: 'bg-gray-400' },
+  { label: 'Inter',   min: 600,  max: 799,  color: 'bg-blue-400' },
+  { label: 'RX',      min: 800,  max: 999,  color: 'bg-emerald-400' },
+  { label: 'RX+',     min: 1000, max: 1199, color: 'bg-amber-400' },
+  { label: 'GX',      min: 1200, max: 1399, color: 'bg-orange-400' },
+  { label: 'Pro',     min: 1400, max: 9999, color: 'bg-red-400' },
+];
+
+function exportCSV(stats: Stats, period: number) {
+  const rows: (string | number)[][] = [
+    ['Métrique', 'Valeur'],
+    ['--- UTILISATEURS ---', ''],
+    ['Total utilisateurs', stats.totalUsers],
+    ['Inscrits 7 derniers jours', stats.recentUsers7d],
+    ['Inscrits 30 derniers jours', stats.recentUsers30d],
+    [`Rétention 7j (%)`, stats.retentionRate],
+    ['--- COMPÉTITIONS ---', ''],
+    ['Tournois total', stats.totalTournaments],
+    ['Tournois actifs', stats.activeTournaments],
+    ['Mini-tournois', stats.totalDailyTournaments],
+    ['Comp. Physiques', stats.totalPhysicalComps],
+    ['Comp. Inter-box', stats.totalInterComps],
+    ['Scores contestés', stats.contestedScores],
+    ['--- ENGAGEMENT ---', ''],
+    ['Scores WOD total', stats.totalScores],
+    [`Scores WOD (${period}j)`, stats.scoresPeriod],
+    ['WODs générés total', stats.totalGeneratedWods],
+    [`WODs générés (${period}j)`, stats.generatedWodsPeriod],
+    ['Badges débloqués', stats.totalBadgesEarned],
+    ['Messages total', stats.totalMessages],
+    [`Messages (${period}j)`, stats.messagesPeriod],
+    ['Réservations total', stats.totalReservations],
+    [`Réservations (${period}j)`, stats.reservationsPeriod],
+    ['--- BOXES ---', ''],
+    ['Boxes total', stats.totalBoxes],
+    ...stats.topBoxes.map(b => [`Box: ${b.name}`, b.members]),
+  ];
+  Object.entries(stats.usersByRole).forEach(([role, count]) => {
+    rows.push([`Rôle: ${role}`, count]);
+  });
+  const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g, '\"')}"`).join(',')).join('\n');
+  const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `athlex-analytics-${new Date().toISOString().slice(0, 10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 const EMPTY: Stats = {
   totalUsers: 0, recentUsers7d: 0, recentUsers30d: 0,
+  eloDistribution: [],
   totalTournaments: 0, activeTournaments: 0,
   totalPhysicalComps: 0, activePhysicalComps: 0,
   totalInterComps: 0, totalDailyTournaments: 0, contestedScores: 0, totalBoxes: 0,
@@ -88,6 +142,7 @@ export default function AnalyticsPage() {
       { data: activeScoreUsers },
       { data: activeReservationUsers },
       { data: topBoxesRaw },
+      { data: eloProfiles },
     ] = await Promise.all([
       supabase.from('profiles').select('*', { count: 'exact', head: true }),
       supabase.from('profiles').select('*', { count: 'exact', head: true }).gte('created_at', d7),
@@ -114,6 +169,7 @@ export default function AnalyticsPage() {
       supabase.from('wod_scores').select('member_id').gte('submitted_at', d7),
       supabase.from('class_reservations').select('member_id').gte('created_at', d7),
       supabase.from('boxes').select('id, name, box_members(count)').order('name').limit(10),
+      supabase.from('profiles').select('elo').not('elo', 'is', null),
     ]);
 
     // Roles breakdown
@@ -155,6 +211,16 @@ export default function AnalyticsPage() {
       ? Math.round((activeUserIds.size / (totalUsers ?? 1)) * 100)
       : 0;
 
+    // ELO distribution by level
+    const eloDistribution = ELO_LEVELS.map(lvl => ({
+      label: lvl.label,
+      color: lvl.color,
+      count: ((eloProfiles ?? []) as any[]).filter((p: any) => {
+        const e = Number(p.elo ?? 0);
+        return e >= lvl.min && e <= lvl.max;
+      }).length,
+    }));
+
     setStats({
       totalUsers: totalUsers ?? 0,
       recentUsers7d: recentUsers7d ?? 0,
@@ -180,6 +246,7 @@ export default function AnalyticsPage() {
       scoresPeriod: scoresPeriod ?? 0,
       retentionRate,
       topBoxes,
+      eloDistribution,
     });
     setLoading(false);
   }, [period]);
@@ -195,6 +262,23 @@ export default function AnalyticsPage() {
   const ROLE_COLORS: Record<string, string> = {
     athlete: 'bg-emerald-500', admin: 'bg-amber-500', super_admin: 'bg-red-500',
     box_owner: 'bg-purple-500', member: 'bg-blue-500',
+  };
+
+  // Alert thresholds
+  const alerts: { level: 'critical' | 'warning' | 'info'; message: string; icon: any }[] = [];
+  if (!loading && stats.retentionRate < 15 && stats.totalUsers > 0)
+    alerts.push({ level: 'critical', message: `Rétention critique : ${stats.retentionRate}% des utilisateurs actifs cette semaine (seuil : 15%)`, icon: TrendingDown });
+  if (!loading && stats.contestedScores > 10)
+    alerts.push({ level: 'warning', message: `${stats.contestedScores} scores contestés en attente de traitement`, icon: AlertTriangle });
+  if (!loading && stats.recentUsers7d === 0 && stats.totalUsers > 0)
+    alerts.push({ level: 'info', message: 'Aucune nouvelle inscription cette semaine', icon: Info });
+  if (!loading && stats.activeTournaments === 0)
+    alerts.push({ level: 'info', message: 'Aucun tournoi actif en ce moment', icon: Zap });
+
+  const alertStyles = {
+    critical: 'bg-red-500/10 border-red-500/30 text-red-400',
+    warning:  'bg-amber-500/10 border-amber-500/30 text-amber-400',
+    info:     'bg-blue-500/10 border-blue-500/30 text-blue-400',
   };
 
   if (loading) {
@@ -218,7 +302,7 @@ export default function AnalyticsPage() {
             <p className="text-sm text-gray-400">Vue d&apos;ensemble de la plateforme</p>
           </div>
         </div>
-        <div className="flex gap-2">
+        <div className="flex items-center gap-2">
           {([7, 30, 90] as const).map(p => (
             <button
               key={p}
@@ -232,8 +316,26 @@ export default function AnalyticsPage() {
               {p}j
             </button>
           ))}
+          <button
+            onClick={() => exportCSV(stats, period)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/25 transition-all"
+          >
+            <Download size={13} /> Export CSV
+          </button>
         </div>
       </div>
+
+      {/* Alert banners */}
+      {alerts.length > 0 && (
+        <div className="space-y-2">
+          {alerts.map((alert, i) => (
+            <div key={i} className={`flex items-center gap-3 px-4 py-3 rounded-xl border ${alertStyles[alert.level]}`}>
+              <alert.icon size={16} className="shrink-0" />
+              <span className="text-sm font-semibold">{alert.message}</span>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* KPI cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -333,6 +435,37 @@ export default function AnalyticsPage() {
           </div>
         </div>
       </div>
+
+      {/* ELO Distribution */}
+      {stats.eloDistribution.some(l => l.count > 0) && (
+        <div className="bg-[#111111] border border-white/8 rounded-2xl p-5">
+          <div className="flex items-center gap-2 mb-4">
+            <Trophy size={15} className="text-amber-400" />
+            <h2 className="text-sm font-black text-white">Distribution par niveau ELO</h2>
+          </div>
+          {(() => {
+            const total = stats.eloDistribution.reduce((s, l) => s + l.count, 0) || 1;
+            return (
+              <div className="space-y-2.5">
+                {stats.eloDistribution.map((lvl) => (
+                  <div key={lvl.label} className="flex items-center gap-3">
+                    <span className="text-xs font-bold text-gray-400 w-14 shrink-0">{lvl.label}</span>
+                    <div className="flex-1 h-5 bg-white/5 rounded-full overflow-hidden">
+                      <div
+                        className={`h-full ${lvl.color} rounded-full transition-all flex items-center justify-end pr-2`}
+                        style={{ width: `${Math.max(2, Math.round((lvl.count / total) * 100))}%` }}
+                      >
+                        {lvl.count > 0 && <span className="text-[10px] font-black text-black/70">{Math.round((lvl.count / total) * 100)}%</span>}
+                      </div>
+                    </div>
+                    <span className="text-xs font-black text-white w-10 text-right">{lvl.count}</span>
+                  </div>
+                ))}
+              </div>
+            );
+          })()}
+        </div>
+      )}
 
       {/* Top Boxes */}
       {stats.topBoxes.length > 0 && (
