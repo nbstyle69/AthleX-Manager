@@ -1,5 +1,6 @@
 ﻿import { NextRequest, NextResponse } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
+import { createServiceClient } from '@/lib/supabase/server';
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
@@ -39,9 +40,11 @@ Sois concis et direct. Maximum 150 mots.`;
 
     const analysis = message.content[0].type === 'text' ? message.content[0].text : '';
 
-    // Optionally save the analysis to the DB
-    // const supabase = await createClient();
-    // await supabase.from('tournament_scores').update({ ai_analysis: analysis }).eq('id', scoreId);
+    // Persist analysis to tournament_scores (column ai_analysis exists)
+    if (scoreId) {
+      const supabase = createServiceClient();
+      await supabase.from('tournament_scores').update({ ai_analysis: analysis }).eq('id', scoreId);
+    }
 
     return NextResponse.json({ analysis, scoreId });
   } catch (error: any) {

@@ -1,7 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createServiceClient } from '@/lib/supabase/server';
+import { createServiceClient, getServerUser } from '@/lib/supabase/server';
+
+async function checkAdmin() {
+  const user = await getServerUser();
+  if (!user) return null;
+  const service = createServiceClient();
+  const { data: profile } = await service.from('profiles').select('role').eq('id', user.id).single();
+  if (!profile || !['super_admin', 'admin'].includes(profile.role)) return null;
+  return user;
+}
 
 export async function POST(req: NextRequest) {
+  const user = await checkAdmin();
+  if (!user) return NextResponse.json({ error: 'Non autorisé' }, { status: 403 });
+
   const supabase = createServiceClient();
   const body = await req.json();
 

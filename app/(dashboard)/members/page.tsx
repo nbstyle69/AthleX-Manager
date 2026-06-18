@@ -268,8 +268,21 @@ export default function MembersPage() {
     if (!boxId || member.role === newRole) return;
     const labels: Record<string, string> = { member: 'Membre', coach: 'Coach', owner: 'Owner' };
     if (!confirm(`Changer le rôle de ${member.username} → ${labels[newRole]} ?`)) return;
+
+    // If promoting to owner, demote the current owner first (prevent double ownership)
+    if (newRole === 'owner') {
+      const currentOwner = members.find(m => m.role === 'owner' && m.id !== member.id);
+      if (currentOwner) {
+        await supabase.from('box_members').update({ role: 'member' }).eq('member_id', currentOwner.id).eq('box_id', boxId);
+      }
+    }
+
     await supabase.from('box_members').update({ role: newRole }).eq('member_id', member.id).eq('box_id', boxId);
-    setMembers(prev => prev.map(m => m.id === member.id ? { ...m, role: newRole } : m));
+    setMembers(prev => prev.map(m => {
+      if (m.id === member.id) return { ...m, role: newRole };
+      if (newRole === 'owner' && m.role === 'owner') return { ...m, role: 'member' };
+      return m;
+    }));
   }
 
   async function toggleBan(member: Member) {

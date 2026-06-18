@@ -2,7 +2,9 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { Users, Search, Shield, Dumbbell, Building2, ChevronUp, ChevronDown } from 'lucide-react';
+import { Users, Search, Building2, ChevronUp, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
+
+const PAGE_SIZE = 50;
 
 interface UserProfile {
   id: string;
@@ -20,55 +22,77 @@ export default function AdminUsersPage() {
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [page, setPage] = useState(0);
+  const [totalCount, setTotalCount] = useState(0);
 
   type SortCol = 'username' | 'role' | 'box' | 'level' | 'elo' | 'matches' | 'wins' | 'date' | '';
-  const [sortCol, setSortCol] = useState<SortCol>('');
-  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
+  const [sortCol, setSortCol] = useState<SortCol>('elo');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
   function toggleSort(col: SortCol) {
     if (sortCol === col) { setSortDir(d => d === 'asc' ? 'desc' : 'asc'); }
     else { setSortCol(col); setSortDir(col === 'elo' || col === 'matches' || col === 'wins' ? 'desc' : 'asc'); }
   }
   const supabase = createClient();
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (currentPage: number, currentSearch: string) => {
     setLoading(true);
-    const { data: profiles } = await supabase
+    const from = currentPage * PAGE_SIZE;
+    const to = from + PAGE_SIZE - 1;
+
+    // Server-side count (with search filter if any)
+    let countQuery = supabase.from('profiles').select('*', { count: 'exact', head: true });
+    if (currentSearch) countQuery = countQuery.ilike('username', `%${currentSearch}%`);
+    const { count } = await countQuery;
+    setTotalCount(count ?? 0);
+
+    // Server-side paginated query
+    let dataQuery = supabase
       .from('profiles')
       .select('id, username, role, level, elo, total_matches, wins, created_at')
       .order('elo', { ascending: false })
-      .limit(200);
+      .range(from, to);
+    if (currentSearch) dataQuery = dataQuery.ilike('username', `%${currentSearch}%`);
+    const { data: profiles } = await dataQuery;
 
-    // Fetch box memberships to map user → box name
-    const { data: memberships } = await supabase
-      .from('box_members')
-      .select('member_id, box:boxes!box_members_box_id_fkey(name)')
-      .eq('status', 'active');
-
+    // Fetch box memberships only for current page users
+    const userIds = (profiles ?? []).map(p => p.id);
     const boxMap = new Map<string, string>();
-    (memberships ?? []).forEach((m: any) => {
-      const box = Array.isArray(m.box) ? m.box[0] : m.box;
-      if (box?.name) boxMap.set(m.member_id, box.name);
-    });
+    if (userIds.length > 0) {
+      const { data: memberships } = await supabase
+        .from('box_members')
+        .select('member_id, box:boxes!box_members_box_id_fkey(name)')
+        .eq('status', 'active')
+        .in('member_id', userIds);
+      (memberships ?? []).forEach((m: any) => {
+        const box = Array.isArray(m.box) ? m.box[0] : m.box;
+        if (box?.name) boxMap.set(m.member_id, box.name);
+      });
 
-    // Also check box owners directly
-    const { data: boxes } = await supabase
-      .from('boxes')
-      .select('owner_id, name');
-    (boxes ?? []).forEach((b: any) => {
-      if (b.owner_id && !boxMap.has(b.owner_id)) boxMap.set(b.owner_id, b.name);
-    });
+      const { data: boxes } = await supabase
+        .from('boxes')
+        .select('owner_id, name')
+        .in('owner_id', userIds);
+      (boxes ?? []).forEach((b: any) => {
+        if (b.owner_id && !boxMap.has(b.owner_id)) boxMap.set(b.owner_id, b.name);
+      });
+    }
 
     setUsers((profiles ?? []).map(p => ({ ...p, box_name: boxMap.get(p.id) ?? null })));
     setLoading(false);
   }, []);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => { load(page, search); }, [load, page]);
+
+  // On search change: reset to page 0 and reload
+  useEffect(() => {
+    const t = setTimeout(() => { setPage(0); load(0, search); }, 300);
+    return () => clearTimeout(t);
+  }, [search]);
+
+  const totalPages = Math.ceil(totalCount / PAGE_SIZE);
 
   const filtered = (() => {
-    let list = users.filter(u =>
-      u.username?.toLowerCase().includes(search.toLowerCase()) ||
-      u.role?.toLowerCase().includes(search.toLowerCase())
-    );
+    let list = [...users];  // already filtered server-side
     if (sortCol) {
       const dir = sortDir === 'asc' ? 1 : -1;
       const LEVEL_ORDER: Record<string, number> = { pro: 6, gx: 5, 'rx+': 4, rx: 3, inter: 2, scaled: 1 };
@@ -112,7 +136,7 @@ export default function AdminUsersPage() {
           </div>
           <div>
             <h1 className="text-xl font-black text-white">Utilisateurs</h1>
-            <p className="text-sm text-gray-400">{users.length} athlètes inscrits</p>
+            <p className="text-sm text-gray-400">{totalCount} athlètes inscrits</p>
           </div>
         </div>
         <div className="relative">
@@ -203,6 +227,32 @@ export default function AdminUsersPage() {
               ))}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between pt-2">
+          <p className="text-xs text-gray-500">
+            Page {page + 1} / {totalPages} &nbsp;·&nbsp; {totalCount} utilisateurs
+          </p>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setPage(p => Math.max(0, p - 1))}
+              disabled={page === 0 || loading}
+              className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold border border-white/10 text-gray-400 hover:text-white hover:border-white/20 disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
+              <ChevronLeft size={13} /> Préc.
+            </button>
+            <span className="text-xs font-black text-white tabular-nums w-16 text-center">
+              {page * PAGE_SIZE + 1}–{Math.min((page + 1) * PAGE_SIZE, totalCount)}
+            </span>
+            <button
+              onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))}
+              disabled={page >= totalPages - 1 || loading}
+              className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold border border-white/10 text-gray-400 hover:text-white hover:border-white/20 disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
+              Suiv. <ChevronRight size={13} />
+            </button>
+          </div>
         </div>
       )}
     </div>

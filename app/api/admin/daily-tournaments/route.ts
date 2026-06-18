@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerUser } from '@/lib/supabase/server';
-import { createServiceClient } from '@/lib/supabase/server';
+import { getServerUser, createServiceClient } from '@/lib/supabase/server';
+import { K_PAIRWISE } from '@/lib/elo';
 
 async function checkAdmin() {
   const user = await getServerUser();
@@ -38,7 +38,7 @@ export async function PATCH(req: NextRequest) {
 
     // 3. Calculate & apply ELO if at least 2 scores
     if (allScores && allScores.length >= 2) {
-      const K = 32;
+      const K = K_PAIRWISE;
       const userIds = allScores.map((s: any) => s.user_id);
       const { data: profiles } = await service
         .from('profiles')

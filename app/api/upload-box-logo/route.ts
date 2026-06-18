@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { getServerUser } from '@/lib/supabase/server';
 
 function getSupabaseAdmin() {
   return createClient(
@@ -11,6 +12,9 @@ function getSupabaseAdmin() {
 
 export async function POST(req: NextRequest) {
   try {
+    const caller = await getServerUser();
+    if (!caller) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
+
     const formData = await req.formData();
     const boxId = formData.get('box_id') as string;
     const file = formData.get('logo') as File;
@@ -20,6 +24,20 @@ export async function POST(req: NextRequest) {
     }
 
     const supabase = getSupabaseAdmin();
+
+    // Verify caller is owner, co-owner, or admin of this box
+    const { data: profile } = await supabase.from('profiles').select('role').eq('id', caller.id).single();
+    const isAdmin = profile && ['super_admin', 'admin'].includes(profile.role);
+    if (!isAdmin) {
+      const { data: box } = await supabase.from('boxes').select('owner_id').eq('id', boxId).single();
+      const { data: membership } = await supabase.from('box_members')
+        .select('role').eq('box_id', boxId).eq('member_id', caller.id).eq('status', 'active').maybeSingle();
+      const isOwner = box?.owner_id === caller.id;
+      const isCoOwner = membership?.role === 'owner';
+      if (!isOwner && !isCoOwner) {
+        return NextResponse.json({ error: 'Non autorisé' }, { status: 403 });
+      }
+    }
 
     const ext = file.name.split('.').pop()?.toLowerCase() ?? 'jpg';
     const fileName = `${boxId}/logo.${ext}`;

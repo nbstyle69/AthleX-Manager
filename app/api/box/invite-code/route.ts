@@ -28,6 +28,18 @@ export async function POST(req: NextRequest) {
 
   // Use service client to bypass RLS
   const service = createServiceClient();
+
+  // Check uniqueness — reject if another box already uses this code
+  const { data: existing } = await service
+    .from('boxes')
+    .select('id')
+    .eq('invite_code', code)
+    .neq('id', box.id)
+    .maybeSingle();
+  if (existing) {
+    return NextResponse.json({ error: 'Ce code est déjà utilisé par une autre box. Choisissez-en un autre.' }, { status: 409 });
+  }
+
   const { data, error } = await service
     .from('boxes')
     .update({ invite_code: code })

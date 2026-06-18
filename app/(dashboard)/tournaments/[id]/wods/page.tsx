@@ -12,7 +12,7 @@ export default async function TournamentWODsPage({ params }: { params: Promise<{
 
   const { data: tournament } = await supabase
     .from('tournaments')
-    .select('id, name, level, status, format')
+    .select('id, name, level, status, format, current_season')
     .eq('id', id)
     .eq('box_id', box.id)
     .single();
@@ -61,6 +61,7 @@ export default async function TournamentWODsPage({ params }: { params: Promise<{
         initialWODs={wods ?? []}
         divisions={(divisions ?? []) as any}
         isLeague={isLeague}
+        currentSeason={tournament.current_season ?? 1}
       />
     </div>
   );

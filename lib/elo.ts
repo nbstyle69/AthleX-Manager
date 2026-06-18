@@ -1,7 +1,7 @@
 // ── Shared ELO Calculation Utilities (Admin BO mirror) ───────────────────────
 // Mirrored from mobile app src/utils/elo.ts — keep in sync.
 
-export const K_PAIRWISE = 32;
+export const K_PAIRWISE = 64;
 export const K_TOURNAMENT = 48;
 export const ELO_FLOOR = 100;
 
