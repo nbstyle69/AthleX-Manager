@@ -16,6 +16,38 @@ function generateInviteCode(): string {
   return code;
 }
 
+// Géocode une adresse via Nominatim (OpenStreetMap, gratuit, sans clé API).
+async function geocodeAddress(address: string): Promise<{
+  latitude: number; longitude: number; city: string | null;
+  postal_code: string | null; country: string | null;
+} | null> {
+  try {
+    const url =
+      'https://nominatim.openstreetmap.org/search?format=jsonv2&addressdetails=1&limit=1&q=' +
+      encodeURIComponent(address);
+    const res = await fetch(url, {
+      headers: { 'Accept-Language': 'fr', 'User-Agent': 'AthleX/1.0 (box-geocoding)' },
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    if (!Array.isArray(data) || data.length === 0) return null;
+    const hit = data[0];
+    const lat = parseFloat(hit.lat);
+    const lon = parseFloat(hit.lon);
+    if (Number.isNaN(lat) || Number.isNaN(lon)) return null;
+    const a = hit.address ?? {};
+    return {
+      latitude: lat,
+      longitude: lon,
+      city: a.city ?? a.town ?? a.village ?? a.municipality ?? null,
+      postal_code: a.postcode ?? null,
+      country: a.country ?? null,
+    };
+  } catch {
+    return null;
+  }
+}
+
 export async function POST(req: NextRequest) {
   try {
     const {
@@ -139,18 +171,30 @@ export async function POST(req: NextRequest) {
       attempts++;
     }
 
+    // ── Géocodage de l'adresse (pour l'affichage sur la carte) ──
+    const trimmedAddress = box_address?.trim() || null;
+    let geo: Awaited<ReturnType<typeof geocodeAddress>> = null;
+    if (trimmedAddress) {
+      geo = await geocodeAddress(trimmedAddress);
+    }
+
     // ── Create box ──
     const { data: box, error: boxError } = await supabase.from('boxes').insert({
       owner_id: userId,
       name: box_name.trim(),
       invite_code: inviteCode,
       is_active: true,
-      address: box_address?.trim() || null,
+      address: trimmedAddress,
       website_url: box_website?.trim() || null,
       contact_email: box_contact_email?.trim() || null,
       phone: box_phone?.trim() || null,
       google_maps_url: box_google_maps?.trim() || null,
       founded_at: box_founded_at || null,
+      latitude: geo?.latitude ?? null,
+      longitude: geo?.longitude ?? null,
+      city: geo?.city ?? null,
+      postal_code: geo?.postal_code ?? null,
+      country: geo?.country ?? null,
     } as any).select().single();
 
     if (boxError || !box) {

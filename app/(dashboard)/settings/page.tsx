@@ -4,6 +4,43 @@ import { useEffect, useState, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { Upload, ImageIcon, Trash2, CheckCircle, Phone, MapPin, Calendar, User, Users } from 'lucide-react';
 
+type GeoResult = {
+  latitude: number;
+  longitude: number;
+  city: string | null;
+  postal_code: string | null;
+  country: string | null;
+};
+
+// Géocode une adresse en coordonnées via Nominatim (OpenStreetMap, gratuit, sans clé API).
+async function geocodeAddress(address: string): Promise<GeoResult | null> {
+  try {
+    const url =
+      'https://nominatim.openstreetmap.org/search?format=jsonv2&addressdetails=1&limit=1&q=' +
+      encodeURIComponent(address);
+    const res = await fetch(url, {
+      headers: { 'Accept-Language': 'fr' },
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    if (!Array.isArray(data) || data.length === 0) return null;
+    const hit = data[0];
+    const lat = parseFloat(hit.lat);
+    const lon = parseFloat(hit.lon);
+    if (Number.isNaN(lat) || Number.isNaN(lon)) return null;
+    const a = hit.address ?? {};
+    return {
+      latitude: lat,
+      longitude: lon,
+      city: a.city ?? a.town ?? a.village ?? a.municipality ?? null,
+      postal_code: a.postcode ?? null,
+      country: a.country ?? null,
+    };
+  } catch {
+    return null;
+  }
+}
+
 export default function SettingsPage() {
   const supabase = createClient();
   const fileRef = useRef<HTMLInputElement>(null);
@@ -171,19 +208,46 @@ export default function SettingsPage() {
 
     setSavingInfo(true);
     setSavedInfo(false);
-    const { error } = await supabase.from('boxes').update({
+
+    const trimmedAddress = address.trim();
+    const payload: Record<string, any> = {
       name: name.trim(),
-      address: address.trim() || null,
+      address: trimmedAddress || null,
       website_url: websiteUrl.trim() || null,
       contact_email: contactEmail.trim() || null,
       phone: phone.trim() || null,
       google_maps_url: googleMapsUrl.trim() || null,
       founded_at: foundedAt || null,
-    }).eq('id', box.id);
+    };
+
+    // Géocodage : convertit l'adresse en coordonnées pour l'affichage sur la carte (app mobile + page publique).
+    if (trimmedAddress) {
+      // Re-géocode seulement si l'adresse a changé (ou si pas encore de coordonnées).
+      if (trimmedAddress !== (box.address ?? '') || box.latitude == null || box.longitude == null) {
+        const geo = await geocodeAddress(trimmedAddress);
+        if (geo) {
+          payload.latitude = geo.latitude;
+          payload.longitude = geo.longitude;
+          if (geo.city) payload.city = geo.city;
+          if (geo.postal_code) payload.postal_code = geo.postal_code;
+          if (geo.country) payload.country = geo.country;
+        } else {
+          alert("Adresse introuvable : impossible de la situer sur la carte. Vérifie l'adresse (rue, code postal, ville).");
+        }
+      }
+    } else {
+      // Adresse effacée → on retire les coordonnées.
+      payload.latitude = null;
+      payload.longitude = null;
+    }
+
+    const { data: updated, error } = await supabase.from('boxes')
+      .update(payload).eq('id', box.id).select('*').maybeSingle();
 
     if (error) {
       alert(`Erreur: ${error.message}`);
     } else {
+      if (updated) setBox(updated);
       setSavedInfo(true);
       setTimeout(() => setSavedInfo(false), 3000);
     }

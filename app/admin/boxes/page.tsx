@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { Building2, Search, Users, Calendar, CheckCircle, XCircle, ChevronRight, Plus, X } from 'lucide-react';
+import { Building2, Search, Users, Calendar, CheckCircle, XCircle, ChevronRight, Plus, X, MapPin } from 'lucide-react';
 import Link from 'next/link';
 
 interface BoxItem {
@@ -123,6 +123,27 @@ export default function AdminBoxesPage() {
     load();
   }
 
+  const [geocoding, setGeocoding] = useState(false);
+
+  async function handleGeocode() {
+    if (geocoding) return;
+    setGeocoding(true);
+    try {
+      const res = await fetch('/api/admin/geocode-boxes', { method: 'POST' });
+      const json = await res.json();
+      if (!res.ok) {
+        alert(`Erreur: ${json.error ?? 'géocodage échoué'}`);
+      } else {
+        alert(`Géocodage terminé : ${json.updated}/${json.total} box mises à jour` + (json.failed ? `, ${json.failed} adresse(s) introuvable(s)` : ''));
+        load();
+      }
+    } catch (e: any) {
+      alert(`Erreur: ${e?.message ?? e}`);
+    } finally {
+      setGeocoding(false);
+    }
+  }
+
   const planColor = (p: string) =>
     p === 'elite' ? 'text-yellow-400 bg-yellow-500/15' :
     p === 'pro' ? 'text-purple-400 bg-purple-500/15' :
@@ -141,6 +162,14 @@ export default function AdminBoxesPage() {
           </div>
         </div>
         <div className="flex items-center gap-3">
+          <button
+            onClick={handleGeocode}
+            disabled={geocoding}
+            title="Géocode les adresses des box sans coordonnées pour les afficher sur la carte"
+            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 disabled:opacity-50 text-white text-sm font-bold transition-colors"
+          >
+            <MapPin size={16} /> {geocoding ? 'Géocodage...' : 'Géocoder les adresses'}
+          </button>
           <button
             onClick={() => setShowCreate(true)}
             className="flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-bold transition-colors"
