@@ -15,11 +15,23 @@ type GeoResult = {
   postal_code: string | null; country: string | null;
 };
 
+// Extrait des coordonnées d'un lien Google Maps (le plus fiable : pin exact).
+function parseLatLngFromGoogleMapsUrl(url: string | null | undefined): { latitude: number; longitude: number } | null {
+  if (!url) return null;
+  let m = url.match(/!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)/);
+  if (m) return { latitude: parseFloat(m[1]), longitude: parseFloat(m[2]) };
+  m = url.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/);
+  if (m) return { latitude: parseFloat(m[1]), longitude: parseFloat(m[2]) };
+  m = url.match(/[?&](?:q|query|ll)=(-?\d+\.\d+),(-?\d+\.\d+)/);
+  if (m) return { latitude: parseFloat(m[1]), longitude: parseFloat(m[2]) };
+  return null;
+}
+
 // Géocode une adresse via Nominatim (OpenStreetMap, gratuit, sans clé API).
 async function geocodeAddress(address: string): Promise<GeoResult | null> {
   try {
     const url =
-      'https://nominatim.openstreetmap.org/search?format=jsonv2&addressdetails=1&limit=1&q=' +
+      'https://nominatim.openstreetmap.org/search?format=jsonv2&addressdetails=1&countrycodes=fr&limit=1&q=' +
       encodeURIComponent(address);
     const res = await fetch(url, {
       headers: { 'Accept-Language': 'fr', 'User-Agent': 'AthleX/1.0 (box-geocoding)' },
@@ -28,6 +40,8 @@ async function geocodeAddress(address: string): Promise<GeoResult | null> {
     const data = await res.json();
     if (!Array.isArray(data) || data.length === 0) return null;
     const hit = data[0];
+    const vague = ['country', 'state', 'region', 'county', 'administrative'];
+    if (hit.addresstype && vague.includes(hit.addresstype)) return null;
     const lat = parseFloat(hit.lat);
     const lon = parseFloat(hit.lon);
     if (Number.isNaN(lat) || Number.isNaN(lon)) return null;
@@ -54,11 +68,12 @@ export async function POST(_req: NextRequest) {
 
   const supabase = createServiceClient();
 
+  // Reprend : toute box avec un lien Google Maps (coords du lien = autorité, corrige aussi les coords fausses),
+  // OU toute box avec une adresse mais sans coordonnées.
   const { data: boxes, error } = await supabase
     .from('boxes')
-    .select('id, name, address, latitude, longitude')
-    .not('address', 'is', null)
-    .or('latitude.is.null,longitude.is.null');
+    .select('id, name, address, google_maps_url, latitude, longitude')
+    .or('google_maps_url.not.is.null,and(address.not.is.null,latitude.is.null)');
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
@@ -67,9 +82,26 @@ export async function POST(_req: NextRequest) {
   let failed = 0;
 
   for (const box of boxes ?? []) {
+    // Priorité 1 : coordonnées du lien Google Maps (pin exact, pas d'appel réseau).
+    const coordsFromUrl = parseLatLngFromGoogleMapsUrl(box.google_maps_url);
+    if (coordsFromUrl) {
+      const { error: upErr } = await supabase.from('boxes')
+        .update({ latitude: coordsFromUrl.latitude, longitude: coordsFromUrl.longitude })
+        .eq('id', box.id);
+      if (upErr) {
+        failed++;
+        results.push({ id: box.id, name: box.name, status: `error: ${upErr.message}` });
+      } else {
+        updated++;
+        results.push({ id: box.id, name: box.name, status: 'from google maps url' });
+      }
+      continue; // pas de sleep : aucun appel Nominatim
+    }
+
+    // Priorité 2 : géocodage de l'adresse.
     const address = (box.address ?? '').trim();
     if (!address) {
-      results.push({ id: box.id, name: box.name, status: 'skipped (no address)' });
+      results.push({ id: box.id, name: box.name, status: 'skipped (no address / no maps url)' });
       continue;
     }
 

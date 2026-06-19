@@ -16,6 +16,18 @@ function generateInviteCode(): string {
   return code;
 }
 
+// Extrait des coordonnées d'un lien Google Maps (le plus fiable : pin exact).
+function parseLatLngFromGoogleMapsUrl(url: string | null | undefined): { latitude: number; longitude: number } | null {
+  if (!url) return null;
+  let m = url.match(/!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)/);
+  if (m) return { latitude: parseFloat(m[1]), longitude: parseFloat(m[2]) };
+  m = url.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/);
+  if (m) return { latitude: parseFloat(m[1]), longitude: parseFloat(m[2]) };
+  m = url.match(/[?&](?:q|query|ll)=(-?\d+\.\d+),(-?\d+\.\d+)/);
+  if (m) return { latitude: parseFloat(m[1]), longitude: parseFloat(m[2]) };
+  return null;
+}
+
 // Géocode une adresse via Nominatim (OpenStreetMap, gratuit, sans clé API).
 async function geocodeAddress(address: string): Promise<{
   latitude: number; longitude: number; city: string | null;
@@ -23,7 +35,7 @@ async function geocodeAddress(address: string): Promise<{
 } | null> {
   try {
     const url =
-      'https://nominatim.openstreetmap.org/search?format=jsonv2&addressdetails=1&limit=1&q=' +
+      'https://nominatim.openstreetmap.org/search?format=jsonv2&addressdetails=1&countrycodes=fr&limit=1&q=' +
       encodeURIComponent(address);
     const res = await fetch(url, {
       headers: { 'Accept-Language': 'fr', 'User-Agent': 'AthleX/1.0 (box-geocoding)' },
@@ -32,6 +44,8 @@ async function geocodeAddress(address: string): Promise<{
     const data = await res.json();
     if (!Array.isArray(data) || data.length === 0) return null;
     const hit = data[0];
+    const vague = ['country', 'state', 'region', 'county', 'administrative'];
+    if (hit.addresstype && vague.includes(hit.addresstype)) return null;
     const lat = parseFloat(hit.lat);
     const lon = parseFloat(hit.lon);
     if (Number.isNaN(lat) || Number.isNaN(lon)) return null;
@@ -171,12 +185,16 @@ export async function POST(req: NextRequest) {
       attempts++;
     }
 
-    // ── Géocodage de l'adresse (pour l'affichage sur la carte) ──
+    // ── Coordonnées (priorité au lien Google Maps, sinon géocodage adresse) ──
     const trimmedAddress = box_address?.trim() || null;
+    const trimmedMaps = box_google_maps?.trim() || null;
+    const coordsFromUrl = parseLatLngFromGoogleMapsUrl(trimmedMaps);
     let geo: Awaited<ReturnType<typeof geocodeAddress>> = null;
-    if (trimmedAddress) {
+    if (!coordsFromUrl && trimmedAddress) {
       geo = await geocodeAddress(trimmedAddress);
     }
+    const latitude = coordsFromUrl?.latitude ?? geo?.latitude ?? null;
+    const longitude = coordsFromUrl?.longitude ?? geo?.longitude ?? null;
 
     // ── Create box ──
     const { data: box, error: boxError } = await supabase.from('boxes').insert({
@@ -188,10 +206,10 @@ export async function POST(req: NextRequest) {
       website_url: box_website?.trim() || null,
       contact_email: box_contact_email?.trim() || null,
       phone: box_phone?.trim() || null,
-      google_maps_url: box_google_maps?.trim() || null,
+      google_maps_url: trimmedMaps,
       founded_at: box_founded_at || null,
-      latitude: geo?.latitude ?? null,
-      longitude: geo?.longitude ?? null,
+      latitude,
+      longitude,
       city: geo?.city ?? null,
       postal_code: geo?.postal_code ?? null,
       country: geo?.country ?? null,

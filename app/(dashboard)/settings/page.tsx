@@ -12,11 +12,26 @@ type GeoResult = {
   country: string | null;
 };
 
+// Extrait des coordonnées d'un lien Google Maps (le plus fiable : pin exact).
+function parseLatLngFromGoogleMapsUrl(url: string): { latitude: number; longitude: number } | null {
+  if (!url) return null;
+  // !3d<lat>!4d<lng> = position exacte du lieu (prioritaire)
+  let m = url.match(/!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)/);
+  if (m) return { latitude: parseFloat(m[1]), longitude: parseFloat(m[2]) };
+  // @<lat>,<lng> = centre de la vue (fallback)
+  m = url.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/);
+  if (m) return { latitude: parseFloat(m[1]), longitude: parseFloat(m[2]) };
+  // q=/query=/ll=<lat>,<lng>
+  m = url.match(/[?&](?:q|query|ll)=(-?\d+\.\d+),(-?\d+\.\d+)/);
+  if (m) return { latitude: parseFloat(m[1]), longitude: parseFloat(m[2]) };
+  return null;
+}
+
 // Géocode une adresse en coordonnées via Nominatim (OpenStreetMap, gratuit, sans clé API).
 async function geocodeAddress(address: string): Promise<GeoResult | null> {
   try {
     const url =
-      'https://nominatim.openstreetmap.org/search?format=jsonv2&addressdetails=1&limit=1&q=' +
+      'https://nominatim.openstreetmap.org/search?format=jsonv2&addressdetails=1&countrycodes=fr&limit=1&q=' +
       encodeURIComponent(address);
     const res = await fetch(url, {
       headers: { 'Accept-Language': 'fr' },
@@ -25,6 +40,9 @@ async function geocodeAddress(address: string): Promise<GeoResult | null> {
     const data = await res.json();
     if (!Array.isArray(data) || data.length === 0) return null;
     const hit = data[0];
+    // Rejette les résultats trop vagues (pays, région, département) → évite un marqueur faux.
+    const vague = ['country', 'state', 'region', 'county', 'administrative'];
+    if (hit.addresstype && vague.includes(hit.addresstype)) return null;
     const lat = parseFloat(hit.lat);
     const lon = parseFloat(hit.lon);
     if (Number.isNaN(lat) || Number.isNaN(lon)) return null;
@@ -220,8 +238,15 @@ export default function SettingsPage() {
       founded_at: foundedAt || null,
     };
 
-    // Géocodage : convertit l'adresse en coordonnées pour l'affichage sur la carte (app mobile + page publique).
-    if (trimmedAddress) {
+    // Coordonnées pour l'affichage sur la carte (app mobile + page publique).
+    // Priorité 1 : lien Google Maps (pin exact). Priorité 2 : géocodage de l'adresse.
+    const trimmedMaps = googleMapsUrl.trim();
+    const coordsFromUrl = parseLatLngFromGoogleMapsUrl(trimmedMaps);
+
+    if (coordsFromUrl) {
+      payload.latitude = coordsFromUrl.latitude;
+      payload.longitude = coordsFromUrl.longitude;
+    } else if (trimmedAddress) {
       // Re-géocode seulement si l'adresse a changé (ou si pas encore de coordonnées).
       if (trimmedAddress !== (box.address ?? '') || box.latitude == null || box.longitude == null) {
         const geo = await geocodeAddress(trimmedAddress);
@@ -232,11 +257,11 @@ export default function SettingsPage() {
           if (geo.postal_code) payload.postal_code = geo.postal_code;
           if (geo.country) payload.country = geo.country;
         } else {
-          alert("Adresse introuvable : impossible de la situer sur la carte. Vérifie l'adresse (rue, code postal, ville).");
+          alert("Adresse introuvable : impossible de la situer précisément. Vérifie l'adresse (rue, code postal, ville) ou colle le lien Google Maps du lieu.");
         }
       }
     } else {
-      // Adresse effacée → on retire les coordonnées.
+      // Ni lien ni adresse → on retire les coordonnées.
       payload.latitude = null;
       payload.longitude = null;
     }
