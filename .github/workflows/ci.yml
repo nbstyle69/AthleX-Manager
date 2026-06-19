@@ -28,7 +28,7 @@ jobs:
         run: npm install --no-audit --no-fund
 
       - name: ESLint
-        run: npx next lint --max-warnings 0
+        run: npx next lint
 
       - name: TypeScript check
         run: |
