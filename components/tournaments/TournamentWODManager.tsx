@@ -6,6 +6,7 @@ import { Plus, Pencil, Trash2, Timer, CheckCircle, Clock, Layers, Globe, Calenda
 import WODForm from './WODForm';
 
 interface Division { id: string; name: string; level: number; }
+interface BracketStage { value: number; label: string; }
 
 const TYPE_COLORS: Record<string, string> = {
   'For Time': '#EF4444',
@@ -33,11 +34,14 @@ interface Props {
   initialWODs: any[];
   divisions?: Division[];
   isLeague?: boolean;
+  isBracket?: boolean;
+  bracketStages?: BracketStage[];
   currentSeason?: number;
 }
 
-export default function TournamentWODManager({ tournamentId, initialWODs, divisions = [], isLeague = false, currentSeason = 1 }: Props) {
+export default function TournamentWODManager({ tournamentId, initialWODs, divisions = [], isLeague = false, isBracket = false, bracketStages = [], currentSeason = 1 }: Props) {
   const divisionMap = Object.fromEntries(divisions.map(d => [d.id, d]));
+  const stageMap = Object.fromEntries(bracketStages.map(s => [s.value, s.label]));
   const [wods,     setWods]     = useState<any[]>(initialWODs);
   const [showForm, setShowForm] = useState(false);
   const [editWOD,  setEditWOD]  = useState<any | null>(null);
@@ -168,6 +172,19 @@ export default function TournamentWODManager({ tournamentId, initialWODs, divisi
                       {wod.type}
                     </span>
                     <h3 className="text-white font-bold">{wod.title}</h3>
+                    {isBracket && (
+                      wod.bracket_stage !== null && wod.bracket_stage !== undefined ? (
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-purple-500/15 text-purple-300 inline-flex items-center gap-1">
+                          <Layers size={9} />
+                          {stageMap[wod.bracket_stage] ?? `Étape ${wod.bracket_stage}`}
+                        </span>
+                      ) : (
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-blue-500/15 text-blue-300 inline-flex items-center gap-1">
+                          <Globe size={9} />
+                          Toutes étapes
+                        </span>
+                      )
+                    )}
                     {isLeague && (
                       wod.division_id && divisionMap[wod.division_id] ? (
                         <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-purple-500/15 text-purple-300 inline-flex items-center gap-1">
@@ -259,6 +276,8 @@ export default function TournamentWODManager({ tournamentId, initialWODs, divisi
                 tournamentId={tournamentId}
                 divisions={divisions}
                 isLeague={isLeague}
+                isBracket={isBracket}
+                bracketStages={bracketStages}
                 initial={editWOD}
                 onSaved={onSaved}
                 onCancel={onCancel}

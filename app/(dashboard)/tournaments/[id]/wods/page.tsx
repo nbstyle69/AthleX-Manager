@@ -12,12 +12,22 @@ export default async function TournamentWODsPage({ params }: { params: Promise<{
 
   const { data: tournament } = await supabase
     .from('tournaments')
-    .select('id, name, level, status, format, current_season')
+    .select('id, name, level, status, format, current_season, max_participants')
     .eq('id', id)
     .eq('box_id', box.id)
     .single();
 
   if (!tournament) redirect('/tournaments');
+
+  const isBracket = tournament.format === 'bracket' || tournament.format === 'swiss';
+  // Bracket stages encoded as distance-to-final (0 = Finale). Options derived
+  // from max_participants; displayed earliest stage first (e.g. 16e -> Finale).
+  const STAGE_LABELS = ['Finale', 'Demi-finale', 'Quart de finale', '8e de finale', '16e de finale', '32e de finale'];
+  const totalStages = Math.max(1, Math.ceil(Math.log2(Math.max(2, tournament.max_participants ?? 2))));
+  const bracketStages = isBracket
+    ? Array.from({ length: totalStages }, (_, i) => ({ value: i, label: STAGE_LABELS[i] ?? `${i} tours avant la finale` }))
+        .sort((a, b) => b.value - a.value)
+    : [];
 
   const [{ data: wods }, { data: divisions }] = await Promise.all([
     supabase.from('tournament_wods').select('*').eq('tournament_id', id).order('created_at'),
@@ -61,6 +71,8 @@ export default async function TournamentWODsPage({ params }: { params: Promise<{
         initialWODs={wods ?? []}
         divisions={(divisions ?? []) as any}
         isLeague={isLeague}
+        isBracket={isBracket}
+        bracketStages={bracketStages}
         currentSeason={tournament.current_season ?? 1}
       />
     </div>

@@ -22,7 +22,7 @@ export default async function BracketPage({ params }: { params: Promise<{ id: st
     svc.from('tournament_participants')
        .select('athlete_id, profile:profiles!tournament_participants_athlete_id_fkey(id, username, level, elo)')
        .eq('tournament_id', id),
-    svc.from('tournament_wods').select('id, name, position').eq('tournament_id', id).order('position'),
+    svc.from('tournament_wods').select('id, title, order_index, bracket_stage').eq('tournament_id', id).order('order_index'),
   ]);
 
   const profilesById: Record<string, any> = {};
@@ -30,6 +30,11 @@ export default async function BracketPage({ params }: { params: Promise<{ id: st
     const prof = Array.isArray(p.profile) ? p.profile[0] : p.profile;
     if (prof) profilesById[p.athlete_id] = prof;
   });
+
+  // Normalize WODs to the shape expected by BracketManager (name/position).
+  const wodList = (wods ?? []).map((w: any) => ({
+    id: w.id, name: w.title, position: w.order_index ?? null, bracket_stage: w.bracket_stage ?? null,
+  }));
 
   return (
     <div className="max-w-6xl space-y-6">
@@ -54,7 +59,7 @@ export default async function BracketPage({ params }: { params: Promise<{ id: st
         initialMatches={matches ?? []}
         profilesById={profilesById}
         participantsCount={(participants ?? []).length}
-        wods={wods ?? []}
+        wods={wodList}
       />
     </div>
   );

@@ -23,7 +23,7 @@ interface Match {
 }
 
 interface Profile { id: string; username: string; level: string; elo: number; }
-interface Wod { id: string; name: string; position: number | null; }
+interface Wod { id: string; name: string; position: number | null; bracket_stage: number | null; }
 
 interface Props {
   tournamentId: string;
@@ -63,6 +63,13 @@ export default function BracketManager({
 
   const winnerRounds = Object.keys(grouped.winnerByRound).map(Number).sort((a, b) => a - b);
   const loserRounds = Object.keys(grouped.loserByRound).map(Number).sort((a, b) => a - b);
+
+  // Map each WB round to its assigned WOD via bracket_stage (distance to final).
+  const maxWBRound = winnerRounds.length ? winnerRounds[winnerRounds.length - 1] : 0;
+  function wodForRound(r: number): Wod | undefined {
+    const stage = maxWBRound - r;
+    return wods.find(w => w.bracket_stage === stage);
+  }
 
   // Latest WB round status
   const lastWBRound = winnerRounds[winnerRounds.length - 1];
@@ -183,6 +190,7 @@ export default function BracketManager({
             <div className="flex gap-6 min-w-max">
               {winnerRounds.map(r => (
                 <RoundColumn key={`w-${r}`} title={`Round ${r}`}
+                  wodName={wodForRound(r)?.name}
                   matches={grouped.winnerByRound[r]}
                   onSelectWinner={setMatchWinner}
                   busyId={busy}
@@ -249,9 +257,10 @@ export default function BracketManager({
 /* ─────────────────────────────────────────────────────────── */
 
 function RoundColumn({
-  title, matches, onSelectWinner, busyId, pName,
+  title, wodName, matches, onSelectWinner, busyId, pName,
 }: {
   title: string;
+  wodName?: string;
   matches: Match[];
   onSelectWinner: (m: Match, winnerId: string) => void;
   busyId: string | null;
@@ -259,7 +268,16 @@ function RoundColumn({
 }) {
   return (
     <div className="w-64 shrink-0 space-y-3">
-      <div className="text-xs font-bold text-gray-500 uppercase tracking-wider">{title}</div>
+      <div className="space-y-1">
+        <div className="text-xs font-bold text-gray-500 uppercase tracking-wider">{title}</div>
+        {wodName ? (
+          <div className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-purple-500/15 text-purple-300 inline-flex items-center gap-1">
+            🏋️ {wodName}
+          </div>
+        ) : (
+          <div className="text-[10px] text-gray-600 italic">WOD non assigné</div>
+        )}
+      </div>
       {matches.map(m => (
         <MatchCard key={m.id} match={m} onSelectWinner={onSelectWinner} busyId={busyId} pName={pName} />
       ))}

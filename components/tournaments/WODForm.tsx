@@ -389,16 +389,20 @@ function localGenerate(type: string, level: string, duration: number, eqList: st
 
 interface Division { id: string; name: string; level: number; }
 
+interface BracketStage { value: number; label: string; }
+
 interface Props {
   tournamentId: string;
   divisions?: Division[];
   isLeague?: boolean;
+  isBracket?: boolean;
+  bracketStages?: BracketStage[];
   initial?: any;
   onSaved: () => void;
   onCancel: () => void;
 }
 
-export default function WODForm({ tournamentId, divisions = [], isLeague = false, initial, onSaved, onCancel }: Props) {
+export default function WODForm({ tournamentId, divisions = [], isLeague = false, isBracket = false, bracketStages = [], initial, onSaved, onCancel }: Props) {
   const [saving, setSaving] = useState(false);
   const [error, setError]   = useState<string | null>(null);
 
@@ -418,6 +422,7 @@ export default function WODForm({ tournamentId, divisions = [], isLeague = false
     work_seconds:     initial?.work_seconds     ?? 20,
     rest_seconds:     initial?.rest_seconds     ?? 10,
     division_id:      initial?.division_id      ?? '',
+    bracket_stage:    (initial?.bracket_stage === null || initial?.bracket_stage === undefined) ? '' : String(initial.bracket_stage),
   });
 
   const [movements, setMovements] = useState<string[]>(
@@ -531,6 +536,7 @@ export default function WODForm({ tournamentId, divisions = [], isLeague = false
       work_seconds:     form.type === 'Tabata' ? form.work_seconds : null,
       rest_seconds:     form.type === 'Tabata' ? form.rest_seconds : null,
       division_id:      isLeague ? (form.division_id || null) : null,
+      bracket_stage:    isBracket ? (form.bracket_stage === '' ? null : Number(form.bracket_stage)) : null,
     };
 
     let err;
@@ -725,6 +731,22 @@ export default function WODForm({ tournamentId, divisions = [], isLeague = false
           </select>
         </div>
       </div>
+
+      {/* ── Étape du bracket (bracket / swiss only) ── */}
+      {isBracket && bracketStages.length > 0 && (
+        <div>
+          <label className={lbl}>Étape du tournoi</label>
+          <select className={inp} value={form.bracket_stage} onChange={e => set('bracket_stage', e.target.value)}>
+            <option value="" className="text-black">🌐 Toutes les étapes (non assigné)</option>
+            {bracketStages.map(s => (
+              <option key={s.value} value={String(s.value)} className="text-black">{s.label}</option>
+            ))}
+          </select>
+          <p className="text-[11px] text-gray-500 mt-1.5">
+            Assigne ce WOD à une étape précise (ex : 8e de finale). Tous les matchs de cette étape utilisent ce WOD. « Non assigné » = disponible pour toutes les étapes.
+          </p>
+        </div>
+      )}
 
       {/* ── Division (league only) ── */}
       {isLeague && (
