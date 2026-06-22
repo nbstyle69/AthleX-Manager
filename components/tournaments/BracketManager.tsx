@@ -1,9 +1,9 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { Fragment, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
-import { Loader2, Play, Crown, ArrowRight, Trophy, AlertTriangle } from 'lucide-react';
+import { Loader2, Play, Crown, ArrowRight, Trophy, AlertTriangle, RotateCcw, Pencil, Trash2, X, Save, Calendar } from 'lucide-react';
 
 interface Match {
   id: string;
@@ -44,8 +44,15 @@ export default function BracketManager({
   const [matches, setMatches] = useState<Match[]>(initialMatches);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [editing, setEditing] = useState<Match | null>(null);
 
   const supabase = createClient();
+
+  // Tous les participants inscrits (pour le seeding / édition libre).
+  const participantsList = useMemo(
+    () => Object.values(profilesById).sort((a, b) => a.username.localeCompare(b.username)),
+    [profilesById]
+  );
 
   const grouped = useMemo(() => {
     const winnerByRound: Record<number, Match[]> = {};
@@ -121,6 +128,60 @@ export default function BracketManager({
     setMatches(arr => arr.map(m => m.id === matchId ? { ...m, wod_id: wodId || null } : m));
   }
 
+  // Annule le vainqueur d'un match (le repasse en "à jouer").
+  async function resetMatch(match: Match) {
+    if (!confirm(
+      `Annuler le résultat du match #${match.match_number} ?\n\n`
+      + `Attention : si le round suivant a déjà été généré, ses matchs peuvent devenir incohérents. `
+      + `Tu peux alors régénérer le bracket.`
+    )) return;
+    setBusy(match.id); setError(null);
+    const { error: err } = await supabase
+      .from('tournament_bracket_matches')
+      .update({ winner_id: null, loser_id: null, status: 'active', completed_at: null })
+      .eq('id', match.id);
+    setBusy(null);
+    if (err) { setError(err.message); return; }
+    setMatches(arr => arr.map(m => m.id === match.id
+      ? { ...m, winner_id: null, loser_id: null, status: 'active', completed_at: null }
+      : m));
+  }
+
+  // Supprime tous les matchs et régénère le round 1 (tirage aléatoire).
+  async function regenerateBracket() {
+    if (!confirm(
+      `Régénérer TOUT le bracket ?\n\n`
+      + `Cela supprime tous les matchs existants (y compris les résultats) et retire un nouveau round 1 `
+      + `au hasard parmi les ${participantsCount} participants.`
+    )) return;
+    setBusy('regenerate'); setError(null);
+    const { error: delErr } = await supabase
+      .from('tournament_bracket_matches')
+      .delete()
+      .eq('tournament_id', tournamentId);
+    if (delErr) { setBusy(null); setError(delErr.message); return; }
+    const { error: genErr } = await supabase.rpc('generate_bracket_round_1', { p_tournament_id: tournamentId });
+    setBusy(null);
+    if (genErr) { setError(genErr.message); return; }
+    router.refresh();
+  }
+
+  // Édition libre d'un match : participants (seeding), date/heure, notes.
+  async function saveMatchEdit(
+    matchId: string,
+    patch: { participant1_id: string | null; participant2_id: string | null; scheduled_at: string | null; notes: string | null }
+  ) {
+    setBusy(matchId); setError(null);
+    const { error: err } = await supabase
+      .from('tournament_bracket_matches')
+      .update(patch)
+      .eq('id', matchId);
+    setBusy(null);
+    if (err) { setError(err.message); return; }
+    setMatches(arr => arr.map(m => m.id === matchId ? { ...m, ...patch } : m));
+    setEditing(null);
+  }
+
   function pName(id: string | null) {
     if (!id) return '—';
     return profilesById[id]?.username ?? id.slice(0, 8);
@@ -164,40 +225,50 @@ export default function BracketManager({
       {/* Winner Bracket */}
       {winnerRounds.length > 0 && (
         <div className="bg-[#111111] border border-white/8 rounded-2xl p-6 space-y-4">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between gap-3 flex-wrap">
             <h2 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
               <Crown size={14} className="text-yellow-400" />
               {format === 'swiss' ? 'Winner Bracket' : 'Bracket'}
             </h2>
-            {/* Advance round button */}
-            {(() => {
-              const lastRound = winnerRounds[winnerRounds.length - 1];
-              const lastMatches = grouped.winnerByRound[lastRound];
-              const allDone = lastMatches.every(m => m.winner_id !== null);
-              const lastHasOnlyOne = lastMatches.length === 1;
-              if (!allDone || lastHasOnlyOne) return null;
-              return (
-                <button onClick={() => advanceRound(lastRound)} disabled={busy === `advance-${lastRound}`}
-                  className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold bg-emerald-500 hover:bg-emerald-600 text-white disabled:opacity-50 transition-colors">
-                  {busy === `advance-${lastRound}` ? <Loader2 size={12} className="animate-spin" /> : <ArrowRight size={12} />}
-                  Round suivant
-                </button>
-              );
-            })()}
+            <div className="flex items-center gap-2">
+              {/* Advance round button */}
+              {(() => {
+                const lastRound = winnerRounds[winnerRounds.length - 1];
+                const lastMatches = grouped.winnerByRound[lastRound];
+                const allDone = lastMatches.every(m => m.winner_id !== null);
+                const lastHasOnlyOne = lastMatches.length === 1;
+                if (!allDone || lastHasOnlyOne) return null;
+                return (
+                  <button onClick={() => advanceRound(lastRound)} disabled={busy === `advance-${lastRound}`}
+                    className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold bg-emerald-500 hover:bg-emerald-600 text-white disabled:opacity-50 transition-colors">
+                    {busy === `advance-${lastRound}` ? <Loader2 size={12} className="animate-spin" /> : <ArrowRight size={12} />}
+                    Round suivant
+                  </button>
+                );
+              })()}
+              <button onClick={regenerateBracket} disabled={busy === 'regenerate'}
+                className="inline-flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold bg-red-500/15 hover:bg-red-500/25 text-red-300 border border-red-500/30 disabled:opacity-50 transition-colors">
+                {busy === 'regenerate' ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} />}
+                Régénérer
+              </button>
+            </div>
           </div>
 
+          <p className="text-[11px] text-gray-500">
+            Clique sur un athlète pour le désigner vainqueur. Survole une carte pour éditer (joueurs / date / notes) ou annuler le résultat.
+          </p>
+
           <div className="overflow-x-auto pb-2">
-            <div className="flex gap-6 min-w-max">
-              {winnerRounds.map(r => (
-                <RoundColumn key={`w-${r}`} title={`Round ${r}`}
-                  wodName={wodForRound(r)?.name}
-                  matches={grouped.winnerByRound[r]}
-                  onSelectWinner={setMatchWinner}
-                  busyId={busy}
-                  pName={pName}
-                />
-              ))}
-            </div>
+            <VisualBracket
+              rounds={winnerRounds}
+              matchesByRound={grouped.winnerByRound}
+              wodForRound={wodForRound}
+              onSelectWinner={setMatchWinner}
+              onReset={resetMatch}
+              onEdit={setEditing}
+              busyId={busy}
+              pName={pName}
+            />
           </div>
         </div>
       )}
@@ -250,6 +321,17 @@ export default function BracketManager({
           />
         </div>
       )}
+
+      {/* Modal édition libre d'un match */}
+      {editing && (
+        <MatchEditModal
+          match={editing}
+          participants={participantsList}
+          busy={busy === editing.id}
+          onClose={() => setEditing(null)}
+          onSave={saveMatchEdit}
+        />
+      )}
     </div>
   );
 }
@@ -286,19 +368,21 @@ function RoundColumn({
 }
 
 function MatchCard({
-  match, onSelectWinner, busyId, pName,
+  match, onSelectWinner, busyId, pName, onReset, onEdit,
 }: {
   match: Match;
   onSelectWinner: (m: Match, winnerId: string) => void;
   busyId: string | null;
   pName: (id: string | null) => string;
+  onReset?: (m: Match) => void;
+  onEdit?: (m: Match) => void;
 }) {
   const isBye = match.status === 'bye';
   const completed = match.status === 'completed';
   const busy = busyId === match.id;
 
   function row(pid: string | null, label: string) {
-    if (!pid) return <div className="text-xs text-gray-600 italic">{label}</div>;
+    if (!pid) return <div className="text-xs text-gray-600 italic px-3 py-2">{label}</div>;
     const isWinner = match.winner_id === pid;
     const isLoser = match.loser_id === pid;
     return (
@@ -318,14 +402,46 @@ function MatchCard({
   }
 
   return (
-    <div className="bg-white/[0.02] border border-white/8 rounded-xl p-2 space-y-1">
+    <div className="group bg-white/[0.02] border border-white/8 rounded-xl p-2 space-y-1 relative">
       <div className="flex items-center justify-between text-[10px] text-gray-600 px-1">
-        <span>Match #{match.match_number}</span>
-        {isBye && <span className="text-yellow-400 font-bold">BYE</span>}
-        {completed && !isBye && <span className="text-emerald-400 font-bold">✓</span>}
+        <span className="flex items-center gap-1">
+          Match #{match.match_number}
+          {match.scheduled_at && (
+            <span className="inline-flex items-center gap-0.5 text-gray-500">
+              <Calendar size={9} />
+              {new Date(match.scheduled_at).toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+            </span>
+          )}
+        </span>
+        <span className="flex items-center gap-1.5">
+          {isBye && <span className="text-yellow-400 font-bold">BYE</span>}
+          {completed && !isBye && <span className="text-emerald-400 font-bold">✓</span>}
+          {/* Actions (hover) */}
+          <span className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+            {onEdit && !isBye && (
+              <button type="button" title="Éditer (joueurs / date / notes)"
+                disabled={busy}
+                onClick={() => onEdit(match)}
+                className="text-gray-400 hover:text-white disabled:opacity-40">
+                <Pencil size={11} />
+              </button>
+            )}
+            {onReset && completed && !isBye && (
+              <button type="button" title="Annuler le résultat"
+                disabled={busy}
+                onClick={() => onReset(match)}
+                className="text-gray-400 hover:text-red-300 disabled:opacity-40">
+                <RotateCcw size={11} />
+              </button>
+            )}
+          </span>
+        </span>
       </div>
       {row(match.participant1_id, 'À déterminer')}
       {row(match.participant2_id, isBye ? '—' : 'À déterminer')}
+      {match.notes && (
+        <p className="text-[10px] text-gray-500 italic px-1 truncate" title={match.notes}>📝 {match.notes}</p>
+      )}
     </div>
   );
 }
@@ -428,6 +544,210 @@ function GrandFinalSection({
                 : 'bg-white/[0.04] text-white hover:bg-white/[0.08] border border-white/5 disabled:opacity-50'}`}
           >
             {pName(lbChampionId)} (LB)
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ─── Bracket visuel (arbre connecté) ─────────────────────────── */
+
+function VisualBracket({
+  rounds, matchesByRound, wodForRound, onSelectWinner, onReset, onEdit, busyId, pName,
+}: {
+  rounds: number[];
+  matchesByRound: Record<number, Match[]>;
+  wodForRound: (r: number) => Wod | undefined;
+  onSelectWinner: (m: Match, winnerId: string) => void;
+  onReset: (m: Match) => void;
+  onEdit: (m: Match) => void;
+  busyId: string | null;
+  pName: (id: string | null) => string;
+}) {
+  const CARD_H = 96;
+  const COL_W = 240;
+  const GAP_X = 56;
+  const TITLE_H = 56;
+  const ROW_UNIT = CARD_H + 40;
+
+  const n0 = matchesByRound[rounds[0]]?.length ?? 1;
+  const H = Math.max(n0 * ROW_UNIT, ROW_UNIT);
+  const centersFor = (count: number) => {
+    const s = H / Math.max(count, 1);
+    return Array.from({ length: count }, (_, k) => s * (k + 0.5));
+  };
+
+  return (
+    <div className="flex items-start min-w-max">
+      {rounds.map((r, rIdx) => {
+        const ms = matchesByRound[r];
+        const centers = centersFor(ms.length);
+        const wod = wodForRound(r);
+        const isLast = rIdx === rounds.length - 1;
+        return (
+          <Fragment key={r}>
+            <div style={{ width: COL_W }}>
+              <div style={{ height: TITLE_H }} className="space-y-1">
+                <div className="text-xs font-bold text-gray-500 uppercase tracking-wider">
+                  {isLast && ms.length === 1 ? 'Finale' : `Round ${r}`}
+                </div>
+                {wod ? (
+                  <div className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-purple-500/15 text-purple-300 inline-flex items-center gap-1">
+                    🏋️ {wod.name}
+                  </div>
+                ) : (
+                  <div className="text-[10px] text-gray-600 italic">WOD non assigné</div>
+                )}
+              </div>
+              <div style={{ position: 'relative', height: H, width: COL_W }}>
+                {ms.map((m, k) => (
+                  <div key={m.id} style={{ position: 'absolute', top: centers[k] - CARD_H / 2, width: COL_W }}>
+                    <MatchCard match={m} onSelectWinner={onSelectWinner} busyId={busyId} pName={pName}
+                      onReset={onReset} onEdit={onEdit} />
+                  </div>
+                ))}
+              </div>
+            </div>
+            {!isLast && (
+              <Connector
+                width={GAP_X}
+                titleH={TITLE_H}
+                height={H}
+                parentCenters={centers}
+                childCenters={centersFor(matchesByRound[rounds[rIdx + 1]].length)}
+              />
+            )}
+          </Fragment>
+        );
+      })}
+    </div>
+  );
+}
+
+function Connector({
+  width, titleH, height, parentCenters, childCenters,
+}: {
+  width: number;
+  titleH: number;
+  height: number;
+  parentCenters: number[];
+  childCenters: number[];
+}) {
+  const mid = width / 2;
+  const stroke = 'rgba(255,255,255,0.16)';
+  return (
+    <div style={{ width }}>
+      <div style={{ height: titleH }} />
+      <svg width={width} height={height} style={{ display: 'block' }}>
+        {childCenters.map((cc, j) => {
+          const p1 = parentCenters[2 * j];
+          const p2 = parentCenters[2 * j + 1];
+          if (p1 == null) return null;
+          if (p2 == null) {
+            return (
+              <path key={j} d={`M0 ${p1} H ${mid} V ${cc} H ${width}`} stroke={stroke} strokeWidth={2} fill="none" />
+            );
+          }
+          return (
+            <g key={j} stroke={stroke} strokeWidth={2} fill="none">
+              <path d={`M0 ${p1} H ${mid}`} />
+              <path d={`M0 ${p2} H ${mid}`} />
+              <path d={`M${mid} ${p1} V ${p2}`} />
+              <path d={`M${mid} ${cc} H ${width}`} />
+            </g>
+          );
+        })}
+      </svg>
+    </div>
+  );
+}
+
+/* ─── Modal édition libre d'un match ──────────────────────────── */
+
+function toDatetimeLocal(iso: string): string {
+  const d = new Date(iso);
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+function MatchEditModal({
+  match, participants, busy, onClose, onSave,
+}: {
+  match: Match;
+  participants: Profile[];
+  busy: boolean;
+  onClose: () => void;
+  onSave: (
+    matchId: string,
+    patch: { participant1_id: string | null; participant2_id: string | null; scheduled_at: string | null; notes: string | null }
+  ) => void;
+}) {
+  const [p1, setP1] = useState(match.participant1_id ?? '');
+  const [p2, setP2] = useState(match.participant2_id ?? '');
+  const [sched, setSched] = useState(match.scheduled_at ? toDatetimeLocal(match.scheduled_at) : '');
+  const [notes, setNotes] = useState(match.notes ?? '');
+
+  function submit() {
+    onSave(match.id, {
+      participant1_id: p1 || null,
+      participant2_id: p2 || null,
+      scheduled_at: sched ? new Date(sched).toISOString() : null,
+      notes: notes.trim() || null,
+    });
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4" onClick={onClose}>
+      <div className="bg-[#141414] border border-white/10 rounded-2xl p-6 w-full max-w-md space-y-4" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center justify-between">
+          <h3 className="text-sm font-bold text-white flex items-center gap-2">
+            <Pencil size={14} className="text-[#C9A227]" />
+            Éditer le match #{match.match_number}
+          </h3>
+          <button onClick={onClose} className="text-gray-400 hover:text-white"><X size={16} /></button>
+        </div>
+
+        <div className="space-y-2">
+          <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Joueur 1 (seeding)</label>
+          <select value={p1} onChange={e => setP1(e.target.value)}
+            className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-white">
+            <option value="" className="text-black">— Aucun —</option>
+            {participants.map(p => <option key={p.id} value={p.id} className="text-black">{p.username}</option>)}
+          </select>
+        </div>
+
+        <div className="space-y-2">
+          <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Joueur 2 (seeding)</label>
+          <select value={p2} onChange={e => setP2(e.target.value)}
+            className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-white">
+            <option value="" className="text-black">— Aucun —</option>
+            {participants.map(p => <option key={p.id} value={p.id} className="text-black">{p.username}</option>)}
+          </select>
+        </div>
+
+        <div className="space-y-2">
+          <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Date / heure</label>
+          <input type="datetime-local" value={sched} onChange={e => setSched(e.target.value)}
+            className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-white" />
+        </div>
+
+        <div className="space-y-2">
+          <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Notes</label>
+          <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={2}
+            placeholder="Ex. tapis 3, juge attribué…"
+            className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-white resize-none" />
+        </div>
+
+        <div className="flex items-center gap-2 pt-1">
+          <button onClick={onClose}
+            className="flex-1 px-4 py-2.5 rounded-xl text-sm font-bold bg-white/5 hover:bg-white/10 text-gray-300 transition-colors">
+            Annuler
+          </button>
+          <button onClick={submit} disabled={busy}
+            className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold bg-[#C9A227] hover:bg-[#e0b730] text-white disabled:opacity-50 transition-colors">
+            {busy ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
+            Enregistrer
           </button>
         </div>
       </div>
