@@ -20,16 +20,21 @@ export default async function BracketPage({ params }: { params: Promise<{ id: st
     svc.from('tournament_bracket_matches').select('*').eq('tournament_id', id)
        .order('round', { ascending: true }).order('side').order('match_number'),
     svc.from('tournament_participants')
-       .select('athlete_id, profile:profiles!tournament_participants_athlete_id_fkey(id, username, level, elo)')
+       .select('athlete_id')
        .eq('tournament_id', id),
     svc.from('tournament_wods').select('id, title, order_index, bracket_stage').eq('tournament_id', id).order('order_index'),
   ]);
 
+  // Profiles fetched separately (no FK embed — the relationship name is unreliable
+  // and an embed error would silently zero-out the participants count).
+  const athleteIds = [...new Set((participants ?? []).map((p: any) => p.athlete_id))];
   const profilesById: Record<string, any> = {};
-  (participants ?? []).forEach((p: any) => {
-    const prof = Array.isArray(p.profile) ? p.profile[0] : p.profile;
-    if (prof) profilesById[p.athlete_id] = prof;
-  });
+  if (athleteIds.length > 0) {
+    const { data: profs } = await svc.from('profiles')
+      .select('id, username, level, elo')
+      .in('id', athleteIds);
+    (profs ?? []).forEach((p: any) => { profilesById[p.id] = p; });
+  }
 
   // Normalize WODs to the shape expected by BracketManager (name/position).
   const wodList = (wods ?? []).map((w: any) => ({
