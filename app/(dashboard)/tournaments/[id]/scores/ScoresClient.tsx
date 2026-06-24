@@ -25,9 +25,10 @@ export interface ScoreRow {
 interface Props {
   tournamentId: string;
   initialScores: ScoreRow[];
+  requireVideoProof?: boolean;
 }
 
-export default function ScoresClient({ tournamentId, initialScores }: Props) {
+export default function ScoresClient({ tournamentId, initialScores, requireVideoProof = false }: Props) {
   const supabase = createClient();
   const [scores,      setScores]      = useState<ScoreRow[]>(initialScores);
   const [processing,  setProcessing]  = useState<string | null>(null);
@@ -62,6 +63,13 @@ export default function ScoresClient({ tournamentId, initialScores }: Props) {
   }
 
   async function updateStatus(scoreId: string, newStatus: 'validated' | 'rejected') {
+    if (newStatus === 'validated' && requireVideoProof) {
+      const score = scores.find(s => s.id === scoreId);
+      if (!String(score?.video_url ?? '').trim()) {
+        alert("Preuve vidéo requise : ce tournoi exige une preuve vidéo. Impossible de valider un score sans lien vidéo — demande à l'athlète de soumettre sa vidéo, ou rejette le score.");
+        return;
+      }
+    }
     setProcessing(scoreId);
     const payload: any = { status: newStatus };
     if (newStatus === 'validated') payload.validated_at = new Date().toISOString();
