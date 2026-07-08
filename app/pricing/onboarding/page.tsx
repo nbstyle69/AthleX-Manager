@@ -487,34 +487,17 @@ export default function OnboardingPage() {
                   <p className="text-xs text-gray-500">
                     <span className="text-gray-400 font-semibold">Email :</span> {email}
                   </p>
-                  <p className="text-xs text-gray-500">
-                    Connecte-toi avec cet email dans l&apos;app mobile pour accéder à ton dashboard Box Owner.
-                  </p>
                 </div>
               </div>
 
               <div className="space-y-3">
-                <p className="text-sm text-gray-400 mb-2">
-                  Télécharge l&apos;app <strong className="text-white">AthleX</strong> pour gérer ta box :
-                </p>
-                <div className="flex gap-3 justify-center">
-                  <a
-                    href="https://apps.apple.com"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex-1 flex items-center justify-center gap-2 bg-white/5 border border-white/10 text-white font-bold py-3 rounded-xl hover:bg-white/10 transition-colors text-sm"
-                  >
-                    🍎 App Store
-                  </a>
-                  <a
-                    href="https://play.google.com"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex-1 flex items-center justify-center gap-2 bg-white/5 border border-white/10 text-white font-bold py-3 rounded-xl hover:bg-white/10 transition-colors text-sm"
-                  >
-                    🤖 Google Play
-                  </a>
-                </div>
+                <Link
+                  href="/login"
+                  className="w-full flex items-center justify-center gap-2 bg-white text-[#0A0A0A] font-bold py-3.5 rounded-xl hover:bg-gray-200 transition-colors text-sm"
+                >
+                  Accéder à mon back office
+                  <ChevronRight size={16} />
+                </Link>
                 <p className="text-[10px] text-gray-600 mt-3">
                   L&apos;abonnement sera proposé automatiquement à la fin de ton essai gratuit.
                 </p>
