@@ -30,6 +30,28 @@ html.light {
   --subtle2: rgba(0,0,0,0.08);
 }
 
+/* ── Monochrome premium design system (shadcn tokens, HSL channels) ── */
+:root {
+  --background: 0 0% 7%;
+  --foreground: 0 0% 98%;
+  --card: 0 0% 11%;
+  --card-foreground: 0 0% 98%;
+  --popover: 0 0% 10%;
+  --popover-foreground: 0 0% 98%;
+  --primary: 0 0% 98%;
+  --primary-foreground: 0 0% 9%;
+  --secondary: 0 0% 17%;
+  --secondary-foreground: 0 0% 98%;
+  --muted: 0 0% 16%;
+  --muted-foreground: 0 0% 64%;
+  --accent: 0 0% 20%;
+  --accent-foreground: 0 0% 98%;
+  --border: 0 0% 18%;
+  --input: 0 0% 20%;
+  --ring: 0 0% 60%;
+  --radius: 0.5rem;
+}
+
 /* Override hardcoded Tailwind classes in light mode */
 html.light .bg-\[\#0A0A0A\]           { background-color: #F5F5F0; }
 html.light .bg-\[\#111111\]           { background-color: #FFFFFF; }
@@ -56,7 +78,7 @@ html.light .scrollbar-track           { background: transparent; }
 body {
   background-color: var(--bg);
   color: var(--fg);
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  font-family: var(--font-sans), 'Inter', system-ui, -apple-system, sans-serif;
   -webkit-font-smoothing: antialiased;
   transition: background-color 0.2s, color 0.2s;
 }

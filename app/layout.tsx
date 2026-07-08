@@ -1,6 +1,22 @@
-﻿import type { Metadata } from 'next';
+import type { Metadata } from 'next';
+import { Inter, Oswald } from 'next/font/google';
 import './globals.css';
 import ThemeProvider from '@/components/ThemeProvider';
+import { LanguageProvider } from '@/components/language-provider';
+
+const inter = Inter({
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700', '800', '900'],
+  variable: '--font-sans',
+  display: 'swap',
+});
+
+const oswald = Oswald({
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700'],
+  variable: '--font-display',
+  display: 'swap',
+});
 
 export const metadata: Metadata = {
   title: 'Test Admin',
@@ -9,16 +25,15 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="fr" suppressHydrationWarning>
+    <html lang="fr" suppressHydrationWarning className={`${inter.variable} ${oswald.variable}`}>
       <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
         {/* Anti-flash: apply saved theme before first paint */}
         <script dangerouslySetInnerHTML={{ __html: `(function(){var t=localStorage.getItem('theme');if(t==='light')document.documentElement.classList.add('light');})();` }} />
       </head>
       <body>
-        <ThemeProvider>{children}</ThemeProvider>
+        <ThemeProvider>
+          <LanguageProvider>{children}</LanguageProvider>
+        </ThemeProvider>
       </body>
     </html>
   );
