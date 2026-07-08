@@ -244,7 +244,7 @@ export async function POST(req: NextRequest) {
       isEarlyAdopter = (Number(countData) || 0) <= 5;
     } catch (_) { /* ignore */ }
 
-    const trialDays = isEarlyAdopter ? 60 : 30;
+    const trialDays = isEarlyAdopter ? 30 : 14;
     const trialEndsAt = new Date(Date.now() + trialDays * 24 * 60 * 60 * 1000).toISOString();
 
     // ── Create trial subscription ──

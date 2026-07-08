@@ -2,6 +2,7 @@
 import { createClient, getOwnerBox, getServerProfile, getServerUser } from '@/lib/supabase/server';
 import Sidebar from '@/components/layout/Sidebar';
 import TrialBanner from '@/components/TrialBanner';
+import PaywallOverlay from '@/components/PaywallOverlay';
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const user = await getServerUser();
@@ -44,6 +45,14 @@ export default async function DashboardLayout({ children }: { children: React.Re
     : 0;
   const subStatus = sub ? (sub.status as string) : 'none';
 
+  // Lock the back-office once the trial is over and there's no paying subscription.
+  // `active` = paid, `past_due` = paid-but-dunning (kept accessible), `trialing` with
+  // days left = still in trial. Everything else past the trial end is locked.
+  const locked =
+    subStatus !== 'active' &&
+    subStatus !== 'past_due' &&
+    !(subStatus === 'trialing' && daysLeft > 0);
+
   return (
     <div className="min-h-screen bg-[#0A0A0A] flex">
       <Sidebar
@@ -61,6 +70,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
         />
         {children}
       </main>
+      {locked && <PaywallOverlay boxId={box.id} trialEndsAt={trialEndsAt} />}
     </div>
   );
 }
