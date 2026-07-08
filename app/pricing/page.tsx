@@ -162,7 +162,7 @@ function PricingContent() {
                 <Zap size={16} className="text-green-400 shrink-0" />
                 <div>
                   <p className="text-sm font-bold text-green-400">Essai gratuit inclus</p>
-                  <p className="text-xs text-gray-500">30 jours pour tester, aucune carte requise au départ</p>
+                  <p className="text-xs text-gray-500">14 jours pour tester, aucune carte requise au départ</p>
                 </div>
               </div>
 
@@ -182,7 +182,7 @@ function PricingContent() {
               <button
                 onClick={handleSubscribe}
                 disabled={loading}
-                className="w-full mt-8 flex items-center justify-center gap-2 bg-white hover:bg-[#B8911F] disabled:opacity-50 text-[#0A0A0A] font-bold py-4 rounded-xl text-base transition-colors shadow-lg shadow-white/20"
+                className="w-full mt-8 flex items-center justify-center gap-2 bg-white hover:bg-gray-200 disabled:opacity-50 text-[#0A0A0A] font-bold py-4 rounded-xl text-base transition-colors shadow-lg shadow-white/20"
               >
                 {loading ? (
                   <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -215,7 +215,7 @@ function PricingContent() {
           <h3 className="text-lg font-black mt-2">Offre Fondateur</h3>
           <p className="text-sm text-gray-400 mt-1">
             Les <strong className="text-white">5 premières boxes</strong> bénéficient de{' '}
-            <strong className="text-white">60 jours d&apos;essai gratuit</strong> au lieu de 30.
+            <strong className="text-white">30 jours d&apos;essai gratuit</strong> au lieu de 14.
           </p>
           <p className="text-xs text-gray-600 mt-3">
             + Badge &quot;Fondateur&quot; permanent dans l&apos;app

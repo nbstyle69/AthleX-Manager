@@ -63,7 +63,7 @@ export default function TrialBanner({ status: initialStatus, daysLeft, trialEnds
         <Zap size={18} className="text-white shrink-0" />
         <div className="flex-1">
           <p className="text-sm font-bold text-white">Aucun abonnement</p>
-          <p className="text-xs text-gray-400">Active ton essai gratuit de 30 jours ou souscris directement</p>
+          <p className="text-xs text-gray-400">Active ton essai gratuit de 14 jours ou souscris directement</p>
         </div>
         <span className="text-xs font-bold text-white">Souscrire →</span>
       </Link>

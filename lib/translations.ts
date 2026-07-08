@@ -95,7 +95,7 @@ export const translations = {
           price: '79€',
           desc: 'Pour les box en croissance.',
           features: ['Membres illimités', 'Tournois & classements', 'Messagerie intégrée', 'Statistiques avancées', 'Support prioritaire'],
-          cta: 'Essai gratuit 30 jours',
+          cta: 'Essai gratuit 14 jours',
         },
         {
           name: 'Complet',
@@ -218,7 +218,7 @@ export const translations = {
           price: '$79',
           desc: 'For growing boxes.',
           features: ['Unlimited members', 'Tournaments & rankings', 'Built-in messaging', 'Advanced stats', 'Priority support'],
-          cta: '30-day free trial',
+          cta: '14-day free trial',
         },
         {
           name: 'Complete',

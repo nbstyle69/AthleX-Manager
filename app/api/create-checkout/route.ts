@@ -71,7 +71,7 @@ export async function POST(req: NextRequest) {
             status: 'trialing',
             stripe_customer_id: customerId,
             plan_tier: 'complete',
-            trial_ends_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+            trial_ends_at: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
             is_early_adopter: false,
           });
       }
