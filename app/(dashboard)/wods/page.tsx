@@ -638,7 +638,7 @@ export default function WODsPage() {
     setShowDateNav(false);
   }
 
-  const inp = 'w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-[#C9A227] transition-colors';
+  const inp = 'w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-white transition-colors';
 
   return (
     <div className="space-y-6">
@@ -680,7 +680,7 @@ export default function WODsPage() {
           </button>
           <button
             onClick={() => openCreate(todayISO)}
-            className="flex items-center gap-2 px-4 py-2.5 bg-[#C9A227] hover:bg-[#C9A227]/90 text-white text-sm font-bold rounded-xl transition-colors"
+            className="flex items-center gap-2 px-4 py-2.5 bg-white hover:bg-white/90 text-[#0A0A0A] text-sm font-bold rounded-xl transition-colors"
           >
             <Plus size={15} /> Nouveau WOD
           </button>
@@ -691,7 +691,7 @@ export default function WODsPage() {
       {pdfAnalyzing && (
         <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center">
           <div className="bg-[#111111] border border-white/10 rounded-2xl p-8 max-w-sm text-center">
-            <Loader2 size={40} className="animate-spin text-[#C9A227] mx-auto mb-3" />
+            <Loader2 size={40} className="animate-spin text-white mx-auto mb-3" />
             <h3 className="text-lg font-bold text-white mb-1">Analyse IA en cours…</h3>
             <p className="text-sm text-gray-400">Claude lit ton PDF et extrait les WODs.</p>
             <p className="text-xs text-gray-500 mt-3">Cela peut prendre 10 à 30 secondes.</p>
@@ -704,8 +704,8 @@ export default function WODsPage() {
         <div className="fixed inset-0 z-[60] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-[#0a0a0a] border border-white/10 rounded-2xl w-full max-w-md p-6">
             <div className="flex items-start gap-3 mb-4">
-              <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${confirmDialog.danger ? 'bg-red-500/15' : 'bg-[#C9A227]/15'}`}>
-                <Trash2 size={18} className={confirmDialog.danger ? 'text-red-400' : 'text-[#C9A227]'} />
+              <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${confirmDialog.danger ? 'bg-red-500/15' : 'bg-white/15'}`}>
+                <Trash2 size={18} className={confirmDialog.danger ? 'text-red-400' : 'text-white'} />
               </div>
               <div className="flex-1">
                 <h3 className="text-base font-bold text-white mb-1">{confirmDialog.title}</h3>
@@ -725,7 +725,7 @@ export default function WODsPage() {
                   setConfirmDialog(null);
                   await cb();
                 }}
-                className={`px-4 py-2 rounded-xl text-sm font-bold transition-colors ${confirmDialog.danger ? 'bg-red-500 hover:bg-red-600 text-white' : 'bg-[#C9A227] hover:bg-[#C9A227]/90 text-black'}`}
+                className={`px-4 py-2 rounded-xl text-sm font-bold transition-colors ${confirmDialog.danger ? 'bg-red-500 hover:bg-red-600 text-white' : 'bg-white hover:bg-white/90 text-black'}`}
               >
                 {confirmDialog.confirmLabel ?? 'Confirmer'}
               </button>
@@ -799,7 +799,7 @@ export default function WODsPage() {
                     </div>
                     <div className="px-4 flex items-center">
                       <div className={`w-5 h-5 rounded border-2 flex items-center justify-center ${
-                        checked ? 'bg-[#C9A227] border-[#C9A227]' : 'border-gray-600'
+                        checked ? 'bg-white border-white' : 'border-gray-600'
                       }`}>
                         {checked && <span className="text-black text-xs font-black">✓</span>}
                       </div>
@@ -823,7 +823,7 @@ export default function WODsPage() {
               <button
                 onClick={confirmPdfImport}
                 disabled={pdfPreview.inserting || pdfPreview.selected.filter(Boolean).length === 0}
-                className="flex-1 px-4 py-2.5 rounded-xl text-sm font-bold bg-[#C9A227] text-black hover:bg-[#b89222] disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
+                className="flex-1 px-4 py-2.5 rounded-xl text-sm font-bold bg-white text-black hover:bg-[#b89222] disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
               >
                 {pdfPreview.inserting
                   ? <><Loader2 size={14} className="animate-spin" /> Import…</>
@@ -858,14 +858,14 @@ export default function WODsPage() {
           </button>
           <button onClick={() => setShowDateNav(v => !v)} className="text-center hover:opacity-80 transition-opacity group">
             <div className="flex items-center gap-2 justify-center">
-              <Calendar size={14} className="text-gray-500 group-hover:text-[#C9A227] transition-colors" />
+              <Calendar size={14} className="text-gray-500 group-hover:text-white transition-colors" />
               <p className="text-sm font-bold text-white">
                 {weekDates[0].toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })}
                 {' — '}
                 {weekDates[6].toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}
               </p>
             </div>
-            {weekOffset === 0 && <p className="text-xs text-[#C9A227] font-semibold mt-0.5">Semaine actuelle</p>}
+            {weekOffset === 0 && <p className="text-xs text-white font-semibold mt-0.5">Semaine actuelle</p>}
           </button>
           <button onClick={() => setWeek(w => w + 1)} className="p-2 rounded-xl hover:bg-white/5 text-gray-400 hover:text-white transition-colors">
             <ChevronRight size={18} />
@@ -876,11 +876,11 @@ export default function WODsPage() {
             <p className="text-xs font-semibold text-gray-400 mb-2 uppercase tracking-wider">Aller à une date</p>
             <input
               type="date"
-              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-[#C9A227] transition-colors"
+              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-white transition-colors"
               onChange={(e) => { if (e.target.value) jumpToDate(e.target.value); }}
             />
             <div className="flex gap-2 mt-3">
-              <button onClick={() => { setWeek(0); setShowDateNav(false); }} className="flex-1 py-2 text-xs font-semibold text-[#C9A227] rounded-xl hover:bg-[#C9A227]/10 transition-colors">
+              <button onClick={() => { setWeek(0); setShowDateNav(false); }} className="flex-1 py-2 text-xs font-semibold text-white rounded-xl hover:bg-white/10 transition-colors">
                 Aujourd&#39;hui
               </button>
               <button onClick={() => setShowDateNav(false)} className="flex-1 py-2 text-xs font-semibold text-gray-400 rounded-xl hover:bg-white/5 transition-colors">
@@ -891,7 +891,7 @@ export default function WODsPage() {
         )}
         {weekOffset !== 0 && !showDateNav && (
           <div className="text-center mt-1">
-            <button onClick={() => setWeek(0)} className="text-xs text-gray-500 hover:text-[#C9A227] font-semibold transition-colors">
+            <button onClick={() => setWeek(0)} className="text-xs text-gray-500 hover:text-white font-semibold transition-colors">
               ← Revenir à la semaine actuelle
             </button>
           </div>
@@ -900,7 +900,7 @@ export default function WODsPage() {
 
       {/* Calendar */}
       {loading ? (
-        <div className="flex justify-center py-20"><Loader2 className="animate-spin text-[#C9A227]" size={28} /></div>
+        <div className="flex justify-center py-20"><Loader2 className="animate-spin text-white" size={28} /></div>
       ) : layout === 'columns' ? (
         <div className="grid grid-cols-7 gap-2 min-h-[400px]">
           {weekDates.map((d, i) => {
@@ -908,13 +908,13 @@ export default function WODsPage() {
             const isToday = iso === todayISO;
             const dayWODs = wods.filter(w => w.scheduled_date === iso);
             return (
-              <div key={iso} className={`bg-[#111111] border rounded-2xl overflow-hidden flex flex-col ${isToday ? 'border-[#C9A227]/50' : 'border-white/8'}`}>
-                <div className={`text-center px-2 py-3 ${isToday ? 'bg-[#C9A227]/20' : ''}`}>
-                  <p className={`text-xs font-black ${isToday ? 'text-[#C9A227]' : 'text-gray-400'}`}>{DAY_LABELS[i]}</p>
+              <div key={iso} className={`bg-[#111111] border rounded-2xl overflow-hidden flex flex-col ${isToday ? 'border-white/50' : 'border-white/8'}`}>
+                <div className={`text-center px-2 py-3 ${isToday ? 'bg-white/20' : ''}`}>
+                  <p className={`text-xs font-black ${isToday ? 'text-white' : 'text-gray-400'}`}>{DAY_LABELS[i]}</p>
                   <p className={`text-sm font-bold mt-0.5 ${isToday ? 'text-white' : 'text-gray-300'}`}>
                     {d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}
                   </p>
-                  {isToday && <span className="text-[9px] font-black text-[#C9A227] mt-0.5 block">Aujourd&#39;hui</span>}
+                  {isToday && <span className="text-[9px] font-black text-white mt-0.5 block">Aujourd&#39;hui</span>}
                 </div>
                 <div className="flex-1 border-t border-white/5 p-2 space-y-2 min-h-[120px]">
                   {dayWODs.length === 0 ? (
@@ -984,7 +984,7 @@ export default function WODsPage() {
                                 {wod.is_published ? <Eye size={11} className="text-emerald-400" /> : <EyeOff size={11} className="text-gray-500" />}
                               </button>
                               <button onClick={() => openEdit(wod)} className="p-1 rounded-lg hover:bg-white/10 transition-colors">
-                                <Pencil size={11} className="text-[#C9A227]" />
+                                <Pencil size={11} className="text-white" />
                               </button>
                               <button onClick={() => deleteWOD(wod)} className="p-1 rounded-lg hover:bg-red-500/10 transition-colors">
                                 <Trash2 size={11} className="text-red-400" />
@@ -993,7 +993,7 @@ export default function WODsPage() {
                           </div>
                         );
                       })}
-                      <button onClick={() => openCreate(iso)} className="w-full py-1.5 text-center text-[10px] text-[#C9A227] font-semibold rounded-lg hover:bg-white/5 transition-colors">
+                      <button onClick={() => openCreate(iso)} className="w-full py-1.5 text-center text-[10px] text-white font-semibold rounded-lg hover:bg-white/5 transition-colors">
                         <Plus size={10} className="inline mr-0.5 -mt-px" /> Ajouter
                       </button>
                     </>
@@ -1010,18 +1010,18 @@ export default function WODsPage() {
             const isToday = iso === todayISO;
             const dayWODs = wods.filter(w => w.scheduled_date === iso);
             return (
-              <div key={iso} className={`bg-[#111111] border rounded-2xl overflow-hidden ${isToday ? 'border-[#C9A227]/50' : 'border-white/8'}`}>
+              <div key={iso} className={`bg-[#111111] border rounded-2xl overflow-hidden ${isToday ? 'border-white/50' : 'border-white/8'}`}>
                 {/* Day header */}
-                <div className={`flex items-center justify-between px-5 py-3 ${isToday ? 'bg-[#C9A227]/20' : ''}`}>
+                <div className={`flex items-center justify-between px-5 py-3 ${isToday ? 'bg-white/20' : ''}`}>
                   <div className="flex items-center gap-3">
-                    <span className={`text-sm font-black ${isToday ? 'text-[#C9A227]' : 'text-gray-400'}`}>
+                    <span className={`text-sm font-black ${isToday ? 'text-white' : 'text-gray-400'}`}>
                       {DAY_LABELS[i]}
                     </span>
                     <span className={`text-sm font-bold ${isToday ? 'text-white' : 'text-gray-300'}`}>
                       {d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}
                     </span>
                     {isToday && (
-                      <span className="text-[10px] font-black text-[#C9A227] bg-[#C9A227]/20 px-2 py-0.5 rounded-full uppercase tracking-wider">
+                      <span className="text-[10px] font-black text-white bg-white/20 px-2 py-0.5 rounded-full uppercase tracking-wider">
                         Aujourd'hui
                       </span>
                     )}
@@ -1029,7 +1029,7 @@ export default function WODsPage() {
                   </div>
                   <button
                     onClick={() => openCreate(iso)}
-                    className="flex items-center gap-1.5 text-xs text-[#C9A227] hover:text-[#C9A227] font-semibold transition-colors"
+                    className="flex items-center gap-1.5 text-xs text-white hover:text-white font-semibold transition-colors"
                   >
                     <Plus size={14} /> Ajouter
                   </button>
@@ -1130,7 +1130,7 @@ export default function WODsPage() {
                                 : <EyeOff size={15} className="text-gray-500" />}
                             </button>
                             <button onClick={() => openEdit(wod)} className="p-2 rounded-xl hover:bg-white/5 transition-colors">
-                              <Pencil size={14} className="text-[#C9A227]" />
+                              <Pencil size={14} className="text-white" />
                             </button>
                             <button onClick={() => deleteWOD(wod)} className="p-2 rounded-xl hover:bg-red-500/10 transition-colors">
                               <Trash2 size={14} className="text-red-400" />
@@ -1359,7 +1359,7 @@ export default function WODsPage() {
                       {(['now', 'scheduled'] as const).map(mode => (
                         <button key={mode} type="button"
                           onClick={() => setForm(f => ({ ...f, publishMode: mode }))}
-                          className={`flex-1 py-2 rounded-lg text-xs font-bold transition-colors ${form.publishMode === mode ? 'bg-[#C9A227]/20 text-[#C9A227] border border-[#C9A227]/40' : 'bg-white/5 text-gray-400 border border-white/10 hover:text-white'}`}>
+                          className={`flex-1 py-2 rounded-lg text-xs font-bold transition-colors ${form.publishMode === mode ? 'bg-white/20 text-white border border-white/40' : 'bg-white/5 text-gray-400 border border-white/10 hover:text-white'}`}>
                           {mode === 'now' ? 'Maintenant' : 'Programmer'}
                         </button>
                       ))}
@@ -1369,11 +1369,11 @@ export default function WODsPage() {
                         <span className="text-xs text-gray-500">Heure :</span>
                         <input type="number" min={0} max={23} value={form.publishHour}
                           onChange={e => setForm(f => ({ ...f, publishHour: e.target.value }))}
-                          className="w-14 bg-[#0A0A0A] border border-white/10 rounded-lg px-2 py-1.5 text-xs text-white text-center focus:outline-none focus:border-[#C9A227]/50" />
+                          className="w-14 bg-[#0A0A0A] border border-white/10 rounded-lg px-2 py-1.5 text-xs text-white text-center focus:outline-none focus:border-white/50" />
                         <span className="text-gray-500 font-bold">:</span>
                         <input type="number" min={0} max={59} value={form.publishMin}
                           onChange={e => setForm(f => ({ ...f, publishMin: e.target.value }))}
-                          className="w-14 bg-[#0A0A0A] border border-white/10 rounded-lg px-2 py-1.5 text-xs text-white text-center focus:outline-none focus:border-[#C9A227]/50" />
+                          className="w-14 bg-[#0A0A0A] border border-white/10 rounded-lg px-2 py-1.5 text-xs text-white text-center focus:outline-none focus:border-white/50" />
                         <span className="text-[10px] text-gray-600 ml-1">Le WOD sera visible à cette heure le jour programmé</span>
                       </div>
                     )}
@@ -1389,7 +1389,7 @@ export default function WODsPage() {
                 <button
                   type="button"
                   onClick={() => setForm(f => ({ ...f, leaderboard: !f.leaderboard }))}
-                  className={`relative w-11 h-6 rounded-full transition-colors ${form.leaderboard ? 'bg-[#C9A227]' : 'bg-white/10'}`}
+                  className={`relative w-11 h-6 rounded-full transition-colors ${form.leaderboard ? 'bg-white' : 'bg-white/10'}`}
                 >
                   <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${form.leaderboard ? 'translate-x-5' : 'translate-x-0.5'}`} />
                 </button>
@@ -1403,7 +1403,7 @@ export default function WODsPage() {
                 <button
                   onClick={saveWOD}
                   disabled={!form.title.trim() || !form.date || saving}
-                  className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-[#C9A227] hover:bg-[#C9A227] disabled:opacity-50 text-white text-sm font-bold transition-colors"
+                  className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-white hover:bg-white disabled:opacity-50 text-[#0A0A0A] text-sm font-bold transition-colors"
                 >
                   {saving && <Loader2 size={15} className="animate-spin" />}
                   {editWOD ? 'Enregistrer' : 'Créer le WOD'}

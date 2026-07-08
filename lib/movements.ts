@@ -1,7 +1,7 @@
 export const MOVEMENT_BADGE_LEVELS = [
   { level: 1, reps: 100,   label: 'Bronze',   emoji: '🥉', color: '#A0714F' },
   { level: 2, reps: 500,   label: 'Argent',   emoji: '🥈', color: '#9E9E9E' },
-  { level: 3, reps: 1000,  label: 'Or',       emoji: '🥇', color: '#C9A227' },
+  { level: 3, reps: 1000,  label: 'Or',       emoji: '🥇', color: '#FFFFFF' },
   { level: 4, reps: 5000,  label: 'Platine',  emoji: '💎', color: '#67E8F9' },
   { level: 5, reps: 10000, label: 'Légend',   emoji: '👑', color: '#A855F7' },
 ];

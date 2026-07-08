@@ -74,7 +74,7 @@ export default function InviteCodeWidget({ initialCode, boxName }: Props) {
           <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">
             Code d&apos;invitation box
           </p>
-          <p className="text-2xl font-black tracking-[0.3em] text-[#C9A227]">{code}</p>
+          <p className="text-2xl font-black tracking-[0.3em] text-white">{code}</p>
           <p className="text-xs text-gray-500 mt-1">
             Partagez ce code aux athlètes pour rejoindre votre box
           </p>
@@ -91,7 +91,7 @@ export default function InviteCodeWidget({ initialCode, boxName }: Props) {
           <button
             onClick={handleRegenerate}
             disabled={saving}
-            className="p-2.5 rounded-xl bg-[#0A0A0A] hover:bg-[#C9A227]/10 text-gray-500 hover:text-[#C9A227] transition-colors disabled:opacity-40"
+            className="p-2.5 rounded-xl bg-[#0A0A0A] hover:bg-white/10 text-gray-500 hover:text-white transition-colors disabled:opacity-40"
             title="Générer un nouveau code"
           >
             {saving && !editing ? <Loader2 size={16} className="animate-spin" /> : <RefreshCw size={16} />}
@@ -100,8 +100,8 @@ export default function InviteCodeWidget({ initialCode, boxName }: Props) {
             onClick={() => { setEditing(!editing); setDraft(code); setError(''); }}
             className={`p-2.5 rounded-xl transition-colors ${
               editing
-                ? 'bg-[#C9A227]/20 text-[#C9A227]'
-                : 'bg-[#0A0A0A] hover:bg-[#C9A227]/10 text-gray-500 hover:text-[#C9A227]'
+                ? 'bg-white/20 text-white'
+                : 'bg-[#0A0A0A] hover:bg-white/10 text-gray-500 hover:text-white'
             }`}
             title="Modifier manuellement"
           >
@@ -118,13 +118,13 @@ export default function InviteCodeWidget({ initialCode, boxName }: Props) {
             onChange={e => { setDraft(e.target.value.toUpperCase()); setError(''); }}
             maxLength={12}
             placeholder="Nouveau code…"
-            className="flex-1 bg-[#0A0A0A] border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white font-bold tracking-widest uppercase placeholder:text-gray-600 focus:outline-none focus:border-[#C9A227]/50 transition-colors"
+            className="flex-1 bg-[#0A0A0A] border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white font-bold tracking-widest uppercase placeholder:text-gray-600 focus:outline-none focus:border-white/50 transition-colors"
             autoFocus
           />
           <button
             onClick={handleSaveManual}
             disabled={saving || draft.trim().length < 3}
-            className="flex items-center gap-1.5 bg-[#C9A227] hover:bg-[#b8922a] disabled:opacity-40 text-white text-sm font-bold px-4 py-2.5 rounded-xl transition-colors"
+            className="flex items-center gap-1.5 bg-white hover:bg-[#b8922a] disabled:opacity-40 text-[#0A0A0A] text-sm font-bold px-4 py-2.5 rounded-xl transition-colors"
           >
             {saving ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
             Sauvegarder

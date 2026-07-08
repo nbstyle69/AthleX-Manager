@@ -23,7 +23,7 @@ export default async function GroupsPage() {
           <p className="text-sm text-gray-400 mt-1">{groups?.length ?? 0} groupe(s)</p>
         </div>
         <Link href="/groups/new"
-          className="flex items-center gap-2 bg-[#C9A227] hover:bg-[#C9A227] text-white text-sm font-bold px-4 py-2.5 rounded-xl transition-colors">
+          className="flex items-center gap-2 bg-white hover:bg-white text-[#0A0A0A] text-sm font-bold px-4 py-2.5 rounded-xl transition-colors">
           <Plus size={15} /> Nouveau groupe
         </Link>
       </div>
@@ -40,14 +40,14 @@ export default async function GroupsPage() {
             <Link key={g.id} href={`/groups/${g.id}`}
               className="bg-[#111111] border border-white/8 hover:border-white/20 rounded-2xl p-5 transition-all group">
               <div className="flex items-start justify-between mb-3">
-                <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: `${g.color ?? '#C9A227'}25` }}>
-                  <Users2 size={18} style={{ color: g.color ?? '#C9A227' }} />
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: `${g.color ?? '#FFFFFF'}25` }}>
+                  <Users2 size={18} style={{ color: g.color ?? '#FFFFFF' }} />
                 </div>
                 <span className="text-xs text-gray-500 bg-white/5 px-2.5 py-1 rounded-lg">
                   {g.members?.length ?? 0} membre(s)
                 </span>
               </div>
-              <p className="text-sm font-bold text-white group-hover:text-[#C9A227] transition-colors">{g.name}</p>
+              <p className="text-sm font-bold text-white group-hover:text-white transition-colors">{g.name}</p>
               <div className="flex items-center gap-2 mt-3">
                 <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md ${(g.wod_visibility_mode ?? 'weekly') === 'daily' ? 'text-amber-400 bg-amber-400/15' : 'text-emerald-400 bg-emerald-400/15'}`}>
                   {(g.wod_visibility_mode ?? 'weekly') === 'daily' ? 'Jour par jour' : 'Semaine'}

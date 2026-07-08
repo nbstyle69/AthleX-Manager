@@ -209,7 +209,7 @@ export default function WODForm({ tournamentId, divisions = [], isLeague = false
     onSaved();
   }
 
-  const inp = 'w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-[#C9A227] transition-colors';
+  const inp = 'w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-white transition-colors';
   const lbl = 'block text-xs font-semibold text-gray-400 mb-1.5 uppercase tracking-wider';
 
   return (
@@ -217,11 +217,11 @@ export default function WODForm({ tournamentId, divisions = [], isLeague = false
       {error && <div className="bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3 text-sm text-red-400">{error}</div>}
 
       {/* ── AI Generator panel ── */}
-      <div className="border border-[#C9A227]/30 rounded-xl overflow-hidden">
+      <div className="border border-white/30 rounded-xl overflow-hidden">
         <button type="button" onClick={() => setShowGen(v => !v)}
-          className="w-full flex items-center gap-2 px-4 py-3 bg-[#C9A227]/10 hover:bg-[#C9A227]/15 transition-colors text-left">
-          <Sparkles size={15} className="text-[#C9A227]" />
-          <span className="text-sm font-bold text-[#C9A227]">Générer avec l&apos;IA</span>
+          className="w-full flex items-center gap-2 px-4 py-3 bg-white/10 hover:bg-white/15 transition-colors text-left">
+          <Sparkles size={15} className="text-white" />
+          <span className="text-sm font-bold text-white">Générer avec l&apos;IA</span>
           <span className="ml-auto text-gray-500">{showGen ? <ChevronUp size={14}/> : <ChevronDown size={14}/>}</span>
         </button>
 
@@ -234,7 +234,7 @@ export default function WODForm({ tournamentId, divisions = [], isLeague = false
                 <button type="button" onClick={() => setGenSport('functional')}
                   className={`flex-1 text-xs px-3 py-2 rounded-lg border font-bold text-center transition-colors ${
                     genSport === 'functional'
-                      ? 'bg-[#C9A227]/20 border-[#C9A227]/40 text-[#C9A227]'
+                      ? 'bg-white/20 border-white/40 text-white'
                       : 'bg-white/5 border-white/10 text-gray-400 hover:border-white/20'
                   }`}>🏋️ Functional Fitness</button>
                 <button type="button" onClick={() => setGenSport('hybrid')}
@@ -274,7 +274,7 @@ export default function WODForm({ tournamentId, divisions = [], isLeague = false
                         <button key={d} type="button" onClick={() => setGenDuration(d)}
                           className={`text-xs px-3 py-1.5 rounded-lg border font-bold transition-colors ${
                             genDuration === d
-                              ? 'bg-[#C9A227]/20 border-[#C9A227]/40 text-[#C9A227]'
+                              ? 'bg-white/20 border-white/40 text-white'
                               : 'bg-white/5 border-white/10 text-gray-400 hover:border-white/20'
                           }`}>{d} min</button>
                       ))}
@@ -289,7 +289,7 @@ export default function WODForm({ tournamentId, divisions = [], isLeague = false
                       <button key={eq} type="button" onClick={() => toggleEquipment(eq)}
                         className={`text-xs px-2.5 py-1 rounded-lg border font-semibold transition-colors ${
                           genEquipment.includes(eq)
-                            ? 'bg-[#C9A227]/20 border-[#C9A227]/40 text-[#C9A227]'
+                            ? 'bg-white/20 border-white/40 text-white'
                             : 'bg-white/5 border-white/10 text-gray-400 hover:border-white/20'
                         }`}>{eq}</button>
                     ))}
@@ -362,7 +362,7 @@ export default function WODForm({ tournamentId, divisions = [], isLeague = false
 
             <button type="button" onClick={generateWOD} disabled={genLoading}
               className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold text-white disabled:opacity-60 transition-colors ${
-                genSport === 'hybrid' ? 'bg-orange-500' : 'bg-[#C9A227]'
+                genSport === 'hybrid' ? 'bg-orange-500' : 'bg-white'
               }`}>
               {genLoading ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
               {genLoading ? 'Génération en cours...' : 'Générer le WOD'}
@@ -428,8 +428,8 @@ export default function WODForm({ tournamentId, divisions = [], isLeague = false
       {/* ── Timer config (adapts to type) ── */}
       <div className="bg-white/5 rounded-xl p-4 space-y-3 border border-white/5">
         <div className="flex items-center gap-2 mb-1">
-          <Timer size={14} className="text-[#C9A227]" />
-          <span className="text-xs font-bold text-[#C9A227] uppercase tracking-wider">Configuration Timer</span>
+          <Timer size={14} className="text-white" />
+          <span className="text-xs font-bold text-white uppercase tracking-wider">Configuration Timer</span>
         </div>
         <p className="text-xs text-gray-500 italic">{timerInfoForType(form.type, form)}</p>
 
@@ -478,7 +478,7 @@ export default function WODForm({ tournamentId, divisions = [], isLeague = false
       <div>
         <div className="flex items-center justify-between mb-2">
           <label className={lbl}>Programme / Mouvements</label>
-          <button type="button" onClick={addMovement} className="text-xs text-[#C9A227] font-semibold flex items-center gap-1 hover:opacity-80">
+          <button type="button" onClick={addMovement} className="text-xs text-white font-semibold flex items-center gap-1 hover:opacity-80">
             <Plus size={12} /> Ajouter
           </button>
         </div>
@@ -494,7 +494,7 @@ export default function WODForm({ tournamentId, divisions = [], isLeague = false
           ))}
           {movements.length === 0 && (
             <button type="button" onClick={addMovement}
-              className="w-full py-3 rounded-xl border border-dashed border-white/10 text-xs text-gray-600 hover:border-[#C9A227]/30 hover:text-[#C9A227]/60 transition-colors">
+              className="w-full py-3 rounded-xl border border-dashed border-white/10 text-xs text-gray-600 hover:border-white/30 hover:text-white/60 transition-colors">
               + Ajouter un mouvement
             </button>
           )}
@@ -525,7 +525,7 @@ export default function WODForm({ tournamentId, divisions = [], isLeague = false
         <button type="button" onClick={onCancel} className="px-4 py-2.5 rounded-xl text-sm font-semibold text-gray-400 hover:text-white border border-white/10 hover:border-white/20 transition-colors flex items-center gap-1.5">
           <X size={13} /> Annuler
         </button>
-        <button type="submit" disabled={saving} className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold bg-[#C9A227] text-white disabled:opacity-60 transition-colors">
+        <button type="submit" disabled={saving} className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold bg-white text-[#0A0A0A] disabled:opacity-60 transition-colors">
           {saving && <Loader2 size={14} className="animate-spin" />}
           {initial?.id ? 'Mettre à jour' : 'Ajouter le WOD'}
         </button>

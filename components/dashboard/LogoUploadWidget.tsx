@@ -121,7 +121,7 @@ export default function LogoUploadWidget() {
           <button
             onClick={() => fileRef.current?.click()}
             disabled={uploading}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#C9A227]/20 text-[#C9A227] text-xs font-bold hover:bg-[#C9A227]/30 transition-colors disabled:opacity-50"
+            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/20 text-white text-xs font-bold hover:bg-white/30 transition-colors disabled:opacity-50"
           >
             <Upload size={14} />
             {uploading ? 'Upload…' : logoUrl ? 'Changer' : 'Uploader'}

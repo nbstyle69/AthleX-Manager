@@ -89,7 +89,7 @@ export default function NewInterCompetitionPage() {
 
   if (loading) return (
     <div className="flex items-center justify-center py-24">
-      <Loader2 size={28} className="text-[#C9A227] animate-spin" />
+      <Loader2 size={28} className="text-white animate-spin" />
     </div>
   );
 
@@ -100,8 +100,8 @@ export default function NewInterCompetitionPage() {
         <Link href="/admin/inter-competitions" className="p-2 rounded-xl hover:bg-white/5 text-gray-500 hover:text-white transition-colors">
           <ChevronLeft size={18} />
         </Link>
-        <div className="w-10 h-10 rounded-xl bg-[#C9A227]/20 flex items-center justify-center">
-          <Globe2 size={20} className="text-[#C9A227]" />
+        <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center">
+          <Globe2 size={20} className="text-white" />
         </div>
         <div>
           <h1 className="text-xl font-black text-white">{editId ? 'Modifier la compétition' : 'Nouvelle compétition'}</h1>
@@ -120,7 +120,7 @@ export default function NewInterCompetitionPage() {
               value={form.title}
               onChange={e => set('title', e.target.value)}
               placeholder="Ex : AthleX Spring Open 2026"
-              className="mt-1.5 w-full bg-[#0A0A0A] border border-white/8 rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-[#C9A227]/50"
+              className="mt-1.5 w-full bg-[#0A0A0A] border border-white/8 rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-white/50"
             />
           </div>
           <div>
@@ -130,7 +130,7 @@ export default function NewInterCompetitionPage() {
               onChange={e => set('description', e.target.value)}
               rows={3}
               placeholder="Présentation de la compétition..."
-              className="mt-1.5 w-full bg-[#0A0A0A] border border-white/8 rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-[#C9A227]/50 resize-none"
+              className="mt-1.5 w-full bg-[#0A0A0A] border border-white/8 rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-white/50 resize-none"
             />
           </div>
           <div>
@@ -140,7 +140,7 @@ export default function NewInterCompetitionPage() {
               onChange={e => set('rules', e.target.value)}
               rows={4}
               placeholder="Règles de la compétition, critères de validation..."
-              className="mt-1.5 w-full bg-[#0A0A0A] border border-white/8 rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-[#C9A227]/50 resize-none"
+              className="mt-1.5 w-full bg-[#0A0A0A] border border-white/8 rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-white/50 resize-none"
             />
           </div>
         </div>
@@ -156,11 +156,11 @@ export default function NewInterCompetitionPage() {
                 onClick={() => set('format', f.value)}
                 className={`text-left p-3 rounded-xl border transition-all ${
                   form.format === f.value
-                    ? 'border-[#C9A227]/50 bg-[#C9A227]/8'
+                    ? 'border-white/50 bg-white/8'
                     : 'border-white/8 bg-[#0A0A0A] hover:border-white/15'
                 }`}
               >
-                <p className={`text-sm font-bold ${form.format === f.value ? 'text-[#C9A227]' : 'text-white'}`}>{f.label}</p>
+                <p className={`text-sm font-bold ${form.format === f.value ? 'text-white' : 'text-white'}`}>{f.label}</p>
                 <p className="text-xs text-gray-500 mt-0.5">{f.desc}</p>
               </button>
             ))}
@@ -178,7 +178,7 @@ export default function NewInterCompetitionPage() {
                 onClick={() => set('type', v)}
                 className={`flex-1 py-2.5 rounded-xl border text-sm font-bold transition-all ${
                   form.type === v
-                    ? 'border-[#C9A227]/50 bg-[#C9A227]/8 text-[#C9A227]'
+                    ? 'border-white/50 bg-white/8 text-white'
                     : 'border-white/8 bg-[#0A0A0A] text-gray-400 hover:border-white/15'
                 }`}
               >
@@ -197,7 +197,7 @@ export default function NewInterCompetitionPage() {
                     onClick={() => set('team_size', n)}
                     className={`w-12 h-10 rounded-xl border text-sm font-bold transition-all ${
                       form.team_size === n
-                        ? 'border-[#C9A227]/50 bg-[#C9A227]/8 text-[#C9A227]'
+                        ? 'border-white/50 bg-white/8 text-white'
                         : 'border-white/8 bg-[#0A0A0A] text-gray-400 hover:border-white/15'
                     }`}
                   >
@@ -219,7 +219,7 @@ export default function NewInterCompetitionPage() {
                 type="datetime-local"
                 value={form.registration_open_at}
                 onChange={e => set('registration_open_at', e.target.value)}
-                className="mt-1.5 w-full bg-[#0A0A0A] border border-white/8 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-[#C9A227]/50"
+                className="mt-1.5 w-full bg-[#0A0A0A] border border-white/8 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-white/50"
               />
             </div>
             <div>
@@ -228,7 +228,7 @@ export default function NewInterCompetitionPage() {
                 type="datetime-local"
                 value={form.starts_at}
                 onChange={e => set('starts_at', e.target.value)}
-                className="mt-1.5 w-full bg-[#0A0A0A] border border-white/8 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-[#C9A227]/50"
+                className="mt-1.5 w-full bg-[#0A0A0A] border border-white/8 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-white/50"
               />
             </div>
             <div>
@@ -237,7 +237,7 @@ export default function NewInterCompetitionPage() {
                 type="datetime-local"
                 value={form.ends_at}
                 onChange={e => set('ends_at', e.target.value)}
-                className="mt-1.5 w-full bg-[#0A0A0A] border border-white/8 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-[#C9A227]/50"
+                className="mt-1.5 w-full bg-[#0A0A0A] border border-white/8 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-white/50"
               />
             </div>
             <div>
@@ -248,7 +248,7 @@ export default function NewInterCompetitionPage() {
                 value={form.max_participants}
                 onChange={e => set('max_participants', e.target.value)}
                 placeholder="Illimité"
-                className="mt-1.5 w-full bg-[#0A0A0A] border border-white/8 rounded-xl px-3 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-[#C9A227]/50"
+                className="mt-1.5 w-full bg-[#0A0A0A] border border-white/8 rounded-xl px-3 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-white/50"
               />
             </div>
           </div>
@@ -265,7 +265,7 @@ export default function NewInterCompetitionPage() {
           <button
             type="submit"
             disabled={saving}
-            className="flex-1 flex items-center justify-center gap-2 bg-[#C9A227] hover:bg-[#B8911F] disabled:opacity-60 text-white text-sm font-bold py-3 rounded-xl transition-colors"
+            className="flex-1 flex items-center justify-center gap-2 bg-white hover:bg-[#B8911F] disabled:opacity-60 text-[#0A0A0A] text-sm font-bold py-3 rounded-xl transition-colors"
           >
             {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
             {editId ? 'Enregistrer les modifications' : 'Créer la compétition'}

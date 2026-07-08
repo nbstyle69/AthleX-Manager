@@ -50,7 +50,7 @@ export default async function BracketPage({ params }: { params: Promise<{ id: st
         <div className="flex items-center gap-2">
           <GitBranch size={16} className="text-purple-400" />
           <span className="text-sm font-bold text-white">{t.name} — Bracket</span>
-          <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-[#C9A227]/15 text-[#C9A227]">
+          <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-white/15 text-white">
             {t.format === 'swiss' ? 'Swiss' : 'Bracket'}
           </span>
         </div>

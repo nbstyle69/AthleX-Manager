@@ -7,7 +7,7 @@ import { ArrowLeft, Loader2, UserPlus, UserMinus, Users2, MessageSquare, Search,
 import { getMyBox } from '@/lib/getMyBox';
 
 const COLORS = [
-  '#C9A227', '#8B5CF6', '#EC4899', '#EF4444',
+  '#FFFFFF', '#8B5CF6', '#EC4899', '#EF4444',
   '#F59E0B', '#10B981', '#3B82F6', '#14B8A6',
   '#F97316', '#84CC16',
 ];
@@ -24,7 +24,7 @@ interface Member {
 
 const LEVELS = ['rx+', 'rx', 'scaled', 'foundations'];
 const LEVEL_LABEL: Record<string, string> = { 'rx+': 'RX+', rx: 'RX', scaled: 'SCALED', foundations: 'FOUNDATIONS' };
-const LEVEL_COLOR: Record<string, string> = { 'rx+': '#C9A227', rx: '#3B82F6', scaled: '#10B981', foundations: '#8B5CF6' };
+const LEVEL_COLOR: Record<string, string> = { 'rx+': '#FFFFFF', rx: '#3B82F6', scaled: '#10B981', foundations: '#8B5CF6' };
 
 export default function GroupDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id: groupId } = use(params);
@@ -166,7 +166,7 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
 
   if (loading) return (
     <div className="flex items-center justify-center min-h-[200px]">
-      <Loader2 size={24} className="animate-spin text-[#C9A227]" />
+      <Loader2 size={24} className="animate-spin text-white" />
     </div>
   );
   if (!group) return null;
@@ -210,14 +210,14 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
 
       {/* Edit panel */}
       {editing && (
-        <div className="bg-[#111111] border border-[#C9A227]/30 rounded-2xl p-5 space-y-4">
+        <div className="bg-[#111111] border border-white/30 rounded-2xl p-5 space-y-4">
           <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Modifier le groupe</p>
           <div>
             <label className="block text-xs font-semibold text-gray-400 mb-1.5">Nom</label>
             <input
               value={editName}
               onChange={e => setEditName(e.target.value)}
-              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-[#C9A227] transition-colors"
+              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-white transition-colors"
               placeholder="Nom du groupe"
             />
           </div>
@@ -240,7 +240,7 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
               <button type="button" onClick={() => setEditVisibility('daily')}
                 className={`flex-1 text-center text-xs font-bold px-3 py-2.5 rounded-xl border transition-colors ${
                   editVisibility === 'daily'
-                    ? 'border-[#C9A227] bg-[#C9A227]/15 text-[#C9A227]'
+                    ? 'border-white bg-white/15 text-white'
                     : 'border-white/10 text-gray-500 hover:text-white hover:border-white/20'
                 }`}>
                 Jour par jour
@@ -248,7 +248,7 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
               <button type="button" onClick={() => setEditVisibility('weekly')}
                 className={`flex-1 text-center text-xs font-bold px-3 py-2.5 rounded-xl border transition-colors ${
                   editVisibility === 'weekly'
-                    ? 'border-[#C9A227] bg-[#C9A227]/15 text-[#C9A227]'
+                    ? 'border-white bg-white/15 text-white'
                     : 'border-white/10 text-gray-500 hover:text-white hover:border-white/20'
                 }`}>
                 Semaine entière
@@ -263,7 +263,7 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
 
           <div className="flex items-center gap-2 pt-1">
             <button onClick={saveGroup} disabled={saving || !editName.trim()}
-              className="flex items-center gap-1.5 px-4 py-2 text-sm font-bold bg-[#C9A227] text-white rounded-xl disabled:opacity-60 transition-colors">
+              className="flex items-center gap-1.5 px-4 py-2 text-sm font-bold bg-white text-[#0A0A0A] rounded-xl disabled:opacity-60 transition-colors">
               {saving ? <Loader2 size={13} className="animate-spin" /> : <Check size={13} />}
               Enregistrer
             </button>
@@ -325,12 +325,12 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
               <input
                 value={search} onChange={e => setSearch(e.target.value)}
                 placeholder="Rechercher un membre…"
-                className="w-full bg-white/5 border border-white/10 rounded-xl pl-8 pr-3 py-2 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-[#C9A227] transition-colors"
+                className="w-full bg-white/5 border border-white/10 rounded-xl pl-8 pr-3 py-2 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-white transition-colors"
               />
               {search && <button onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white"><X size={12} /></button>}
             </div>
             <button onClick={() => setShowFilters(v => !v)}
-              className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold border transition-colors ${showFilters || activeFilters > 0 ? 'border-[#C9A227]/50 text-[#C9A227] bg-[#C9A227]/10' : 'border-white/10 text-gray-400 hover:text-white'}`}>
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold border transition-colors ${showFilters || activeFilters > 0 ? 'border-white/50 text-white bg-white/10' : 'border-white/10 text-gray-400 hover:text-white'}`}>
               <SlidersHorizontal size={13} />
               Filtres{activeFilters > 0 ? ` (${activeFilters})` : ''}
             </button>
@@ -364,7 +364,7 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
               {allGroups.filter(g => g.id !== groupId).length > 0 && (
                 <div className="w-full">
                   <select value={filterGroup} onChange={e => setFilterGroup(e.target.value)}
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-[#C9A227] transition-colors">
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-white transition-colors">
                     <option value="" className="text-black">Tous les groupes</option>
                     {allGroups.filter(g => g.id !== groupId).map(g => (
                       <option key={g.id} value={g.id} className="text-black">{g.name}</option>
@@ -407,7 +407,7 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
                 </div>
               </div>
               <button onClick={() => toggleMember(m.id)} disabled={toggling === m.id}
-                className="flex items-center gap-1.5 text-xs font-bold text-[#C9A227] hover:text-[#C9A227]/80 transition-colors shrink-0">
+                className="flex items-center gap-1.5 text-xs font-bold text-white hover:text-white/80 transition-colors shrink-0">
                 {toggling === m.id ? <Loader2 size={12} className="animate-spin" /> : <UserPlus size={13} />}
                 Ajouter
               </button>

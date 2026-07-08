@@ -15,7 +15,7 @@ type Tab = typeof TABS[number];
 const STATUS_STYLE: Record<string, string> = {
   draft:  'bg-gray-500/15 text-gray-400',
   open:   'bg-emerald-500/15 text-emerald-400',
-  active: 'bg-[#C9A227]/15 text-[#C9A227]',
+  active: 'bg-white/15 text-white',
   closed: 'bg-blue-500/15 text-blue-400',
 };
 const STATUS_LABEL: Record<string, string> = {
@@ -139,7 +139,7 @@ export default function InterCompDetailPage() {
 
   if (loading) return (
     <div className="flex items-center justify-center py-24">
-      <Loader2 size={28} className="text-[#C9A227] animate-spin" />
+      <Loader2 size={28} className="text-white animate-spin" />
     </div>
   );
   if (!comp) return <div className="text-center py-24 text-gray-400">Compétition introuvable.</div>;
@@ -155,8 +155,8 @@ export default function InterCompDetailPage() {
             className="p-2 rounded-xl hover:bg-white/5 text-gray-500 hover:text-white transition-colors">
             <ChevronLeft size={18} />
           </Link>
-          <div className="w-11 h-11 rounded-xl bg-[#C9A227]/20 flex items-center justify-center">
-            <Globe2 size={22} className="text-[#C9A227]" />
+          <div className="w-11 h-11 rounded-xl bg-white/20 flex items-center justify-center">
+            <Globe2 size={22} className="text-white" />
           </div>
           <div>
             <div className="flex items-center gap-2">
@@ -181,7 +181,7 @@ export default function InterCompDetailPage() {
       <div className="grid grid-cols-4 gap-3">
         {[
           { label: 'Inscrits',    val: registrations.length,   icon: Users,    color: '#8B5CF6' },
-          { label: 'WODs',        val: `${wods.length}/3`,     icon: Dumbbell, color: '#C9A227' },
+          { label: 'WODs',        val: `${wods.length}/3`,     icon: Dumbbell, color: '#FFFFFF' },
           { label: 'Scores',      val: scores.length,          icon: Trophy,   color: '#22C55E' },
           { label: 'En attente',  val: pendingScores.length,   icon: Clock,    color: '#D97706' },
         ].map(({ label, val, icon: Icon, color }) => (
@@ -200,7 +200,7 @@ export default function InterCompDetailPage() {
         {TABS.map(t => (
           <button key={t} onClick={() => setTab(t)}
             className={`flex-1 py-2 rounded-xl text-sm font-bold transition-all relative ${
-              tab === t ? 'bg-[#C9A227] text-white' : 'text-gray-400 hover:text-white'
+              tab === t ? 'bg-white text-[#0A0A0A]' : 'text-gray-400 hover:text-white'
             }`}>
             {t}
             {t === 'Scores' && pendingScores.length > 0 && (
@@ -219,8 +219,8 @@ export default function InterCompDetailPage() {
             <div key={w.id} className="bg-[#111111] border border-white/8 rounded-2xl p-5">
               <div className="flex items-start justify-between gap-3">
                 <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-xl bg-[#C9A227]/10 flex items-center justify-center shrink-0">
-                    <span className="text-sm font-black text-[#C9A227]">W{w.order_index}</span>
+                  <div className="w-9 h-9 rounded-xl bg-white/10 flex items-center justify-center shrink-0">
+                    <span className="text-sm font-black text-white">W{w.order_index}</span>
                   </div>
                   <div>
                     <p className="font-bold text-white">{w.title}</p>
@@ -231,7 +231,7 @@ export default function InterCompDetailPage() {
                       {w.revealed_at && w.revealed_at <= new Date().toISOString()
                         ? <span className="text-[10px] font-bold text-emerald-400">✓ Révélé</span>
                         : w.revealed_at
-                          ? <span className="text-[10px] text-[#C9A227]">{new Date(w.revealed_at).toLocaleString('fr-FR')}</span>
+                          ? <span className="text-[10px] text-white">{new Date(w.revealed_at).toLocaleString('fr-FR')}</span>
                           : <span className="text-[10px] text-gray-600">Non révélé</span>
                       }
                     </div>
@@ -272,14 +272,14 @@ export default function InterCompDetailPage() {
                     <input required value={wodForm.title}
                       onChange={e => setWodForm(p => ({ ...p, title: e.target.value }))}
                       placeholder="Ex : WOD 1 — Fran"
-                      className="mt-1 w-full bg-[#0A0A0A] border border-white/8 rounded-xl px-3 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-[#C9A227]/50" />
+                      className="mt-1 w-full bg-[#0A0A0A] border border-white/8 rounded-xl px-3 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-white/50" />
                   </div>
                   <div>
                     <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">Description</label>
                     <textarea rows={4} value={wodForm.description}
                       onChange={e => setWodForm(p => ({ ...p, description: e.target.value }))}
                       placeholder="Mouvements, reps, consignes..."
-                      className="mt-1 w-full bg-[#0A0A0A] border border-white/8 rounded-xl px-3 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-[#C9A227]/50 resize-none" />
+                      className="mt-1 w-full bg-[#0A0A0A] border border-white/8 rounded-xl px-3 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-white/50 resize-none" />
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
@@ -287,13 +287,13 @@ export default function InterCompDetailPage() {
                       <input type="number" min="1" value={wodForm.time_cap}
                         onChange={e => setWodForm(p => ({ ...p, time_cap: e.target.value }))}
                         placeholder="20"
-                        className="mt-1 w-full bg-[#0A0A0A] border border-white/8 rounded-xl px-3 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-[#C9A227]/50" />
+                        className="mt-1 w-full bg-[#0A0A0A] border border-white/8 rounded-xl px-3 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-white/50" />
                     </div>
                     <div>
                       <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">Scoring</label>
                       <select value={wodForm.scoring_type}
                         onChange={e => setWodForm(p => ({ ...p, scoring_type: e.target.value }))}
-                        className="mt-1 w-full bg-[#0A0A0A] border border-white/8 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-[#C9A227]/50">
+                        className="mt-1 w-full bg-[#0A0A0A] border border-white/8 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-white/50">
                         <option value="reps">Reps</option>
                         <option value="time">Temps</option>
                         <option value="weight">Poids</option>
@@ -305,7 +305,7 @@ export default function InterCompDetailPage() {
                     <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">Date de révélation</label>
                     <input type="datetime-local" value={wodForm.revealed_at}
                       onChange={e => setWodForm(p => ({ ...p, revealed_at: e.target.value }))}
-                      className="mt-1 w-full bg-[#0A0A0A] border border-white/8 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-[#C9A227]/50" />
+                      className="mt-1 w-full bg-[#0A0A0A] border border-white/8 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-white/50" />
                   </div>
                   <div className="flex gap-2 pt-2">
                     <button type="button" onClick={() => setShowWodForm(false)}
@@ -313,7 +313,7 @@ export default function InterCompDetailPage() {
                       Annuler
                     </button>
                     <button type="submit" disabled={savingWod}
-                      className="flex-1 flex items-center justify-center gap-2 bg-[#C9A227] hover:bg-[#B8911F] disabled:opacity-60 text-white text-sm font-bold py-2.5 rounded-xl transition-colors">
+                      className="flex-1 flex items-center justify-center gap-2 bg-white hover:bg-[#B8911F] disabled:opacity-60 text-[#0A0A0A] text-sm font-bold py-2.5 rounded-xl transition-colors">
                       {savingWod ? <Loader2 size={14} className="animate-spin" /> : null}
                       {editingWod ? 'Enregistrer' : 'Créer'}
                     </button>
@@ -335,7 +335,7 @@ export default function InterCompDetailPage() {
                 r.status === 'disqualified' ? 'border-red-500/20 opacity-60' : 'border-white/8'
               }`}>
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-[#C9A227]/20 flex items-center justify-center text-[#C9A227] text-xs font-black">
+                  <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center text-white text-xs font-black">
                     {(r.athlete?.username ?? r.team?.name ?? '?')[0].toUpperCase()}
                   </div>
                   <div>
@@ -373,14 +373,14 @@ export default function InterCompDetailPage() {
               <div key={s.id} className="bg-[#111111] border border-white/8 rounded-2xl p-5">
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-xl bg-[#C9A227]/10 flex items-center justify-center shrink-0">
-                      <span className="text-xs font-black text-[#C9A227]">W{s.wod?.order_index ?? '?'}</span>
+                    <div className="w-9 h-9 rounded-xl bg-white/10 flex items-center justify-center shrink-0">
+                      <span className="text-xs font-black text-white">W{s.wod?.order_index ?? '?'}</span>
                     </div>
                     <div>
                       <p className="text-sm font-bold text-white">{s.athlete?.username ?? '—'}</p>
                       <p className="text-xs text-gray-500">{s.wod?.title ?? '—'}</p>
                       <div className="flex items-center gap-2 mt-1">
-                        <span className="text-sm font-black text-[#C9A227]">{s.score_display ?? s.score_value}</span>
+                        <span className="text-sm font-black text-white">{s.score_display ?? s.score_value}</span>
                         {s.video_url && (
                           <a href={s.video_url} target="_blank" rel="noreferrer"
                             className="flex items-center gap-1 text-xs text-blue-400 hover:text-blue-300">
@@ -435,7 +435,7 @@ export default function InterCompDetailPage() {
               return (
                 <div key={w.id} className="bg-[#111111] border border-white/8 rounded-2xl overflow-hidden">
                   <div className="px-5 py-3 border-b border-white/[0.06] flex items-center gap-2">
-                    <span className="text-xs font-black text-[#C9A227] bg-[#C9A227]/10 rounded-lg px-2 py-0.5">WOD {w.order_index}</span>
+                    <span className="text-xs font-black text-white bg-white/10 rounded-lg px-2 py-0.5">WOD {w.order_index}</span>
                     <span className="text-sm font-bold text-white">{w.title}</span>
                   </div>
                   {ws.length === 0
@@ -443,9 +443,9 @@ export default function InterCompDetailPage() {
                     : <div className="divide-y divide-white/[0.04]">
                       {ws.map(s => (
                         <div key={s.athlete_id ?? s.team_id}
-                          className={`flex items-center gap-4 px-5 py-3 ${s.rank <= 3 ? 'bg-[#C9A227]/[0.03]' : ''}`}>
+                          className={`flex items-center gap-4 px-5 py-3 ${s.rank <= 3 ? 'bg-white/[0.03]' : ''}`}>
                           <span className={`w-8 text-center text-sm font-black ${
-                            s.rank === 1 ? 'text-[#C9A227]' : s.rank === 2 ? 'text-gray-300' : s.rank === 3 ? 'text-amber-600' : 'text-gray-500'
+                            s.rank === 1 ? 'text-white' : s.rank === 2 ? 'text-gray-300' : s.rank === 3 ? 'text-amber-600' : 'text-gray-500'
                           }`}>
                             {s.rank <= 3 ? ['🥇','🥈','🥉'][s.rank - 1] : s.rank}
                           </span>
@@ -453,7 +453,7 @@ export default function InterCompDetailPage() {
                             <p className="text-sm font-bold text-white">{s.username ?? '—'}</p>
                             <p className="text-xs text-gray-500">{s.box_name ?? 'Box inconnue'}</p>
                           </div>
-                          <span className="text-sm font-black text-[#C9A227]">{s.score_display ?? s.score_value}</span>
+                          <span className="text-sm font-black text-white">{s.score_display ?? s.score_value}</span>
                         </div>
                       ))}
                     </div>

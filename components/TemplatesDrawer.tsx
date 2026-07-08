@@ -149,12 +149,12 @@ export default function TemplatesDrawer({ open, onClose, boxId }: Props) {
                         <div key={slotTime} className="flex gap-1">
                           {slotItems.map(t => (
                             <div key={t.id} className={`flex-1 min-w-0 bg-[#111] border rounded-xl p-3 transition-opacity ${t.is_active ? 'border-white/10' : 'border-white/5 opacity-40'}`}>
-                              <p className="text-xs font-bold text-[#C9A227] mb-1 truncate">{t.start_time} - {t.end_time}</p>
+                              <p className="text-xs font-bold text-white mb-1 truncate">{t.start_time} - {t.end_time}</p>
                               <p className="text-xs font-semibold text-white leading-tight mb-1 truncate">{t.title}</p>
                               {t.coach && <p className="text-[10px] text-gray-500 mb-1 truncate">{t.coach}</p>}
                               <p className="text-[10px] text-gray-600 mb-2">{t.max_capacity} places</p>
                               <div className="flex items-center gap-1.5">
-                                <button onClick={() => toggleActive(t)} title={t.is_active ? 'Desactiver' : 'Activer'} className="text-gray-500 hover:text-[#C9A227] transition-colors">
+                                <button onClick={() => toggleActive(t)} title={t.is_active ? 'Desactiver' : 'Activer'} className="text-gray-500 hover:text-white transition-colors">
                                   {t.is_active ? <ToggleRight size={16} /> : <ToggleLeft size={16} />}
                                 </button>
                                 <button onClick={() => openEdit(t)} className="text-gray-500 hover:text-white transition-colors"><Pencil size={12} /></button>
@@ -217,7 +217,7 @@ export default function TemplatesDrawer({ open, onClose, boxId }: Props) {
                       <button key={c.id} type="button" onClick={() => setForm(f => ({ ...f, coach: f.coach === c.username ? '' : c.username }))}
                         className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors ${
                           form.coach === c.username
-                            ? 'bg-[#C9A227] border-[#C9A227] text-white'
+                            ? 'bg-white border-white text-[#0A0A0A]'
                             : 'bg-transparent border-white/10 text-gray-400 hover:border-white/20 hover:text-white'
                         }`}>
                         {c.username}
@@ -235,7 +235,7 @@ export default function TemplatesDrawer({ open, onClose, boxId }: Props) {
             </div>
             <div className="flex gap-3 mt-6">
               <button onClick={() => setShowModal(false)} className="flex-1 py-2.5 rounded-xl border border-white/10 text-sm text-gray-400 hover:text-white transition-colors">Annuler</button>
-              <button onClick={handleSave} disabled={saving} className="flex-1 py-2.5 rounded-xl bg-[#C9A227] hover:bg-[#B8911F] text-white text-sm font-bold flex items-center justify-center gap-2 transition-colors disabled:opacity-50">
+              <button onClick={handleSave} disabled={saving} className="flex-1 py-2.5 rounded-xl bg-white hover:bg-[#B8911F] text-[#0A0A0A] text-sm font-bold flex items-center justify-center gap-2 transition-colors disabled:opacity-50">
                 {saving && <Loader2 size={15} className="animate-spin" />}
                 {editTarget ? 'Enregistrer' : 'Creer'}
               </button>

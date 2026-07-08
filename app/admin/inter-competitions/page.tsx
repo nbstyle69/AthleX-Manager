@@ -29,7 +29,7 @@ const FORMAT_LABEL: Record<string, string> = {
 const STATUS_STYLE: Record<string, string> = {
   draft:  'bg-gray-500/15 text-gray-400',
   open:   'bg-emerald-500/15 text-emerald-400',
-  active: 'bg-[#C9A227]/15 text-[#C9A227]',
+  active: 'bg-white/15 text-white',
   closed: 'bg-blue-500/15 text-blue-400',
 };
 const STATUS_LABEL: Record<string, string> = {
@@ -92,8 +92,8 @@ export default function InterCompetitionsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-[#C9A227]/20 flex items-center justify-center">
-            <Globe2 size={22} className="text-[#C9A227]" />
+          <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center">
+            <Globe2 size={22} className="text-white" />
           </div>
           <div>
             <h1 className="text-xl font-black text-white">Compétitions Inter-box</h1>
@@ -102,7 +102,7 @@ export default function InterCompetitionsPage() {
         </div>
         <Link
           href="/admin/inter-competitions/new"
-          className="flex items-center gap-2 bg-[#C9A227] hover:bg-[#B8911F] text-white text-sm font-bold px-4 py-2.5 rounded-xl transition-colors"
+          className="flex items-center gap-2 bg-white hover:bg-[#B8911F] text-[#0A0A0A] text-sm font-bold px-4 py-2.5 rounded-xl transition-colors"
         >
           <Plus size={16} /> Nouvelle compétition
         </Link>
@@ -110,7 +110,7 @@ export default function InterCompetitionsPage() {
 
       {loading ? (
         <div className="flex items-center justify-center py-24">
-          <Loader2 size={28} className="text-[#C9A227] animate-spin" />
+          <Loader2 size={28} className="text-white animate-spin" />
         </div>
       ) : comps.length === 0 ? (
         <div className="text-center py-24">
@@ -123,8 +123,8 @@ export default function InterCompetitionsPage() {
           {comps.map(c => (
             <div key={c.id} className="bg-[#111111] border border-white/8 rounded-2xl p-5 hover:border-white/15 transition-all">
               <div className="flex items-start gap-4">
-                <div className="w-11 h-11 rounded-xl bg-[#C9A227]/10 flex items-center justify-center shrink-0">
-                  <Globe2 size={20} className="text-[#C9A227]" />
+                <div className="w-11 h-11 rounded-xl bg-white/10 flex items-center justify-center shrink-0">
+                  <Globe2 size={20} className="text-white" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap mb-1">
@@ -160,7 +160,7 @@ export default function InterCompetitionsPage() {
                       onClick={() => handleAdvance(c)}
                       disabled={advancing === c.id}
                       title={`Passer à : ${STATUS_LABEL[STATUS_NEXT[c.status]]}`}
-                      className="p-2 rounded-xl bg-[#0A0A0A] hover:bg-[#C9A227]/10 text-gray-500 hover:text-[#C9A227] transition-colors disabled:opacity-40"
+                      className="p-2 rounded-xl bg-[#0A0A0A] hover:bg-white/10 text-gray-500 hover:text-white transition-colors disabled:opacity-40"
                     >
                       {advancing === c.id
                         ? <Loader2 size={15} className="animate-spin" />

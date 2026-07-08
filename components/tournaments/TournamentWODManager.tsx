@@ -108,7 +108,7 @@ export default function TournamentWODManager({ tournamentId, initialWODs, divisi
                 onClick={() => setSelectedSeason(s)}
                 className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors flex items-center gap-1.5 ${
                   isActive
-                    ? 'bg-[#C9A227] text-black'
+                    ? 'bg-white text-black'
                     : 'bg-white/5 text-gray-400 hover:bg-white/10 hover:text-white'
                 }`}>
                 S{s}
@@ -128,7 +128,7 @@ export default function TournamentWODManager({ tournamentId, initialWODs, divisi
       {/* Actions */}
       <div className="flex items-center gap-3">
         <button onClick={openAdd}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold bg-[#C9A227] text-white hover:bg-[#D4A832] transition-colors">
+          className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold bg-white text-[#0A0A0A] hover:bg-[#FFFFFF] transition-colors">
           <Plus size={15} /> Ajouter un WOD
         </button>
         <p className="text-xs text-gray-500">
@@ -146,7 +146,7 @@ export default function TournamentWODManager({ tournamentId, initialWODs, divisi
           </p>
           <p className="text-gray-500 text-sm mb-6">Créez manuellement ou laissez l&apos;IA générer le programme.</p>
           <button onClick={openAdd}
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold bg-[#C9A227] text-white">
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold bg-white text-[#0A0A0A]">
             <Plus size={15} /> Créer le premier WOD
           </button>
         </div>
@@ -211,8 +211,8 @@ export default function TournamentWODManager({ tournamentId, initialWODs, divisi
 
                   {/* Timer badge */}
                   <div className="flex items-center gap-1.5 mb-2">
-                    <Timer size={11} className="text-[#C9A227]" />
-                    <span className="text-xs font-semibold text-[#C9A227]">{timerLabel(wod)}</span>
+                    <Timer size={11} className="text-white" />
+                    <span className="text-xs font-semibold text-white">{timerLabel(wod)}</span>
                     {wod.scoring && (
                       <span className="text-xs text-gray-500 ml-2">· {wod.scoring}</span>
                     )}

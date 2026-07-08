@@ -39,7 +39,7 @@ export default function Sidebar({ box, email, unreadCount = 0 }: SidebarProps) {
     router.refresh();
   }
 
-  const planColor = box?.plan === 'pro' ? '#8B5CF6' : box?.plan === 'elite' ? '#C9A227' : '#C9A227';
+  const planColor = box?.plan === 'pro' ? '#8B5CF6' : box?.plan === 'elite' ? '#FFFFFF' : '#FFFFFF';
   const planLabel = box?.plan === 'pro' ? 'Pro' : box?.plan === 'elite' ? 'Elite' : 'Starter';
 
   return (
@@ -75,14 +75,14 @@ export default function Sidebar({ box, email, unreadCount = 0 }: SidebarProps) {
               className={cn(
                 'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all relative',
                 active
-                  ? 'bg-[#C9A227]/20 text-white'
+                  ? 'bg-white/20 text-white'
                   : 'text-gray-400 hover:text-white hover:bg-white/5'
               )}
             >
-              <Icon size={17} className={active ? 'text-[#C9A227]' : ''} />
+              <Icon size={17} className={active ? 'text-white' : ''} />
               {label}
               {label === 'Messages' && unreadCount > 0 && (
-                <span className="ml-auto bg-[#C9A227] text-white text-[10px] font-black rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1">
+                <span className="ml-auto bg-white text-[#0A0A0A] text-[10px] font-black rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1">
                   {unreadCount > 99 ? '99+' : unreadCount}
                 </span>
               )}
@@ -94,7 +94,7 @@ export default function Sidebar({ box, email, unreadCount = 0 }: SidebarProps) {
       {/* Footer */}
       <div className="px-4 py-4 border-t border-white/[0.06]">
         <div className="flex items-center gap-3 mb-3">
-          <div className="w-8 h-8 rounded-full bg-[#C9A227]/30 flex items-center justify-center text-[#C9A227] text-xs font-black">
+          <div className="w-8 h-8 rounded-full bg-white/30 flex items-center justify-center text-white text-xs font-black">
             {email[0]?.toUpperCase()}
           </div>
           <p className="text-xs text-gray-400 truncate flex-1">{email}</p>

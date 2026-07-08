@@ -7,7 +7,7 @@ import KickButton from './KickButton';
 const LEVEL_COLORS: Record<string, { bg: string; text: string }> = {
   scaled: { bg: 'bg-gray-500/20',   text: 'text-gray-400'   },
   inter:  { bg: 'bg-blue-500/20',   text: 'text-blue-400'   },
-  rx:     { bg: 'bg-[#C9A227]/20',  text: 'text-[#C9A227]'  },
+  rx:     { bg: 'bg-white/20',  text: 'text-white'  },
   'rx+':  { bg: 'bg-orange-500/20', text: 'text-orange-400' },
   gx:     { bg: 'bg-purple-500/20', text: 'text-purple-400' },
   pro:    { bg: 'bg-red-500/20',    text: 'text-red-400'    },
@@ -119,7 +119,7 @@ export default async function TournamentParticipantsPage({ params }: { params: P
                   </div>
                   <div className="flex items-center gap-3 flex-wrap">
                     <span className="flex items-center gap-1 text-xs text-gray-400">
-                      <Star size={10} className="text-[#C9A227]" />
+                      <Star size={10} className="text-white" />
                       ELO {p.profile?.elo ?? 1000}
                     </span>
                     {boxName && (
@@ -146,7 +146,7 @@ export default async function TournamentParticipantsPage({ params }: { params: P
                 )}
                 {p.score > 0 && (
                   <div className="shrink-0 text-right">
-                    <p className="text-sm font-black text-[#C9A227]">{p.score}</p>
+                    <p className="text-sm font-black text-white">{p.score}</p>
                     <p className="text-[10px] text-gray-500">pts</p>
                   </div>
                 )}

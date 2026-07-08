@@ -127,7 +127,7 @@ export default function TournamentForm({ boxId, initial, allowedFormats = ['simp
     router.refresh();
   }
 
-  const inp = 'w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-[#C9A227] transition-colors';
+  const inp = 'w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-white transition-colors';
   const lbl = 'block text-xs font-semibold text-gray-400 mb-1.5 uppercase tracking-wider';
 
   return (
@@ -146,7 +146,7 @@ export default function TournamentForm({ boxId, initial, allowedFormats = ['simp
               const active = form.format === fmt;
               return (
                 <button key={fmt} type="button" onClick={() => set('format', fmt)}
-                  className={`text-left rounded-xl border p-4 transition-colors ${active ? 'border-[#C9A227] bg-[#C9A227]/10' : 'border-white/10 hover:border-white/20 bg-white/[0.02]'}`}>
+                  className={`text-left rounded-xl border p-4 transition-colors ${active ? 'border-white bg-white/10' : 'border-white/10 hover:border-white/20 bg-white/[0.02]'}`}>
                   <div className="text-sm font-bold text-white">{meta.label}</div>
                   <div className="text-xs text-gray-400 mt-1">{meta.desc}</div>
                 </button>
@@ -157,7 +157,7 @@ export default function TournamentForm({ boxId, initial, allowedFormats = ['simp
             <label className="flex items-center gap-3 mt-2 cursor-pointer">
               <input type="checkbox" checked={form.require_video_proof}
                 onChange={e => set('require_video_proof', e.target.checked)}
-                className="w-4 h-4 accent-[#C9A227]" />
+                className="w-4 h-4 accent-white" />
               <span className="text-sm text-gray-300">Exiger une preuve vidéo pour valider les scores</span>
             </label>
           )}
@@ -198,9 +198,9 @@ export default function TournamentForm({ boxId, initial, allowedFormats = ['simp
             </div>
           ) : (
             <button type="button" onClick={() => fileRef.current?.click()} disabled={uploading}
-              className="w-full h-36 border-2 border-dashed border-white/10 hover:border-[#C9A227]/40 rounded-xl flex flex-col items-center justify-center gap-2 transition-colors">
+              className="w-full h-36 border-2 border-dashed border-white/10 hover:border-white/40 rounded-xl flex flex-col items-center justify-center gap-2 transition-colors">
               {uploading ? (
-                <Loader2 size={24} className="text-[#C9A227] animate-spin" />
+                <Loader2 size={24} className="text-white animate-spin" />
               ) : (
                 <>
                   <ImageIcon size={28} className="text-gray-600" />
@@ -255,7 +255,7 @@ export default function TournamentForm({ boxId, initial, allowedFormats = ['simp
             <h2 className="text-sm font-bold text-white uppercase tracking-wider">Divisions</h2>
             <button type="button"
               onClick={() => setDivisions(d => [...d, { name: `D${d.length + 1}`, max_members: 16, promote_count: 3, relegate_count: 3 }])}
-              className="text-xs font-semibold text-[#C9A227] hover:text-[#e0b730]">+ Ajouter une division</button>
+              className="text-xs font-semibold text-white hover:text-[#e0b730]">+ Ajouter une division</button>
           </div>
           <p className="text-xs text-gray-500">La D1 est la division supérieure. Les promus montent (level - 1), les relégués descendent (level + 1).</p>
           <div className="space-y-2">
@@ -313,7 +313,7 @@ export default function TournamentForm({ boxId, initial, allowedFormats = ['simp
           Enregistrer
         </button>
         <button type="button" disabled={saving} onClick={(e) => handleSubmit(e as any, true)}
-          className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold bg-[#C9A227] hover:bg-[#C9A227] text-white disabled:opacity-60 transition-colors">
+          className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold bg-white hover:bg-white text-[#0A0A0A] disabled:opacity-60 transition-colors">
           {saving && <Loader2 size={14} className="animate-spin" />}
           Publier
         </button>

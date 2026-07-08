@@ -129,7 +129,7 @@ export default function AdminTournamentsPage() {
           { key: 'cancelled' as const, label: `Annulés (${cancelledCount})` },
         ].map(f => (
           <button key={f.key} onClick={() => setStatusFilter(f.key)}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${statusFilter === f.key ? 'bg-[#C9A227]/20 text-[#C9A227]' : 'text-gray-500 hover:text-gray-300 bg-white/5'}`}>
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${statusFilter === f.key ? 'bg-white/20 text-white' : 'text-gray-500 hover:text-gray-300 bg-white/5'}`}>
             {f.label}
           </button>
         ))}
@@ -137,7 +137,7 @@ export default function AdminTournamentsPage() {
 
       {loading ? (
         <div className="flex items-center justify-center py-20">
-          <Loader2 size={28} className="animate-spin text-[#C9A227]" />
+          <Loader2 size={28} className="animate-spin text-white" />
         </div>
       ) : filtered.length === 0 ? (
         <div className="text-center py-20">

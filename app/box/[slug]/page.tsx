@@ -70,7 +70,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   };
 }
 
-const GOLD = '#C9A227';
+const GOLD = '#FFFFFF';
 const DAY_LABELS: Record<string, string> = {
   monday: 'Lundi', tuesday: 'Mardi', wednesday: 'Mercredi',
   thursday: 'Jeudi', friday: 'Vendredi', saturday: 'Samedi', sunday: 'Dimanche',
@@ -344,7 +344,7 @@ export default async function BoxPublicPage({ params }: { params: Promise<{ slug
                 target="_blank" rel="noopener noreferrer"
               >
                 <img
-                  src={`https://maps.googleapis.com/maps/api/staticmap?center=${b.latitude},${b.longitude}&zoom=14&size=400x200&scale=2&markers=color:0xC9A227%7C${b.latitude},${b.longitude}&style=element:geometry%7Ccolor:0x1d1d1d&style=element:labels.text.fill%7Ccolor:0x8e8e8e&style=feature:road%7Celement:geometry%7Ccolor:0x2c2c2c&style=feature:water%7Celement:geometry%7Ccolor:0x0e0e0e&key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY ?? ''}`}
+                  src={`https://maps.googleapis.com/maps/api/staticmap?center=${b.latitude},${b.longitude}&zoom=14&size=400x200&scale=2&markers=color:0xFFFFFF%7C${b.latitude},${b.longitude}&style=element:geometry%7Ccolor:0x1d1d1d&style=element:labels.text.fill%7Ccolor:0x8e8e8e&style=feature:road%7Celement:geometry%7Ccolor:0x2c2c2c&style=feature:water%7Celement:geometry%7Ccolor:0x0e0e0e&key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY ?? ''}`}
                   alt="Map"
                   className="w-full h-44 object-cover"
                 />

@@ -79,7 +79,7 @@ export default function TestLogin() {
         />
         <button
           onClick={runTest}
-          style={{ padding: '8px 16px', background: '#C9A227', border: 'none', borderRadius: '6px', color: 'white', cursor: 'pointer' }}
+          style={{ padding: '8px 16px', background: '#FFFFFF', border: 'none', borderRadius: '6px', color: '#0A0A0A', cursor: 'pointer' }}
         >
           Tester
         </button>

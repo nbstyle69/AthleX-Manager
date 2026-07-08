@@ -9,7 +9,7 @@ const STATUS_MAP: Record<string, { label: string; color: string }> = {
   draft:    { label: 'Brouillon',              color: '#6B7280' },
   open:     { label: 'Inscriptions ouvertes',  color: '#3B82F6' },
   active:   { label: 'En cours',               color: '#16A34A' },
-  finished: { label: 'Terminé',                color: '#C9A227' },
+  finished: { label: 'Terminé',                color: '#FFFFFF' },
 };
 
 export default async function TournamentDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -45,7 +45,7 @@ export default async function TournamentDetailPage({ params }: { params: Promise
           <ChevronLeft size={16} />
         </Link>
         <div className="flex items-center gap-2">
-          <Trophy size={16} className="text-[#C9A227]" />
+          <Trophy size={16} className="text-white" />
           <span className="text-sm font-bold text-white">{t.name}</span>
         </div>
       </div>
@@ -89,16 +89,16 @@ export default async function TournamentDetailPage({ params }: { params: Promise
       {/* Quick nav tiles */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Link href={`/tournaments/${id}/wods`}
-          className="bg-[#111111] border border-white/8 rounded-2xl p-5 hover:border-[#C9A227]/30 transition-colors group">
-          <div className="w-10 h-10 rounded-xl bg-[#C9A227]/15 flex items-center justify-center mb-3">
-            <Dumbbell size={18} className="text-[#C9A227]" />
+          className="bg-[#111111] border border-white/8 rounded-2xl p-5 hover:border-white/30 transition-colors group">
+          <div className="w-10 h-10 rounded-xl bg-white/15 flex items-center justify-center mb-3">
+            <Dumbbell size={18} className="text-white" />
           </div>
           <p className="text-white font-bold text-lg">{wodCount ?? 0}</p>
           <p className="text-xs text-gray-400 font-semibold mt-0.5">WODs configurés</p>
         </Link>
 
         <Link href={`/tournaments/${id}/participants`}
-          className="bg-[#111111] border border-white/8 rounded-2xl p-5 hover:border-[#C9A227]/30 transition-colors group">
+          className="bg-[#111111] border border-white/8 rounded-2xl p-5 hover:border-white/30 transition-colors group">
           <div className="w-10 h-10 rounded-xl bg-blue-500/15 flex items-center justify-center mb-3">
             <Users size={18} className="text-blue-400" />
           </div>
@@ -121,7 +121,7 @@ export default async function TournamentDetailPage({ params }: { params: Promise
         </Link>
 
         <Link href={`/tournaments/${id}/leaderboard`}
-          className="bg-[#111111] border border-white/8 rounded-2xl p-5 hover:border-[#C9A227]/30 transition-colors group">
+          className="bg-[#111111] border border-white/8 rounded-2xl p-5 hover:border-white/30 transition-colors group">
           <div className="w-10 h-10 rounded-xl bg-green-500/15 flex items-center justify-center mb-3">
             <BarChart2 size={18} className="text-green-400" />
           </div>
@@ -133,7 +133,7 @@ export default async function TournamentDetailPage({ params }: { params: Promise
       {/* Format-specific section */}
       {(t.format === 'bracket' || t.format === 'swiss') && (
         <Link href={`/tournaments/${id}/bracket`}
-          className="block bg-[#111111] border border-white/8 rounded-2xl p-5 hover:border-[#C9A227]/30 transition-colors">
+          className="block bg-[#111111] border border-white/8 rounded-2xl p-5 hover:border-white/30 transition-colors">
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 rounded-xl bg-purple-500/15 flex items-center justify-center">
               <GitBranch size={20} className="text-purple-400" />
@@ -150,7 +150,7 @@ export default async function TournamentDetailPage({ params }: { params: Promise
       )}
       {t.format === 'league_div' && (
         <Link href={`/tournaments/${id}/divisions`}
-          className="block bg-[#111111] border border-white/8 rounded-2xl p-5 hover:border-[#C9A227]/30 transition-colors">
+          className="block bg-[#111111] border border-white/8 rounded-2xl p-5 hover:border-white/30 transition-colors">
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 rounded-xl bg-purple-500/15 flex items-center justify-center">
               <Layers size={20} className="text-purple-400" />

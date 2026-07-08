@@ -155,7 +155,7 @@ export default function MessagesPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-[calc(100vh-100px)]">
-        <Loader2 className="animate-spin text-[#C9A227]" size={28} />
+        <Loader2 className="animate-spin text-white" size={28} />
       </div>
     );
   }
@@ -173,7 +173,7 @@ export default function MessagesPage() {
             <div className="p-6 text-center">
               <Users2 size={28} className="text-gray-600 mx-auto mb-2" />
               <p className="text-xs text-gray-500">Aucun groupe</p>
-              <Link href="/groups/new" className="text-xs text-[#C9A227] hover:underline mt-1 inline-block">
+              <Link href="/groups/new" className="text-xs text-white hover:underline mt-1 inline-block">
                 Créer un groupe
               </Link>
             </div>
@@ -188,8 +188,8 @@ export default function MessagesPage() {
               >
                 <div className="flex items-center gap-3">
                   <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
-                    style={{ backgroundColor: `${g.color ?? '#C9A227'}20` }}>
-                    <Hash size={14} style={{ color: g.color ?? '#C9A227' }} />
+                    style={{ backgroundColor: `${g.color ?? '#FFFFFF'}20` }}>
+                    <Hash size={14} style={{ color: g.color ?? '#FFFFFF' }} />
                   </div>
                   <div className="min-w-0 flex-1">
                     <p className={`text-sm font-bold truncate ${selectedGroup === g.id ? 'text-white' : 'text-gray-300'}`}>
@@ -197,7 +197,7 @@ export default function MessagesPage() {
                     </p>
                   </div>
                   {selectedGroup === g.id && (
-                    <div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: g.color ?? '#C9A227' }} />
+                    <div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: g.color ?? '#FFFFFF' }} />
                   )}
                 </div>
               </button>
@@ -206,7 +206,7 @@ export default function MessagesPage() {
         </div>
         {/* Announcement shortcut */}
         <Link href="/messages/new"
-          className="flex items-center gap-2 px-4 py-3 border-t border-white/8 text-xs font-bold text-gray-400 hover:text-[#C9A227] transition-colors">
+          className="flex items-center gap-2 px-4 py-3 border-t border-white/8 text-xs font-bold text-gray-400 hover:text-white transition-colors">
           <Megaphone size={13} /> Envoyer une annonce
         </Link>
       </div>
@@ -226,8 +226,8 @@ export default function MessagesPage() {
             {/* Chat header */}
             <div className="px-5 py-3.5 border-b border-white/8 flex items-center gap-3">
               <div className="w-8 h-8 rounded-lg flex items-center justify-center"
-                style={{ backgroundColor: `${selectedGroupData?.color ?? '#C9A227'}20` }}>
-                <Hash size={14} style={{ color: selectedGroupData?.color ?? '#C9A227' }} />
+                style={{ backgroundColor: `${selectedGroupData?.color ?? '#FFFFFF'}20` }}>
+                <Hash size={14} style={{ color: selectedGroupData?.color ?? '#FFFFFF' }} />
               </div>
               <div>
                 <p className="text-sm font-bold text-white">{selectedGroupData?.name}</p>
@@ -273,7 +273,7 @@ export default function MessagesPage() {
                               )}
                               <div className={`px-3.5 py-2 rounded-2xl text-sm leading-relaxed ${
                                 isMe
-                                  ? 'bg-[#C9A227] text-white rounded-br-md'
+                                  ? 'bg-white text-[#0A0A0A] rounded-br-md'
                                   : 'bg-white/[0.06] text-gray-200 rounded-bl-md'
                               }`}>
                                 <p className="whitespace-pre-wrap break-words">{msg.content}</p>
@@ -300,13 +300,13 @@ export default function MessagesPage() {
                   value={newMessage}
                   onChange={e => setNewMessage(e.target.value)}
                   placeholder={`Message dans ${selectedGroupData?.name ?? 'le groupe'}...`}
-                  className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-[#C9A227] transition-colors"
+                  className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-white transition-colors"
                   onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(e); } }}
                 />
                 <button
                   type="submit"
                   disabled={!newMessage.trim() || sending}
-                  className="p-2.5 bg-[#C9A227] hover:bg-[#C9A227]/90 disabled:opacity-40 text-white rounded-xl transition-colors"
+                  className="p-2.5 bg-white hover:bg-white/90 disabled:opacity-40 text-[#0A0A0A] rounded-xl transition-colors"
                 >
                   {sending ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
                 </button>

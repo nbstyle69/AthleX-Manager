@@ -8,7 +8,7 @@ import Link from 'next/link';
 import { getMyBox } from '@/lib/getMyBox';
 
 const COLORS = [
-  '#C9A227', '#8B5CF6', '#EC4899', '#EF4444',
+  '#FFFFFF', '#8B5CF6', '#EC4899', '#EF4444',
   '#F59E0B', '#10B981', '#3B82F6', '#14B8A6',
   '#F97316', '#84CC16',
 ];
@@ -16,7 +16,7 @@ const COLORS = [
 export default function NewGroupPage() {
   const router = useRouter();
   const [name,   setName]   = useState('');
-  const [color,  setColor]  = useState('#C9A227');
+  const [color,  setColor]  = useState('#FFFFFF');
   const [saving, setSaving] = useState(false);
   const [error,  setError]  = useState<string | null>(null);
 
@@ -39,7 +39,7 @@ export default function NewGroupPage() {
     router.push(`/groups/${created.id}`);
   }
 
-  const inp = 'w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-[#C9A227] transition-colors';
+  const inp = 'w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-white transition-colors';
 
   return (
     <div className="max-w-lg space-y-6">
@@ -76,7 +76,7 @@ export default function NewGroupPage() {
 
         <div className="flex justify-end gap-3 pt-2">
           <Link href="/groups" className="px-4 py-2.5 text-sm text-gray-400 hover:text-white border border-white/10 rounded-xl">Annuler</Link>
-          <button type="submit" disabled={saving || !name.trim()} className="flex items-center gap-2 px-5 py-2.5 text-sm font-bold bg-[#C9A227] hover:bg-[#C9A227] text-white rounded-xl disabled:opacity-60">
+          <button type="submit" disabled={saving || !name.trim()} className="flex items-center gap-2 px-5 py-2.5 text-sm font-bold bg-white hover:bg-white text-[#0A0A0A] rounded-xl disabled:opacity-60">
             {saving && <Loader2 size={14} className="animate-spin" />}
             Créer et ajouter des membres
           </button>

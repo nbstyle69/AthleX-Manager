@@ -282,7 +282,7 @@ export default function SettingsPage() {
   if (!box) {
     return (
       <div className="flex items-center justify-center py-32">
-        <div className="w-8 h-8 border-2 border-[#C9A227]/30 border-t-[#C9A227] rounded-full animate-spin" />
+        <div className="w-8 h-8 border-2 border-white/30 border-t-white rounded-full animate-spin" />
       </div>
     );
   }
@@ -326,7 +326,7 @@ export default function SettingsPage() {
             <button
               onClick={() => fileRef.current?.click()}
               disabled={uploading}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#C9A227]/20 text-[#C9A227] text-sm font-bold hover:bg-[#C9A227]/30 transition-colors disabled:opacity-50"
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/20 text-white text-sm font-bold hover:bg-white/30 transition-colors disabled:opacity-50"
             >
               <Upload size={15} />
               {uploading ? 'Upload en cours…' : logoUrl ? 'Changer le logo' : 'Uploader un logo'}
@@ -372,7 +372,7 @@ export default function SettingsPage() {
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="CrossFit Lyon, Box Forge…"
-              className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-[#C9A227]/40 transition-colors"
+              className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-white/40 transition-colors"
             />
           </div>
 
@@ -385,7 +385,7 @@ export default function SettingsPage() {
               value={address}
               onChange={(e) => setAddress(e.target.value)}
               placeholder="12 rue du Sport, 69001 Lyon"
-              className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-[#C9A227]/40 transition-colors"
+              className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-white/40 transition-colors"
             />
           </div>
 
@@ -398,7 +398,7 @@ export default function SettingsPage() {
               value={websiteUrl}
               onChange={(e) => setWebsiteUrl(e.target.value)}
               placeholder="https://www.mabox.fr"
-              className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-[#C9A227]/40 transition-colors"
+              className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-white/40 transition-colors"
             />
           </div>
 
@@ -411,7 +411,7 @@ export default function SettingsPage() {
               value={contactEmail}
               onChange={(e) => setContactEmail(e.target.value)}
               placeholder="contact@mabox.fr"
-              className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-[#C9A227]/40 transition-colors"
+              className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-white/40 transition-colors"
             />
           </div>
 
@@ -424,7 +424,7 @@ export default function SettingsPage() {
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
               placeholder="+33 6 12 34 56 78"
-              className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-[#C9A227]/40 transition-colors"
+              className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-white/40 transition-colors"
             />
           </div>
 
@@ -437,7 +437,7 @@ export default function SettingsPage() {
               value={googleMapsUrl}
               onChange={(e) => setGoogleMapsUrl(e.target.value)}
               placeholder="https://maps.google.com/..."
-              className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-[#C9A227]/40 transition-colors"
+              className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-white/40 transition-colors"
             />
           </div>
 
@@ -449,7 +449,7 @@ export default function SettingsPage() {
               type="date"
               value={foundedAt}
               onChange={(e) => setFoundedAt(e.target.value)}
-              className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-[#C9A227]/40 transition-colors"
+              className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-white/40 transition-colors"
             />
           </div>
         </div>
@@ -458,7 +458,7 @@ export default function SettingsPage() {
           <button
             onClick={handleSaveInfo}
             disabled={savingInfo}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#C9A227] text-black text-sm font-bold hover:bg-[#d4ad2e] transition-colors disabled:opacity-50"
+            className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white text-black text-sm font-bold hover:bg-[#d4ad2e] transition-colors disabled:opacity-50"
           >
             {savingInfo ? 'Enregistrement…' : 'Enregistrer'}
           </button>
