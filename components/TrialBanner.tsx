@@ -18,6 +18,12 @@ export default function TrialBanner({ status: initialStatus, daysLeft, trialEnds
   const [status, setStatus] = useState(initialStatus);
   const [syncing, setSyncing] = useState(false);
 
+  // Keep local status in sync when the server re-renders with a fresh value
+  // (e.g. after router.refresh() following a successful subscription sync).
+  useEffect(() => {
+    setStatus(initialStatus);
+  }, [initialStatus]);
+
   // Auto-verify on mount if not active (webhook may have been missed)
   useEffect(() => {
     if (initialStatus === 'active') return;
