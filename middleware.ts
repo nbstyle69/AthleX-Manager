@@ -37,7 +37,10 @@ export async function middleware(request: NextRequest) {
   }
 
   if (!tokenOk) {
-    const res = NextResponse.redirect(new URL('/login', request.url));
+    // Unauthenticated visitors landing on the root see the public landing page,
+    // not the owner login. Everything else stays gated behind /login.
+    const target = pathname === '/' ? '/landing' : '/login';
+    const res = NextResponse.redirect(new URL(target, request.url));
     res.cookies.delete('sb-access-token');
     res.cookies.delete('sb-refresh-token');
     return res;
