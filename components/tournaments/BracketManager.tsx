@@ -212,7 +212,7 @@ export default function BracketManager({
             Aucun match généré. {participantsCount} participant(s) inscrit(s).
           </p>
           <button onClick={generateRound1} disabled={busy === 'generate' || participantsCount < 2}
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold bg-[#C9A227] hover:bg-[#e0b730] text-white disabled:opacity-50 transition-colors">
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold bg-white hover:bg-[#e0b730] text-[#0A0A0A] disabled:opacity-50 transition-colors">
             {busy === 'generate' ? <Loader2 size={14} className="animate-spin" /> : <Play size={14} />}
             Générer le round 1
           </button>
@@ -702,7 +702,7 @@ function MatchEditModal({
       <div className="bg-[#141414] border border-white/10 rounded-2xl p-6 w-full max-w-md space-y-4" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-bold text-white flex items-center gap-2">
-            <Pencil size={14} className="text-[#C9A227]" />
+            <Pencil size={14} className="text-white" />
             Éditer le match #{match.match_number}
           </h3>
           <button onClick={onClose} className="text-gray-400 hover:text-white"><X size={16} /></button>
@@ -745,7 +745,7 @@ function MatchEditModal({
             Annuler
           </button>
           <button onClick={submit} disabled={busy}
-            className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold bg-[#C9A227] hover:bg-[#e0b730] text-white disabled:opacity-50 transition-colors">
+            className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold bg-white hover:bg-[#e0b730] text-[#0A0A0A] disabled:opacity-50 transition-colors">
             {busy ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
             Enregistrer
           </button>

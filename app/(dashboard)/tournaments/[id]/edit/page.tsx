@@ -74,7 +74,7 @@ export default function EditTournamentPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[300px]">
-        <Loader2 size={28} className="animate-spin text-[#C9A227]" />
+        <Loader2 size={28} className="animate-spin text-white" />
       </div>
     );
   }
@@ -89,7 +89,7 @@ export default function EditTournamentPage() {
             <ChevronLeft size={16} />
           </Link>
           <div className="flex items-center gap-2">
-            <Trophy size={16} className="text-[#C9A227]" />
+            <Trophy size={16} className="text-white" />
             <span className="text-sm font-bold text-white">{tournament?.name}</span>
             <span className="text-gray-600">/</span>
             <span className="text-sm text-gray-400">Modifier</span>

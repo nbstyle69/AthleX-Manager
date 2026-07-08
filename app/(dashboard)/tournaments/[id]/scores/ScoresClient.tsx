@@ -108,7 +108,7 @@ export default function ScoresClient({ tournamentId, initialScores, requireVideo
     { key: 'pending'   as const, label: pendingCount   > 0 ? `En attente (${pendingCount})`   : 'En attente',   activeClass: 'bg-amber-500 border-amber-500 text-white' },
     { key: 'validated' as const, label: validatedCount > 0 ? `Validés (${validatedCount})`     : 'Validés',       activeClass: 'bg-green-600 border-green-600 text-white' },
     { key: 'rejected'  as const, label: rejectedCount  > 0 ? `Rejetés (${rejectedCount})`      : 'Rejetés',       activeClass: 'bg-red-600 border-red-600 text-white' },
-    { key: 'all'       as const, label: `Tous (${scores.length})`,                                                 activeClass: 'bg-[#C9A227] border-[#C9A227] text-white' },
+    { key: 'all'       as const, label: `Tous (${scores.length})`,                                                 activeClass: 'bg-white border-white text-[#0A0A0A]' },
   ] as const;
 
   const statusBadge = (status: ScoreRow['status']) => {
@@ -154,7 +154,7 @@ export default function ScoresClient({ tournamentId, initialScores, requireVideo
                 {/* ── Header ── */}
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-[#C9A227]/20 flex items-center justify-center text-[#C9A227] text-sm font-black shrink-0">
+                    <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center text-white text-sm font-black shrink-0">
                       {(score.username ?? '?')[0].toUpperCase()}
                     </div>
                     <div>
@@ -180,11 +180,11 @@ export default function ScoresClient({ tournamentId, initialScores, requireVideo
                           value={editingScore[score.id]}
                           onChange={e => setEditingScore(prev => ({ ...prev, [score.id]: e.target.value }))}
                           onKeyDown={e => e.key === 'Enter' && saveScoreValue(score.id)}
-                          className="w-24 text-right text-lg font-black bg-white/5 border border-white/20 rounded-lg px-2 py-1 text-white outline-none focus:border-[#C9A227]/60"
+                          className="w-24 text-right text-lg font-black bg-white/5 border border-white/20 rounded-lg px-2 py-1 text-white outline-none focus:border-white/60"
                           autoFocus
                         />
                         <button onClick={() => saveScoreValue(score.id)} disabled={savingScore === score.id}
-                          className="p-1.5 rounded-lg bg-[#C9A227]/20 text-[#C9A227] hover:bg-[#C9A227]/30 transition-colors disabled:opacity-50">
+                          className="p-1.5 rounded-lg bg-white/20 text-white hover:bg-white/30 transition-colors disabled:opacity-50">
                           {savingScore === score.id ? <Loader2 size={12} className="animate-spin" /> : <CheckCircle size={12} />}
                         </button>
                         <button onClick={() => setEditingScore(prev => { const n = { ...prev }; delete n[score.id]; return n; })}

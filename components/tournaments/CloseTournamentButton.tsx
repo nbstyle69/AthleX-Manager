@@ -151,7 +151,7 @@ export default function CloseTournamentButton({ tournamentId, pendingCount, stat
             <p className="text-sm text-gray-400">ELO distribué :</p>
             <pre className="text-sm text-white font-mono bg-white/5 rounded-xl p-4 whitespace-pre-wrap">{result}</pre>
             <button onClick={() => setResult(null)}
-              className="w-full py-3 rounded-xl bg-[#C9A227] text-black font-bold text-sm hover:bg-[#C9A227]/90 transition-colors">
+              className="w-full py-3 rounded-xl bg-white text-black font-bold text-sm hover:bg-white/90 transition-colors">
               Fermer
             </button>
           </div>

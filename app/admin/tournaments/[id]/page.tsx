@@ -161,7 +161,7 @@ export default function DailyTournamentDetailPage() {
 
   if (loading) return (
     <div className="flex items-center justify-center min-h-[400px]">
-      <Loader2 size={28} className="animate-spin text-[#C9A227]" />
+      <Loader2 size={28} className="animate-spin text-white" />
     </div>
   );
 
@@ -265,7 +265,7 @@ export default function DailyTournamentDetailPage() {
       <div>
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-sm font-bold text-white flex items-center gap-2">
-            <Trophy size={16} className="text-[#C9A227]" />
+            <Trophy size={16} className="text-white" />
             Scores ({scores.length})
           </h2>
         </div>
@@ -278,7 +278,7 @@ export default function DailyTournamentDetailPage() {
             { key: 'rejected' as const, label: `Rejetés (${rejectedCount})` },
           ].map(f => (
             <button key={f.key} onClick={() => setFilter(f.key)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${filter === f.key ? 'bg-[#C9A227]/20 text-[#C9A227]' : 'text-gray-500 hover:text-gray-300 bg-white/5'}`}>
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${filter === f.key ? 'bg-white/20 text-white' : 'text-gray-500 hover:text-gray-300 bg-white/5'}`}>
               {f.label}
             </button>
           ))}
@@ -297,7 +297,7 @@ export default function DailyTournamentDetailPage() {
               {/* Top row */}
               <div className="flex items-center gap-3">
                 <span className="text-lg font-black text-gray-500 w-7 text-right">#{rank + 1}</span>
-                <div className="w-9 h-9 rounded-full bg-[#C9A227]/20 flex items-center justify-center text-[#C9A227] text-xs font-black shrink-0">
+                <div className="w-9 h-9 rounded-full bg-white/20 flex items-center justify-center text-white text-xs font-black shrink-0">
                   {score.username[0]?.toUpperCase()}
                 </div>
                 <div className="flex-1 min-w-0">
@@ -322,7 +322,7 @@ export default function DailyTournamentDetailPage() {
                     <div className="flex items-center gap-2">
                       <input type="text" value={editingScore[score.id]}
                         onChange={e => setEditingScore(prev => ({ ...prev, [score.id]: e.target.value }))}
-                        className="bg-[#0A0A0A] border border-white/10 rounded-lg px-3 py-1.5 text-sm text-white w-32 focus:outline-none focus:border-[#C9A227]/50"
+                        className="bg-[#0A0A0A] border border-white/10 rounded-lg px-3 py-1.5 text-sm text-white w-32 focus:outline-none focus:border-white/50"
                         autoFocus />
                       <button onClick={() => handleSaveScore(score.id)} disabled={savingScore === score.id}
                         className="p-1.5 rounded-lg bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 transition-colors disabled:opacity-50">

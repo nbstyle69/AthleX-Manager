@@ -29,7 +29,7 @@ export default function PricingPage() {
   return (
     <Suspense fallback={
       <div className="min-h-screen bg-[#0A0A0A] text-white flex items-center justify-center">
-        <div className="w-6 h-6 border-2 border-[#C9A227]/30 border-t-[#C9A227] rounded-full animate-spin" />
+        <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />
       </div>
     }>
       <PricingContent />
@@ -73,10 +73,10 @@ function PricingContent() {
       <nav className="fixed top-0 inset-x-0 z-50 border-b border-white/[0.06] bg-[#080808]/90 backdrop-blur-xl">
         <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
           <Link href="/landing" className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-xl bg-[#C9A227]/20 flex items-center justify-center">
-              <Zap size={15} className="text-[#C9A227]" />
+            <div className="w-8 h-8 rounded-xl bg-white/20 flex items-center justify-center">
+              <Zap size={15} className="text-white" />
             </div>
-            <span className="text-base font-black tracking-tight">Athle<span className="text-[#C9A227]">X</span></span>
+            <span className="text-base font-black tracking-tight">Athle<span className="text-white">X</span></span>
           </Link>
           <Link href="/login" className="flex items-center gap-1.5 bg-white/5 border border-white/10 hover:border-white/20 text-gray-300 hover:text-white text-sm font-bold px-4 py-2 rounded-xl transition-colors">
             Se connecter
@@ -86,11 +86,11 @@ function PricingContent() {
 
       {/* Hero */}
       <section className="pt-32 pb-8 px-6 text-center">
-        <div className="inline-flex items-center gap-2 bg-[#C9A227]/10 border border-[#C9A227]/20 rounded-full px-4 py-1.5 text-[11px] font-extrabold uppercase tracking-widest text-[#C9A227] mb-6">
+        <div className="inline-flex items-center gap-2 bg-white/10 border border-white/20 rounded-full px-4 py-1.5 text-[11px] font-extrabold uppercase tracking-widest text-white mb-6">
           <Crown size={11} /> Tarifs pour les box
         </div>
         <h1 className="text-4xl md:text-6xl font-black leading-tight tracking-tight mb-4">
-          Un seul plan.<br /><span className="text-[#C9A227]">Tout inclus.</span>
+          Un seul plan.<br /><span className="text-white">Tout inclus.</span>
         </h1>
         <p className="text-lg text-gray-400 max-w-xl mx-auto">
           Pas de tiers, pas de surprises. Toutes les fonctionnalités pour gérer votre box, à un prix simple.
@@ -103,7 +103,7 @@ function PricingContent() {
           <button
             onClick={() => setBilling('monthly')}
             className={`px-5 py-2.5 rounded-xl text-sm font-bold transition-all ${
-              billing === 'monthly' ? 'bg-[#C9A227] text-white' : 'text-gray-500 hover:text-white'
+              billing === 'monthly' ? 'bg-white text-[#0A0A0A]' : 'text-gray-500 hover:text-white'
             }`}
           >
             Mensuel
@@ -111,7 +111,7 @@ function PricingContent() {
           <button
             onClick={() => setBilling('annual')}
             className={`px-5 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center gap-2 ${
-              billing === 'annual' ? 'bg-[#C9A227] text-white' : 'text-gray-500 hover:text-white'
+              billing === 'annual' ? 'bg-white text-[#0A0A0A]' : 'text-gray-500 hover:text-white'
             }`}
           >
             Annuel
@@ -125,15 +125,15 @@ function PricingContent() {
       {/* Plan card */}
       <section className="px-6 pb-20">
         <div className="max-w-lg mx-auto">
-          <div className="bg-[#111111] border-2 border-[#C9A227]/40 rounded-3xl overflow-hidden relative">
+          <div className="bg-[#111111] border-2 border-white/40 rounded-3xl overflow-hidden relative">
             {/* Glow */}
-            <div className="absolute -top-20 left-1/2 -translate-x-1/2 w-80 h-40 bg-[#C9A227]/8 rounded-full blur-3xl pointer-events-none" />
+            <div className="absolute -top-20 left-1/2 -translate-x-1/2 w-80 h-40 bg-white/8 rounded-full blur-3xl pointer-events-none" />
 
             <div className="relative p-8">
               {/* Header */}
               <div className="flex items-center gap-3 mb-2">
-                <div className="w-11 h-11 rounded-2xl bg-[#C9A227]/15 flex items-center justify-center">
-                  <Crown size={22} className="text-[#C9A227]" />
+                <div className="w-11 h-11 rounded-2xl bg-white/15 flex items-center justify-center">
+                  <Crown size={22} className="text-white" />
                 </div>
                 <div>
                   <h2 className="text-xl font-black">Plan Complet</h2>
@@ -143,7 +143,7 @@ function PricingContent() {
 
               {/* Price */}
               <div className="flex items-baseline gap-1 mt-6 mb-1">
-                <span className="text-5xl font-black text-[#C9A227]">
+                <span className="text-5xl font-black text-white">
                   {billing === 'monthly' ? '79€' : '62€'}
                 </span>
                 <span className="text-lg font-bold text-gray-500">/mois</span>
@@ -170,8 +170,8 @@ function PricingContent() {
               <div className="mt-8 space-y-3">
                 {FEATURES.map(({ icon: Icon, text }) => (
                   <div key={text} className="flex items-center gap-3">
-                    <div className="w-7 h-7 rounded-lg bg-[#C9A227]/10 flex items-center justify-center shrink-0">
-                      <Icon size={14} className="text-[#C9A227]" />
+                    <div className="w-7 h-7 rounded-lg bg-white/10 flex items-center justify-center shrink-0">
+                      <Icon size={14} className="text-white" />
                     </div>
                     <span className="text-sm font-semibold text-gray-300">{text}</span>
                   </div>
@@ -182,7 +182,7 @@ function PricingContent() {
               <button
                 onClick={handleSubscribe}
                 disabled={loading}
-                className="w-full mt-8 flex items-center justify-center gap-2 bg-[#C9A227] hover:bg-[#B8911F] disabled:opacity-50 text-white font-bold py-4 rounded-xl text-base transition-colors shadow-lg shadow-[#C9A227]/20"
+                className="w-full mt-8 flex items-center justify-center gap-2 bg-white hover:bg-[#B8911F] disabled:opacity-50 text-[#0A0A0A] font-bold py-4 rounded-xl text-base transition-colors shadow-lg shadow-white/20"
               >
                 {loading ? (
                   <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -201,7 +201,7 @@ function PricingContent() {
           <div className="flex flex-wrap justify-center gap-5 mt-8">
             {['Paiement sécurisé Stripe', 'Résiliable à tout moment', 'Données protégées', 'Support réactif'].map(p => (
               <div key={p} className="flex items-center gap-2 text-xs text-gray-600">
-                <Check size={12} className="text-[#C9A227]" />{p}
+                <Check size={12} className="text-white" />{p}
               </div>
             ))}
           </div>
@@ -210,12 +210,12 @@ function PricingContent() {
 
       {/* Early adopter banner */}
       <section className="px-6 pb-20">
-        <div className="max-w-lg mx-auto bg-[#111111] border border-[#C9A227]/20 rounded-2xl p-6 text-center">
+        <div className="max-w-lg mx-auto bg-[#111111] border border-white/20 rounded-2xl p-6 text-center">
           <span className="text-2xl">🏅</span>
           <h3 className="text-lg font-black mt-2">Offre Fondateur</h3>
           <p className="text-sm text-gray-400 mt-1">
             Les <strong className="text-white">5 premières boxes</strong> bénéficient de{' '}
-            <strong className="text-[#C9A227]">60 jours d&apos;essai gratuit</strong> au lieu de 30.
+            <strong className="text-white">60 jours d&apos;essai gratuit</strong> au lieu de 30.
           </p>
           <p className="text-xs text-gray-600 mt-3">
             + Badge &quot;Fondateur&quot; permanent dans l&apos;app
@@ -245,10 +245,10 @@ function PricingContent() {
       <footer className="border-t border-white/[0.06] bg-[#080808] py-8 px-6">
         <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg bg-[#C9A227]/20 flex items-center justify-center">
-              <Zap size={13} className="text-[#C9A227]" />
+            <div className="w-7 h-7 rounded-lg bg-white/20 flex items-center justify-center">
+              <Zap size={13} className="text-white" />
             </div>
-            <span className="text-sm font-black">Athle<span className="text-[#C9A227]">X</span></span>
+            <span className="text-sm font-black">Athle<span className="text-white">X</span></span>
           </div>
           <p className="text-[11px] text-gray-700">© 2026 AthleX. Tous droits réservés.</p>
         </div>

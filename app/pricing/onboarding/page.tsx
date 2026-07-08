@@ -119,10 +119,10 @@ export default function OnboardingPage() {
       <nav className="fixed top-0 inset-x-0 z-50 border-b border-white/[0.06] bg-[#080808]/90 backdrop-blur-xl">
         <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
           <Link href="/pricing" className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-xl bg-[#C9A227]/20 flex items-center justify-center">
-              <Zap size={15} className="text-[#C9A227]" />
+            <div className="w-8 h-8 rounded-xl bg-white/20 flex items-center justify-center">
+              <Zap size={15} className="text-white" />
             </div>
-            <span className="text-base font-black tracking-tight">Athle<span className="text-[#C9A227]">X</span></span>
+            <span className="text-base font-black tracking-tight">Athle<span className="text-white">X</span></span>
           </Link>
         </div>
       </nav>
@@ -138,8 +138,8 @@ export default function OnboardingPage() {
               const isActive = i <= current;
               return (
                 <div key={label} className="flex-1">
-                  <div className={`h-1.5 rounded-full transition-colors ${isActive ? 'bg-[#C9A227]' : 'bg-white/8'}`} />
-                  <p className={`text-[10px] font-bold mt-1.5 uppercase tracking-wider ${isActive ? 'text-[#C9A227]' : 'text-gray-600'}`}>
+                  <div className={`h-1.5 rounded-full transition-colors ${isActive ? 'bg-white' : 'bg-white/8'}`} />
+                  <p className={`text-[10px] font-bold mt-1.5 uppercase tracking-wider ${isActive ? 'text-white' : 'text-gray-600'}`}>
                     {label}
                   </p>
                 </div>
@@ -151,8 +151,8 @@ export default function OnboardingPage() {
           {step === 'account' && (
             <div className="bg-[#111111] border border-white/8 rounded-2xl p-8">
               <div className="flex items-center gap-3 mb-6">
-                <div className="w-11 h-11 rounded-2xl bg-[#C9A227]/15 flex items-center justify-center">
-                  <Mail size={20} className="text-[#C9A227]" />
+                <div className="w-11 h-11 rounded-2xl bg-white/15 flex items-center justify-center">
+                  <Mail size={20} className="text-white" />
                 </div>
                 <div>
                   <h2 className="text-xl font-black">
@@ -167,7 +167,7 @@ export default function OnboardingPage() {
                 <button
                   onClick={() => { setMode('signup'); setError(null); }}
                   className={`flex-1 py-2 rounded-lg text-sm font-bold transition-all ${
-                    mode === 'signup' ? 'bg-[#C9A227] text-white' : 'text-gray-500 hover:text-white'
+                    mode === 'signup' ? 'bg-white text-[#0A0A0A]' : 'text-gray-500 hover:text-white'
                   }`}
                 >
                   Inscription
@@ -175,7 +175,7 @@ export default function OnboardingPage() {
                 <button
                   onClick={() => { setMode('login'); setError(null); }}
                   className={`flex-1 py-2 rounded-lg text-sm font-bold transition-all ${
-                    mode === 'login' ? 'bg-[#C9A227] text-white' : 'text-gray-500 hover:text-white'
+                    mode === 'login' ? 'bg-white text-[#0A0A0A]' : 'text-gray-500 hover:text-white'
                   }`}
                 >
                   Connexion
@@ -193,7 +193,7 @@ export default function OnboardingPage() {
                       value={email}
                       onChange={e => setEmail(e.target.value)}
                       placeholder="owner@mabox.com"
-                      className="w-full bg-white/5 border border-white/10 rounded-xl pl-10 pr-4 py-3 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-[#C9A227] transition-colors"
+                      className="w-full bg-white/5 border border-white/10 rounded-xl pl-10 pr-4 py-3 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-white transition-colors"
                     />
                   </div>
                 </div>
@@ -207,7 +207,7 @@ export default function OnboardingPage() {
                       value={password}
                       onChange={e => setPassword(e.target.value)}
                       placeholder="••••••••"
-                      className="w-full bg-white/5 border border-white/10 rounded-xl pl-10 pr-10 py-3 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-[#C9A227] transition-colors"
+                      className="w-full bg-white/5 border border-white/10 rounded-xl pl-10 pr-10 py-3 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-white transition-colors"
                     />
                     <button
                       type="button"
@@ -230,7 +230,7 @@ export default function OnboardingPage() {
                   setError(null);
                   setStep('box');
                 }}
-                className="w-full mt-6 flex items-center justify-center gap-2 bg-[#C9A227] hover:bg-[#B8911F] text-white font-bold py-3.5 rounded-xl transition-colors"
+                className="w-full mt-6 flex items-center justify-center gap-2 bg-white hover:bg-[#B8911F] text-[#0A0A0A] font-bold py-3.5 rounded-xl transition-colors"
               >
                 Continuer <ChevronRight size={16} />
               </button>
@@ -255,8 +255,8 @@ export default function OnboardingPage() {
               </button>
 
               <div className="flex items-center gap-3 mb-6">
-                <div className="w-11 h-11 rounded-2xl bg-[#C9A227]/15 flex items-center justify-center">
-                  <Building2 size={20} className="text-[#C9A227]" />
+                <div className="w-11 h-11 rounded-2xl bg-white/15 flex items-center justify-center">
+                  <Building2 size={20} className="text-white" />
                 </div>
                 <div>
                   <h2 className="text-xl font-black">Créer ta box</h2>
@@ -302,7 +302,7 @@ export default function OnboardingPage() {
                     <button
                       type="button"
                       onClick={() => fileInputRef.current?.click()}
-                      className="flex items-center gap-2 bg-[#C9A227]/10 border border-[#C9A227]/20 text-[#C9A227] font-bold text-xs px-4 py-2.5 rounded-xl hover:bg-[#C9A227]/20 transition-colors"
+                      className="flex items-center gap-2 bg-white/10 border border-white/20 text-white font-bold text-xs px-4 py-2.5 rounded-xl hover:bg-white/20 transition-colors"
                     >
                       <ImagePlus size={14} />
                       {logoPreview ? 'Changer' : 'Ajouter un logo'}
@@ -320,7 +320,7 @@ export default function OnboardingPage() {
                     value={boxName}
                     onChange={e => setBoxName(e.target.value)}
                     placeholder="CrossFit Atlas, Box Forge…"
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-[#C9A227] transition-colors"
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-white transition-colors"
                   />
                 </div>
                 <div>
@@ -334,7 +334,7 @@ export default function OnboardingPage() {
                       value={boxAddress}
                       onChange={e => setBoxAddress(e.target.value)}
                       placeholder="12 rue du Sport, 69001 Lyon"
-                      className="w-full bg-white/5 border border-white/10 rounded-xl pl-10 pr-4 py-3 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-[#C9A227] transition-colors"
+                      className="w-full bg-white/5 border border-white/10 rounded-xl pl-10 pr-4 py-3 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-white transition-colors"
                     />
                   </div>
                 </div>
@@ -349,7 +349,7 @@ export default function OnboardingPage() {
                       value={boxWebsite}
                       onChange={e => setBoxWebsite(e.target.value)}
                       placeholder="https://www.mabox.com"
-                      className="w-full bg-white/5 border border-white/10 rounded-xl pl-10 pr-4 py-3 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-[#C9A227] transition-colors"
+                      className="w-full bg-white/5 border border-white/10 rounded-xl pl-10 pr-4 py-3 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-white transition-colors"
                     />
                   </div>
                 </div>
@@ -364,7 +364,7 @@ export default function OnboardingPage() {
                       value={boxContactEmail}
                       onChange={e => setBoxContactEmail(e.target.value)}
                       placeholder="contact@mabox.com"
-                      className="w-full bg-white/5 border border-white/10 rounded-xl pl-10 pr-4 py-3 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-[#C9A227] transition-colors"
+                      className="w-full bg-white/5 border border-white/10 rounded-xl pl-10 pr-4 py-3 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-white transition-colors"
                     />
                   </div>
                 </div>
@@ -379,7 +379,7 @@ export default function OnboardingPage() {
                       value={boxPhone}
                       onChange={e => setBoxPhone(e.target.value)}
                       placeholder="+33600000000"
-                      className="w-full bg-white/5 border border-white/10 rounded-xl pl-10 pr-4 py-3 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-[#C9A227] transition-colors"
+                      className="w-full bg-white/5 border border-white/10 rounded-xl pl-10 pr-4 py-3 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-white transition-colors"
                     />
                   </div>
                 </div>
@@ -394,7 +394,7 @@ export default function OnboardingPage() {
                       value={boxGoogleMaps}
                       onChange={e => setBoxGoogleMaps(e.target.value)}
                       placeholder="https://maps.app.goo.gl/..."
-                      className="w-full bg-white/5 border border-white/10 rounded-xl pl-10 pr-4 py-3 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-[#C9A227] transition-colors"
+                      className="w-full bg-white/5 border border-white/10 rounded-xl pl-10 pr-4 py-3 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-white transition-colors"
                     />
                   </div>
                 </div>
@@ -408,7 +408,7 @@ export default function OnboardingPage() {
                       type="date"
                       value={boxFoundedAt}
                       onChange={e => setBoxFoundedAt(e.target.value)}
-                      className="w-full bg-white/5 border border-white/10 rounded-xl pl-10 pr-4 py-3 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-[#C9A227] transition-colors [color-scheme:dark]"
+                      className="w-full bg-white/5 border border-white/10 rounded-xl pl-10 pr-4 py-3 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-white transition-colors [color-scheme:dark]"
                     />
                   </div>
                 </div>
@@ -429,7 +429,7 @@ export default function OnboardingPage() {
               <button
                 onClick={handleCreateBox}
                 disabled={loading || !boxName.trim()}
-                className="w-full mt-6 flex items-center justify-center gap-2 bg-[#C9A227] hover:bg-[#B8911F] disabled:opacity-50 text-white font-bold py-3.5 rounded-xl transition-colors"
+                className="w-full mt-6 flex items-center justify-center gap-2 bg-white hover:bg-[#B8911F] disabled:opacity-50 text-[#0A0A0A] font-bold py-3.5 rounded-xl transition-colors"
               >
                 {loading ? (
                   <Loader2 size={18} className="animate-spin" />
@@ -461,8 +461,8 @@ export default function OnboardingPage() {
               <h2 className="text-2xl font-black mb-2">Box créée avec succès !</h2>
 
               {result.is_early_adopter ? (
-                <div className="bg-[#C9A227]/10 border border-[#C9A227]/20 rounded-xl px-4 py-3 mb-5">
-                  <p className="text-sm font-bold text-[#C9A227]">🏅 Félicitations, tu es un Fondateur !</p>
+                <div className="bg-white/10 border border-white/20 rounded-xl px-4 py-3 mb-5">
+                  <p className="text-sm font-bold text-white">🏅 Félicitations, tu es un Fondateur !</p>
                   <p className="text-xs text-gray-400 mt-1">{result.trial_days} jours d&apos;essai gratuit + badge permanent</p>
                 </div>
               ) : (
@@ -478,7 +478,7 @@ export default function OnboardingPage() {
                 <p className="text-xs text-gray-500 font-bold uppercase tracking-wider mb-3">Informations importantes</p>
                 <div className="space-y-2">
                   <p className="text-sm"><span className="text-gray-500">Code invitation :</span>{' '}
-                    <span className="font-mono font-bold text-[#C9A227] text-base">{result.invite_code}</span>
+                    <span className="font-mono font-bold text-white text-base">{result.invite_code}</span>
                   </p>
                   <p className="text-xs text-gray-500">
                     Partage ce code à tes adhérents pour qu&apos;ils rejoignent ta box dans l&apos;app mobile.

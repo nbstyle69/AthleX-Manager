@@ -51,11 +51,11 @@ const config: Config = {
         ring: 'hsl(var(--ring) / <alpha-value>)',
         // legacy tokens (back office) — kept until its restyle
         bg:      '#0A0A0A',
-        accent2: '#D4A832',
+        accent2: '#FFFFFF',
         success: '#16A34A',
         warning: '#D97706',
         error:   '#DC2626',
-        gold:    '#C9A227',
+        gold:    '#FFFFFF',
       },
       animation: { 'accordion-down': 'accordion-down 0.2s ease-out', 'accordion-up': 'accordion-up 0.2s ease-out' },
       keyframes: {

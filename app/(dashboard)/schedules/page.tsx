@@ -448,14 +448,14 @@ export default function SchedulesPage() {
           <button
             onClick={generateFromTemplate}
             disabled={generating}
-            className="flex items-center gap-2 border border-[#C9A227] text-[#C9A227] hover:bg-[#C9A227]/10 text-sm font-bold px-4 py-2.5 rounded-xl transition-colors disabled:opacity-50"
+            className="flex items-center gap-2 border border-white text-white hover:bg-white/10 text-sm font-bold px-4 py-2.5 rounded-xl transition-colors disabled:opacity-50"
           >
             {generating ? <Loader2 size={16} className="animate-spin" /> : <CalendarCheck size={16} />}
             Générer 8 semaines
           </button>
           <button
             onClick={() => openCreate(todayISO)}
-            className="flex items-center gap-2 bg-[#C9A227] hover:bg-[#B8911F] text-white text-sm font-bold px-4 py-2.5 rounded-xl transition-colors"
+            className="flex items-center gap-2 bg-white hover:bg-[#B8911F] text-[#0A0A0A] text-sm font-bold px-4 py-2.5 rounded-xl transition-colors"
           >
             <Plus size={16} />
             Nouveau créneau
@@ -524,7 +524,7 @@ export default function SchedulesPage() {
         <button onClick={() => setWeek(w => w + 1)} className="p-1.5 rounded-lg hover:bg-white/5 text-gray-400 hover:text-white transition-colors">
           <ChevronRight size={18} />
         </button>
-        <button onClick={() => setWeek(0)} className="text-xs font-semibold text-[#C9A227] hover:underline px-2">
+        <button onClick={() => setWeek(0)} className="text-xs font-semibold text-white hover:underline px-2">
           Aujourd'hui
         </button>
       </div>
@@ -532,7 +532,7 @@ export default function SchedulesPage() {
       {/* Calendar grid */}
       {loading ? (
         <div className="flex justify-center py-16">
-          <Loader2 size={28} className="animate-spin text-[#C9A227]" />
+          <Loader2 size={28} className="animate-spin text-white" />
         </div>
       ) : (
         <div className="grid grid-cols-7 gap-3">
@@ -546,7 +546,7 @@ export default function SchedulesPage() {
               <div key={iso} className="space-y-2">
                 {/* Day header */}
                 <div className={`rounded-xl px-3 py-2 text-center border ${
-                  isToday ? 'bg-[#C9A227] border-[#C9A227]' : 'bg-[#111111] border-white/8'
+                  isToday ? 'bg-white border-white' : 'bg-[#111111] border-white/8'
                 }`}>
                   <p className={`text-xs font-bold ${
                     isToday ? 'text-white' : isPast ? 'text-gray-600' : 'text-gray-300'
@@ -567,8 +567,8 @@ export default function SchedulesPage() {
                             isPast ? 'opacity-50' : 'hover:border-white/20'
                           } transition-colors`}>
                             <div className="flex items-center gap-1 mb-1">
-                              <Clock size={10} className="text-[#C9A227]" />
-                              <span className="text-[10px] font-bold text-[#C9A227] truncate">
+                              <Clock size={10} className="text-white" />
+                              <span className="text-[10px] font-bold text-white truncate">
                                 {item.start_time}–{item.end_time}
                               </span>
                             </div>
@@ -594,7 +594,7 @@ export default function SchedulesPage() {
                             </div>
                             {/* Hover actions */}
                             <div className="absolute top-1.5 right-1.5 hidden group-hover:flex gap-1">
-                              <button onClick={() => openEdit(item)} className="p-1 rounded-lg bg-[#1a1a1a] hover:bg-[#C9A227]/20 text-gray-500 hover:text-[#C9A227] transition-colors">
+                              <button onClick={() => openEdit(item)} className="p-1 rounded-lg bg-[#1a1a1a] hover:bg-white/20 text-gray-500 hover:text-white transition-colors">
                                 <Pencil size={11} />
                               </button>
                               <button onClick={() => handleDelete(item)} className="p-1 rounded-lg bg-[#1a1a1a] hover:bg-red-500/20 text-gray-500 hover:text-red-400 transition-colors">
@@ -646,7 +646,7 @@ export default function SchedulesPage() {
                     <button key={t} onClick={() => setForm(f => ({ ...f, title: t }))}
                       className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors ${
                         form.title === t
-                          ? 'bg-[#C9A227] border-[#C9A227] text-white'
+                          ? 'bg-white border-white text-[#0A0A0A]'
                           : 'bg-transparent border-white/10 text-gray-400 hover:border-white/20 hover:text-white'
                       }`}>
                       {t}
@@ -659,7 +659,7 @@ export default function SchedulesPage() {
                 <div>
                   <label className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 block">Nom personnalisé</label>
                   <input
-                    className="w-full bg-[#0A0A0A] border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-[#C9A227]/50"
+                    className="w-full bg-[#0A0A0A] border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-white/50"
                     value={form.customTitle} onChange={e => setForm(f => ({ ...f, customTitle: e.target.value }))}
                     placeholder="Ex : Yoga, Pilates…"
                   />
@@ -674,7 +674,7 @@ export default function SchedulesPage() {
                       <button key={c.id} onClick={() => setForm(f => ({ ...f, coach: f.coach === c.username ? '' : c.username }))}
                         className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors ${
                           form.coach === c.username
-                            ? 'bg-[#C9A227] border-[#C9A227] text-white'
+                            ? 'bg-white border-white text-[#0A0A0A]'
                             : 'bg-transparent border-white/10 text-gray-400 hover:border-white/20 hover:text-white'
                         }`}>
                         {c.username}
@@ -689,7 +689,7 @@ export default function SchedulesPage() {
               <div>
                 <label className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 block">Date</label>
                 <input type="date"
-                  className="w-full bg-[#0A0A0A] border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-[#C9A227]/50"
+                  className="w-full bg-[#0A0A0A] border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-white/50"
                   value={form.date} onChange={e => setForm(f => ({ ...f, date: e.target.value }))}
                 />
               </div>
@@ -698,21 +698,21 @@ export default function SchedulesPage() {
                 <div>
                   <label className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 block">Début</label>
                   <input type="time"
-                    className="w-full bg-[#0A0A0A] border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-[#C9A227]/50"
+                    className="w-full bg-[#0A0A0A] border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-white/50"
                     value={form.startTime} onChange={e => setForm(f => ({ ...f, startTime: e.target.value }))}
                   />
                 </div>
                 <div>
                   <label className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 block">Fin</label>
                   <input type="time"
-                    className="w-full bg-[#0A0A0A] border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-[#C9A227]/50"
+                    className="w-full bg-[#0A0A0A] border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-white/50"
                     value={form.endTime} onChange={e => setForm(f => ({ ...f, endTime: e.target.value }))}
                   />
                 </div>
                 <div>
                   <label className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 block">Capacité</label>
                   <input type="number" min={1}
-                    className="w-full bg-[#0A0A0A] border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-[#C9A227]/50"
+                    className="w-full bg-[#0A0A0A] border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-white/50"
                     value={form.maxCapacity} onChange={e => setForm(f => ({ ...f, maxCapacity: e.target.value }))}
                   />
                 </div>
@@ -721,7 +721,7 @@ export default function SchedulesPage() {
               <div>
                 <label className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 block">Description (optionnel)</label>
                 <textarea rows={2}
-                  className="w-full bg-[#0A0A0A] border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-600 resize-none focus:outline-none focus:border-[#C9A227]/50"
+                  className="w-full bg-[#0A0A0A] border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-600 resize-none focus:outline-none focus:border-white/50"
                   value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
                   placeholder="Détails du cours…"
                 />
@@ -738,7 +738,7 @@ export default function SchedulesPage() {
                 Annuler
               </button>
               <button onClick={handleSave} disabled={saving}
-                className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-[#C9A227] hover:bg-[#B8911F] text-white text-sm font-bold transition-colors disabled:opacity-60">
+                className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-white hover:bg-[#B8911F] text-[#0A0A0A] text-sm font-bold transition-colors disabled:opacity-60">
                 {saving && <Loader2 size={16} className="animate-spin" />}
                 {saving ? 'Enregistrement…' : editItem ? 'Modifier' : 'Créer'}
               </button>
@@ -769,7 +769,7 @@ export default function SchedulesPage() {
             <div className="px-6 py-5 max-h-[60vh] overflow-y-auto">
               {detailLoading ? (
                 <div className="flex justify-center py-10">
-                  <Loader2 size={24} className="animate-spin text-[#C9A227]" />
+                  <Loader2 size={24} className="animate-spin text-white" />
                 </div>
               ) : participants.length === 0 && !addMemberOpen ? (
                 <div className="text-center py-10">
@@ -920,7 +920,7 @@ export default function SchedulesPage() {
                   <div className="relative">
                     <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
                     <input
-                      className="w-full bg-[#0A0A0A] border border-white/10 rounded-xl pl-9 pr-4 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-[#C9A227]/50"
+                      className="w-full bg-[#0A0A0A] border border-white/10 rounded-xl pl-9 pr-4 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-white/50"
                       placeholder="Rechercher par nom d'utilisateur..."
                       value={memberSearch}
                       onChange={e => searchMembers(e.target.value)}
@@ -929,7 +929,7 @@ export default function SchedulesPage() {
                   </div>
                   {searching && (
                     <div className="flex justify-center py-4">
-                      <Loader2 size={18} className="animate-spin text-[#C9A227]" />
+                      <Loader2 size={18} className="animate-spin text-white" />
                     </div>
                   )}
                   {memberSearch.length >= 3 && !searching && searchResults.length === 0 && (
@@ -941,14 +941,14 @@ export default function SchedulesPage() {
                       onClick={() => addMemberToSlot(m.id, m.username, m.email)}
                       className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-white/[0.03] transition-colors text-left"
                     >
-                      <div className="w-8 h-8 rounded-full bg-[#C9A227]/20 flex items-center justify-center text-[#C9A227] text-xs font-black shrink-0">
+                      <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center text-white text-xs font-black shrink-0">
                         {m.username[0].toUpperCase()}
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-semibold text-white truncate">{m.username}</p>
                         <p className="text-xs text-gray-500 truncate">{m.email}</p>
                       </div>
-                      <Plus size={16} className="text-[#C9A227] shrink-0" />
+                      <Plus size={16} className="text-white shrink-0" />
                     </button>
                   ))}
                 </div>

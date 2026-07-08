@@ -71,16 +71,16 @@ export default function LoginPage() {
             <label className="block text-xs font-semibold text-gray-400 mb-1.5 uppercase tracking-wider">Email</label>
             <input type="email" required value={email} onChange={e => setEmail(e.target.value)}
               placeholder="owner@mabox.com"
-              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-[#C9A227] transition-colors" />
+              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-white transition-colors" />
           </div>
           <div>
             <label className="block text-xs font-semibold text-gray-400 mb-1.5 uppercase tracking-wider">Mot de passe</label>
             <input type="password" required value={password} onChange={e => setPassword(e.target.value)}
               placeholder="••••••••"
-              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-[#C9A227] transition-colors" />
+              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-white transition-colors" />
           </div>
           <button type="submit" disabled={loading}
-            className="w-full bg-[#C9A227] hover:bg-[#C9A227] disabled:opacity-60 text-white font-bold py-3 rounded-xl transition-colors flex items-center justify-center gap-2 mt-2">
+            className="w-full bg-white hover:bg-white disabled:opacity-60 text-[#0A0A0A] font-bold py-3 rounded-xl transition-colors flex items-center justify-center gap-2 mt-2">
             {loading && <Loader2 size={16} className="animate-spin" />}
             {loading ? 'Connexion…' : 'Se connecter'}
           </button>
@@ -88,7 +88,7 @@ export default function LoginPage() {
 
         <p className="text-sm text-gray-400 text-center mt-6">
           Pas encore de box ?{' '}
-          <a href="/pricing/onboarding" className="text-[#C9A227] font-semibold hover:underline">
+          <a href="/pricing/onboarding" className="text-white font-semibold hover:underline">
             Créez votre compte
           </a>
         </p>

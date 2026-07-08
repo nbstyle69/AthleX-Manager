@@ -112,7 +112,7 @@ export default async function LeaderboardPage({ params }: { params: Promise<{ id
           className="text-gray-400 hover:text-white transition-colors">
           <ArrowLeft size={18} />
         </Link>
-        <Trophy size={16} className="text-[#C9A227]" />
+        <Trophy size={16} className="text-white" />
         <h1 className="text-xl font-black text-white">Classement — {(tournament as any).name}</h1>
         {isLeague && (
           <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-purple-500/15 text-purple-300">

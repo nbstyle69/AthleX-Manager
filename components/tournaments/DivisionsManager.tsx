@@ -171,7 +171,7 @@ export default function DivisionsManager({
       )}
 
       {/* Season banner */}
-      <div className="flex items-center justify-between gap-4 flex-wrap bg-gradient-to-r from-purple-500/10 to-[#C9A227]/10 border border-purple-500/20 rounded-2xl px-5 py-4">
+      <div className="flex items-center justify-between gap-4 flex-wrap bg-gradient-to-r from-purple-500/10 to-white/10 border border-purple-500/20 rounded-2xl px-5 py-4">
         <div className="flex items-center gap-3">
           <div className="w-11 h-11 rounded-xl bg-purple-500/20 flex items-center justify-center">
             <Trophy size={20} className="text-purple-300" />
@@ -191,7 +191,7 @@ export default function DivisionsManager({
             <Plus size={12} /> Division
           </button>
           <button onClick={endSeasonAndAdvance} disabled={busy === 'promote' || members.length === 0}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold bg-[#C9A227] hover:bg-[#e0b730] text-white disabled:opacity-50 transition-colors">
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold bg-white hover:bg-[#e0b730] text-[#0A0A0A] disabled:opacity-50 transition-colors">
             {busy === 'promote' ? <Loader2 size={12} className="animate-spin" /> : <Trophy size={12} />}
             Clôturer saison {currentSeason} → {currentSeason + 1}
           </button>
@@ -237,7 +237,7 @@ export default function DivisionsManager({
                   <input type="text" value={d.name}
                     onChange={e => setDivisions(prev => prev.map(x => x.id === d.id ? { ...x, name: e.target.value } : x))}
                     onBlur={e => updateDivision(d.id, { name: e.target.value.trim() })}
-                    className="text-sm font-bold text-white bg-transparent border-b border-transparent hover:border-white/10 focus:border-[#C9A227] outline-none px-1" />
+                    className="text-sm font-bold text-white bg-transparent border-b border-transparent hover:border-white/10 focus:border-white outline-none px-1" />
                   <div className="text-[10px] text-gray-500 mt-0.5">{rows.length} / {d.max_members} athlètes</div>
                 </div>
               </div>
@@ -374,7 +374,7 @@ export default function DivisionsManager({
                 <details key={season} className="group">
                   <summary className="px-5 py-4 flex items-center justify-between gap-4 cursor-pointer hover:bg-white/[0.02] transition-colors list-none">
                     <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-xl bg-[#C9A227]/15 flex items-center justify-center text-[#C9A227] font-black text-sm">
+                      <div className="w-9 h-9 rounded-xl bg-white/15 flex items-center justify-center text-white font-black text-sm">
                         S{season}
                       </div>
                       <div>
@@ -416,7 +416,7 @@ export default function DivisionsManager({
                                     {r.outcome === 'promoted' && <span className="text-[9px] font-black text-emerald-400 bg-emerald-500/15 px-1.5 py-0.5 rounded inline-flex items-center gap-0.5"><ArrowUp size={8} />PROMU</span>}
                                     {r.outcome === 'relegated' && <span className="text-[9px] font-black text-red-400 bg-red-500/15 px-1.5 py-0.5 rounded inline-flex items-center gap-0.5"><ArrowDown size={8} />RELÉG.</span>}
                                   </div>
-                                  <span className="text-[#C9A227] font-bold shrink-0">{r.final_points} pts</span>
+                                  <span className="text-white font-bold shrink-0">{r.final_points} pts</span>
                                 </div>
                               );
                             })}

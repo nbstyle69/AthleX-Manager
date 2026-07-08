@@ -44,7 +44,7 @@ export default async function TournamentWODsPage({ params }: { params: Promise<{
           <ChevronLeft size={16} />
         </Link>
         <div className="flex items-center gap-2">
-          <Trophy size={16} className="text-[#C9A227]" />
+          <Trophy size={16} className="text-white" />
           <span className="text-sm text-gray-400">{tournament.name}</span>
           <span className="text-gray-600">/</span>
           <span className="text-sm font-bold text-white">WODs</span>
@@ -56,7 +56,7 @@ export default async function TournamentWODsPage({ params }: { params: Promise<{
         <div>
           <h1 className="text-2xl font-black text-white">Programme des WODs</h1>
           <p className="text-sm text-gray-400 mt-1">
-            Configurez les WODs du tournoi · <span className="text-[#C9A227] font-semibold">{tournament.level?.toUpperCase()}</span>
+            Configurez les WODs du tournoi · <span className="text-white font-semibold">{tournament.level?.toUpperCase()}</span>
           </p>
         </div>
         <Link href={`/tournaments/${id}`}

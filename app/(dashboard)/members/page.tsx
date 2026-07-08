@@ -8,7 +8,7 @@ import { getMyBox } from '@/lib/getMyBox';
 
 const LEVELS = ['rx+', 'rx', 'scaled', 'foundations'];
 const LEVEL_LABEL: Record<string, string> = { 'rx+': 'RX+', rx: 'RX', scaled: 'SCALED', foundations: 'FOUNDATIONS' };
-const LEVEL_COLOR: Record<string, string> = { 'rx+': '#C9A227', rx: '#3B82F6', scaled: '#10B981', foundations: '#8B5CF6' };
+const LEVEL_COLOR: Record<string, string> = { 'rx+': '#FFFFFF', rx: '#3B82F6', scaled: '#10B981', foundations: '#8B5CF6' };
 
 interface MembershipPlan {
   id: string;
@@ -132,7 +132,7 @@ function PlanPopover({ member, plans, onAssign, saving }: {
 const ROLES: { key: 'member' | 'coach' | 'owner'; label: string; icon: any; color: string }[] = [
   { key: 'member', label: 'Membre', icon: Users, color: '#6B7280' },
   { key: 'coach',  label: 'Coach',  icon: ShieldCheck, color: '#3B82F6' },
-  { key: 'owner',  label: 'Owner',  icon: Crown, color: '#C9A227' },
+  { key: 'owner',  label: 'Owner',  icon: Crown, color: '#FFFFFF' },
 ];
 
 function RolePopover({ member, onChange }: {
@@ -193,7 +193,7 @@ export default function MembersPage() {
   const [showPlans,  setShowPlans]   = useState(false);
   const [newPlanName, setNewPlanName] = useState('');
   const [newPlanMax,  setNewPlanMax]  = useState('');
-  const [newPlanColor, setNewPlanColor] = useState('#C9A227');
+  const [newPlanColor, setNewPlanColor] = useState('#FFFFFF');
   const [creatingPlan, setCreatingPlan] = useState(false);
 
   const [search,      setSearch]      = useState('');
@@ -378,7 +378,7 @@ export default function MembersPage() {
 
   if (loading) return (
     <div className="flex items-center justify-center min-h-[300px]">
-      <Loader2 size={28} className="animate-spin text-[#C9A227]" />
+      <Loader2 size={28} className="animate-spin text-white" />
     </div>
   );
 
@@ -390,7 +390,7 @@ export default function MembersPage() {
           <p className="text-sm text-gray-400 mt-1">{filtered.length} / {members.length} membre(s)</p>
         </div>
         <button onClick={() => setShowPlans(v => !v)}
-          className={`flex items-center gap-2 text-sm font-bold px-4 py-2.5 rounded-xl border transition-colors ${showPlans ? 'border-[#C9A227]/50 text-[#C9A227] bg-[#C9A227]/10' : 'border-white/10 text-gray-300 hover:text-white hover:bg-white/5'}`}>
+          className={`flex items-center gap-2 text-sm font-bold px-4 py-2.5 rounded-xl border transition-colors ${showPlans ? 'border-white/50 text-white bg-white/10' : 'border-white/10 text-gray-300 hover:text-white hover:bg-white/5'}`}>
           <CreditCard size={16} />
           Contrats
         </button>
@@ -430,13 +430,13 @@ export default function MembersPage() {
               <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1 block">Nom</label>
               <input value={newPlanName} onChange={e => setNewPlanName(e.target.value)}
                 placeholder="Ex: Essentiel, Premium…"
-                className="w-full bg-[#0A0A0A] border border-white/10 rounded-lg px-3 py-2 text-xs text-white placeholder-gray-600 focus:outline-none focus:border-[#C9A227]/50" />
+                className="w-full bg-[#0A0A0A] border border-white/10 rounded-lg px-3 py-2 text-xs text-white placeholder-gray-600 focus:outline-none focus:border-white/50" />
             </div>
             <div className="w-28">
               <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1 block">Séances/sem</label>
               <input type="number" min={1} value={newPlanMax} onChange={e => setNewPlanMax(e.target.value)}
                 placeholder="∞"
-                className="w-full bg-[#0A0A0A] border border-white/10 rounded-lg px-3 py-2 text-xs text-white placeholder-gray-600 focus:outline-none focus:border-[#C9A227]/50" />
+                className="w-full bg-[#0A0A0A] border border-white/10 rounded-lg px-3 py-2 text-xs text-white placeholder-gray-600 focus:outline-none focus:border-white/50" />
             </div>
             <div className="w-16">
               <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1 block">Couleur</label>
@@ -444,7 +444,7 @@ export default function MembersPage() {
                 className="w-full h-[34px] bg-[#0A0A0A] border border-white/10 rounded-lg cursor-pointer" />
             </div>
             <button onClick={createPlan} disabled={creatingPlan || !newPlanName.trim()}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[#C9A227] hover:bg-[#B8911F] text-white text-xs font-bold transition-colors disabled:opacity-50">
+              className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-white hover:bg-[#B8911F] text-[#0A0A0A] text-xs font-bold transition-colors disabled:opacity-50">
               {creatingPlan ? <Loader2 size={12} className="animate-spin" /> : <Plus size={12} />}
               Créer
             </button>
@@ -459,11 +459,11 @@ export default function MembersPage() {
             <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
             <input value={search} onChange={e => setSearch(e.target.value)}
               placeholder="Rechercher par nom ou email…"
-              className="w-full bg-[#111111] border border-white/8 rounded-xl pl-9 pr-3 py-2.5 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-[#C9A227] transition-colors" />
+              className="w-full bg-[#111111] border border-white/8 rounded-xl pl-9 pr-3 py-2.5 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-white transition-colors" />
             {search && <button onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white"><X size={13} /></button>}
           </div>
           <button onClick={() => setShowFilters(v => !v)}
-            className={`flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl text-sm font-bold border transition-colors ${showFilters || activeFilters > 0 ? 'border-[#C9A227]/50 text-[#C9A227] bg-[#C9A227]/10' : 'bg-[#111111] border-white/8 text-gray-400 hover:text-white'}`}>
+            className={`flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl text-sm font-bold border transition-colors ${showFilters || activeFilters > 0 ? 'border-white/50 text-white bg-white/10' : 'bg-[#111111] border-white/8 text-gray-400 hover:text-white'}`}>
             <SlidersHorizontal size={14} />
             Filtres{activeFilters > 0 ? ` (${activeFilters})` : ''}
           </button>
@@ -499,7 +499,7 @@ export default function MembersPage() {
 
             {/* Group filter */}
             <select value={filterGroup} onChange={e => setFilterGroup(e.target.value)}
-              className="bg-white/5 border border-white/10 rounded-lg px-2.5 py-1 text-xs text-white focus:outline-none focus:border-[#C9A227] transition-colors">
+              className="bg-white/5 border border-white/10 rounded-lg px-2.5 py-1 text-xs text-white focus:outline-none focus:border-white transition-colors">
               <option value="" className="text-black">Tous les groupes</option>
               {allGroups.map(g => <option key={g.id} value={g.id} className="text-black">{g.name}</option>)}
             </select>
@@ -542,7 +542,7 @@ export default function MembersPage() {
                     onClick={col.key ? () => toggleSort(col.key) : undefined}
                     className={`text-left px-5 py-3.5 text-xs font-bold uppercase tracking-wider select-none ${
                       col.key ? 'cursor-pointer hover:text-white transition-colors' : ''
-                    } ${sortCol === col.key && col.key ? 'text-[#C9A227]' : 'text-gray-500'}`}>
+                    } ${sortCol === col.key && col.key ? 'text-white' : 'text-gray-500'}`}>
                     <span className="inline-flex items-center gap-1">
                       {col.label}
                       {col.key && sortCol === col.key && (
@@ -561,7 +561,7 @@ export default function MembersPage() {
                   <tr key={m.id} className="border-b border-white/5 last:border-0 hover:bg-white/[0.02] transition-colors">
                     <td className="px-5 py-4">
                       <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-[#C9A227]/20 flex items-center justify-center text-[#C9A227] text-xs font-black shrink-0">
+                        <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center text-white text-xs font-black shrink-0">
                           {m.username[0].toUpperCase()}
                         </div>
                         <div>

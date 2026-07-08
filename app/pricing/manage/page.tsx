@@ -8,7 +8,7 @@ export default function ManageSubscriptionPage() {
   return (
     <Suspense fallback={
       <div className="min-h-screen bg-[#0A0A0A] text-white flex items-center justify-center">
-        <div className="w-6 h-6 border-2 border-[#C9A227]/30 border-t-[#C9A227] rounded-full animate-spin" />
+        <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />
       </div>
     }>
       <ManageContent />
@@ -51,17 +51,17 @@ function ManageContent() {
         {error ? (
           <>
             <p className="text-red-400 text-sm font-bold">{error}</p>
-            <a href="athlex://subscription" className="text-[#C9A227] text-sm mt-4 inline-block">
+            <a href="athlex://subscription" className="text-white text-sm mt-4 inline-block">
               Retour à l&apos;app
             </a>
           </>
         ) : (
           <div className="flex flex-col items-center gap-4">
-            <div className="w-12 h-12 rounded-2xl bg-[#C9A227]/15 flex items-center justify-center">
-              <Zap size={22} className="text-[#C9A227]" />
+            <div className="w-12 h-12 rounded-2xl bg-white/15 flex items-center justify-center">
+              <Zap size={22} className="text-white" />
             </div>
             <p className="text-gray-400 text-sm">Redirection vers le portail de facturation...</p>
-            <div className="w-6 h-6 border-2 border-[#C9A227]/30 border-t-[#C9A227] rounded-full animate-spin" />
+            <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />
           </div>
         )}
       </div>

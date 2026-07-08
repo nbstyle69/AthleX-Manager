@@ -36,7 +36,7 @@ export default async function TournamentsPage() {
           <p className="text-sm text-gray-400 mt-1">{tournaments?.length ?? 0} tournoi(s) créé(s)</p>
         </div>
         <Link href="/tournaments/new"
-          className="flex items-center gap-2 bg-[#C9A227] hover:bg-[#C9A227] text-white text-sm font-bold px-4 py-2.5 rounded-xl transition-colors">
+          className="flex items-center gap-2 bg-white hover:bg-white text-[#0A0A0A] text-sm font-bold px-4 py-2.5 rounded-xl transition-colors">
           <Plus size={16} /> Créer un tournoi
         </Link>
       </div>
@@ -47,7 +47,7 @@ export default async function TournamentsPage() {
           <h3 className="text-white font-bold mb-2">Aucun tournoi</h3>
           <p className="text-sm text-gray-500 mb-6">Créez votre premier tournoi pour commencer.</p>
           <Link href="/tournaments/new"
-            className="inline-flex items-center gap-2 bg-[#C9A227] hover:bg-[#C9A227] text-white text-sm font-bold px-5 py-2.5 rounded-xl transition-colors">
+            className="inline-flex items-center gap-2 bg-white hover:bg-white text-[#0A0A0A] text-sm font-bold px-5 py-2.5 rounded-xl transition-colors">
             <Plus size={15} /> Créer un tournoi
           </Link>
         </div>
@@ -73,7 +73,7 @@ export default async function TournamentsPage() {
                       <div className="flex items-center gap-2">
                         <p className="text-sm font-semibold text-white">{t.name}</p>
                         {t.format && t.format !== 'simple' && (
-                          <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-[#C9A227]/15 text-[#C9A227]">
+                          <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-white/15 text-white">
                             {t.format === 'bracket' ? 'Bracket' : t.format === 'swiss' ? 'Swiss' : t.format === 'league_div' ? 'Ligue' : t.format}
                           </span>
                         )}
@@ -96,7 +96,7 @@ export default async function TournamentsPage() {
                     <td className="px-5 py-4 text-sm text-gray-400">{formatDate(t.start_date ?? t.created_at)}</td>
                     <td className="px-5 py-4">
                       <Link href={`/tournaments/${t.id}`}
-                        className="flex items-center gap-1 text-xs text-[#C9A227] hover:text-[#C9A227] font-semibold transition-colors">
+                        className="flex items-center gap-1 text-xs text-white hover:text-white font-semibold transition-colors">
                         Gérer <ChevronRight size={13} />
                       </Link>
                     </td>

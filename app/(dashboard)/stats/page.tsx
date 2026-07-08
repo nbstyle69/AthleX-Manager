@@ -7,7 +7,7 @@ import { Users, Trophy, Dumbbell, TrendingUp, Loader2, CalendarCheck, ChevronLef
 import { getMyBox } from '@/lib/getMyBox';
 
 const LEVEL_LABEL: Record<string, string> = { 'rx+': 'RX+', rx: 'RX', scaled: 'SCALED', foundations: 'FOUNDATIONS', inter: 'INTER', gx: 'GX', pro: 'PRO' };
-const LEVEL_COLOR: Record<string, string> = { 'rx+': '#C9A227', rx: '#3B82F6', scaled: '#10B981', foundations: '#8B5CF6', inter: '#F59E0B', gx: '#EC4899', pro: '#EF4444' };
+const LEVEL_COLOR: Record<string, string> = { 'rx+': '#FFFFFF', rx: '#3B82F6', scaled: '#10B981', foundations: '#8B5CF6', inter: '#F59E0B', gx: '#EC4899', pro: '#EF4444' };
 
 const PAGE_SIZE = 10;
 
@@ -79,7 +79,7 @@ export default function BoxStatsPage() {
       { label: 'Membres actifs', value: activeMembers ?? 0, icon: Users, color: '#3B82F6' },
       { label: 'Coachs', value: coachCount ?? 0, icon: Users, color: '#8B5CF6' },
       { label: 'Bannis', value: bannedMembers ?? 0, icon: Users, color: '#EF4444' },
-      { label: 'Tournois créés', value: totalTournaments ?? 0, icon: Trophy, color: '#C9A227' },
+      { label: 'Tournois créés', value: totalTournaments ?? 0, icon: Trophy, color: '#FFFFFF' },
       { label: 'Tournois actifs', value: activeTournaments ?? 0, icon: Trophy, color: '#D97706' },
       { label: 'WODs publiés', value: totalWods ?? 0, icon: Dumbbell, color: '#EC4899' },
     ]);
@@ -161,7 +161,7 @@ export default function BoxStatsPage() {
 
   if (loading) return (
     <div className="flex items-center justify-center min-h-[400px]">
-      <Loader2 size={28} className="animate-spin text-[#C9A227]" />
+      <Loader2 size={28} className="animate-spin text-white" />
     </div>
   );
 
@@ -229,13 +229,13 @@ export default function BoxStatsPage() {
         <div className="bg-[#111111] border border-white/8 rounded-2xl p-6">
           <div className="flex items-center justify-between mb-5">
             <div className="flex items-center gap-2">
-              <TrendingUp size={16} className="text-[#C9A227]" />
+              <TrendingUp size={16} className="text-white" />
               <h2 className="text-sm font-bold text-white">Inscriptions membres</h2>
             </div>
             <div className="flex gap-1">
               {([7, 30, 90] as const).map(p => (
                 <button key={p} onClick={() => setChartPeriod(p)}
-                  className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-colors ${chartPeriod === p ? 'bg-[#C9A227]/20 text-[#C9A227]' : 'text-gray-500 hover:text-gray-300'}`}>
+                  className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-colors ${chartPeriod === p ? 'bg-white/20 text-white' : 'text-gray-500 hover:text-gray-300'}`}>
                   {p}j
                 </button>
               ))}
@@ -251,7 +251,7 @@ export default function BoxStatsPage() {
                   className="w-full rounded-t-sm transition-all"
                   style={{
                     height: `${Math.max((d.count / maxCount) * 100, 2)}%`,
-                    backgroundColor: d.count > 0 ? '#C9A227' : '#ffffff08',
+                    backgroundColor: d.count > 0 ? '#FFFFFF' : '#ffffff08',
                   }}
                 />
               </div>
@@ -265,7 +265,7 @@ export default function BoxStatsPage() {
         {/* Level breakdown */}
         <div className="bg-[#111111] border border-white/8 rounded-2xl p-6">
           <h2 className="text-sm font-bold text-white mb-5 flex items-center gap-2">
-            <Dumbbell size={16} className="text-[#C9A227]" />
+            <Dumbbell size={16} className="text-white" />
             Répartition par niveau
           </h2>
           <div className="space-y-3">
@@ -368,7 +368,7 @@ export default function BoxStatsPage() {
       <div className="bg-[#111111] border border-white/8 rounded-2xl p-6">
         <div className="flex items-center justify-between mb-5 flex-wrap gap-3">
           <h2 className="text-sm font-bold text-white flex items-center gap-2">
-            <Trophy size={16} className="text-[#C9A227]" />
+            <Trophy size={16} className="text-white" />
             Top {topPage * PAGE_SIZE + 1}–{Math.min((topPage + 1) * PAGE_SIZE, filteredMembers.length)} membres (ELO)
           </h2>
           <div className="flex items-center gap-3">
@@ -376,7 +376,7 @@ export default function BoxStatsPage() {
             <div className="flex gap-1">
               {([['all', 'Tous'], ['male', '♂ Hommes'], ['female', '♀ Femmes']] as const).map(([key, label]) => (
                 <button key={key} onClick={() => { setGenderFilter(key); setTopPage(0); }}
-                  className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-colors ${genderFilter === key ? 'bg-[#C9A227]/20 text-[#C9A227]' : 'text-gray-500 hover:text-gray-300'}`}>
+                  className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-colors ${genderFilter === key ? 'bg-white/20 text-white' : 'text-gray-500 hover:text-gray-300'}`}>
                   {label}
                 </button>
               ))}
@@ -405,7 +405,7 @@ export default function BoxStatsPage() {
               return (
                 <div key={m.username + rank} className="flex items-center gap-3 bg-[#0A0A0A] rounded-xl px-4 py-3">
                   <span className="text-sm font-black text-gray-500 w-6 text-right">{rank}</span>
-                  <div className="w-8 h-8 rounded-full bg-[#C9A227]/20 flex items-center justify-center text-[#C9A227] text-xs font-black shrink-0">
+                  <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center text-white text-xs font-black shrink-0">
                     {m.username[0]?.toUpperCase()}
                   </div>
                   <div className="flex-1 min-w-0">
@@ -417,7 +417,7 @@ export default function BoxStatsPage() {
                       {LEVEL_LABEL[m.level] ?? m.level.toUpperCase()}
                     </span>
                   </div>
-                  <span className="text-sm font-mono font-bold text-[#C9A227]">{m.elo}</span>
+                  <span className="text-sm font-mono font-bold text-white">{m.elo}</span>
                 </div>
               );
             })}

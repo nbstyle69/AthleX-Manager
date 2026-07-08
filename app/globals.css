@@ -8,7 +8,7 @@
   --card:    #111111;
   --sidebar: #080808;
   --border:  rgba(255,255,255,0.08);
-  --accent:  #C9A227;
+  --accent:  #FFFFFF;
   --fg:      #F9FAFB;
   --fg-2:    #9CA3AF;
   --fg-3:    #6B7280;
@@ -22,7 +22,7 @@ html.light {
   --card:    #FFFFFF;
   --sidebar: #FAFAF8;
   --border:  rgba(0,0,0,0.08);
-  --accent:  #C9A227;
+  --accent:  #FFFFFF;
   --fg:      #111111;
   --fg-2:    #555555;
   --fg-3:    #888888;

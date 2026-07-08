@@ -45,8 +45,8 @@ export default function SubscriptionSuccessPage() {
         {/* Steps */}
         <div className="bg-[#111111] border border-white/8 rounded-2xl p-6 text-left space-y-4 mb-8">
           <div className="flex items-start gap-3">
-            <div className="w-8 h-8 rounded-xl bg-[#C9A227]/15 flex items-center justify-center shrink-0 mt-0.5">
-              <Smartphone size={16} className="text-[#C9A227]" />
+            <div className="w-8 h-8 rounded-xl bg-white/15 flex items-center justify-center shrink-0 mt-0.5">
+              <Smartphone size={16} className="text-white" />
             </div>
             <div>
               <p className="text-sm font-bold">Retourne sur l&apos;app AthleX</p>
@@ -67,7 +67,7 @@ export default function SubscriptionSuccessPage() {
         {/* Deep link to app */}
         <a
           href="athlex://subscription-success"
-          className="w-full flex items-center justify-center gap-2 bg-[#C9A227] hover:bg-[#B8911F] text-white font-bold py-4 rounded-xl text-base transition-colors shadow-lg shadow-[#C9A227]/20 mb-4"
+          className="w-full flex items-center justify-center gap-2 bg-white hover:bg-[#B8911F] text-[#0A0A0A] font-bold py-4 rounded-xl text-base transition-colors shadow-lg shadow-white/20 mb-4"
         >
           Ouvrir l&apos;app AthleX <ChevronRight size={16} />
         </a>

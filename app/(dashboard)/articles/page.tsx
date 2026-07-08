@@ -115,7 +115,7 @@ export default function ArticlesPage() {
 
   if (loading) return (
     <div className="flex items-center justify-center min-h-[300px]">
-      <Loader2 size={28} className="animate-spin text-[#C9A227]" />
+      <Loader2 size={28} className="animate-spin text-white" />
     </div>
   );
 
@@ -127,7 +127,7 @@ export default function ArticlesPage() {
           <p className="text-sm text-gray-400 mt-1">{articles.length} article(s)</p>
         </div>
         <button onClick={openCreate}
-          className="flex items-center gap-2 bg-[#C9A227] hover:bg-[#B8911F] text-white text-sm font-bold px-4 py-2.5 rounded-xl transition-colors">
+          className="flex items-center gap-2 bg-white hover:bg-[#B8911F] text-[#0A0A0A] text-sm font-bold px-4 py-2.5 rounded-xl transition-colors">
           <Plus size={16} /> Nouvel article
         </button>
       </div>
@@ -198,14 +198,14 @@ export default function ArticlesPage() {
               <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1 block">Titre *</label>
               <input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
                 placeholder="Titre de l'article"
-                className="w-full bg-[#0A0A0A] border border-white/10 rounded-lg px-3 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-[#C9A227]/50" />
+                className="w-full bg-[#0A0A0A] border border-white/10 rounded-lg px-3 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-white/50" />
             </div>
 
             <div>
               <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1 block">Contenu *</label>
               <textarea value={form.body} onChange={e => setForm(f => ({ ...f, body: e.target.value }))}
                 rows={6} placeholder="Rédigez votre article…"
-                className="w-full bg-[#0A0A0A] border border-white/10 rounded-lg px-3 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-[#C9A227]/50 resize-none" />
+                className="w-full bg-[#0A0A0A] border border-white/10 rounded-lg px-3 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-white/50 resize-none" />
             </div>
 
             <div>
@@ -214,7 +214,7 @@ export default function ArticlesPage() {
               </label>
               <input value={form.image_url} onChange={e => setForm(f => ({ ...f, image_url: e.target.value }))}
                 placeholder="https://…"
-                className="w-full bg-[#0A0A0A] border border-white/10 rounded-lg px-3 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-[#C9A227]/50" />
+                className="w-full bg-[#0A0A0A] border border-white/10 rounded-lg px-3 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-white/50" />
             </div>
 
             {formError && <p className="text-xs text-red-400">{formError}</p>}
@@ -225,7 +225,7 @@ export default function ArticlesPage() {
                 Annuler
               </button>
               <button onClick={saveArticle} disabled={saving || !form.title.trim() || !form.body.trim()}
-                className="flex items-center gap-2 bg-[#C9A227] hover:bg-[#B8911F] text-white text-sm font-bold px-5 py-2.5 rounded-xl transition-colors disabled:opacity-50">
+                className="flex items-center gap-2 bg-white hover:bg-[#B8911F] text-[#0A0A0A] text-sm font-bold px-5 py-2.5 rounded-xl transition-colors disabled:opacity-50">
                 {saving && <Loader2 size={14} className="animate-spin" />}
                 {editArticle ? 'Modifier' : 'Publier'}
               </button>

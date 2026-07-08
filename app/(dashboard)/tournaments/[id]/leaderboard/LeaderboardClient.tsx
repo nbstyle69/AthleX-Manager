@@ -13,7 +13,7 @@ interface Props {
 const MEDAL = ['🥇', '🥈', '🥉'];
 const LEVEL_COLORS: Record<string, string> = {
   scaled: '#6B7280', inter: '#3B82F6', rx: '#16A34A',
-  'rx+': '#C9A227', gx: '#8B5CF6', pro: '#EF4444',
+  'rx+': '#FFFFFF', gx: '#8B5CF6', pro: '#EF4444',
 };
 
 function RankBadge({ rank }: { rank: number }) {
@@ -57,7 +57,7 @@ export default function LeaderboardClient({ general, wodRankings, divisionRankin
             className={`flex items-center gap-1.5 text-sm font-bold px-4 py-2 rounded-xl border transition-colors ${
               activeTab === t
                 ? t === 'general'
-                  ? 'bg-[#C9A227] border-[#C9A227] text-white'
+                  ? 'bg-white border-white text-[#0A0A0A]'
                   : t === 'divisions'
                   ? 'bg-purple-600 border-purple-600 text-white'
                   : 'bg-blue-600 border-blue-600 text-white'
@@ -74,7 +74,7 @@ export default function LeaderboardClient({ general, wodRankings, divisionRankin
         <>
           {general.length === 0 ? (
             <div className="bg-[#111111] border border-white/8 rounded-2xl p-12 text-center">
-              <Trophy size={36} className="text-[#C9A227]/40 mx-auto mb-3" />
+              <Trophy size={36} className="text-white/40 mx-auto mb-3" />
               <p className="text-white font-bold">Aucun score validé</p>
               <p className="text-xs text-gray-500 mt-1">Le classement apparaîtra après les premières validations.</p>
             </div>
@@ -83,12 +83,12 @@ export default function LeaderboardClient({ general, wodRankings, divisionRankin
               {general.map(p => (
                 <div key={p.athlete_id}
                   className={`flex items-center gap-3 bg-[#111111] border rounded-2xl px-5 py-4 ${
-                    p.rank === 1 ? 'border-[#C9A227]/30' :
+                    p.rank === 1 ? 'border-white/30' :
                     p.rank === 2 ? 'border-gray-400/20' :
                     p.rank === 3 ? 'border-orange-700/20' : 'border-white/8'
                   }`}>
                   <RankBadge rank={p.rank} />
-                  <div className="w-9 h-9 rounded-full bg-[#C9A227]/20 flex items-center justify-center text-[#C9A227] text-sm font-black shrink-0">
+                  <div className="w-9 h-9 rounded-full bg-white/20 flex items-center justify-center text-white text-sm font-black shrink-0">
                     {(p.username ?? '?')[0].toUpperCase()}
                   </div>
                   <div className="flex-1 min-w-0">
@@ -97,7 +97,7 @@ export default function LeaderboardClient({ general, wodRankings, divisionRankin
                       <LevelBadge level={p.level} />
                     </div>
                     <div className="flex items-center gap-1 mt-0.5">
-                      <Star size={10} className="text-[#C9A227]" />
+                      <Star size={10} className="text-white" />
                       <p className="text-xs text-gray-500">ELO {p.elo ?? 1000}</p>
                     </div>
                   </div>
@@ -182,7 +182,7 @@ export default function LeaderboardClient({ general, wodRankings, divisionRankin
                               )}
                             </div>
                             <div className="flex items-center gap-1 mt-0.5">
-                              <Star size={9} className="text-[#C9A227]" />
+                              <Star size={9} className="text-white" />
                               <p className="text-[10px] text-gray-500">ELO {p.elo ?? 1000}</p>
                             </div>
                           </div>
@@ -223,7 +223,7 @@ export default function LeaderboardClient({ general, wodRankings, divisionRankin
               {wod.scores.map(s => (
                 <div key={s.athlete_id}
                   className={`flex items-center gap-3 bg-[#111111] border rounded-2xl px-5 py-4 ${
-                    s.rank === 1 ? 'border-[#C9A227]/30' :
+                    s.rank === 1 ? 'border-white/30' :
                     s.rank === 2 ? 'border-gray-400/20' :
                     s.rank === 3 ? 'border-orange-700/20' : 'border-white/8'
                   }`}>
