@@ -1,10 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
+// service_role client — used for ALL privileged DB writes. Never call
+// signInWithPassword on it: doing so swaps its Authorization to the user's
+// token, so subsequent writes run as `authenticated` and hit the RLS/trigger
+// lock that reserves box/owner provisioning to the backend.
 function getSupabaseAdmin() {
   return createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    { auth: { autoRefreshToken: false, persistSession: false } },
+  );
+}
+
+// Throwaway anon client for verifying user credentials, kept separate so it
+// never mutates the service_role client above.
+function getSupabaseAuth() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     { auth: { autoRefreshToken: false, persistSession: false } },
   );
 }
@@ -78,11 +92,12 @@ export async function POST(req: NextRequest) {
     }
 
     const supabase = getSupabaseAdmin();
+    const supabaseAuth = getSupabaseAuth();
     let userId: string;
 
     if (mode === 'login') {
       // ── Login existing user ──
-      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+      const { data: authData, error: authError } = await supabaseAuth.auth.signInWithPassword({
         email,
         password,
       });
@@ -117,7 +132,7 @@ export async function POST(req: NextRequest) {
 
         if (alreadyExists) {
           // Auto-fallback: try login with provided credentials
-          const { data: loginData, error: loginErr } = await supabase.auth.signInWithPassword({
+          const { data: loginData, error: loginErr } = await supabaseAuth.auth.signInWithPassword({
             email,
             password,
           });
