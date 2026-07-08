@@ -86,9 +86,11 @@ export default function LoginPage() {
           </button>
         </form>
 
-        <p className="text-xs text-gray-600 text-center mt-6">
-          Accès réservé aux propriétaires de box.<br />
-          Contactez l&apos;équipe Test pour créer un compte.
+        <p className="text-sm text-gray-400 text-center mt-6">
+          Pas encore de box ?{' '}
+          <a href="/pricing/onboarding" className="text-[#C9A227] font-semibold hover:underline">
+            Créez votre compte
+          </a>
         </p>
       </div>
     </div>
