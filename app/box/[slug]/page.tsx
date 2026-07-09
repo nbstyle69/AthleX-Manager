@@ -6,6 +6,7 @@ import {
   Clock, Dumbbell, ExternalLink, ShoppingCart, Users,
   ChevronRight, ArrowLeft,
 } from 'lucide-react';
+import ProgramBuyButton from './ProgramBuyButton';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -279,13 +280,21 @@ export default async function BoxPublicPage({ params }: { params: Promise<{ slug
                           style={{ color: GOLD, backgroundColor: `${GOLD}15` }}
                         >
                           {formatPrice(p.price_cents)}
+                          {p.type === 'ongoing' && p.price_cents > 0 && (
+                            <span className="text-[10px] text-gray-500 font-semibold"> /mois</span>
+                          )}
                         </span>
-                        <span
-                          className="text-xs font-bold text-white px-4 py-2 rounded-lg cursor-default"
-                          style={{ backgroundColor: GOLD }}
-                        >
-                          Contactez la box
-                        </span>
+                        {p.price_cents > 0 ? (
+                          <ProgramBuyButton
+                            programId={p.id}
+                            priceLabel={formatPrice(p.price_cents)}
+                            recurring={p.type === 'ongoing'}
+                          />
+                        ) : (
+                          <span className="text-xs font-bold text-gray-400 px-4 py-2">
+                            Gratuit — dans l'app
+                          </span>
+                        )}
                       </div>
                     </div>
                   </div>

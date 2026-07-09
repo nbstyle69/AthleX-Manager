@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/client';
 import {
   BookOpen, Plus, Pencil, Trash2, X, Globe, Eye, Copy, Check,
   Users, Calendar, Clock, Hash, ChevronLeft, ChevronRight, FileText,
+  CreditCard, AlertTriangle, Loader2,
 } from 'lucide-react';
 
 interface Program {
@@ -80,6 +81,11 @@ export default function BoxOwnerProgramsPage() {
   const [programs, setPrograms] = useState<Program[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Stripe Connect (paiements)
+  const [stripeAccountId, setStripeAccountId] = useState<string | null>(null);
+  const [onboardingComplete, setOnboardingComplete] = useState(false);
+  const [connectLoading, setConnectLoading] = useState(false);
+
   const [showForm, setShowForm] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [form, setForm] = useState(EMPTY_FORM);
@@ -100,6 +106,17 @@ export default function BoxOwnerProgramsPage() {
 
   useEffect(() => { loadAll(); }, []);
 
+  // Retour d'onboarding Connect → rafraîchir le statut
+  useEffect(() => {
+    if (!boxId) return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('connect') === 'return' || params.get('connect') === 'refresh') {
+      refreshConnect();
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [boxId]);
+
   async function loadAll() {
     setLoading(true);
     const { data: { user } } = await supabase.auth.getUser();
@@ -108,7 +125,7 @@ export default function BoxOwnerProgramsPage() {
 
     const { data: box } = await supabase
       .from('boxes')
-      .select('id, slug')
+      .select('id, slug, stripe_account_id, stripe_onboarding_complete')
       .eq('owner_id', user.id)
       .limit(1)
       .single();
@@ -117,6 +134,8 @@ export default function BoxOwnerProgramsPage() {
     setBoxId(box.id);
     setSlug((box as any).slug ?? '');
     setSlugSaved((box as any).slug ?? '');
+    setStripeAccountId((box as any).stripe_account_id ?? null);
+    setOnboardingComplete(Boolean((box as any).stripe_onboarding_complete));
 
     const { data: progs } = await supabase
       .from('programs')
@@ -130,6 +149,36 @@ export default function BoxOwnerProgramsPage() {
     }));
     setPrograms(mapped as Program[]);
     setLoading(false);
+  }
+
+  async function startOnboarding() {
+    if (!boxId) return;
+    setConnectLoading(true);
+    try {
+      const res = await fetch('/api/connect/onboard', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ box_id: boxId }),
+      });
+      const data = await res.json();
+      if (data.url) { window.location.href = data.url; return; }
+    } catch { /* noop */ }
+    setConnectLoading(false);
+  }
+
+  async function refreshConnect() {
+    if (!boxId) return;
+    setConnectLoading(true);
+    try {
+      const res = await fetch('/api/connect/status', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ box_id: boxId }),
+      });
+      const data = await res.json();
+      setOnboardingComplete(Boolean(data.onboarding_complete));
+    } catch { /* noop */ }
+    setConnectLoading(false);
   }
 
   async function saveSlug() {
@@ -355,6 +404,55 @@ export default function BoxOwnerProgramsPage() {
               {slugCopied ? <Check size={13} className="text-emerald-400" /> : <Copy size={13} />}
               {slugCopied ? 'Copié !' : 'Copier le lien'}
             </button>
+          </div>
+        )}
+      </div>
+
+      {/* Paiements (Stripe Connect) */}
+      <div className="bg-[#111] border border-white/[0.06] rounded-2xl p-5">
+        <div className="flex items-center gap-2 mb-4">
+          <CreditCard size={16} className="text-emerald-400" />
+          <h2 className="text-sm font-black text-white uppercase tracking-widest">Paiements</h2>
+        </div>
+        {onboardingComplete ? (
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-emerald-500/15 flex items-center justify-center">
+              <Check size={18} className="text-emerald-400" />
+            </div>
+            <div className="flex-1">
+              <p className="text-sm font-bold text-white">Paiements activés</p>
+              <p className="text-xs text-gray-500">Tu peux vendre tes programmes. Les paiements arrivent directement sur ton compte (commission AthleX 4 %).</p>
+            </div>
+            <button onClick={refreshConnect} disabled={connectLoading} className="text-xs text-gray-500 hover:text-white font-semibold transition-colors disabled:opacity-50">
+              {connectLoading ? '...' : 'Actualiser'}
+            </button>
+          </div>
+        ) : (
+          <div className="flex items-start gap-3">
+            <div className="w-9 h-9 rounded-xl bg-amber-500/15 flex items-center justify-center shrink-0">
+              <AlertTriangle size={18} className="text-amber-400" />
+            </div>
+            <div className="flex-1">
+              <p className="text-sm font-bold text-white">Active les paiements pour vendre tes programmes</p>
+              <p className="text-xs text-gray-500 mb-3">
+                Connecte ton compte via Stripe (2 min). Les programmes gratuits restent accessibles sans cette étape.
+              </p>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={startOnboarding}
+                  disabled={connectLoading}
+                  className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white hover:bg-gray-200 text-black text-sm font-bold transition-all disabled:opacity-60"
+                >
+                  {connectLoading ? <Loader2 size={15} className="animate-spin" /> : <CreditCard size={15} />}
+                  {stripeAccountId ? 'Continuer la configuration' : 'Activer les paiements'}
+                </button>
+                {stripeAccountId && (
+                  <button onClick={refreshConnect} disabled={connectLoading} className="text-xs text-gray-500 hover:text-white font-semibold transition-colors disabled:opacity-50">
+                    J'ai terminé — actualiser
+                  </button>
+                )}
+              </div>
+            </div>
           </div>
         )}
       </div>
