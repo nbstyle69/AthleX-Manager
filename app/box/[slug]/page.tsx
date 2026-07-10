@@ -7,6 +7,7 @@ import {
   ChevronRight, ArrowLeft,
 } from 'lucide-react';
 import ProgramBuyButton from './ProgramBuyButton';
+import MembershipSubscribeButton from './MembershipSubscribeButton';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -35,6 +36,15 @@ interface Box {
   opening_hours?: Record<string, string>;
   founded_at?: string;
   member_count?: number;
+}
+
+interface MembershipPlan {
+  id: string;
+  name: string;
+  description?: string;
+  price_cents: number;
+  max_sessions_per_week: number | null;
+  color: string;
 }
 
 interface Program {
@@ -107,6 +117,17 @@ export default async function BoxPublicPage({ params }: { params: Promise<{ slug
     .order('created_at', { ascending: false });
 
   const progs = (programs ?? []) as Program[];
+
+  // Fetch membership plans (paid formulas only shown to the public)
+  const { data: plansRaw } = await supabase
+    .from('membership_plans')
+    .select('id, name, description, price_cents, max_sessions_per_week, color')
+    .eq('box_id', b.id)
+    .eq('is_active', true)
+    .gt('price_cents', 0)
+    .order('price_cents', { ascending: true });
+
+  const plans = (plansRaw ?? []) as MembershipPlan[];
   const foundedYear = b.founded_at ? new Date(b.founded_at).getFullYear() : null;
 
   const formatPrice = (cents: number) => {
@@ -240,6 +261,46 @@ export default async function BoxPublicPage({ params }: { params: Promise<{ slug
                     </div>
                   );
                 })}
+              </div>
+            </section>
+          )}
+
+          {/* Membership plans */}
+          {plans.length > 0 && (
+            <section>
+              <h2 className="text-lg font-black mb-1 flex items-center gap-2">
+                <Users size={18} style={{ color: GOLD }} /> Abonnements
+              </h2>
+              <p className="text-xs text-gray-500 mb-4">Rejoins {b.name} — choisis ta formule mensuelle</p>
+              <div className="grid gap-4 sm:grid-cols-2">
+                {plans.map(pl => (
+                  <div key={pl.id} className="bg-[#111] border border-white/[0.06] rounded-2xl p-5 flex flex-col">
+                    <div className="flex items-center gap-2">
+                      <div className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: pl.color }} />
+                      <h3 className="font-bold text-white">{pl.name}</h3>
+                    </div>
+                    {pl.description && (
+                      <p className="text-xs text-gray-500 mt-1 line-clamp-2">{pl.description}</p>
+                    )}
+                    <div className="flex items-center gap-1.5 mt-2 text-xs text-gray-500">
+                      <Calendar size={12} />
+                      {pl.max_sessions_per_week
+                        ? `${pl.max_sessions_per_week} séance${pl.max_sessions_per_week > 1 ? 's' : ''}/semaine`
+                        : 'Séances illimitées'}
+                    </div>
+                    <div className="flex items-center justify-between mt-4 pt-4 border-t border-white/[0.06]">
+                      <span className="text-sm font-black" style={{ color: GOLD }}>
+                        {formatPrice(pl.price_cents)}
+                        <span className="text-[10px] text-gray-500 font-semibold"> /mois</span>
+                      </span>
+                      <MembershipSubscribeButton
+                        planId={pl.id}
+                        planName={pl.name}
+                        priceLabel={`${formatPrice(pl.price_cents)}/mois`}
+                      />
+                    </div>
+                  </div>
+                ))}
               </div>
             </section>
           )}
