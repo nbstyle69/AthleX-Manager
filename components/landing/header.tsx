@@ -17,6 +17,7 @@ export function LandingHeader() {
     { href: '#features', label: t.nav.features },
     { href: '#app', label: t.nav.app },
     { href: '#pricing', label: t.nav.pricing },
+    { href: '/box', label: t.nav.boxes },
   ];
 
   return (
