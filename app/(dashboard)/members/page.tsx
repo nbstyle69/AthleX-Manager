@@ -15,6 +15,7 @@ interface MembershipPlan {
   name: string;
   max_sessions_per_week: number | null;
   color: string;
+  price_cents: number;
 }
 
 interface Member {
@@ -50,6 +51,49 @@ function GroupsPopover({ member, allGroups, onToggle, toggling }: {
               return (
                 <button key={g.id} onClick={() => onToggle(member.id, g.id, inGroup)}
                   disabled={isLoading}
+                  className="w-full flex items-center gap-2.5 px-3 py-2 text-xs hover:bg-white/5 transition-colors text-left">
+                  {isLoading ? <Loader2 size={12} className="animate-spin text-gray-400" /> : (
+                    <div className={`w-4 h-4 rounded flex items-center justify-center border ${inGroup ? 'border-transparent' : 'border-white/20'}`}
+                      style={inGroup ? { backgroundColor: g.color } : {}}>
+                      {inGroup && <Check size={10} color="#000" strokeWidth={3} />}
+                    </div>
+                  )}
+                  <span className="flex-1 font-semibold" style={{ color: inGroup ? g.color : '#9ca3af' }}>{g.name}</span>
+                </button>
+              );
+            })}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+function PlanGroupsPopover({ groupIds, allGroups, onToggle, saving }: {
+  groupIds: string[];
+  allGroups: { id: string; name: string; color: string }[];
+  onToggle: (groupId: string, inGroup: boolean) => void;
+  saving: string | null;
+}) {
+  const [open, setOpen] = useState(false);
+  const set = new Set(groupIds);
+  return (
+    <div className="relative">
+      <button onClick={() => setOpen(v => !v)}
+        className="flex items-center gap-1 text-[11px] font-semibold text-gray-400 hover:text-white border border-white/10 hover:border-white/20 px-2 py-1 rounded-lg transition-colors">
+        Cours inclus{groupIds.length > 0 ? ` (${groupIds.length})` : ''}
+        <ChevronDown size={10} className={`transition-transform ${open ? 'rotate-180' : ''}`} />
+      </button>
+      {open && (
+        <>
+          <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
+          <div className="absolute right-0 top-full mt-1 z-20 bg-[#1a1a1a] border border-white/10 rounded-xl shadow-2xl min-w-[190px] py-1 overflow-hidden">
+            {allGroups.length === 0 && <p className="px-3 py-2 text-xs text-gray-500">Aucun groupe. Crée des groupes de cours d'abord.</p>}
+            {allGroups.map(g => {
+              const inGroup = set.has(g.id);
+              const isLoading = saving === g.id;
+              return (
+                <button key={g.id} onClick={() => onToggle(g.id, inGroup)} disabled={isLoading}
                   className="w-full flex items-center gap-2.5 px-3 py-2 text-xs hover:bg-white/5 transition-colors text-left">
                   {isLoading ? <Loader2 size={12} className="animate-spin text-gray-400" /> : (
                     <div className={`w-4 h-4 rounded flex items-center justify-center border ${inGroup ? 'border-transparent' : 'border-white/20'}`}
@@ -189,10 +233,13 @@ export default function MembersPage() {
   const [toggling,   setToggling]   = useState<string | null>(null);
   const [banning,    setBanning]    = useState<string | null>(null);
   const [plans,      setPlans]      = useState<MembershipPlan[]>([]);
+  const [planGroups, setPlanGroups]  = useState<Record<string, string[]>>({});
+  const [planGroupSaving, setPlanGroupSaving] = useState<string | null>(null);
   const [planSaving, setPlanSaving]  = useState<string | null>(null);
   const [showPlans,  setShowPlans]   = useState(false);
   const [newPlanName, setNewPlanName] = useState('');
   const [newPlanMax,  setNewPlanMax]  = useState('');
+  const [newPlanPrice, setNewPlanPrice] = useState('');
   const [newPlanColor, setNewPlanColor] = useState('#FFFFFF');
   const [creatingPlan, setCreatingPlan] = useState(false);
 
@@ -223,17 +270,25 @@ export default function MembersPage() {
     if (!box) { router.push('/login'); return; }
     setBoxId(box.id);
 
-    const [{ data: membersRaw }, { data: groups }, { data: groupMemberships }, { data: plansData }] = await Promise.all([
+    const [{ data: membersRaw }, { data: groups }, { data: groupMemberships }, { data: plansData }, { data: planGroupData }] = await Promise.all([
       supabase.from('box_members')
         .select('member_id, status, joined_at, plan_id, role, profile:profiles(id, username, level, elo, email)')
         .eq('box_id', box.id).in('status', ['active', 'banned'])
         .order('joined_at', { ascending: false }),
       supabase.from('message_groups').select('id, name, color').eq('box_id', box.id),
       supabase.from('message_group_members').select('member_id, group_id'),
-      supabase.from('membership_plans').select('id, name, max_sessions_per_week, color').eq('box_id', box.id).order('max_sessions_per_week', { ascending: true, nullsFirst: false }),
+      supabase.from('membership_plans').select('id, name, max_sessions_per_week, color, price_cents').eq('box_id', box.id).order('sort_order', { ascending: true }).order('max_sessions_per_week', { ascending: true, nullsFirst: false }),
+      supabase.from('membership_plan_groups').select('plan_id, group_id'),
     ]);
 
     setPlans((plansData ?? []) as MembershipPlan[]);
+
+    const pgMap: Record<string, string[]> = {};
+    for (const pg of (planGroupData ?? []) as { plan_id: string; group_id: string }[]) {
+      if (!pgMap[pg.plan_id]) pgMap[pg.plan_id] = [];
+      pgMap[pg.plan_id].push(pg.group_id);
+    }
+    setPlanGroups(pgMap);
 
     setAllGroups(groups ?? []);
 
@@ -306,15 +361,30 @@ export default function MembersPage() {
     if (!boxId || !newPlanName.trim()) return;
     setCreatingPlan(true);
     const maxVal = newPlanMax.trim() === '' ? null : parseInt(newPlanMax);
+    const priceCents = newPlanPrice.trim() === '' ? 0 : Math.round(parseFloat(newPlanPrice.replace(',', '.')) * 100);
     const { data, error } = await supabase.from('membership_plans').insert({
       box_id: boxId, name: newPlanName.trim(), max_sessions_per_week: maxVal, color: newPlanColor,
+      price_cents: Number.isFinite(priceCents) ? priceCents : 0,
     }).select().single();
     if (!error && data) {
       setPlans(prev => [...prev, data as MembershipPlan]);
       setNewPlanName('');
       setNewPlanMax('');
+      setNewPlanPrice('');
     }
     setCreatingPlan(false);
+  }
+
+  async function togglePlanGroup(planId: string, groupId: string, inGroup: boolean) {
+    setPlanGroupSaving(`${planId}-${groupId}`);
+    if (inGroup) {
+      await supabase.from('membership_plan_groups').delete().eq('plan_id', planId).eq('group_id', groupId);
+      setPlanGroups(prev => ({ ...prev, [planId]: (prev[planId] ?? []).filter(g => g !== groupId) }));
+    } else {
+      await supabase.from('membership_plan_groups').insert({ plan_id: planId, group_id: groupId });
+      setPlanGroups(prev => ({ ...prev, [planId]: [...(prev[planId] ?? []), groupId] }));
+    }
+    setPlanGroupSaving(null);
   }
 
   async function deletePlan(planId: string) {
@@ -400,7 +470,7 @@ export default function MembersPage() {
       {showPlans && (
         <div className="bg-[#111111] border border-white/8 rounded-2xl p-5 space-y-4">
           <h3 className="text-sm font-bold text-white">Contrats / Abonnements</h3>
-          <p className="text-xs text-gray-500">Définissez les types de contrats pour limiter le nombre de réservations par semaine.</p>
+          <p className="text-xs text-gray-500">Définissez vos formules d'abonnement (prix mensuel + nombre de séances/semaine). Un prix &gt; 0 rend la formule payante sur la page publique de la box (paiement Stripe). Le quota de séances est appliqué automatiquement.</p>
 
           {/* Existing plans */}
           <div className="space-y-2">
@@ -408,12 +478,21 @@ export default function MembersPage() {
               <div key={p.id} className="flex items-center gap-3 bg-[#0A0A0A] rounded-xl px-4 py-3">
                 <div className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: p.color }} />
                 <span className="text-sm font-semibold text-white flex-1">{p.name}</span>
+                <span className="text-xs font-bold" style={{ color: p.price_cents > 0 ? '#fff' : '#6b7280' }}>
+                  {p.price_cents > 0 ? `${(p.price_cents / 100).toFixed(2)} €/mois` : 'Gratuit'}
+                </span>
                 <span className="text-xs text-gray-400">
                   {p.max_sessions_per_week ? `${p.max_sessions_per_week}x / semaine` : 'Illimité'}
                 </span>
                 <span className="text-[10px] text-gray-600">
                   {members.filter(m => m.plan_id === p.id).length} membre(s)
                 </span>
+                <PlanGroupsPopover
+                  groupIds={planGroups[p.id] ?? []}
+                  allGroups={allGroups}
+                  onToggle={(gid, inGroup) => togglePlanGroup(p.id, gid, inGroup)}
+                  saving={planGroupSaving?.startsWith(`${p.id}-`) ? planGroupSaving.slice(p.id.length + 1) : null}
+                />
                 <button onClick={() => deletePlan(p.id)} className="p-1 rounded-lg hover:bg-red-500/20 text-gray-500 hover:text-red-400 transition-colors">
                   <Trash2 size={13} />
                 </button>
@@ -436,6 +515,12 @@ export default function MembersPage() {
               <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1 block">Séances/sem</label>
               <input type="number" min={1} value={newPlanMax} onChange={e => setNewPlanMax(e.target.value)}
                 placeholder="∞"
+                className="w-full bg-[#0A0A0A] border border-white/10 rounded-lg px-3 py-2 text-xs text-white placeholder-gray-600 focus:outline-none focus:border-white/50" />
+            </div>
+            <div className="w-28">
+              <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1 block">Prix €/mois</label>
+              <input type="number" min={0} step="0.01" value={newPlanPrice} onChange={e => setNewPlanPrice(e.target.value)}
+                placeholder="0 = gratuit"
                 className="w-full bg-[#0A0A0A] border border-white/10 rounded-lg px-3 py-2 text-xs text-white placeholder-gray-600 focus:outline-none focus:border-white/50" />
             </div>
             <div className="w-16">
