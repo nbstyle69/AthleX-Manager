@@ -3,7 +3,8 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
-import { Users, Search, SlidersHorizontal, X, Loader2, ChevronDown, ChevronUp, Check, Plus, Trash2, CreditCard, ShieldCheck, Crown } from 'lucide-react';
+import Link from 'next/link';
+import { Users, Search, SlidersHorizontal, X, Loader2, ChevronDown, ChevronUp, Check, Trash2, CreditCard, ShieldCheck, Crown } from 'lucide-react';
 import { getMyBox } from '@/lib/getMyBox';
 
 const LEVELS = ['rx+', 'rx', 'scaled', 'foundations'];
@@ -237,11 +238,6 @@ export default function MembersPage() {
   const [planGroupSaving, setPlanGroupSaving] = useState<string | null>(null);
   const [planSaving, setPlanSaving]  = useState<string | null>(null);
   const [showPlans,  setShowPlans]   = useState(false);
-  const [newPlanName, setNewPlanName] = useState('');
-  const [newPlanMax,  setNewPlanMax]  = useState('');
-  const [newPlanPrice, setNewPlanPrice] = useState('');
-  const [newPlanColor, setNewPlanColor] = useState('#FFFFFF');
-  const [creatingPlan, setCreatingPlan] = useState(false);
 
   const [search,      setSearch]      = useState('');
   const [filterLevel, setFilterLevel] = useState('');
@@ -357,24 +353,6 @@ export default function MembersPage() {
     setPlanSaving(null);
   }
 
-  async function createPlan() {
-    if (!boxId || !newPlanName.trim()) return;
-    setCreatingPlan(true);
-    const maxVal = newPlanMax.trim() === '' ? null : parseInt(newPlanMax);
-    const priceCents = newPlanPrice.trim() === '' ? 0 : Math.round(parseFloat(newPlanPrice.replace(',', '.')) * 100);
-    const { data, error } = await supabase.from('membership_plans').insert({
-      box_id: boxId, name: newPlanName.trim(), max_sessions_per_week: maxVal, color: newPlanColor,
-      price_cents: Number.isFinite(priceCents) ? priceCents : 0,
-    }).select().single();
-    if (!error && data) {
-      setPlans(prev => [...prev, data as MembershipPlan]);
-      setNewPlanName('');
-      setNewPlanMax('');
-      setNewPlanPrice('');
-    }
-    setCreatingPlan(false);
-  }
-
   async function togglePlanGroup(planId: string, groupId: string, inGroup: boolean) {
     setPlanGroupSaving(`${planId}-${groupId}`);
     if (inGroup) {
@@ -469,8 +447,15 @@ export default function MembersPage() {
       {/* Plans management panel */}
       {showPlans && (
         <div className="bg-[#111111] border border-white/8 rounded-2xl p-5 space-y-4">
-          <h3 className="text-sm font-bold text-white">Contrats / Abonnements</h3>
-          <p className="text-xs text-gray-500">Définissez vos formules d'abonnement (prix mensuel + nombre de séances/semaine). Un prix &gt; 0 rend la formule payante sur la page publique de la box (paiement Stripe). Le quota de séances est appliqué automatiquement.</p>
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <h3 className="text-sm font-bold text-white">Contrats / Abonnements</h3>
+              <p className="text-xs text-gray-500 mt-1">Assignez une formule à un membre et gérez les groupes associés. La <strong className="text-gray-300">création et l'édition des formules</strong> se font désormais dans <strong className="text-gray-300">Offres &amp; Programmes</strong>.</p>
+            </div>
+            <Link href="/programs" className="flex items-center gap-1.5 shrink-0 px-3 py-2 rounded-lg bg-white/10 hover:bg-white/15 text-white text-xs font-bold transition-colors whitespace-nowrap">
+              <CreditCard size={13} /> Gérer les formules
+            </Link>
+          </div>
 
           {/* Existing plans */}
           <div className="space-y-2">
@@ -499,40 +484,8 @@ export default function MembersPage() {
               </div>
             ))}
             {plans.length === 0 && (
-              <p className="text-xs text-gray-600 italic">Aucun contrat créé. Tous les membres sont en accès illimité.</p>
+              <p className="text-xs text-gray-600 italic">Aucun contrat créé. Tous les membres sont en accès illimité. Crée une formule dans « Offres &amp; Programmes ».</p>
             )}
-          </div>
-
-          {/* Create new plan */}
-          <div className="flex items-end gap-3">
-            <div className="flex-1">
-              <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1 block">Nom</label>
-              <input value={newPlanName} onChange={e => setNewPlanName(e.target.value)}
-                placeholder="Ex: Essentiel, Premium…"
-                className="w-full bg-[#0A0A0A] border border-white/10 rounded-lg px-3 py-2 text-xs text-white placeholder-gray-600 focus:outline-none focus:border-white/50" />
-            </div>
-            <div className="w-28">
-              <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1 block">Séances/sem</label>
-              <input type="number" min={1} value={newPlanMax} onChange={e => setNewPlanMax(e.target.value)}
-                placeholder="∞"
-                className="w-full bg-[#0A0A0A] border border-white/10 rounded-lg px-3 py-2 text-xs text-white placeholder-gray-600 focus:outline-none focus:border-white/50" />
-            </div>
-            <div className="w-28">
-              <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1 block">Prix €/mois</label>
-              <input type="number" min={0} step="0.01" value={newPlanPrice} onChange={e => setNewPlanPrice(e.target.value)}
-                placeholder="0 = gratuit"
-                className="w-full bg-[#0A0A0A] border border-white/10 rounded-lg px-3 py-2 text-xs text-white placeholder-gray-600 focus:outline-none focus:border-white/50" />
-            </div>
-            <div className="w-16">
-              <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1 block">Couleur</label>
-              <input type="color" value={newPlanColor} onChange={e => setNewPlanColor(e.target.value)}
-                className="w-full h-[34px] bg-[#0A0A0A] border border-white/10 rounded-lg cursor-pointer" />
-            </div>
-            <button onClick={createPlan} disabled={creatingPlan || !newPlanName.trim()}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-white hover:bg-[#B8911F] text-[#0A0A0A] text-xs font-bold transition-colors disabled:opacity-50">
-              {creatingPlan ? <Loader2 size={12} className="animate-spin" /> : <Plus size={12} />}
-              Créer
-            </button>
           </div>
         </div>
       )}
