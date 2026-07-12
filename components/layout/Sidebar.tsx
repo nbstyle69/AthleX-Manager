@@ -15,7 +15,7 @@ const NAV = [
   { href: '/tournaments',  label: 'Tournois',    icon: Trophy },
   { href: '/groups',       label: 'Groupes',     icon: FolderOpen },
   { href: '/members',      label: 'Membres',     icon: Users },
-  { href: '/programs',     label: 'Programmation', icon: BookOpen },
+  { href: '/programs',     label: 'Offres & Programmes', icon: BookOpen },
   { href: '/subscribers',  label: 'Abonnés',     icon: CreditCard },
   { href: '/stats',        label: 'Statistiques', icon: BarChart3 },
   { href: '/messages',     label: 'Messages',    icon: MessageSquare },

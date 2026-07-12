@@ -26,6 +26,18 @@ interface Program {
   member_count?: number;
 }
 
+interface MembershipPlan {
+  id: string;
+  box_id: string;
+  name: string;
+  description: string | null;
+  price_cents: number;
+  max_sessions_per_week: number | null;
+  color: string;
+  is_active: boolean;
+  sort_order: number;
+}
+
 interface ProgramWOD {
   id: string;
   program_id: string;
@@ -56,6 +68,17 @@ const EMPTY_FORM = {
   type: 'fixed' as 'fixed' | 'ongoing',
   duration_weeks: '6',
   days_per_week: '5',
+  is_active: true,
+};
+
+const PLAN_COLORS = ['#FFFFFF', '#EF4444', '#3B82F6', '#8B5CF6', '#16A34A', '#F59E0B', '#EC4899'];
+
+const EMPTY_PLAN_FORM = {
+  name: '',
+  description: '',
+  price: '' as string,
+  max_sessions_per_week: '' as string,
+  color: PLAN_COLORS[0],
   is_active: true,
 };
 
@@ -90,6 +113,14 @@ export default function BoxOwnerProgramsPage() {
   const [editId, setEditId] = useState<string | null>(null);
   const [form, setForm] = useState(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
+
+  // Abonnements (formules d'abonnement de la salle)
+  const [plans, setPlans] = useState<MembershipPlan[]>([]);
+  const [showPlanForm, setShowPlanForm] = useState(false);
+  const [editPlanId, setEditPlanId] = useState<string | null>(null);
+  const [planForm, setPlanForm] = useState(EMPTY_PLAN_FORM);
+  const [planSaving, setPlanSaving] = useState(false);
+  const [planError, setPlanError] = useState<string | null>(null);
 
   const [codeCopied, setCodeCopied] = useState<string | null>(null);
 
@@ -148,7 +179,19 @@ export default function BoxOwnerProgramsPage() {
       member_count: p.program_members?.[0]?.count ?? 0,
     }));
     setPrograms(mapped as Program[]);
+
+    await loadPlans(box.id);
     setLoading(false);
+  }
+
+  async function loadPlans(id: string) {
+    const { data } = await supabase
+      .from('membership_plans')
+      .select('id, box_id, name, description, price_cents, max_sessions_per_week, color, is_active, sort_order')
+      .eq('box_id', id)
+      .order('sort_order', { ascending: true })
+      .order('price_cents', { ascending: true });
+    setPlans((data ?? []) as MembershipPlan[]);
   }
 
   async function startOnboarding() {
@@ -265,6 +308,86 @@ export default function BoxOwnerProgramsPage() {
     loadAll();
   }
 
+  // ── Abonnements (formules) ──
+  function openNewPlan() {
+    setEditPlanId(null);
+    setPlanForm(EMPTY_PLAN_FORM);
+    setPlanError(null);
+    setShowPlanForm(true);
+  }
+
+  function openEditPlan(pl: MembershipPlan) {
+    setEditPlanId(pl.id);
+    setPlanForm({
+      name: pl.name,
+      description: pl.description ?? '',
+      price: pl.price_cents ? String(pl.price_cents / 100) : '',
+      max_sessions_per_week: pl.max_sessions_per_week ? String(pl.max_sessions_per_week) : '',
+      color: pl.color ?? PLAN_COLORS[0],
+      is_active: pl.is_active,
+    });
+    setPlanError(null);
+    setShowPlanForm(true);
+  }
+
+  async function handleSavePlan() {
+    if (!planForm.name.trim() || !boxId) return;
+    setPlanSaving(true);
+    setPlanError(null);
+
+    const priceCents = planForm.price.trim() === ''
+      ? 0
+      : Math.round(parseFloat(planForm.price.replace(',', '.')) * 100);
+    const maxVal = planForm.max_sessions_per_week.trim() === ''
+      ? null
+      : parseInt(planForm.max_sessions_per_week);
+
+    if (!Number.isFinite(priceCents) || priceCents < 0) {
+      setPlanError('Prix invalide.');
+      setPlanSaving(false);
+      return;
+    }
+
+    const payload = {
+      box_id: boxId,
+      name: planForm.name.trim(),
+      description: planForm.description.trim() || null,
+      price_cents: priceCents,
+      max_sessions_per_week: maxVal,
+      color: planForm.color,
+      is_active: planForm.is_active,
+    };
+
+    const { error } = editPlanId
+      ? await supabase.from('membership_plans').update(payload).eq('id', editPlanId)
+      : await supabase.from('membership_plans').insert(payload);
+
+    if (error) {
+      setPlanError(
+        error.code === '23505'
+          ? 'Une formule porte déjà ce nom.'
+          : "Impossible d'enregistrer la formule.",
+      );
+      setPlanSaving(false);
+      return;
+    }
+
+    setPlanSaving(false);
+    setShowPlanForm(false);
+    if (boxId) await loadPlans(boxId);
+  }
+
+  async function handleDeletePlan(id: string) {
+    if (!confirm('Supprimer cette formule ? Les membres associés passeront en illimité.')) return;
+    await supabase.from('membership_plans').delete().eq('id', id);
+    if (boxId) await loadPlans(boxId);
+  }
+
+  async function togglePlanActive(pl: MembershipPlan) {
+    await supabase.from('membership_plans').update({ is_active: !pl.is_active }).eq('id', pl.id);
+    if (boxId) await loadPlans(boxId);
+  }
+
   // ── WOD Editor functions ──
   async function openEditor(p: Program) {
     setEditorProgram(p);
@@ -367,8 +490,8 @@ export default function BoxOwnerProgramsPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-2xl font-black text-white">Programmation</h1>
-        <p className="text-sm text-gray-500 mt-1">Créez et gérez vos programmes de coaching</p>
+        <h1 className="text-2xl font-black text-white">Offres & Programmation</h1>
+        <p className="text-sm text-gray-500 mt-1">Gérez vos abonnements de salle et vos programmes de coaching</p>
       </div>
 
       {/* Slug / Public page */}
@@ -453,6 +576,79 @@ export default function BoxOwnerProgramsPage() {
                 )}
               </div>
             </div>
+          </div>
+        )}
+      </div>
+
+      {/* Abonnements (formules de la salle) */}
+      <div>
+        <div className="flex items-center justify-between mb-1">
+          <h2 className="text-lg font-black text-white">Abonnements de la salle</h2>
+          <button onClick={openNewPlan} className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold transition-all">
+            <Plus size={16} /> Créer une formule
+          </button>
+        </div>
+        <p className="text-xs text-gray-500 mb-4">
+          Formules mensuelles d'accès à la salle (quota de séances/semaine). Un prix &gt; 0 affiche le bouton « S'abonner » sur ta page publique (paiement Stripe). Une formule à 0 € reste « gratuite » et s'assigne manuellement dans Membres.
+        </p>
+
+        {loading ? (
+          <div className="text-center py-10 text-gray-500">Chargement…</div>
+        ) : plans.length === 0 ? (
+          <div className="text-center py-12 bg-[#111] border border-white/[0.06] rounded-2xl">
+            <CreditCard size={36} className="mx-auto text-gray-600 mb-3" />
+            <p className="text-gray-500 text-sm">Aucune formule d'abonnement</p>
+            <p className="text-gray-600 text-xs mt-1">Créez votre première formule mensuelle</p>
+          </div>
+        ) : (
+          <div className="grid gap-3">
+            {plans.map(pl => (
+              <div key={pl.id} className={`bg-[#111] border border-white/[0.06] rounded-2xl p-5 ${!pl.is_active ? 'opacity-50' : ''}`}>
+                <div className="flex items-start justify-between">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: pl.color }} />
+                      <span className="font-bold text-white text-base truncate">{pl.name}</span>
+                      {pl.price_cents > 0 ? (
+                        <span className="text-[10px] px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-400 font-bold">Payante</span>
+                      ) : (
+                        <span className="text-[10px] px-2 py-0.5 rounded-md bg-white/5 text-gray-400 font-semibold">Gratuite</span>
+                      )}
+                      {!pl.is_active && (
+                        <span className="text-[10px] px-2 py-0.5 rounded-md bg-red-500/10 text-red-400 font-semibold">Inactif</span>
+                      )}
+                    </div>
+                    {pl.description && <p className="text-xs text-gray-500 mt-1 line-clamp-2">{pl.description}</p>}
+                    <div className="flex items-center gap-1.5 mt-2 text-xs text-gray-500">
+                      <Calendar size={13} />
+                      <span className="font-semibold">
+                        {pl.max_sessions_per_week
+                          ? `${pl.max_sessions_per_week} séance${pl.max_sessions_per_week > 1 ? 's' : ''}/semaine`
+                          : 'Séances illimitées'}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 ml-4 flex-shrink-0">
+                    <span className="text-sm font-black text-emerald-400 bg-emerald-500/10 px-3 py-1.5 rounded-xl whitespace-nowrap">
+                      {formatPrice(pl.price_cents)}
+                      {pl.price_cents > 0 && <span className="text-[10px] text-gray-500 font-semibold"> /mois</span>}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 mt-4 pt-3 border-t border-white/[0.06]">
+                  <button onClick={() => openEditPlan(pl)} className="flex items-center gap-1.5 px-3 py-2 rounded-lg hover:bg-white/5 text-gray-400 hover:text-white text-xs font-semibold transition-all">
+                    <Pencil size={13} /> Modifier
+                  </button>
+                  <button onClick={() => togglePlanActive(pl)} className="flex items-center gap-1.5 px-3 py-2 rounded-lg hover:bg-white/5 text-gray-400 hover:text-white text-xs font-semibold transition-all">
+                    {pl.is_active ? 'Désactiver' : 'Activer'}
+                  </button>
+                  <button onClick={() => handleDeletePlan(pl.id)} className="flex items-center gap-1.5 px-3 py-2 rounded-lg hover:bg-red-500/10 text-gray-500 hover:text-red-400 text-xs font-semibold transition-all">
+                    <Trash2 size={13} /> Supprimer
+                  </button>
+                </div>
+              </div>
+            ))}
           </div>
         )}
       </div>
@@ -641,6 +837,101 @@ export default function BoxOwnerProgramsPage() {
           </div>
         </div>
       )}
+
+      {/* Modal form — Abonnement (formule) */}
+      {showPlanForm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="w-full max-w-lg bg-[#111] border border-white/[0.06] rounded-2xl p-6 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-lg font-black text-white">
+                {editPlanId ? 'Modifier la formule' : 'Nouvelle formule'}
+              </h2>
+              <button onClick={() => setShowPlanForm(false)} className="text-gray-500 hover:text-white"><X size={20} /></button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="text-xs font-bold text-gray-400 mb-1 block">Nom *</label>
+                <input
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white outline-none focus:border-emerald-500/50"
+                  value={planForm.name} onChange={e => setPlanForm({ ...planForm, name: e.target.value })}
+                  placeholder="Essentiel, Premium…"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-gray-400 mb-1 block">Description</label>
+                <textarea
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white outline-none focus:border-emerald-500/50 min-h-[70px]"
+                  value={planForm.description} onChange={e => setPlanForm({ ...planForm, description: e.target.value })}
+                  placeholder="Accès illimité aux cours…"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-bold text-gray-400 mb-1 block">Prix (€/mois)</label>
+                  <input
+                    type="number" min={0} step="0.01"
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white outline-none focus:border-emerald-500/50"
+                    value={planForm.price} onChange={e => setPlanForm({ ...planForm, price: e.target.value })}
+                    placeholder="0 = gratuit"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-gray-400 mb-1 block">Séances / semaine</label>
+                  <input
+                    type="number" min={1}
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white outline-none focus:border-emerald-500/50"
+                    value={planForm.max_sessions_per_week} onChange={e => setPlanForm({ ...planForm, max_sessions_per_week: e.target.value })}
+                    placeholder="∞ (illimité)"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-gray-400 mb-2 block">Couleur</label>
+                <div className="flex items-center gap-2">
+                  {PLAN_COLORS.map(c => (
+                    <button
+                      key={c}
+                      onClick={() => setPlanForm({ ...planForm, color: c })}
+                      className={`w-7 h-7 rounded-full border-2 transition-all ${planForm.color === c ? 'border-white scale-110' : 'border-transparent'}`}
+                      style={{ backgroundColor: c }}
+                      aria-label={c}
+                    />
+                  ))}
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3 pt-2">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox" checked={planForm.is_active}
+                    onChange={e => setPlanForm({ ...planForm, is_active: e.target.checked })}
+                    className="w-4 h-4 rounded accent-emerald-500"
+                  />
+                  <span className="text-sm text-gray-300 font-semibold">Active (visible pour les athlètes)</span>
+                </label>
+              </div>
+
+              {planError && <p className="text-xs text-red-400">{planError}</p>}
+            </div>
+
+            <div className="flex justify-end gap-3 mt-6">
+              <button onClick={() => setShowPlanForm(false)} className="px-4 py-2.5 rounded-xl text-sm font-bold text-gray-400 hover:text-white hover:bg-white/5 transition-all">Annuler</button>
+              <button
+                onClick={handleSavePlan}
+                disabled={planSaving || !planForm.name.trim()}
+                className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white text-sm font-bold transition-all"
+              >
+                {planSaving ? 'Enregistrement…' : editPlanId ? 'Modifier' : 'Créer la formule'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* WOD Editor panel */}
       {editorProgram && (
         <div className="fixed inset-0 z-50 bg-[#0A0A0A] overflow-y-auto">
