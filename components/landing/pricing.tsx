@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { useLanguage } from '@/components/language-provider';
 import { cn } from '@/lib/utils';
 
-const HREFS = ['/pricing/onboarding', '/pricing/onboarding', 'mailto:contact@athlex.app'];
+const HREFS = ['/pricing/onboarding', '/pricing/onboarding'];
 
 export function Pricing() {
   const { t } = useLanguage();
@@ -22,7 +22,7 @@ export function Pricing() {
           <p className="mt-4 text-muted-foreground">{t.pricing.subtitle}</p>
         </div>
 
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+        <div className="mx-auto grid max-w-3xl grid-cols-1 gap-6 md:grid-cols-2">
           {t.pricing.plans.map((plan, i) => {
             const featured = i === 1;
             return (
@@ -42,8 +42,9 @@ export function Pricing() {
                 <p className="mt-1 text-sm text-muted-foreground">{plan.desc}</p>
                 <div className="mt-5 flex items-baseline gap-1">
                   <span className="font-display text-4xl font-bold text-foreground">{plan.price}</span>
-                  {i === 1 && <span className="text-sm text-muted-foreground">{t.pricing.perMonth}</span>}
+                  <span className="text-sm text-muted-foreground">{t.pricing.perMonth}</span>
                 </div>
+                <p className="mt-1 text-xs text-muted-foreground">{plan.priceNote}</p>
                 <ul className="mt-6 flex-1 space-y-3">
                   {plan.features.map((f) => (
                     <li key={f} className="flex items-center gap-3 text-sm text-foreground">

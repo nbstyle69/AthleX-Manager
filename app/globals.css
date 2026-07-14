@@ -73,6 +73,11 @@ html.light .hover\:bg-white\/5:hover  { background-color: rgba(0,0,0,0.04); }
 html.light .divide-white\/5 > * + *   { border-color: rgba(0,0,0,0.05); }
 html.light .scrollbar-track           { background: transparent; }
 
+/* Landing logo mark: silver on dark (default), charcoal on light */
+.logo-mark-light { display: none; }
+html.light .logo-mark-dark { display: none; }
+html.light .logo-mark-light { display: block; }
+
 * { box-sizing: border-box; }
 
 body {

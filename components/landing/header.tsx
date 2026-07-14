@@ -16,6 +16,7 @@ export function LandingHeader() {
   const nav = [
     { href: '#features', label: t.nav.features },
     { href: '#app', label: t.nav.app },
+    { href: '#classement', label: t.nav.ranking },
     { href: '#pricing', label: t.nav.pricing },
     { href: '/box', label: t.nav.boxes },
   ];
@@ -41,6 +42,12 @@ export function LandingHeader() {
 
         <div className="hidden items-center gap-3 md:flex">
           <LanguageToggle />
+          <a
+            href="/signup"
+            className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+          >
+            {t.nav.signup}
+          </a>
           <a
             href="/login"
             className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
@@ -76,6 +83,13 @@ export function LandingHeader() {
                 {item.label}
               </a>
             ))}
+            <a
+              href="/signup"
+              onClick={() => setOpen(false)}
+              className="rounded-md px-2 py-2.5 text-sm font-medium text-muted-foreground hover:bg-accent hover:text-foreground"
+            >
+              {t.nav.signup}
+            </a>
             <a
               href="/login"
               onClick={() => setOpen(false)}
