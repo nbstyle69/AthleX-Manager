@@ -104,6 +104,25 @@ export const translations = {
       avgElo: 'ELO moyen',
       membersLabel: 'membres',
       empty: 'Le classement se remplira dès les premières compétitions.',
+      searchPlaceholder: 'Rechercher un pseudo…',
+      noResults: 'Aucun athlète trouvé pour cette recherche.',
+      viewMore: 'Voir plus',
+      countAthletes: 'athlètes inscrits',
+      back: "Retour à l'accueil",
+    },
+    athleteCta: {
+      tag: 'Athlètes',
+      title: 'Crée ton compte athlète',
+      subtitle:
+        "Entraîne-toi, réserve tes cours, suis tes records et grimpe au classement ELO. Crée ton compte sur le web — il fonctionne directement dans l'app mobile.",
+      cta: 'Créer mon compte',
+      note: "Après l'inscription, télécharge l'app iOS ou Android pour t'entraîner.",
+      benefits: [
+        'Réservation des cours & créneaux',
+        'WODs, scores & records perso (PR)',
+        'Timer, badges & progression ELO',
+        'Classements, tournois & communauté',
+      ],
     },
     pricing: {
       tag: 'Tarifs',
@@ -267,6 +286,25 @@ export const translations = {
       avgElo: 'Avg ELO',
       membersLabel: 'members',
       empty: 'The leaderboard will fill up once the first competitions run.',
+      searchPlaceholder: 'Search a username…',
+      noResults: 'No athlete found for this search.',
+      viewMore: 'View more',
+      countAthletes: 'registered athletes',
+      back: 'Back to home',
+    },
+    athleteCta: {
+      tag: 'Athletes',
+      title: 'Create your athlete account',
+      subtitle:
+        'Train, book your classes, track your records and climb the ELO leaderboard. Create your account on the web — it works right away in the mobile app.',
+      cta: 'Create my account',
+      note: 'After signing up, download the iOS or Android app to start training.',
+      benefits: [
+        'Class & slot booking',
+        'WODs, scores & personal records (PR)',
+        'Timer, badges & ELO progression',
+        'Rankings, tournaments & community',
+      ],
     },
     pricing: {
       tag: 'Pricing',
