@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import ProgramBuyButton from './ProgramBuyButton';
 import MembershipSubscribeButton from './MembershipSubscribeButton';
+import MembershipManageButton from './MembershipManageButton';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -271,7 +272,18 @@ export default async function BoxPublicPage({ params }: { params: Promise<{ slug
               <h2 className="text-lg font-black mb-1 flex items-center gap-2">
                 <Users size={18} style={{ color: GOLD }} /> Abonnements
               </h2>
-              <p className="text-xs text-gray-500 mb-4">Rejoins {b.name} — choisis ta formule mensuelle</p>
+              <div className="flex items-center justify-between gap-3 mb-4">
+                <p className="text-xs text-gray-500">Rejoins {b.name} — choisis ta formule mensuelle</p>
+                {plans.length > 1 && (
+                  <MembershipManageButton
+                    plans={plans.map(pl => ({
+                      id: pl.id,
+                      name: pl.name,
+                      priceLabel: `${formatPrice(pl.price_cents)}/mois`,
+                    }))}
+                  />
+                )}
+              </div>
               <div className="grid gap-4 sm:grid-cols-2">
                 {plans.map(pl => (
                   <div key={pl.id} className="bg-[#111] border border-white/[0.06] rounded-2xl p-5 flex flex-col">

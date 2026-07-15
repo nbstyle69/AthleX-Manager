@@ -12,6 +12,18 @@ function getStripe() {
 const MEMBERSHIP_FEE_PERCENT = Number(process.env.MEMBERSHIP_FEE_PERCENT ?? '0');
 
 /**
+ * Prorata calendaire : ancre la facturation au 1er du mois suivant (00:00 UTC).
+ * Combiné à proration_behavior='create_prorations', Stripe facture au checkout
+ * uniquement les jours restants du mois en cours, puis le plein tarif chaque 1er.
+ */
+function firstOfNextMonthUnix(now: Date = new Date()): number {
+  const anchor = new Date(
+    Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1, 0, 0, 0),
+  );
+  return Math.floor(anchor.getTime() / 1000);
+}
+
+/**
  * Crée une session Stripe Checkout pour l'abonnement à une salle (formule),
  * en charge directe sur le compte connecté de la box (Stripe Connect).
  * Toujours en mode 'subscription' (abonnement mensuel).
@@ -112,6 +124,10 @@ export async function POST(req: NextRequest) {
         customer_email: buyer_email,
         line_items: [{ price: priceId, quantity: 1 }],
         subscription_data: {
+          // Prorata calendaire : 1re facture = jours restants du mois en cours,
+          // puis plein tarif ancré au 1er de chaque mois.
+          billing_cycle_anchor: firstOfNextMonthUnix(),
+          proration_behavior: 'create_prorations',
           ...(MEMBERSHIP_FEE_PERCENT > 0
             ? { application_fee_percent: MEMBERSHIP_FEE_PERCENT }
             : {}),

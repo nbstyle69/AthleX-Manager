@@ -155,10 +155,30 @@ export async function POST(req: NextRequest) {
         const periodEnd = sub.current_period_end
           ? new Date(sub.current_period_end * 1000).toISOString()
           : null;
+
+        // Sync du plan après un changement de formule : on retrouve la formule
+        // via le prix Stripe courant (ou la metadata plan_id) et on met à jour box_members.
+        const planPatch: { plan_id?: string; amount_cents?: number } = {};
+        const metaPlanId = sub.metadata?.plan_id as string | undefined;
+        const currentPriceId = sub.items?.data?.[0]?.price?.id as string | undefined;
+        if (metaPlanId) {
+          planPatch.plan_id = metaPlanId;
+        } else if (currentPriceId) {
+          const { data: matchedPlan } = await (supabase.from as any)('membership_plans')
+            .select('id, price_cents')
+            .eq('stripe_price_id', currentPriceId)
+            .maybeSingle();
+          if (matchedPlan?.id) {
+            planPatch.plan_id = matchedPlan.id;
+            planPatch.amount_cents = matchedPlan.price_cents;
+          }
+        }
+
         await (supabase.from as any)('box_members')
           .update({
             subscription_status: memberStatus,
             subscription_current_period_end: periodEnd,
+            ...(memberStatus !== 'cancelled' ? planPatch : {}),
           })
           .eq('stripe_subscription_id', sub.id);
         break;
