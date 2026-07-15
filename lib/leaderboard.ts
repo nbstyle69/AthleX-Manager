@@ -1,24 +1,51 @@
 import { createServiceClient } from '@/lib/supabase/server';
-import type { AthleteRow, BoxRow } from '@/components/landing/leaderboard';
+
+export interface AthleteRow {
+  username: string;
+  level: string | null;
+  avatar_url: string | null;
+  elo: number;
+}
+
+export interface BoxRow {
+  name: string;
+  city: string | null;
+  slug: string;
+  avgElo: number;
+  members: number;
+}
 
 const ATHLETE_LIMIT = 10;
 const BOX_LIMIT = 10;
+// Full public leaderboard page: cap the athlete list to keep the payload sane.
+const FULL_ATHLETE_LIMIT = 1000;
 
 export async function getLeaderboards(): Promise<{
   athletes: AthleteRow[];
   boxes: BoxRow[];
 }> {
   try {
-    return await fetchLeaderboards();
+    return await fetchLeaderboards(ATHLETE_LIMIT, BOX_LIMIT);
   } catch {
     return { athletes: [], boxes: [] };
   }
 }
 
-async function fetchLeaderboards(): Promise<{
+export async function getFullLeaderboard(): Promise<{
   athletes: AthleteRow[];
   boxes: BoxRow[];
 }> {
+  try {
+    return await fetchLeaderboards(FULL_ATHLETE_LIMIT, Infinity);
+  } catch {
+    return { athletes: [], boxes: [] };
+  }
+}
+
+async function fetchLeaderboards(
+  athleteLimit: number,
+  boxLimit: number,
+): Promise<{ athletes: AthleteRow[]; boxes: BoxRow[] }> {
   const supabase = createServiceClient();
 
   const [{ data: profiles }, { data: memberships }, { data: boxes }] = await Promise.all([
@@ -27,7 +54,7 @@ async function fetchLeaderboards(): Promise<{
       .select('id, username, level, avatar_url, elo')
       .eq('role', 'member')
       .order('elo', { ascending: false })
-      .limit(ATHLETE_LIMIT),
+      .limit(athleteLimit),
     supabase
       .from('box_members')
       .select('box_id, profiles(elo)')
@@ -72,7 +99,7 @@ async function fetchLeaderboards(): Promise<{
     })
     .filter((b): b is BoxRow => b !== null)
     .sort((a, b) => b.avgElo - a.avgElo)
-    .slice(0, BOX_LIMIT);
+    .slice(0, Number.isFinite(boxLimit) ? boxLimit : undefined);
 
   return { athletes, boxes: boxRows };
 }
