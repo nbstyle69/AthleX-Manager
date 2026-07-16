@@ -8,6 +8,14 @@ function getStripe() {
   });
 }
 
+// `current_period_end` was moved from the subscription object to the
+// subscription items in Stripe's newer API versions. Read both so the renewal
+// date resolves whatever version the event was serialized with.
+function subscriptionPeriodEnd(sub: any): string | null {
+  const epoch = sub?.current_period_end ?? sub?.items?.data?.[0]?.current_period_end ?? null;
+  return epoch ? new Date(epoch * 1000).toISOString() : null;
+}
+
 /**
  * Webhook dédié aux comptes connectés (Stripe Connect).
  * Gère l'achat de programmes (charge directe sur le compte de la box) :
@@ -80,12 +88,14 @@ export async function POST(req: NextRequest) {
             .eq('member_id', userId)
             .maybeSingle();
 
-          if (existing?.id) {
-            await (supabase.from as any)('box_members').update(patch).eq('id', existing.id);
-          } else {
-            await (supabase.from as any)('box_members').insert({
-              box_id: boxId, member_id: userId, role: 'member', ...patch,
-            });
+          const { error: writeErr } = existing?.id
+            ? await (supabase.from as any)('box_members').update(patch).eq('id', existing.id)
+            : await (supabase.from as any)('box_members').insert({
+                box_id: boxId, member_id: userId, role: 'member', ...patch,
+              });
+          if (writeErr) {
+            console.error(`Membership box_members write failed for user ${userId} on box ${boxId}:`, writeErr.message);
+            return NextResponse.json({ error: writeErr.message }, { status: 500 });
           }
 
           console.log(`Membership plan ${planId} activated for user ${userId} on box ${boxId}`);
@@ -152,9 +162,7 @@ export async function POST(req: NextRequest) {
         const memberStatus = sub.status === 'active' || sub.status === 'trialing' ? 'active'
           : sub.status === 'past_due' || sub.status === 'unpaid' ? 'past_due'
           : 'cancelled';
-        const periodEnd = sub.current_period_end
-          ? new Date(sub.current_period_end * 1000).toISOString()
-          : null;
+        const periodEnd = subscriptionPeriodEnd(sub);
 
         // Sync du plan après un changement de formule : on retrouve la formule
         // via le prix Stripe courant (ou la metadata plan_id) et on met à jour box_members.
@@ -174,13 +182,16 @@ export async function POST(req: NextRequest) {
           }
         }
 
-        await (supabase.from as any)('box_members')
+        const { error: subUpdErr } = await (supabase.from as any)('box_members')
           .update({
             subscription_status: memberStatus,
             subscription_current_period_end: periodEnd,
             ...(memberStatus !== 'cancelled' ? planPatch : {}),
           })
           .eq('stripe_subscription_id', sub.id);
+        if (subUpdErr) {
+          console.error(`box_members subscription update failed for ${sub.id}:`, subUpdErr.message);
+        }
         break;
       }
 
