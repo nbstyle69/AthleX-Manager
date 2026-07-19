@@ -1,8 +1,8 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { Plus, Pencil, Trash2, Timer, CheckCircle, Clock, Layers, Globe, Calendar } from 'lucide-react';
+import { Plus, Pencil, Trash2, Timer, CheckCircle, Clock, Layers, Globe, Calendar, Trophy } from 'lucide-react';
 import WODForm from './WODForm';
 
 interface Division { id: string; name: string; level: number; }
@@ -47,6 +47,37 @@ export default function TournamentWODManager({ tournamentId, initialWODs, divisi
   const [editWOD,  setEditWOD]  = useState<any | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
   const [selectedSeason, setSelectedSeason] = useState<number>(currentSeason);
+  // League per-WOD ELO: which WODs already had ELO attributed, and busy/feedback state.
+  const [eloDone, setEloDone]   = useState<Record<string, boolean>>({});
+  const [eloBusy, setEloBusy]   = useState<string | null>(null);
+  const [eloMsg,  setEloMsg]    = useState<{ id: string; text: string; ok: boolean } | null>(null);
+
+  useEffect(() => {
+    if (!isLeague) return;
+    const supabase = createClient();
+    supabase
+      .from('tournament_wod_elo_history')
+      .select('tournament_wod_id')
+      .eq('tournament_id', tournamentId)
+      .then(({ data }) => {
+        if (data) setEloDone(Object.fromEntries(data.map((r: { tournament_wod_id: string }) => [r.tournament_wod_id, true])));
+      });
+  }, [isLeague, tournamentId, wods]);
+
+  async function attributeWodElo(wod: { id: string }) {
+    setEloBusy(wod.id);
+    setEloMsg(null);
+    const supabase = createClient();
+    const { data, error } = await supabase.rpc('compute_league_wod_elo', { p_tournament_wod_id: wod.id });
+    setEloBusy(null);
+    if (error) {
+      setEloMsg({ id: wod.id, text: error.message, ok: false });
+      return;
+    }
+    setEloDone(prev => ({ ...prev, [wod.id]: true }));
+    const n = Array.isArray(data) ? data.length : 0;
+    setEloMsg({ id: wod.id, text: n > 0 ? `ELO attribué à ${n} athlète${n > 1 ? 's' : ''}` : 'ELO déjà attribué', ok: true });
+  }
 
   // Available seasons = union of WOD seasons + current season, sorted desc.
   const availableSeasons = useMemo(() => {
@@ -235,6 +266,20 @@ export default function TournamentWODManager({ tournamentId, initialWODs, divisi
 
                 {/* Action buttons */}
                 <div className="shrink-0 flex items-center gap-1.5">
+                  {isLeague && (
+                    eloDone[wod.id] ? (
+                      <span title="ELO déjà attribué pour ce WOD"
+                        className="inline-flex items-center gap-1 px-2.5 py-2 rounded-lg bg-yellow-500/15 text-yellow-400 text-[11px] font-bold">
+                        <Trophy size={13} /> ELO attribué
+                      </span>
+                    ) : (
+                      <button onClick={() => attributeWodElo(wod)} disabled={eloBusy === wod.id}
+                        title="Calculer les gains/pertes d'ELO de ce WOD (par division)"
+                        className="inline-flex items-center gap-1 px-2.5 py-2 rounded-lg bg-yellow-500/10 text-yellow-400 hover:bg-yellow-500/20 text-[11px] font-bold transition-colors disabled:opacity-40">
+                        <Trophy size={13} /> {eloBusy === wod.id ? '…' : 'Attribuer ELO'}
+                      </button>
+                    )
+                  )}
                   <button onClick={() => toggleStatus(wod)}
                     title={wod.status === 'active' ? 'Fermer le WOD' : 'Activer le WOD'}
                     className={`p-2 rounded-lg transition-colors ${
@@ -254,6 +299,11 @@ export default function TournamentWODManager({ tournamentId, initialWODs, divisi
                   </button>
                 </div>
               </div>
+              {isLeague && eloMsg && eloMsg.id === wod.id && (
+                <p className={`mt-2 text-xs font-semibold ${eloMsg.ok ? 'text-yellow-400' : 'text-red-400'}`}>
+                  {eloMsg.text}
+                </p>
+              )}
             </div>
           );
         })}
