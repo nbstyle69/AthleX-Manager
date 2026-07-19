@@ -319,7 +319,7 @@ export default function OnboardingPage() {
                     required
                     value={boxName}
                     onChange={e => setBoxName(e.target.value)}
-                    placeholder="CrossFit Atlas, Box Forge…"
+                    placeholder="Nom de ma salle ici"
                     className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-white transition-colors"
                   />
                 </div>

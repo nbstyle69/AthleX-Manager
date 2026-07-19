@@ -16,7 +16,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Données insuffisantes' }, { status: 400 });
     }
 
-    const prompt = `Tu es un juge expert CrossFit chargé d'analyser un score soumis par un athlète.
+    const prompt = `Tu es un juge expert functional fitness chargé d'analyser un score soumis par un athlète.
 
 Contexte :
 - Athlète : ${athleteName ?? 'Inconnu'} (Niveau: ${athleteLevel ?? 'rx'}, ELO: ${athleteElo ?? 1000})

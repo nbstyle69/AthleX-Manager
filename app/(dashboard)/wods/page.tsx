@@ -391,11 +391,11 @@ export default function WODsPage() {
   //   block     = skill-gym | skill-haltero | wod | pre-wod | post-wod  (optionnel)
   //   published = true/false  (défaut true)
   //   rank      = true/false  (défaut true) → leaderboard_enabled
-  //   groups    = noms séparés par | (ex: Compétiteurs|CrossFit Avancé) — vide = visible par tous
+  //   groups    = noms séparés par | (ex: Compétiteurs|Niveau Avancé) — vide = visible par tous
   function downloadTemplate() {
     const headers = 'date,title,type,description,timecap,rounds,notes,block,published,rank,groups';
     const examples = [
-      `2026-03-10,Fran,for-time,"21-15-9 Thrusters (43kg) + Pull-ups",20,,"Objectif sub 5min",wod,true,true,Compétiteurs|CrossFit Avancé`,
+      `2026-03-10,Fran,for-time,"21-15-9 Thrusters (43kg) + Pull-ups",20,,"Objectif sub 5min",wod,true,true,Compétiteurs|Niveau Avancé`,
       `2026-03-10,Front Squat,strength,"5x3 Front Squat @80-85%",,5,"Repos 3min entre séries",skill-haltero,true,false,`,
       `2026-03-11,Cindy,amrap,"5 Pull-ups / 10 Push-ups / 15 Air Squats",20,,"Comptez vos rounds complets",wod,true,true,`,
       `2026-03-12,Karen,for-time,"150 Wall Balls (9kg / cible 3m)",20,,,wod,false,true,Groupe du Matin`,

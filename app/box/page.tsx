@@ -8,7 +8,7 @@ export const revalidate = 300;
 export const metadata = {
   title: 'Trouver une box — AthleX',
   description:
-    'Découvre les box CrossFit, Hyrox et functional training qui utilisent AthleX. Trouve la salle proche de chez toi et rejoins la communauté.',
+    'Découvre les box de functional fitness, hybrid et cross training qui utilisent AthleX. Trouve la salle proche de chez toi et rejoins la communauté.',
 };
 
 const GOLD = '#FFFFFF';
@@ -92,7 +92,7 @@ export default async function BoxDirectoryPage() {
       <section className="pt-24 pb-8 max-w-5xl mx-auto px-6">
         <h1 className="text-3xl md:text-4xl font-black tracking-tight">Trouver une box</h1>
         <p className="text-sm text-gray-400 mt-2 max-w-xl">
-          Découvre les salles qui utilisent AthleX — CrossFit, Hyrox, functional training. Trouve
+          Découvre les salles qui utilisent AthleX — functional fitness, hybrid, cross training. Trouve
           celle proche de chez toi et rejoins sa communauté.
         </p>
       </section>

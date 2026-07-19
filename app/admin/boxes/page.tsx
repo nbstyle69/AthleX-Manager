@@ -199,7 +199,7 @@ export default function AdminBoxesPage() {
             <div className="space-y-4">
               <div>
                 <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">Nom *</label>
-                <input value={newName} onChange={e => setNewName(e.target.value)} placeholder="Crossfit NBS"
+                <input value={newName} onChange={e => setNewName(e.target.value)} placeholder="Nom de ma salle ici"
                   className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-emerald-500/50" />
               </div>
               <div>

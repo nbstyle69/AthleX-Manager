@@ -16,7 +16,7 @@ export async function POST(req: NextRequest) {
       'Max Reps':   'timer_type: "countdown", time_cap_seconds = duration_minutes*60, rounds: null',
     };
 
-    const prompt = `Tu es un programmateur CrossFit expert. Génère un WOD de compétition.
+    const prompt = `Tu es un programmateur functional fitness expert. Génère un WOD de compétition.
 
 Paramètres:
 - Type: ${type}
@@ -38,7 +38,7 @@ Réponds UNIQUEMENT avec un JSON valide (pas de markdown, pas d'explication):
   "rest_seconds": null
 }
 
-Adapte les charges au niveau ${level}. Max 3-6 mouvements. Mouvements classiques CrossFit.`;
+Adapte les charges au niveau ${level}. Max 3-6 mouvements. Mouvements classiques de functional fitness.`;
 
     const message = await anthropic.messages.create({
       model: 'claude-opus-4-5',

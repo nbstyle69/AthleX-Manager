@@ -13,7 +13,7 @@ export const translations = {
       cta: 'Essai gratuit',
     },
     hero: {
-      badge: 'CROSSFIT · HYROX · FUNCTIONAL TRAINING',
+      badge: 'FUNCTIONAL FITNESS · HYBRID · CROSS TRAINING',
       title1: 'Gère.',
       title2: 'Anime.',
       title3: 'Développe.',
@@ -150,7 +150,7 @@ export const translations = {
           name: 'Box',
           price: '79€',
           priceNote: 'ou 62€/mois en annuel · essai 14 jours',
-          desc: 'Pour les box CrossFit / Hyrox. Tout compris.',
+          desc: 'Pour les box de functional fitness / hybrid. Tout compris.',
           features: [
             'Tout le plan Coach, plus :',
             'Membres illimités',
@@ -195,7 +195,7 @@ export const translations = {
       cta: 'Free trial',
     },
     hero: {
-      badge: 'CROSSFIT · HYROX · FUNCTIONAL TRAINING',
+      badge: 'FUNCTIONAL FITNESS · HYBRID · CROSS TRAINING',
       title1: 'Manage.',
       title2: 'Engage.',
       title3: 'Grow.',
@@ -332,7 +332,7 @@ export const translations = {
           name: 'Box',
           price: '€79',
           priceNote: 'or €62/mo billed yearly · 14-day trial',
-          desc: 'For CrossFit / Hyrox boxes. All-inclusive.',
+          desc: 'For functional fitness / hybrid boxes. All-inclusive.',
           features: [
             'Everything in Coach, plus:',
             'Unlimited members',
