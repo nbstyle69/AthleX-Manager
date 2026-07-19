@@ -10,7 +10,7 @@ const LEVELS    = ['scaled', 'inter', 'rx', 'rx+', 'gx', 'pro'];
 const EQUIPMENT_FF = ['Barbell', 'Haltères', 'Kettlebell', 'Box', 'Corde à sauter', 'Barre de traction', 'Anneaux', 'Erg', 'Med Ball', 'GHD', 'Worm', 'Benchmark', 'Sans matériel'];
 const DURATIONS = [5, 8, 10, 12, 15, 20, 25, 30];
 
-// Hybrid / Hyrox
+// Hybrid
 const HYBRID_LEVELS    = ['Open', 'Pro', 'Elite'];
 const HYBRID_FORMATS   = ['Solo', 'Doubles', 'Relais', 'Mixed Relais'];
 const HYBRID_TYPES     = ['Race Simulation', 'Station Training', 'Cardio Force', 'Running Intervals'];
@@ -242,7 +242,7 @@ export default function WODForm({ tournamentId, divisions = [], isLeague = false
                     genSport === 'hybrid'
                       ? 'bg-orange-500/20 border-orange-500/40 text-orange-400'
                       : 'bg-white/5 border-white/10 text-gray-400 hover:border-white/20'
-                  }`}>⚡ Hybrid / Hyrox</button>
+                  }`}>⚡ Hybrid</button>
               </div>
             </div>
 

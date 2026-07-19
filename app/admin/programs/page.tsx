@@ -270,7 +270,7 @@ export default function AdminProgramsPage() {
                   <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">Catégorie</label>
                   <select value={affForm.category} onChange={e => setAffForm({...affForm, category: e.target.value})} className={INPUT}>
                     <option value="functional">Functional Fitness</option>
-                    <option value="hybrid">Hybrid / Hyrox</option>
+                    <option value="hybrid">Hybrid</option>
                   </select>
                 </div>
                 <div>

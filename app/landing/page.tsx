@@ -16,7 +16,7 @@ export const revalidate = 300;
 export const metadata: Metadata = {
   title: 'AthleX — La plateforme tout-en-un pour votre box',
   description:
-    'Gère, anime et développe ta box CrossFit / Hyrox : membres, réservations, WODs, tournois et communauté. Back office web + app mobile athlète.',
+    'Gère, anime et développe ta box de functional fitness / hybrid : membres, réservations, WODs, tournois et communauté. Back office web + app mobile athlète.',
 };
 
 export default function LandingPage() {
