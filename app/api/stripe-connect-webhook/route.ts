@@ -128,6 +128,7 @@ export async function POST(req: NextRequest) {
               expires_at: expiresAt,
               status: 'active',
               stripe_checkout_session_id: session.id,
+              stripe_payment_intent: (session.payment_intent as string) ?? null,
             });
           if (creditErr) {
             // Idempotence : Stripe peut ré-émettre le même événement. Une
@@ -241,9 +242,15 @@ export async function POST(req: NextRequest) {
       case 'charge.refunded': {
         const charge = event.data.object as Stripe.Charge;
         if (charge.payment_intent) {
+          const paymentIntent = charge.payment_intent as string;
           await (supabase.from as any)('program_members')
             .update({ status: 'refunded' })
-            .eq('stripe_payment_intent', charge.payment_intent as string);
+            .eq('stripe_payment_intent', paymentIntent);
+          // Achat unique de crédits (Drop-in / Carnet) remboursé : on révoque
+          // l'accès pour que les séances prépayées ne soient plus réservables.
+          await (supabase.from as any)('member_class_credits')
+            .update({ status: 'refunded' })
+            .eq('stripe_payment_intent', paymentIntent);
         }
         break;
       }
