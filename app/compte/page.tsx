@@ -1,6 +1,7 @@
+import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { createClient, getServerUser } from '@/lib/supabase/server';
-import { CreditCard, Ticket, Dumbbell, CalendarClock } from 'lucide-react';
+import { CreditCard, Ticket, Dumbbell, CalendarClock, Search } from 'lucide-react';
 import AccountProfileForm from './AccountProfileForm';
 import ManageSubscription from './ManageSubscription';
 
@@ -160,7 +161,15 @@ export default async function AccountPage() {
             />
           </div>
         ) : (
-          <p className="text-sm text-gray-500">Aucun abonnement actif. Rends-toi sur la page de ta box pour t'abonner.</p>
+          <div className="space-y-3">
+            <p className="text-sm text-gray-500">Aucun abonnement actif. Trouve ta box pour t'abonner ou prendre une offre.</p>
+            <Link
+              href="/box"
+              className="inline-flex items-center gap-2 bg-white hover:bg-gray-100 text-[#0A0A0A] text-sm font-bold px-4 py-2.5 rounded-xl transition-colors"
+            >
+              <Search size={15} /> Trouver une box
+            </Link>
+          </div>
         )}
       </section>
 
