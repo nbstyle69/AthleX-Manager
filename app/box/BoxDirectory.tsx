@@ -96,23 +96,26 @@ export default function BoxDirectory({ boxes }: { boxes: DirectoryBox[] }) {
                 ) : (
                   <div className="w-full h-full bg-gradient-to-br from-[#161616] to-[#1f1f1f]" />
                 )}
+                {/* Logo overlaps the banner, in front */}
+                <div className="absolute left-5 -bottom-7 z-10">
+                  {b.logo_url ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={b.logo_url}
+                      alt={b.name}
+                      className="w-14 h-14 rounded-xl border-2 border-[#111] object-cover shadow-lg bg-[#111]"
+                    />
+                  ) : (
+                    <div className="w-14 h-14 rounded-xl border-2 border-[#111] bg-[#1a1a1a] flex items-center justify-center shadow-lg">
+                      <span className="text-xl font-black" style={{ color: GOLD }}>
+                        {b.name.charAt(0)}
+                      </span>
+                    </div>
+                  )}
+                </div>
               </div>
-              <div className="p-5 -mt-10 flex-1 flex flex-col">
-                {b.logo_url ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={b.logo_url}
-                    alt={b.name}
-                    className="w-14 h-14 rounded-xl border-2 border-[#111] object-cover shadow-lg"
-                  />
-                ) : (
-                  <div className="w-14 h-14 rounded-xl border-2 border-[#111] bg-[#1a1a1a] flex items-center justify-center shadow-lg">
-                    <span className="text-xl font-black" style={{ color: GOLD }}>
-                      {b.name.charAt(0)}
-                    </span>
-                  </div>
-                )}
-                <h2 className="font-black text-white mt-3 leading-tight">{b.name}</h2>
+              <div className="p-5 pt-10 flex-1 flex flex-col">
+                <h2 className="font-black text-white leading-tight">{b.name}</h2>
                 {b.tagline && (
                   <p className="text-xs text-gray-500 mt-1 line-clamp-2">{b.tagline}</p>
                 )}
