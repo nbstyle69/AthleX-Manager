@@ -290,7 +290,7 @@ export default function NewPhysicalCompetitionPage() {
               <label className="text-[11px] font-extrabold uppercase tracking-widest text-gray-400 mb-2 block">Lieu</label>
               <input
                 type="text" value={location} onChange={e => setLocation(e.target.value)}
-                placeholder="ex: Iron Box, Paris"
+                placeholder="ex: Nom de ma salle, Paris"
                 className="w-full bg-[#0A0A0A] border border-white/8 rounded-xl px-4 py-3 text-sm text-white placeholder:text-gray-600 focus:border-white/20 focus:outline-none transition-colors"
               />
             </div>
@@ -333,7 +333,7 @@ export default function NewPhysicalCompetitionPage() {
               <label className="text-[11px] font-extrabold uppercase tracking-widest text-gray-400 mb-2 block">Lieu</label>
               <input
                 type="text" value={location} onChange={e => setLocation(e.target.value)}
-                placeholder="ex: Iron Box, Paris"
+                placeholder="ex: Nom de ma salle, Paris"
                 className="w-full bg-[#0A0A0A] border border-white/8 rounded-xl px-4 py-3 text-sm text-white placeholder:text-gray-600 focus:border-white/20 focus:outline-none transition-colors"
               />
             </div>
