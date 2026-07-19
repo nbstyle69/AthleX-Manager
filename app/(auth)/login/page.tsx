@@ -1,7 +1,8 @@
 ﻿'use client';
 
 import { useState } from 'react';
-import { Loader2, AlertCircle } from 'lucide-react';
+import Link from 'next/link';
+import { Loader2, AlertCircle, ArrowLeft } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 
 export default function LoginPage() {
@@ -59,6 +60,13 @@ export default function LoginPage() {
 
   return (
     <div className="w-full max-w-sm mx-auto px-4">
+      <Link
+        href="/landing"
+        className="inline-flex items-center gap-2 text-sm text-gray-400 hover:text-white transition-colors mb-6"
+      >
+        <ArrowLeft size={16} />
+        Retour à l'accueil
+      </Link>
       <div className="flex flex-col items-center mb-10 gap-3">
         <img src="/logo.png" alt="Athex" width={96} height={96} className="w-24 h-24 object-contain" />
         <div className="text-center">

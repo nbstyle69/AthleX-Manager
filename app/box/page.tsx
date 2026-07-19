@@ -73,7 +73,9 @@ export default async function BoxDirectoryPage() {
             className="flex items-center gap-2 text-gray-500 hover:text-white transition-colors text-sm"
           >
             <ArrowLeft size={16} />
-            <span className="font-black tracking-tight">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/logo.png" alt="AthleX" width={24} height={24} className="w-6 h-6 object-contain" />
+            <span className="font-black tracking-tight text-white">
               Athle<span style={{ color: GOLD }}>X</span>
             </span>
           </Link>
