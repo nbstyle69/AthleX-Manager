@@ -118,7 +118,7 @@ export async function POST(req: NextRequest) {
           break;
         }
 
-        await (supabase.from as any)('program_members')
+        const { error: programWriteErr } = await (supabase.from as any)('program_members')
           .upsert(
             {
               program_id: programId,
@@ -133,6 +133,10 @@ export async function POST(req: NextRequest) {
             },
             { onConflict: 'program_id,user_id' },
           );
+        if (programWriteErr) {
+          console.error(`Program program_members write failed for user ${userId} on program ${programId}:`, programWriteErr.message);
+          return NextResponse.json({ error: programWriteErr.message }, { status: 500 });
+        }
 
         console.log(`Program ${programId} activated for user ${userId}`);
         break;
