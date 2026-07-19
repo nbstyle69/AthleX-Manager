@@ -37,9 +37,20 @@ export default function LoginPage() {
       const role = profile?.role;
       if (role === 'super_admin' || role === 'admin') {
         window.location.href = '/admin';
-      } else {
-        window.location.href = '/';
+        return;
       }
+
+      // Owner (propriétaire ou co-owner) → back-office ; sinon athlète → espace compte.
+      const { data: ownedBox } = await supabase
+        .from('boxes').select('id').eq('owner_id', data.user.id).maybeSingle();
+      let isOwner = !!ownedBox;
+      if (!isOwner) {
+        const { data: coOwner } = await supabase
+          .from('box_members').select('id')
+          .eq('member_id', data.user.id).eq('role', 'owner').eq('status', 'active').maybeSingle();
+        isOwner = !!coOwner;
+      }
+      window.location.href = isOwner ? '/' : '/compte';
     } catch (err: any) {
       setError(err?.message ?? 'Erreur réseau.');
       setLoading(false);
