@@ -26,6 +26,8 @@ interface Program {
   member_count?: number;
 }
 
+type PlanType = 'subscription' | 'drop_in' | 'pack';
+
 interface MembershipPlan {
   id: string;
   box_id: string;
@@ -36,6 +38,9 @@ interface MembershipPlan {
   color: string;
   is_active: boolean;
   sort_order: number;
+  plan_type: PlanType;
+  credits: number | null;
+  validity_days: number | null;
 }
 
 interface ProgramWOD {
@@ -80,6 +85,9 @@ const EMPTY_PLAN_FORM = {
   max_sessions_per_week: '' as string,
   color: PLAN_COLORS[0],
   is_active: true,
+  plan_type: 'subscription' as PlanType,
+  credits: '' as string,          // pack: nb de séances
+  validity_months: '' as string,  // pack: validité en mois ; drop_in: converti en jours
 };
 
 function genCode(): string {
@@ -187,7 +195,7 @@ export default function BoxOwnerProgramsPage() {
   async function loadPlans(id: string) {
     const { data } = await supabase
       .from('membership_plans')
-      .select('id, box_id, name, description, price_cents, max_sessions_per_week, color, is_active, sort_order')
+      .select('id, box_id, name, description, price_cents, max_sessions_per_week, color, is_active, sort_order, plan_type, credits, validity_days')
       .eq('box_id', id)
       .order('sort_order', { ascending: true })
       .order('price_cents', { ascending: true });
@@ -325,6 +333,9 @@ export default function BoxOwnerProgramsPage() {
       max_sessions_per_week: pl.max_sessions_per_week ? String(pl.max_sessions_per_week) : '',
       color: pl.color ?? PLAN_COLORS[0],
       is_active: pl.is_active,
+      plan_type: pl.plan_type ?? 'subscription',
+      credits: pl.credits ? String(pl.credits) : '',
+      validity_months: pl.validity_days ? String(Math.round(pl.validity_days / 30)) : '',
     });
     setPlanError(null);
     setShowPlanForm(true);
@@ -348,14 +359,46 @@ export default function BoxOwnerProgramsPage() {
       return;
     }
 
+    const type = planForm.plan_type;
+
+    // Drop-in / Carnet : achat unique -> crédits + validité. Prix obligatoire (> 0).
+    let credits: number | null = null;
+    let validityDays: number | null = null;
+    if (type === 'drop_in') {
+      credits = 1;
+      validityDays = 14;
+    } else if (type === 'pack') {
+      credits = parseInt(planForm.credits);
+      const months = parseInt(planForm.validity_months);
+      if (!Number.isFinite(credits) || credits <= 0) {
+        setPlanError('Indique le nombre de séances du carnet.');
+        setPlanSaving(false);
+        return;
+      }
+      if (!Number.isFinite(months) || months <= 0) {
+        setPlanError('Indique la validité du carnet (en mois).');
+        setPlanSaving(false);
+        return;
+      }
+      validityDays = months * 30;
+    }
+    if ((type === 'drop_in' || type === 'pack') && priceCents <= 0) {
+      setPlanError('Une offre Drop-in / Carnet doit avoir un prix > 0.');
+      setPlanSaving(false);
+      return;
+    }
+
     const payload = {
       box_id: boxId,
       name: planForm.name.trim(),
       description: planForm.description.trim() || null,
       price_cents: priceCents,
-      max_sessions_per_week: maxVal,
+      max_sessions_per_week: type === 'subscription' ? maxVal : null,
       color: planForm.color,
       is_active: planForm.is_active,
+      plan_type: type,
+      credits,
+      validity_days: validityDays,
     };
 
     const { error } = editPlanId
@@ -583,13 +626,13 @@ export default function BoxOwnerProgramsPage() {
       {/* Abonnements (formules de la salle) */}
       <div>
         <div className="flex items-center justify-between mb-1">
-          <h2 className="text-lg font-black text-white">Abonnements de la salle</h2>
+          <h2 className="text-lg font-black text-white">Offres d'accès à la salle</h2>
           <button onClick={openNewPlan} className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold transition-all">
-            <Plus size={16} /> Créer une formule
+            <Plus size={16} /> Créer une offre
           </button>
         </div>
         <p className="text-xs text-gray-500 mb-4">
-          Formules mensuelles d'accès à la salle (quota de séances/semaine). Un prix &gt; 0 affiche le bouton « S'abonner » sur ta page publique (paiement Stripe). Une formule à 0 € reste « gratuite » et s'assigne manuellement dans Membres.
+          <span className="font-semibold text-gray-400">Abonnement</span> (mensuel, quota séances/semaine) · <span className="font-semibold text-gray-400">Drop-in</span> (1 séance) · <span className="font-semibold text-gray-400">Carnet</span> (N séances valables X mois). Un prix &gt; 0 affiche l'offre sur ta page publique (paiement Stripe). Une formule mensuelle à 0 € reste « gratuite » et s'assigne manuellement dans Membres.
         </p>
 
         {loading ? (
@@ -609,11 +652,12 @@ export default function BoxOwnerProgramsPage() {
                     <div className="flex items-center gap-2">
                       <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: pl.color }} />
                       <span className="font-bold text-white text-base truncate">{pl.name}</span>
-                      {pl.price_cents > 0 ? (
-                        <span className="text-[10px] px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-400 font-bold">Payante</span>
-                      ) : (
-                        <span className="text-[10px] px-2 py-0.5 rounded-md bg-white/5 text-gray-400 font-semibold">Gratuite</span>
-                      )}
+                      <span className={`text-[10px] px-2 py-0.5 rounded-md font-bold ${
+                        pl.plan_type === 'drop_in' ? 'bg-blue-500/10 text-blue-400'
+                        : pl.plan_type === 'pack' ? 'bg-purple-500/10 text-purple-400'
+                        : 'bg-emerald-500/10 text-emerald-400'}`}>
+                        {pl.plan_type === 'drop_in' ? 'Drop-in' : pl.plan_type === 'pack' ? 'Carnet' : 'Abonnement'}
+                      </span>
                       {!pl.is_active && (
                         <span className="text-[10px] px-2 py-0.5 rounded-md bg-red-500/10 text-red-400 font-semibold">Inactif</span>
                       )}
@@ -622,7 +666,11 @@ export default function BoxOwnerProgramsPage() {
                     <div className="flex items-center gap-1.5 mt-2 text-xs text-gray-500">
                       <Calendar size={13} />
                       <span className="font-semibold">
-                        {pl.max_sessions_per_week
+                        {pl.plan_type === 'drop_in'
+                          ? `1 séance · valable ${pl.validity_days ?? 14} j`
+                          : pl.plan_type === 'pack'
+                          ? `${pl.credits ?? 0} séances · valable ${Math.round((pl.validity_days ?? 0) / 30)} mois`
+                          : pl.max_sessions_per_week
                           ? `${pl.max_sessions_per_week} séance${pl.max_sessions_per_week > 1 ? 's' : ''}/semaine`
                           : 'Séances illimitées'}
                       </span>
@@ -631,7 +679,7 @@ export default function BoxOwnerProgramsPage() {
                   <div className="flex items-center gap-2 ml-4 flex-shrink-0">
                     <span className="text-sm font-black text-emerald-400 bg-emerald-500/10 px-3 py-1.5 rounded-xl whitespace-nowrap">
                       {formatPrice(pl.price_cents)}
-                      {pl.price_cents > 0 && <span className="text-[10px] text-gray-500 font-semibold"> /mois</span>}
+                      {pl.plan_type === 'subscription' && pl.price_cents > 0 && <span className="text-[10px] text-gray-500 font-semibold"> /mois</span>}
                     </span>
                   </div>
                 </div>
@@ -844,18 +892,39 @@ export default function BoxOwnerProgramsPage() {
           <div className="w-full max-w-lg bg-[#111] border border-white/[0.06] rounded-2xl p-6 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-lg font-black text-white">
-                {editPlanId ? 'Modifier la formule' : 'Nouvelle formule'}
+                {editPlanId ? 'Modifier l\'offre' : 'Nouvelle offre'}
               </h2>
               <button onClick={() => setShowPlanForm(false)} className="text-gray-500 hover:text-white"><X size={20} /></button>
             </div>
 
             <div className="space-y-4">
               <div>
+                <label className="text-xs font-bold text-gray-400 mb-2 block">Type d'offre</label>
+                <div className="grid grid-cols-3 gap-2">
+                  {([
+                    { v: 'subscription', label: 'Abonnement', desc: 'Mensuel récurrent' },
+                    { v: 'drop_in', label: 'Drop-in', desc: '1 séance' },
+                    { v: 'pack', label: 'Carnet', desc: 'N séances / X mois' },
+                  ] as { v: PlanType; label: string; desc: string }[]).map(o => (
+                    <button
+                      key={o.v}
+                      type="button"
+                      onClick={() => setPlanForm({ ...planForm, plan_type: o.v })}
+                      className={`p-3 rounded-xl border-2 text-left transition-all ${planForm.plan_type === o.v ? 'border-emerald-500 bg-emerald-500/10' : 'border-white/10 hover:border-white/20'}`}
+                    >
+                      <span className="text-sm font-bold text-white block">{o.label}</span>
+                      <span className="text-[11px] text-gray-500">{o.desc}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
                 <label className="text-xs font-bold text-gray-400 mb-1 block">Nom *</label>
                 <input
                   className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white outline-none focus:border-emerald-500/50"
                   value={planForm.name} onChange={e => setPlanForm({ ...planForm, name: e.target.value })}
-                  placeholder="Essentiel, Premium…"
+                  placeholder={planForm.plan_type === 'drop_in' ? 'Séance à l\'unité' : planForm.plan_type === 'pack' ? 'Carnet 10 séances' : 'Essentiel, Premium…'}
                 />
               </div>
 
@@ -868,26 +937,73 @@ export default function BoxOwnerProgramsPage() {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              {planForm.plan_type === 'subscription' && (
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs font-bold text-gray-400 mb-1 block">Prix (€/mois)</label>
+                    <input
+                      type="number" min={0} step="0.01"
+                      className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white outline-none focus:border-emerald-500/50"
+                      value={planForm.price} onChange={e => setPlanForm({ ...planForm, price: e.target.value })}
+                      placeholder="0 = gratuit"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-bold text-gray-400 mb-1 block">Séances / semaine</label>
+                    <input
+                      type="number" min={1}
+                      className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white outline-none focus:border-emerald-500/50"
+                      value={planForm.max_sessions_per_week} onChange={e => setPlanForm({ ...planForm, max_sessions_per_week: e.target.value })}
+                      placeholder="∞ (illimité)"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {planForm.plan_type === 'drop_in' && (
                 <div>
-                  <label className="text-xs font-bold text-gray-400 mb-1 block">Prix (€/mois)</label>
+                  <label className="text-xs font-bold text-gray-400 mb-1 block">Prix (€)</label>
                   <input
                     type="number" min={0} step="0.01"
                     className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white outline-none focus:border-emerald-500/50"
                     value={planForm.price} onChange={e => setPlanForm({ ...planForm, price: e.target.value })}
-                    placeholder="0 = gratuit"
+                    placeholder="15.00"
                   />
+                  <p className="text-[11px] text-gray-500 mt-1.5">Donne droit à 1 réservation, valable 14 jours après l'achat.</p>
                 </div>
-                <div>
-                  <label className="text-xs font-bold text-gray-400 mb-1 block">Séances / semaine</label>
-                  <input
-                    type="number" min={1}
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white outline-none focus:border-emerald-500/50"
-                    value={planForm.max_sessions_per_week} onChange={e => setPlanForm({ ...planForm, max_sessions_per_week: e.target.value })}
-                    placeholder="∞ (illimité)"
-                  />
+              )}
+
+              {planForm.plan_type === 'pack' && (
+                <div className="grid grid-cols-3 gap-3">
+                  <div>
+                    <label className="text-xs font-bold text-gray-400 mb-1 block">Prix (€)</label>
+                    <input
+                      type="number" min={0} step="0.01"
+                      className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white outline-none focus:border-emerald-500/50"
+                      value={planForm.price} onChange={e => setPlanForm({ ...planForm, price: e.target.value })}
+                      placeholder="120.00"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-bold text-gray-400 mb-1 block">Séances</label>
+                    <input
+                      type="number" min={1}
+                      className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white outline-none focus:border-emerald-500/50"
+                      value={planForm.credits} onChange={e => setPlanForm({ ...planForm, credits: e.target.value })}
+                      placeholder="10"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-bold text-gray-400 mb-1 block">Validité (mois)</label>
+                    <input
+                      type="number" min={1}
+                      className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white outline-none focus:border-emerald-500/50"
+                      value={planForm.validity_months} onChange={e => setPlanForm({ ...planForm, validity_months: e.target.value })}
+                      placeholder="12"
+                    />
+                  </div>
                 </div>
-              </div>
+              )}
 
               <div>
                 <label className="text-xs font-bold text-gray-400 mb-2 block">Couleur</label>
@@ -925,7 +1041,7 @@ export default function BoxOwnerProgramsPage() {
                 disabled={planSaving || !planForm.name.trim()}
                 className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white text-sm font-bold transition-all"
               >
-                {planSaving ? 'Enregistrement…' : editPlanId ? 'Modifier' : 'Créer la formule'}
+                {planSaving ? 'Enregistrement…' : editPlanId ? 'Modifier' : 'Créer l\'offre'}
               </button>
             </div>
           </div>

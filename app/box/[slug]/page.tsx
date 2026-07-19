@@ -46,6 +46,9 @@ interface MembershipPlan {
   price_cents: number;
   max_sessions_per_week: number | null;
   color: string;
+  plan_type: 'subscription' | 'drop_in' | 'pack';
+  credits: number | null;
+  validity_days: number | null;
 }
 
 interface Program {
@@ -122,13 +125,15 @@ export default async function BoxPublicPage({ params }: { params: Promise<{ slug
   // Fetch membership plans (paid formulas only shown to the public)
   const { data: plansRaw } = await supabase
     .from('membership_plans')
-    .select('id, name, description, price_cents, max_sessions_per_week, color')
+    .select('id, name, description, price_cents, max_sessions_per_week, color, plan_type, credits, validity_days')
     .eq('box_id', b.id)
     .eq('is_active', true)
     .gt('price_cents', 0)
     .order('price_cents', { ascending: true });
 
-  const plans = (plansRaw ?? []) as MembershipPlan[];
+  const allPlans = (plansRaw ?? []) as MembershipPlan[];
+  const plans = allPlans.filter(pl => (pl.plan_type ?? 'subscription') === 'subscription');
+  const creditOffers = allPlans.filter(pl => pl.plan_type === 'drop_in' || pl.plan_type === 'pack');
   const foundedYear = b.founded_at ? new Date(b.founded_at).getFullYear() : null;
 
   const formatPrice = (cents: number) => {
@@ -309,6 +314,49 @@ export default async function BoxPublicPage({ params }: { params: Promise<{ slug
                         planId={pl.id}
                         planName={pl.name}
                         priceLabel={`${formatPrice(pl.price_cents)}/mois`}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {/* Offres à la carte : Drop-in & Carnet (paiement unique) */}
+          {creditOffers.length > 0 && (
+            <section>
+              <h2 className="text-lg font-black mb-1 flex items-center gap-2">
+                <Users size={18} style={{ color: GOLD }} /> À la carte
+              </h2>
+              <p className="text-xs text-gray-500 mb-4">Sans engagement — paie à la séance ou par carnet</p>
+              <div className="grid gap-4 sm:grid-cols-2">
+                {creditOffers.map(pl => (
+                  <div key={pl.id} className="bg-[#111] border border-white/[0.06] rounded-2xl p-5 flex flex-col">
+                    <div className="flex items-center gap-2">
+                      <div className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: pl.color }} />
+                      <h3 className="font-bold text-white">{pl.name}</h3>
+                      <span className={`text-[10px] px-2 py-0.5 rounded-md font-bold ${pl.plan_type === 'drop_in' ? 'bg-blue-500/10 text-blue-400' : 'bg-purple-500/10 text-purple-400'}`}>
+                        {pl.plan_type === 'drop_in' ? 'Drop-in' : 'Carnet'}
+                      </span>
+                    </div>
+                    {pl.description && (
+                      <p className="text-xs text-gray-500 mt-1 line-clamp-2">{pl.description}</p>
+                    )}
+                    <div className="flex items-center gap-1.5 mt-2 text-xs text-gray-500">
+                      <Calendar size={12} />
+                      {pl.plan_type === 'drop_in'
+                        ? `1 séance · valable ${pl.validity_days ?? 14} jours`
+                        : `${pl.credits ?? 0} séances · valable ${Math.round((pl.validity_days ?? 0) / 30)} mois`}
+                    </div>
+                    <div className="flex items-center justify-between mt-4 pt-4 border-t border-white/[0.06]">
+                      <span className="text-sm font-black" style={{ color: GOLD }}>
+                        {formatPrice(pl.price_cents)}
+                      </span>
+                      <MembershipSubscribeButton
+                        planId={pl.id}
+                        planName={pl.name}
+                        priceLabel={formatPrice(pl.price_cents)}
+                        mode="oneshot"
                       />
                     </div>
                   </div>

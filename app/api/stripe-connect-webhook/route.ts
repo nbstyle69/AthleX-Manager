@@ -102,6 +102,42 @@ export async function POST(req: NextRequest) {
           break;
         }
 
+        // ── Achat unique de crédits : Drop-in / Carnet ─────────────────
+        if (session.metadata?.kind === 'credit') {
+          const planId = session.metadata.plan_id ?? null;
+          const boxId = session.metadata.box_id;
+          const buyerEmail = session.metadata.buyer_email ?? session.customer_email ?? null;
+          const credits = Number(session.metadata.credits ?? 0);
+          const validityDays = Number(session.metadata.validity_days ?? 0);
+          if (!boxId || credits <= 0 || validityDays <= 0) break;
+
+          const userId = await resolveUserId(buyerEmail);
+          if (!userId) {
+            console.warn(`Credit purchase without matching profile: ${buyerEmail}`);
+            break;
+          }
+
+          const expiresAt = new Date(Date.now() + validityDays * 86400_000).toISOString();
+          const { error: creditErr } = await (supabase.from as any)('member_class_credits')
+            .insert({
+              box_id: boxId,
+              member_id: userId,
+              plan_id: planId,
+              credits_total: credits,
+              credits_used: 0,
+              expires_at: expiresAt,
+              status: 'active',
+              stripe_checkout_session_id: session.id,
+            });
+          if (creditErr) {
+            console.error(`member_class_credits insert failed for user ${userId} on box ${boxId}:`, creditErr.message);
+            return NextResponse.json({ error: creditErr.message }, { status: 500 });
+          }
+
+          console.log(`Credit pack (${credits} séances) activated for user ${userId} on box ${boxId}`);
+          break;
+        }
+
         if (session.metadata?.kind !== 'program') break;
 
         const programId = session.metadata.program_id;
