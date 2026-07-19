@@ -62,11 +62,15 @@ async function geocodeAddress(address: string): Promise<GeoResult | null> {
 export default function SettingsPage() {
   const supabase = createClient();
   const fileRef = useRef<HTMLInputElement>(null);
+  const coverRef = useRef<HTMLInputElement>(null);
 
   const [box, setBox] = useState<any>(null);
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [coverUrl, setCoverUrl] = useState<string | null>(null);
+  const [uploadingCover, setUploadingCover] = useState(false);
+  const [savedCover, setSavedCover] = useState(false);
 
   const [name, setName] = useState('');
   const [address, setAddress] = useState('');
@@ -108,6 +112,7 @@ export default function SettingsPage() {
       // Set box immediately → spinner disappears
       setBox(boxData);
       setLogoUrl(boxData.logo_url ?? null);
+      setCoverUrl(boxData.cover_url ?? null);
       setName(boxData.name ?? '');
       setAddress(boxData.address ?? '');
       setWebsiteUrl(boxData.website_url ?? '');
@@ -206,6 +211,62 @@ export default function SettingsPage() {
 
     setLogoUrl(null);
     setUploading(false);
+  }
+
+  async function handleUploadCover(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file || !box) return;
+
+    if (!file.type.startsWith('image/')) {
+      alert('Veuillez sélectionner une image (PNG, JPG, WEBP).');
+      return;
+    }
+    if (file.size > 4 * 1024 * 1024) {
+      alert('L\'image ne doit pas dépasser 4 Mo.');
+      return;
+    }
+
+    setUploadingCover(true);
+    setSavedCover(false);
+
+    const ext = file.name.split('.').pop() ?? 'jpg';
+    const path = `${box.id}/cover.${ext}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from('box-logos')
+      .upload(path, file, { upsert: true, contentType: file.type });
+
+    if (uploadError) {
+      alert(`Erreur upload: ${uploadError.message}`);
+      setUploadingCover(false);
+      return;
+    }
+
+    const { data: urlData } = supabase.storage.from('box-logos').getPublicUrl(path);
+    const publicUrl = urlData.publicUrl + '?t=' + Date.now();
+
+    const { error: updateError } = await supabase
+      .from('boxes')
+      .update({ cover_url: publicUrl })
+      .eq('id', box.id);
+
+    if (updateError) {
+      alert(`Erreur mise à jour: ${updateError.message}`);
+    } else {
+      setCoverUrl(publicUrl);
+      setSavedCover(true);
+      setTimeout(() => setSavedCover(false), 3000);
+    }
+
+    setUploadingCover(false);
+  }
+
+  async function handleRemoveCover() {
+    if (!box) return;
+    setUploadingCover(true);
+    await supabase.from('boxes').update({ cover_url: null }).eq('id', box.id);
+    setCoverUrl(null);
+    setUploadingCover(false);
   }
 
   async function handleSaveInfo() {
@@ -350,6 +411,77 @@ export default function SettingsPage() {
               </div>
             )}
           </div>
+        </div>
+      </div>
+
+      {/* Banner / cover section */}
+      <div className="bg-[#111111] border border-white/[0.06] rounded-2xl p-6 space-y-5">
+        <div>
+          <h2 className="text-sm font-bold text-white mb-1">Bannière de la box</h2>
+          <p className="text-xs text-gray-500">
+            Image d&apos;en-tête affichée sur votre page publique et dans l&apos;annuaire des box.
+            Format recommandé : paysage, 1200×400px, PNG ou JPG, max 4 Mo.
+          </p>
+        </div>
+
+        {/* Preview */}
+        <div className="w-full h-36 rounded-2xl border-2 border-dashed border-white/10 flex items-center justify-center overflow-hidden bg-white/[0.03] relative">
+          {coverUrl ? (
+            <>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={coverUrl} alt="Bannière box" className="w-full h-full object-cover" />
+              {logoUrl && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={logoUrl}
+                  alt=""
+                  className="absolute bottom-3 left-4 w-14 h-14 rounded-xl border-2 border-[#111] object-cover shadow-lg"
+                />
+              )}
+            </>
+          ) : (
+            <div className="flex flex-col items-center gap-1.5 text-gray-600">
+              <ImageIcon size={28} />
+              <span className="text-xs">Aucune bannière</span>
+            </div>
+          )}
+        </div>
+
+        {/* Actions */}
+        <div className="flex flex-wrap items-center gap-3">
+          <input
+            ref={coverRef}
+            type="file"
+            accept="image/png,image/jpeg,image/webp"
+            onChange={handleUploadCover}
+            className="hidden"
+          />
+          <button
+            onClick={() => coverRef.current?.click()}
+            disabled={uploadingCover}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/20 text-white text-sm font-bold hover:bg-white/30 transition-colors disabled:opacity-50"
+          >
+            <Upload size={15} />
+            {uploadingCover ? 'Upload en cours…' : coverUrl ? 'Changer la bannière' : 'Uploader une bannière'}
+          </button>
+
+          {coverUrl && (
+            <button
+              onClick={handleRemoveCover}
+              disabled={uploadingCover}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-red-500/10 text-red-400 text-sm font-bold hover:bg-red-500/20 transition-colors disabled:opacity-50"
+            >
+              <Trash2 size={15} />
+              Supprimer la bannière
+            </button>
+          )}
+
+          {savedCover && (
+            <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-400">
+              <CheckCircle size={14} />
+              Bannière mise à jour !
+            </div>
+          )}
         </div>
       </div>
 
