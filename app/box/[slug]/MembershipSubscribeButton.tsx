@@ -7,9 +7,13 @@ interface Props {
   planId: string;
   planName: string;
   priceLabel: string;
+  /** 'subscription' (mensuel) ou 'oneshot' (Drop-in / Carnet, paiement unique) */
+  mode?: 'subscription' | 'oneshot';
 }
 
-export default function MembershipSubscribeButton({ planId, planName, priceLabel }: Props) {
+export default function MembershipSubscribeButton({ planId, planName, priceLabel, mode = 'subscription' }: Props) {
+  const oneShot = mode === 'oneshot';
+  const cta = oneShot ? 'Acheter' : 'S\'abonner';
   const [open, setOpen] = useState(false);
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
@@ -43,7 +47,7 @@ export default function MembershipSubscribeButton({ planId, planName, priceLabel
         onClick={() => setOpen(true)}
         className="text-xs font-bold text-black bg-white hover:bg-gray-200 transition-colors px-4 py-2 rounded-lg whitespace-nowrap"
       >
-        S'abonner — {priceLabel}
+        {cta} — {priceLabel}
       </button>
 
       {open && (
@@ -55,10 +59,11 @@ export default function MembershipSubscribeButton({ planId, planName, priceLabel
             >
               <X size={18} />
             </button>
-            <h3 className="text-lg font-black mb-1">S'abonner — {planName}</h3>
+            <h3 className="text-lg font-black mb-1">{cta} — {planName}</h3>
             <p className="text-xs text-gray-500 mb-5">
-              {priceLabel} — abonnement mensuel. Utilise l'e-mail de ton compte AthleX :
-              ton abonnement et l'accès aux cours s'activent automatiquement dans l'app après paiement.
+              {oneShot
+                ? `${priceLabel} — paiement unique. Utilise l'e-mail de ton compte AthleX : tes crédits de séances s'activent automatiquement après paiement.`
+                : `${priceLabel} — abonnement mensuel. Utilise l'e-mail de ton compte AthleX : ton abonnement et l'accès aux cours s'activent automatiquement dans l'app après paiement.`}
             </p>
             <input
               type="email"
