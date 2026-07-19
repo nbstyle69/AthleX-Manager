@@ -130,6 +130,13 @@ export async function POST(req: NextRequest) {
               stripe_checkout_session_id: session.id,
             });
           if (creditErr) {
+            // Idempotence : Stripe peut ré-émettre le même événement. Une
+            // contrainte unique sur stripe_checkout_session_id garantit un
+            // seul crédit par paiement ; le rejeu (23505) est déjà traité.
+            if (creditErr.code === '23505') {
+              console.log(`Credit for session ${session.id} already processed — skipping duplicate.`);
+              break;
+            }
             console.error(`member_class_credits insert failed for user ${userId} on box ${boxId}:`, creditErr.message);
             return NextResponse.json({ error: creditErr.message }, { status: 500 });
           }
