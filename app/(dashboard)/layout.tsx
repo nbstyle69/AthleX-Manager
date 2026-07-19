@@ -23,7 +23,8 @@ export default async function DashboardLayout({ children }: { children: React.Re
         <div className="bg-[#111111] border border-white/8 rounded-2xl p-10 text-center max-w-sm">
           <p className="text-4xl mb-4">⚠️</p>
           <h2 className="text-lg font-bold text-white mb-2">Box non configurée</h2>
-          <p className="text-sm text-gray-400">Votre box n&apos;est pas encore liée à ce compte. Contactez l&apos;équipe Test.</p>
+          <p className="text-sm text-gray-400">Ce compte n&apos;est lié à aucune box. Si tu es un athlète, gère ton compte et tes abonnements ici :</p>
+          <a href="/compte" className="inline-block mt-4 px-5 py-2.5 rounded-xl bg-white text-[#0A0A0A] text-sm font-bold hover:bg-gray-200 transition-colors">Mon espace athlète</a>
         </div>
       </div>
     );
