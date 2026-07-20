@@ -15,17 +15,12 @@ interface Props {
 
 export default function MembershipManageButton({ plans }: Props) {
   const [open, setOpen] = useState(false);
-  const [email, setEmail] = useState('');
   const [planId, setPlanId] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState<string | null>(null);
 
   async function handleSubmit() {
-    if (!email.trim()) {
-      setError('Renseigne ton e-mail AthleX.');
-      return;
-    }
     if (!planId) {
       setError('Choisis la nouvelle formule.');
       return;
@@ -36,9 +31,12 @@ export default function MembershipManageButton({ plans }: Props) {
       const res = await fetch('/api/change-membership-plan', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ buyer_email: email.trim(), new_plan_id: planId }),
+        body: JSON.stringify({ new_plan_id: planId }),
       });
       const data = await res.json();
+      if (res.status === 401) {
+        throw new Error('Connecte-toi à ton compte AthleX pour changer de formule.');
+      }
       if (!res.ok) throw new Error(data.error ?? 'Erreur');
       setDone(data.plan_name ?? '');
       setLoading(false);
@@ -93,16 +91,9 @@ export default function MembershipManageButton({ plans }: Props) {
               <>
                 <h3 className="text-lg font-black mb-1">Changer de formule</h3>
                 <p className="text-xs text-gray-500 mb-5">
-                  Utilise l&apos;e-mail de ton compte AthleX. Le changement est immédiat, avec
+                  Tu dois être connecté à ton compte AthleX. Le changement est immédiat, avec
                   prorata Stripe (crédit du temps non consommé), sans changer ta date de facturation.
                 </p>
-                <input
-                  type="email"
-                  value={email}
-                  onChange={e => setEmail(e.target.value)}
-                  placeholder="ton@email.com"
-                  className="w-full bg-[#0A0A0A] border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-white/30 mb-3"
-                />
                 <div className="space-y-2 mb-4">
                   {plans.map(pl => (
                     <button

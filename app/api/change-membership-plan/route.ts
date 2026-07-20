@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
-import { createServiceClient } from '@/lib/supabase/server';
+import { createServiceClient, getServerUser } from '@/lib/supabase/server';
 
 function getStripe() {
   return new Stripe(process.env.STRIPE_SECRET_KEY!, {
@@ -11,8 +11,10 @@ function getStripe() {
 const ACTIVE_STATUSES = ['active', 'trialing', 'past_due'];
 
 /**
- * Change de formule d'abonnement de salle pour un membre existant.
- * - retrouve l'abonnement Stripe actif du membre sur la box (via son e-mail AthleX)
+ * Change de formule d'abonnement de salle pour l'utilisateur connecté.
+ * - l'identité vient du cookie de session (sb-access-token) : un utilisateur ne peut
+ *   changer que sa propre formule (aucune confiance dans un e-mail fourni par le client)
+ * - retrouve l'abonnement Stripe actif du membre sur la box (déduite de la formule cible)
  * - remplace le prix de l'item d'abonnement par celui de la nouvelle formule
  * - prorata immédiat (Stripe crédite le temps non consommé et facture la nouvelle
  *   formule au prorata), en conservant l'ancrage au 1er du mois existant.
@@ -20,11 +22,16 @@ const ACTIVE_STATUSES = ['active', 'trialing', 'past_due'];
 export async function POST(req: NextRequest) {
   const stripe = getStripe();
   try {
-    const { buyer_email, new_plan_id } = await req.json();
+    const user = await getServerUser();
+    if (!user?.id) {
+      return NextResponse.json({ error: 'Non authentifié.' }, { status: 401 });
+    }
 
-    if (!buyer_email || !new_plan_id) {
+    const { new_plan_id } = await req.json();
+
+    if (!new_plan_id) {
       return NextResponse.json(
-        { error: 'buyer_email and new_plan_id required' },
+        { error: 'new_plan_id required' },
         { status: 400 },
       );
     }
@@ -55,20 +62,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Cette formule est gratuite — rapproche-toi de ta box.' }, { status: 400 });
     }
 
-    // Résout le profil AthleX depuis l'e-mail.
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('id')
-      .ilike('email', buyer_email.trim())
-      .maybeSingle();
-
-    const userId = (profile as { id: string } | null)?.id;
-    if (!userId) {
-      return NextResponse.json(
-        { error: 'Aucun compte AthleX trouvé pour cet e-mail.' },
-        { status: 404 },
-      );
-    }
+    // Identité de l'appelant : issue de la session, jamais du body.
+    const userId = user.id;
 
     // Abonnement actif du membre sur cette box.
     const { data: member } = await (supabase.from as any)('box_members')

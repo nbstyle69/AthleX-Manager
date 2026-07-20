@@ -6,7 +6,6 @@ import { Loader2, Settings2, XCircle } from 'lucide-react';
 interface Plan { id: string; name: string; price_cents: number }
 
 interface Props {
-  email: string;
   currentPlanId: string | null;
   plans: Plan[];
   canManage: boolean;
@@ -16,7 +15,7 @@ function fmt(cents: number) {
   return (cents / 100).toLocaleString('fr-FR', { style: 'currency', currency: 'EUR', minimumFractionDigits: cents % 100 === 0 ? 0 : 2 });
 }
 
-export default function ManageSubscription({ email, currentPlanId, plans, canManage }: Props) {
+export default function ManageSubscription({ currentPlanId, plans, canManage }: Props) {
   const [mode, setMode] = useState<null | 'change' | 'cancel'>(null);
   const [planId, setPlanId] = useState('');
   const [loading, setLoading] = useState(false);
@@ -32,7 +31,7 @@ export default function ManageSubscription({ email, currentPlanId, plans, canMan
       const res = await fetch('/api/change-membership-plan', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ buyer_email: email, new_plan_id: planId }),
+        body: JSON.stringify({ new_plan_id: planId }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? 'Erreur');

@@ -154,7 +154,6 @@ export default async function AccountPage() {
               <CalendarClock size={13} /> Prochaine échéance : {fmtDate(activeSub.subscription_current_period_end)}
             </div>
             <ManageSubscription
-              email={profile?.email ?? user.email ?? ''}
               currentPlanId={activeSub.plan_id}
               plans={boxPlans}
               canManage={['active', 'trialing', 'past_due'].includes(activeSub.subscription_status ?? '')}
