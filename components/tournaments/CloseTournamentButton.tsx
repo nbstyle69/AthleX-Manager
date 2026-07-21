@@ -26,7 +26,7 @@ export default function CloseTournamentButton({ tournamentId, pendingCount, stat
   const [result,  setResult]  = useState<string | null>(null);
   const [error,   setError]   = useState<string | null>(null);
 
-  if (status === 'finished' || status === 'completed') {
+  if (status === 'completed') {
     return (
       <div className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold text-gray-500 border border-white/5 cursor-default">
         <Lock size={12} /> Tournoi clôturé
@@ -90,7 +90,15 @@ export default function CloseTournamentButton({ tournamentId, pendingCount, stat
       changes.push({ name: prof?.username ?? '?', rank, change: ch });
     }
 
-    await supabase.from('tournaments').update({ status: 'finished' }).eq('id', tournamentId);
+    const { error: statusErr } = await supabase
+      .from('tournaments')
+      .update({ status: 'completed' })
+      .eq('id', tournamentId);
+    if (statusErr) {
+      setError(`ELO distribué mais la clôture a échoué : ${statusErr.message}`);
+      setClosing(false);
+      return;
+    }
     setClosing(false);
     setOpen(false);
 
