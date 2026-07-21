@@ -502,13 +502,13 @@ export default function WODForm({ tournamentId, divisions = [], isLeague = false
               <div key={i} className="flex gap-2 items-center">
                 <input
                   type="number" min={0} inputMode="numeric"
-                  className={`${inp} w-16 text-center px-2`}
+                  className={`${inp} !w-16 shrink-0 text-center px-2`}
                   value={parsed.reps ?? ''}
                   onChange={e => update(e.target.value === '' ? null : parseInt(e.target.value, 10), parsed.name, parsed.weightKg)}
                   placeholder="Reps" aria-label="Répétitions" />
                 <input
                   list="movement-catalog"
-                  className={`${inp} flex-1`}
+                  className={`${inp} flex-1 min-w-0`}
                   value={parsed.name}
                   onChange={e => update(parsed.reps, e.target.value, parsed.weightKg)}
                   placeholder="Exercice (rechercher…)" aria-label="Exercice" />
