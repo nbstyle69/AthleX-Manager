@@ -71,7 +71,7 @@ export default function AdminReportsPage() {
 
   const load = useCallback(async () => {
     setLoading(true);
-    let query = (supabase.from as any)('reports')
+    let query = supabase.from('reports')
       .select('*, reporter:profiles!reports_reporter_id_fkey(username), reported_user:profiles!reports_reported_user_id_fkey(username)')
       .order('created_at', { ascending: filter === 'pending' })
       .limit(200);
@@ -89,7 +89,7 @@ export default function AdminReportsPage() {
   useEffect(() => { load(); }, [load]);
 
   async function updateStatus(id: string, status: ReportStatus, notes?: string) {
-    const { error } = await (supabase.from as any)('reports').update({
+    const { error } = await supabase.from('reports').update({
       status,
       admin_notes: notes ?? null,
       resolved_at: (status === 'resolved' || status === 'dismissed') ? new Date().toISOString() : null,
@@ -100,7 +100,7 @@ export default function AdminReportsPage() {
   async function bulkUpdate(status: ReportStatus) {
     if (checkedIds.size === 0) return;
     setBulkLoading(true);
-    await (supabase.from as any)('reports').update({
+    await supabase.from('reports').update({
       status,
       resolved_at: (status === 'resolved' || status === 'dismissed') ? new Date().toISOString() : null,
     }).in('id', Array.from(checkedIds));

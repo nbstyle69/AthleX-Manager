@@ -25,7 +25,7 @@ export async function POST() {
 
     const supabase = createServiceClient();
 
-    const { data: memberRaw } = await (supabase.from as any)('box_members')
+    const { data: memberRaw } = await supabase.from('box_members')
       .select('id, box_id, subscription_status, stripe_subscription_id')
       .eq('member_id', user.id)
       .not('stripe_subscription_id', 'is', null)

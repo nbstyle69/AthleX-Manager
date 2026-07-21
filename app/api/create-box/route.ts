@@ -240,7 +240,7 @@ export async function POST(req: NextRequest) {
     // ── Early adopter check ──
     let isEarlyAdopter = false;
     try {
-      const { data: countData } = await (supabase.rpc as any)('get_total_box_count');
+      const { data: countData } = await supabase.rpc('get_total_box_count');
       isEarlyAdopter = (Number(countData) || 0) <= 5;
     } catch (_) { /* ignore */ }
 
@@ -248,7 +248,7 @@ export async function POST(req: NextRequest) {
     const trialEndsAt = new Date(Date.now() + trialDays * 24 * 60 * 60 * 1000).toISOString();
 
     // ── Create trial subscription ──
-    await (supabase.from as any)('box_subscriptions').insert({
+    await supabase.from('box_subscriptions').insert({
       box_id: box.id,
       plan_tier: 'trial',
       status: 'trialing',

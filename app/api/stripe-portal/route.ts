@@ -19,7 +19,7 @@ export async function POST(req: NextRequest) {
 
     const supabase = createServiceClient();
 
-    const { data: sub } = await (supabase.from as any)('box_subscriptions')
+    const { data: sub } = await supabase.from('box_subscriptions')
       .select('stripe_customer_id')
       .eq('box_id', box_id)
       .single();

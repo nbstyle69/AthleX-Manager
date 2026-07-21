@@ -66,7 +66,7 @@ export async function POST(req: NextRequest) {
     const userId = user.id;
 
     // Abonnement actif du membre sur cette box.
-    const { data: member } = await (supabase.from as any)('box_members')
+    const { data: member } = await supabase.from('box_members')
       .select('id, plan_id, subscription_status, stripe_subscription_id')
       .eq('box_id', p.box_id)
       .eq('member_id', userId)
@@ -171,7 +171,7 @@ export async function POST(req: NextRequest) {
     );
 
     // Synchronise immédiatement (le webhook confirmera aussi).
-    await (supabase.from as any)('box_members')
+    await supabase.from('box_members')
       .update({ plan_id: p.id, amount_cents: p.price_cents })
       .eq('id', m.id);
 
