@@ -40,7 +40,7 @@ export async function POST(req: NextRequest) {
       .single();
 
     // Get or create subscription record
-    const { data: sub } = await (supabase.from as any)('box_subscriptions')
+    const { data: sub } = await supabase.from('box_subscriptions')
       .select('stripe_customer_id, is_early_adopter, status, trial_ends_at')
       .eq('box_id', box_id)
       .maybeSingle();
@@ -60,12 +60,12 @@ export async function POST(req: NextRequest) {
 
       if (sub) {
         // Record exists but no customer → update
-        await (supabase.from as any)('box_subscriptions')
+        await supabase.from('box_subscriptions')
           .update({ stripe_customer_id: customerId })
           .eq('box_id', box_id);
       } else {
         // No record at all → create one
-        await (supabase.from as any)('box_subscriptions')
+        await supabase.from('box_subscriptions')
           .insert({
             box_id: box_id,
             status: 'trialing',

@@ -40,7 +40,7 @@ export async function POST(req: NextRequest) {
 
         const subscription = await stripe.subscriptions.retrieve(subscriptionId) as any;
 
-        await (supabase.from as any)('box_subscriptions')
+        await supabase.from('box_subscriptions')
           .update({
             stripe_customer_id: customerId,
             stripe_subscription_id: subscriptionId,
@@ -71,7 +71,7 @@ export async function POST(req: NextRequest) {
           default: status = 'expired';
         }
 
-        await (supabase.from as any)('box_subscriptions')
+        await supabase.from('box_subscriptions')
           .update({
             status,
             current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
@@ -88,7 +88,7 @@ export async function POST(req: NextRequest) {
         const subscription = event.data.object as Stripe.Subscription;
         const customerId = subscription.customer as string;
 
-        await (supabase.from as any)('box_subscriptions')
+        await supabase.from('box_subscriptions')
           .update({ status: 'canceled', stripe_subscription_id: null })
           .eq('stripe_customer_id', customerId);
 
@@ -99,7 +99,7 @@ export async function POST(req: NextRequest) {
         const invoice = event.data.object as Stripe.Invoice;
         const customerId = invoice.customer as string;
 
-        await (supabase.from as any)('box_subscriptions')
+        await supabase.from('box_subscriptions')
           .update({ status: 'past_due' })
           .eq('stripe_customer_id', customerId);
 

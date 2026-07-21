@@ -17,7 +17,7 @@ export async function POST(req: NextRequest) {
 
     const supabase = createServiceClient();
 
-    const { data: sub } = await (supabase.from as any)('box_subscriptions')
+    const { data: sub } = await supabase.from('box_subscriptions')
       .select('stripe_customer_id, stripe_subscription_id, status')
       .eq('box_id', box_id)
       .maybeSingle();
@@ -47,7 +47,7 @@ export async function POST(req: NextRequest) {
         default: status = 'expired';
       }
 
-      await (supabase.from as any)('box_subscriptions')
+      await supabase.from('box_subscriptions')
         .update({
           status,
           current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
@@ -80,7 +80,7 @@ export async function POST(req: NextRequest) {
           default: status = 'expired';
         }
 
-        await (supabase.from as any)('box_subscriptions')
+        await supabase.from('box_subscriptions')
           .update({
             status,
             stripe_subscription_id: subscription.id,

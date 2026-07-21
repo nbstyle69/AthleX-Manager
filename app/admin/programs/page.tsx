@@ -55,12 +55,12 @@ export default function AdminProgramsPage() {
   const [savingPrg, setSavingPrg] = useState(false);
 
   const loadAff = useCallback(async () => {
-    const { data } = await (supabase.from as any)('program_affiliates').select('*').order('sort_order', { ascending: true });
+    const { data } = await supabase.from('program_affiliates').select('*').order('sort_order', { ascending: true });
     setAffiliates(data ?? []);
   }, []);
 
   const loadPrg = useCallback(async () => {
-    const { data } = await (supabase.from as any)('programs').select('*').order('sort_order', { ascending: true });
+    const { data } = await supabase.from('programs').select('*').order('sort_order', { ascending: true });
     setPrograms(data ?? []);
   }, []);
 
@@ -122,21 +122,21 @@ export default function AdminProgramsPage() {
       updated_at: new Date().toISOString(),
     };
     if (editingAff) {
-      await (supabase.from as any)('program_affiliates').update(payload).eq('id', editingAff.id);
+      await supabase.from('program_affiliates').update(payload).eq('id', editingAff.id);
     } else {
-      await (supabase.from as any)('program_affiliates').insert(payload);
+      await supabase.from('program_affiliates').insert(payload);
     }
     setSavingAff(false); closeAffForm(); loadAff();
   }
 
   async function deleteAff(id: string) {
     if (!confirm('Supprimer cet affilié et tous ses programmes ?')) return;
-    await (supabase.from as any)('program_affiliates').delete().eq('id', id);
+    await supabase.from('program_affiliates').delete().eq('id', id);
     load();
   }
 
   async function toggleAff(a: Affiliate) {
-    await (supabase.from as any)('program_affiliates').update({ is_active: !a.is_active, updated_at: new Date().toISOString() }).eq('id', a.id);
+    await supabase.from('program_affiliates').update({ is_active: !a.is_active, updated_at: new Date().toISOString() }).eq('id', a.id);
     loadAff();
   }
 
@@ -168,21 +168,21 @@ export default function AdminProgramsPage() {
       updated_at: new Date().toISOString(),
     };
     if (editingPrg) {
-      await (supabase.from as any)('programs').update(payload).eq('id', editingPrg.id);
+      await supabase.from('programs').update(payload).eq('id', editingPrg.id);
     } else {
-      await (supabase.from as any)('programs').insert(payload);
+      await supabase.from('programs').insert(payload);
     }
     setSavingPrg(false); closePrgForm(); loadPrg();
   }
 
   async function deletePrg(id: string) {
     if (!confirm('Supprimer ce programme ?')) return;
-    await (supabase.from as any)('programs').delete().eq('id', id);
+    await supabase.from('programs').delete().eq('id', id);
     loadPrg();
   }
 
   async function togglePrg(p: Program) {
-    await (supabase.from as any)('programs').update({ is_active: !p.is_active, updated_at: new Date().toISOString() }).eq('id', p.id);
+    await supabase.from('programs').update({ is_active: !p.is_active, updated_at: new Date().toISOString() }).eq('id', p.id);
     loadPrg();
   }
 

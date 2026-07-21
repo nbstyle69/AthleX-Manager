@@ -82,15 +82,15 @@ export async function POST(req: NextRequest) {
             platform_fee_cents: feeCents,
           };
 
-          const { data: existing } = await (supabase.from as any)('box_members')
+          const { data: existing } = await supabase.from('box_members')
             .select('id')
             .eq('box_id', boxId)
             .eq('member_id', userId)
             .maybeSingle();
 
           const { error: writeErr } = existing?.id
-            ? await (supabase.from as any)('box_members').update(patch).eq('id', existing.id)
-            : await (supabase.from as any)('box_members').insert({
+            ? await supabase.from('box_members').update(patch).eq('id', existing.id)
+            : await supabase.from('box_members').insert({
                 box_id: boxId, member_id: userId, role: 'member', ...patch,
               });
           if (writeErr) {
@@ -118,7 +118,7 @@ export async function POST(req: NextRequest) {
           }
 
           const expiresAt = new Date(Date.now() + validityDays * 86400_000).toISOString();
-          const { error: creditErr } = await (supabase.from as any)('member_class_credits')
+          const { error: creditErr } = await supabase.from('member_class_credits')
             .insert({
               box_id: boxId,
               member_id: userId,
@@ -162,7 +162,7 @@ export async function POST(req: NextRequest) {
           break;
         }
 
-        const { error: programWriteErr } = await (supabase.from as any)('program_members')
+        const { error: programWriteErr } = await supabase.from('program_members')
           .upsert(
             {
               program_id: programId,
@@ -188,11 +188,11 @@ export async function POST(req: NextRequest) {
 
       case 'customer.subscription.deleted': {
         const sub = event.data.object as Stripe.Subscription;
-        await (supabase.from as any)('program_members')
+        await supabase.from('program_members')
           .update({ status: 'cancelled' })
           .eq('stripe_subscription_id', sub.id);
         // Abonnement salle résilié → retire la formule (déclenche la sync des groupes).
-        await (supabase.from as any)('box_members')
+        await supabase.from('box_members')
           .update({ subscription_status: 'cancelled', plan_id: null })
           .eq('stripe_subscription_id', sub.id);
         break;
@@ -203,7 +203,7 @@ export async function POST(req: NextRequest) {
         const status = sub.status === 'active' || sub.status === 'trialing' ? 'active'
           : sub.status === 'past_due' ? 'active'
           : 'cancelled';
-        await (supabase.from as any)('program_members')
+        await supabase.from('program_members')
           .update({ status })
           .eq('stripe_subscription_id', sub.id);
         // Statut d'abonnement salle : active / past_due (impayé) / cancelled.
@@ -220,7 +220,7 @@ export async function POST(req: NextRequest) {
         if (metaPlanId) {
           planPatch.plan_id = metaPlanId;
         } else if (currentPriceId) {
-          const { data: matchedPlan } = await (supabase.from as any)('membership_plans')
+          const { data: matchedPlan } = await supabase.from('membership_plans')
             .select('id, price_cents')
             .eq('stripe_price_id', currentPriceId)
             .maybeSingle();
@@ -230,7 +230,7 @@ export async function POST(req: NextRequest) {
           }
         }
 
-        const { error: subUpdErr } = await (supabase.from as any)('box_members')
+        const { error: subUpdErr } = await supabase.from('box_members')
           .update({
             subscription_status: memberStatus,
             subscription_current_period_end: periodEnd,
@@ -247,12 +247,12 @@ export async function POST(req: NextRequest) {
         const charge = event.data.object as Stripe.Charge;
         if (charge.payment_intent) {
           const paymentIntent = charge.payment_intent as string;
-          await (supabase.from as any)('program_members')
+          await supabase.from('program_members')
             .update({ status: 'refunded' })
             .eq('stripe_payment_intent', paymentIntent);
           // Achat unique de crédits (Drop-in / Carnet) remboursé : on révoque
           // l'accès pour que les séances prépayées ne soient plus réservables.
-          await (supabase.from as any)('member_class_credits')
+          await supabase.from('member_class_credits')
             .update({ status: 'refunded' })
             .eq('stripe_payment_intent', paymentIntent);
         }
