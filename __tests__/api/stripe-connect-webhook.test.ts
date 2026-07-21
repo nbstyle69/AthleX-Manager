@@ -158,6 +158,27 @@ describe('POST /api/stripe-connect-webhook', () => {
     );
   });
 
+  it('sets the renewal date on customer.subscription.created', async () => {
+    chains.program_members = makeChain({ awaited: { error: null } });
+    chains.box_members = makeChain({ awaited: { error: null } });
+    const periodEndEpoch = 1785000000; // seconds
+    mockConstructEvent.mockReturnValue({
+      type: 'customer.subscription.created',
+      data: { object: { id: 'sub_1', status: 'active', current_period_end: periodEndEpoch, items: { data: [{}] }, metadata: {} } },
+    });
+
+    const res = (await POST(makeReq() as any)) as any;
+
+    expect(res._status).toBe(200);
+    expect(chains.box_members.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        subscription_status: 'active',
+        subscription_current_period_end: new Date(periodEndEpoch * 1000).toISOString(),
+      }),
+    );
+    expect(chains.box_members.eq).toHaveBeenCalledWith('stripe_subscription_id', 'sub_1');
+  });
+
   it('revokes program access and credits on charge.refunded', async () => {
     chains.program_members = makeChain({ awaited: { error: null } });
     chains.member_class_credits = makeChain({ awaited: { error: null } });

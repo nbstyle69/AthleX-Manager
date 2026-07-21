@@ -198,6 +198,10 @@ export async function POST(req: NextRequest) {
         break;
       }
 
+      // `created` is emitted right after checkout with the first period end,
+      // which `checkout.session.completed` doesn't carry — handle it like an
+      // update so the renewal date is populated immediately, not only on renewal.
+      case 'customer.subscription.created':
       case 'customer.subscription.updated': {
         const sub = event.data.object as any;
         const status = sub.status === 'active' || sub.status === 'trialing' ? 'active'
