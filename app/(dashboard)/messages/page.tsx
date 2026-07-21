@@ -89,6 +89,14 @@ export default function MessagesPage() {
 
   useEffect(() => { loadMessages(); }, [loadMessages]);
 
+  // Mark this box's messages as seen (dashboard "Messages non lus" reads this
+  // cookie). Refreshed whenever the owner is viewing messages so anything that
+  // arrives after they leave the page counts as unread.
+  useEffect(() => {
+    if (!boxId) return;
+    document.cookie = `msg_seen_${boxId}=${new Date().toISOString()}; path=/; max-age=31536000; samesite=lax`;
+  }, [boxId, messages]);
+
   // Realtime subscription
   useEffect(() => {
     if (!selectedGroup) return;

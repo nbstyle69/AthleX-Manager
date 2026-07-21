@@ -1,5 +1,6 @@
 ﻿import { createClient, getOwnerBox } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
+import { cookies } from 'next/headers';
 import Link from 'next/link';
 import { Trophy, Users, Clock, MessageSquare, ChevronRight, CheckCircle, XCircle } from 'lucide-react';
 import { formatDateTime, statusBadge } from '@/lib/utils';
@@ -11,12 +12,20 @@ export default async function DashboardPage() {
   const box = await getOwnerBox(supabase);
   if (!box) redirect('/login');
 
-  const { data: boxTournaments } = await supabase
-    .from('tournaments').select('id').eq('box_id', box.id);
+  const [{ data: boxTournaments }, { data: boxGroups }, { data: { user: authUser } }] = await Promise.all([
+    supabase.from('tournaments').select('id').eq('box_id', box.id),
+    supabase.from('message_groups').select('id').eq('box_id', box.id),
+    supabase.auth.getUser(),
+  ]);
   const tournamentIds = (boxTournaments ?? []).map((t: any) => t.id);
-
-  const { data: { user: authUser } } = await supabase.auth.getUser();
+  const groupIds = (boxGroups ?? []).map((g: any) => g.id);
   const ownerId = authUser?.id ?? '';
+
+  // "Messages non lus" = messages posted by others in the box's group chats
+  // since the owner last opened /messages (timestamp stored in a cookie, set
+  // client-side by the messages page — same last-seen approach as the app).
+  const cookieStore = await cookies();
+  const messagesSeenAt = cookieStore.get(`msg_seen_${box.id}`)?.value;
 
   const [
     { count: activeTournaments },
@@ -33,9 +42,13 @@ export default async function DashboardPage() {
       ? supabase.from('tournament_scores').select('id', { count: 'exact', head: true })
           .eq('status', 'pending').in('tournament_id', tournamentIds)
       : Promise.resolve({ count: 0, data: null, error: null }),
-    ownerId
-      ? supabase.from('messages').select('id', { count: 'exact', head: true })
-          .eq('box_id', box.id).neq('sender_id', ownerId).not('read_by', 'cs', `{${ownerId}}`)
+    groupIds.length && ownerId
+      ? (() => {
+          let q = supabase.from('group_messages').select('id', { count: 'exact', head: true })
+            .in('group_id', groupIds).neq('sender_id', ownerId);
+          if (messagesSeenAt) q = q.gt('created_at', messagesSeenAt);
+          return q;
+        })()
       : Promise.resolve({ count: 0, data: null, error: null }),
     supabase.from('tournaments').select('id, name, status, created_at, max_participants, tournament_participants(count)')
       .eq('box_id', box.id).order('created_at', { ascending: false }).limit(3),
