@@ -96,7 +96,9 @@ export default async function BoxPublicPage({ params }: { params: Promise<{ slug
 
   const { data: box } = await supabase
     .from('boxes')
-    .select('*')
+    .select(
+      'id, name, slug, description, tagline, logo_url, cover_url, address, city, phone, contact_email, website_url, instagram_url, google_maps_url, latitude, longitude, sport_type, services, opening_hours, founded_at, member_count',
+    )
     .eq('slug', slug)
     .eq('is_active', true)
     .single();
