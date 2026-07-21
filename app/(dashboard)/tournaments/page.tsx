@@ -2,7 +2,7 @@
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { Plus, Trophy, Users, Clock, ChevronRight } from 'lucide-react';
-import { formatDate, statusBadge } from '@/lib/utils';
+import { formatDate, tournamentStatusInfo } from '@/lib/utils';
 
 export default async function TournamentsPage() {
   const supabase = await createClient();
@@ -11,7 +11,7 @@ export default async function TournamentsPage() {
 
   const { data: tournaments } = await supabase
     .from('tournaments')
-    .select('id, name, status, level, max_participants, created_at, start_date, format')
+    .select('id, name, status, level, max_participants, created_at, start_date, end_date, format')
     .eq('box_id', box.id)
     .order('created_at', { ascending: false });
 
@@ -66,7 +66,7 @@ export default async function TournamentsPage() {
             </thead>
             <tbody>
               {tournaments.map((t: any, i: number) => {
-                const sb = statusBadge(t.status);
+                const sb = tournamentStatusInfo(t.status, t.end_date);
                 return (
                   <tr key={t.id} className={`border-b border-white/5 last:border-0 hover:bg-white/3 transition-colors ${i % 2 === 0 ? '' : 'bg-white/[0.01]'}`}>
                     <td className="px-5 py-4">

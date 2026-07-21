@@ -4,13 +4,7 @@ import Link from 'next/link';
 import { ChevronLeft, Dumbbell, Users, BarChart2, Trophy, Pencil, ClipboardCheck, GitBranch, Layers } from 'lucide-react';
 import CloseTournamentButton from '@/components/tournaments/CloseTournamentButton';
 import DeleteTournamentButton from '@/components/tournaments/DeleteTournamentButton';
-
-const STATUS_MAP: Record<string, { label: string; color: string }> = {
-  draft:    { label: 'Brouillon',              color: '#6B7280' },
-  open:     { label: 'Inscriptions ouvertes',  color: '#3B82F6' },
-  active:   { label: 'En cours',               color: '#16A34A' },
-  finished: { label: 'Terminé',                color: '#FFFFFF' },
-};
+import { tournamentStatusInfo } from '@/lib/utils';
 
 export default async function TournamentDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -35,7 +29,7 @@ export default async function TournamentDetailPage({ params }: { params: Promise
     svc.from('tournament_scores').select('*', { count: 'exact', head: true }).eq('tournament_id', id),
   ]);
 
-  const st = STATUS_MAP[t.status] ?? STATUS_MAP.draft;
+  const st = tournamentStatusInfo(t.status, t.end_date);
 
   return (
     <div className="max-w-3xl space-y-6">
@@ -86,6 +80,26 @@ export default async function TournamentDetailPage({ params }: { params: Promise
         </div>
       </div>
 
+      {/* Lifecycle guidance */}
+      <div className="flex items-start gap-3 rounded-2xl px-5 py-4 border"
+        style={{ backgroundColor: `${st.color}10`, borderColor: `${st.color}30` }}>
+        <span className="mt-0.5 h-2.5 w-2.5 rounded-full shrink-0" style={{ backgroundColor: st.color }} />
+        <div className="text-sm">
+          <p className="font-bold" style={{ color: st.color }}>{st.label}</p>
+          <p className="text-gray-400 mt-0.5">{st.description}</p>
+          {st.key !== 'completed' && (pendingCount ?? 0) > 0 && (
+            <p className="text-amber-400 mt-1 font-semibold">
+              {pendingCount} score(s) à valider avant de pouvoir clôturer et distribuer l’ELO.
+            </p>
+          )}
+          {st.key !== 'completed' && (pendingCount ?? 0) === 0 && (participantCount ?? 0) > 0 && (
+            <p className="text-gray-500 mt-1">
+              Tout est prêt : clique sur « Clôturer &amp; ELO » pour figer le classement et distribuer l’ELO.
+            </p>
+          )}
+        </div>
+      </div>
+
       {/* Quick nav tiles */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Link href={`/tournaments/${id}/wods`}
@@ -116,8 +130,10 @@ export default async function TournamentDetailPage({ params }: { params: Promise
           <div className="w-10 h-10 rounded-xl bg-amber-500/15 flex items-center justify-center mb-3">
             <ClipboardCheck size={18} className="text-amber-400" />
           </div>
-          <p className="text-white font-bold text-lg">{totalScores ?? 0}</p>
-          <p className="text-xs text-gray-400 font-semibold mt-0.5">Scores à valider</p>
+          <p className="text-white font-bold text-lg">{pendingCount ?? 0}</p>
+          <p className="text-xs text-gray-400 font-semibold mt-0.5">
+            Scores à valider{(totalScores ?? 0) > 0 ? ` · ${totalScores} au total` : ''}
+          </p>
         </Link>
 
         <Link href={`/tournaments/${id}/leaderboard`}
