@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { Plus, Trash2, Loader2, X, Sparkles, ChevronDown, ChevronUp, Timer } from 'lucide-react';
 import { boGenerateFunctional, boGenerateHybrid } from '@/lib/wod/boAdapter';
+import { MOVEMENT_CATALOG, isWeightedMovement, serializeMovement, parseMovementRow } from '@/lib/movements';
 
 const WOD_TYPES = ['AMRAP', 'For Time', 'EMOM', 'Tabata', 'Max Reps', 'Strength'];
 const LEVELS    = ['scaled', 'inter', 'rx', 'rx+', 'gx', 'pro'];
@@ -482,22 +483,61 @@ export default function WODForm({ tournamentId, divisions = [], isLeague = false
             <Plus size={12} /> Ajouter
           </button>
         </div>
+        <datalist id="movement-catalog">
+          {MOVEMENT_CATALOG.map(mv => <option key={mv.name} value={mv.name} />)}
+        </datalist>
         <div className="space-y-2">
-          {movements.map((m, i) => (
-            <div key={i} className="flex gap-2">
-              <input className={`${inp} flex-1`} value={m} onChange={e => setMovement(i, e.target.value)}
-                placeholder="ex: 21 Thrusters 43kg (Rx) / 30kg (Scaled)" />
-              <button type="button" onClick={() => removeMovement(i)} className="p-3 rounded-xl bg-white/5 border border-white/10 text-gray-500 hover:text-red-400 transition-colors">
-                <Trash2 size={14} />
-              </button>
-            </div>
-          ))}
+          {movements.map((line, i) => {
+            const parsed = parseMovementRow(line);
+            const showWeight = parsed.weightKg != null || isWeightedMovement(parsed.name);
+            const update = (reps: number | null, name: string, weightKg: number | null) => {
+              const w = showWeight ? weightKg : null;
+              if (reps == null) {
+                setMovement(i, w != null && w > 0 ? `${name.trim()} (${w} kg)` : name.trim());
+              } else {
+                setMovement(i, serializeMovement(reps, name, w));
+              }
+            };
+            return (
+              <div key={i} className="flex gap-2 items-center">
+                <input
+                  type="number" min={0} inputMode="numeric"
+                  className={`${inp} w-16 text-center px-2`}
+                  value={parsed.reps ?? ''}
+                  onChange={e => update(e.target.value === '' ? null : parseInt(e.target.value, 10), parsed.name, parsed.weightKg)}
+                  placeholder="Reps" aria-label="Répétitions" />
+                <input
+                  list="movement-catalog"
+                  className={`${inp} flex-1`}
+                  value={parsed.name}
+                  onChange={e => update(parsed.reps, e.target.value, parsed.weightKg)}
+                  placeholder="Exercice (rechercher…)" aria-label="Exercice" />
+                {showWeight && (
+                  <div className="relative w-24">
+                    <input
+                      type="number" min={0} step={0.5} inputMode="decimal"
+                      className={`${inp} pr-8`}
+                      value={parsed.weightKg ?? ''}
+                      onChange={e => update(parsed.reps, parsed.name, e.target.value === '' ? null : parseFloat(e.target.value))}
+                      placeholder="Charge" aria-label="Charge en kilos" />
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-500 pointer-events-none">kg</span>
+                  </div>
+                )}
+                <button type="button" onClick={() => removeMovement(i)} className="p-3 rounded-xl bg-white/5 border border-white/10 text-gray-500 hover:text-red-400 transition-colors">
+                  <Trash2 size={14} />
+                </button>
+              </div>
+            );
+          })}
           {movements.length === 0 && (
             <button type="button" onClick={addMovement}
               className="w-full py-3 rounded-xl border border-dashed border-white/10 text-xs text-gray-600 hover:border-white/30 hover:text-white/60 transition-colors">
               + Ajouter un mouvement
             </button>
           )}
+          <p className="text-[11px] text-gray-600 pt-1">
+            Reps + exercice (liste officielle) + charge : garantit le comptage des badges de mouvement des athlètes.
+          </p>
         </div>
       </div>
 
