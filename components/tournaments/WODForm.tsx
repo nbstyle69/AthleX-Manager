@@ -515,21 +515,21 @@ export default function WODForm({ tournamentId, divisions = [], isLeague = false
                   placeholder="Exercice (rechercher…)" aria-label="Exercice" />
                 {showWeight && (
                   <>
-                    <div className="relative w-20 shrink-0">
-                      <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] font-semibold text-gray-500 pointer-events-none">♂</span>
+                    <div className="relative w-24 shrink-0">
+                      <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-semibold text-gray-400 pointer-events-none">♂</span>
                       <input
                         type="number" min={0} step={0.5} inputMode="decimal"
-                        className={`${inp} !pl-6 pr-7`}
+                        className={`${inp} !px-0 !pl-7 !pr-6 text-center`}
                         value={parsed.weightKg ?? ''}
                         onChange={e => update(parsed.reps, parsed.name, e.target.value === '' ? null : parseFloat(e.target.value), parsed.weightKgWomen)}
                         placeholder="H" aria-label="Charge hommes en kilos" />
                       <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-gray-500 pointer-events-none">kg</span>
                     </div>
-                    <div className="relative w-20 shrink-0">
-                      <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] font-semibold text-gray-500 pointer-events-none">♀</span>
+                    <div className="relative w-24 shrink-0">
+                      <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-semibold text-gray-400 pointer-events-none">♀</span>
                       <input
                         type="number" min={0} step={0.5} inputMode="decimal"
-                        className={`${inp} !pl-6 pr-7`}
+                        className={`${inp} !px-0 !pl-7 !pr-6 text-center`}
                         value={parsed.weightKgWomen ?? ''}
                         onChange={e => update(parsed.reps, parsed.name, parsed.weightKg, e.target.value === '' ? null : parseFloat(e.target.value))}
                         placeholder="F" aria-label="Charge femmes en kilos" />
