@@ -193,7 +193,7 @@ export async function POST(req: NextRequest) {
           .eq('stripe_subscription_id', sub.id);
         // Abonnement salle résilié → retire la formule (déclenche la sync des groupes).
         await supabase.from('box_members')
-          .update({ subscription_status: 'cancelled', plan_id: null })
+          .update({ subscription_status: 'cancelled', plan_id: null, subscription_cancel_at_period_end: false })
           .eq('stripe_subscription_id', sub.id);
         break;
       }
@@ -238,6 +238,7 @@ export async function POST(req: NextRequest) {
           .update({
             subscription_status: memberStatus,
             subscription_current_period_end: periodEnd,
+            subscription_cancel_at_period_end: !!sub.cancel_at_period_end,
             ...(memberStatus !== 'cancelled' ? planPatch : {}),
           })
           .eq('stripe_subscription_id', sub.id);

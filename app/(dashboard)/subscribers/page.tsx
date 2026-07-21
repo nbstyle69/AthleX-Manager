@@ -20,6 +20,7 @@ interface Row {
   amountCents: number | null;
   status: string;       // active | past_due | cancelled | ...
   periodEnd: string | null;
+  cancelAtPeriodEnd: boolean;
 }
 
 const STATUS_STYLE: Record<string, { label: string; color: string }> = {
@@ -56,7 +57,7 @@ export default function SubscribersPage() {
     // Abonnements de salle (formules payantes)
     const { data: memberRows } = await supabase
       .from('box_members')
-      .select('member_id, amount_cents, subscription_status, subscription_current_period_end, plan:membership_plans(name, color, price_cents), profile:profiles(username, email)')
+      .select('member_id, amount_cents, subscription_status, subscription_current_period_end, subscription_cancel_at_period_end, plan:membership_plans(name, color, price_cents), profile:profiles(username, email)')
       .eq('box_id', box.id)
       .not('subscription_status', 'is', null);
 
@@ -79,6 +80,7 @@ export default function SubscribersPage() {
         amountCents: r.amount_cents ?? plan?.price_cents ?? null,
         status: r.subscription_status ?? 'active',
         periodEnd: r.subscription_current_period_end ?? null,
+        cancelAtPeriodEnd: !!r.subscription_cancel_at_period_end,
       };
     });
 
@@ -95,6 +97,7 @@ export default function SubscribersPage() {
         amountCents: r.amount_cents ?? null,
         status: r.status ?? 'active',
         periodEnd: null,
+        cancelAtPeriodEnd: false,
       };
     });
 
@@ -202,8 +205,16 @@ export default function SubscribersPage() {
                       style={{ color: st.color, backgroundColor: `${st.color}18` }}>
                       {st.label}
                     </span>
+                    {r.cancelAtPeriodEnd && (
+                      <span className="block mt-1 text-[10px] font-semibold text-amber-400">Résiliation prévue</span>
+                    )}
                   </td>
-                  <td className="px-4 py-3 text-xs text-gray-400">{fmtDate(r.periodEnd)}</td>
+                  <td className="px-4 py-3 text-xs text-gray-400">
+                    {fmtDate(r.periodEnd)}
+                    {r.cancelAtPeriodEnd && r.periodEnd && (
+                      <span className="block text-[10px] text-amber-400/80">fin d'abonnement</span>
+                    )}
+                  </td>
                 </tr>
               );
             })}

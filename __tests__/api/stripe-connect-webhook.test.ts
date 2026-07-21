@@ -179,6 +179,22 @@ describe('POST /api/stripe-connect-webhook', () => {
     expect(chains.box_members.eq).toHaveBeenCalledWith('stripe_subscription_id', 'sub_1');
   });
 
+  it('flags a scheduled cancellation on customer.subscription.updated', async () => {
+    chains.program_members = makeChain({ awaited: { error: null } });
+    chains.box_members = makeChain({ awaited: { error: null } });
+    mockConstructEvent.mockReturnValue({
+      type: 'customer.subscription.updated',
+      data: { object: { id: 'sub_1', status: 'active', cancel_at_period_end: true, current_period_end: 1785000000, items: { data: [{}] }, metadata: {} } },
+    });
+
+    const res = (await POST(makeReq() as any)) as any;
+
+    expect(res._status).toBe(200);
+    expect(chains.box_members.update).toHaveBeenCalledWith(
+      expect.objectContaining({ subscription_status: 'active', subscription_cancel_at_period_end: true }),
+    );
+  });
+
   it('revokes program access and credits on charge.refunded', async () => {
     chains.program_members = makeChain({ awaited: { error: null } });
     chains.member_class_credits = makeChain({ awaited: { error: null } });
