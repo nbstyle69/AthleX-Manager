@@ -113,29 +113,51 @@ export function isWeightedMovement(name: string): boolean {
 }
 
 // Serialize a structured movement row into a parseable line.
-// reps + name (+ optional load). Cardio distance movements keep the number as-is.
-//   { reps: 21, name: 'Thrusters', weightKg: 43 } -> "21 Thrusters (43 kg)"
-//   { reps: 12, name: 'Pull-ups' }                -> "12 Pull-ups"
-export function serializeMovement(reps: number, name: string, weightKg?: number | null): string {
+// reps + name (+ optional men/women loads). Cardio distance movements keep the number as-is.
+//   { reps: 21, name: 'Thruster', weightKg: 43 }                  -> "21 Thruster (43 kg)"
+//   { reps: 21, name: 'Thruster', weightKg: 43, weightKgW: 30 }   -> "21 Thruster (43/30 kg)"
+//   { reps: 12, name: 'Pull-ups' }                                -> "12 Pull-ups"
+export function serializeMovement(
+  reps: number,
+  name: string,
+  weightKg?: number | null,
+  weightKgWomen?: number | null,
+): string {
   const base = `${reps} ${name.trim()}`.trim();
-  return weightKg != null && weightKg > 0 ? `${base} (${weightKg} kg)` : base;
+  const men = weightKg != null && weightKg > 0 ? weightKg : null;
+  const women = weightKgWomen != null && weightKgWomen > 0 ? weightKgWomen : null;
+  if (men != null && women != null) return `${base} (${men}/${women} kg)`;
+  if (men != null) return `${base} (${men} kg)`;
+  if (women != null) return `${base} (${women} kg)`;
+  return base;
 }
 
 // Parse a stored movement line back into structured parts (best-effort, tolerant
 // of legacy free-text like "7 reps — Sumo Deadlift High Pull @ 42.5/30 kg").
-export function parseMovementRow(line: string): { reps: number | null; name: string; weightKg: number | null } {
+// A "men/women" pair ("43/30 kg") splits into weightKg (men) + weightKgWomen (women).
+export function parseMovementRow(line: string): {
+  reps: number | null;
+  name: string;
+  weightKg: number | null;
+  weightKgWomen: number | null;
+} {
   let s = (line ?? '').trim();
-  // weight: "(43 kg)" or "@ 43kg" or "@ 42.5/30 kg" (take the first number)
+  // weight: "(43 kg)" / "(43/30 kg)" or "@ 43kg" / "@ 42.5/30 kg"
   let weightKg: number | null = null;
-  const wParen = s.match(/\((\d+(?:\.\d+)?)\s*kg\)/i);
-  const wAt = s.match(/@\s*(\d+(?:\.\d+)?)/);
-  if (wParen) { weightKg = parseFloat(wParen[1]); }
-  else if (wAt) { weightKg = parseFloat(wAt[1]); }
+  let weightKgWomen: number | null = null;
+  const num = String.raw`\d+(?:\.\d+)?`;
+  const wParen = s.match(new RegExp(String.raw`\((${num})(?:\s*\/\s*(${num}))?\s*kg\)`, 'i'));
+  const wAt = s.match(new RegExp(String.raw`@\s*(${num})(?:\s*\/\s*(${num}))?`, 'i'));
+  const w = wParen ?? wAt;
+  if (w) {
+    weightKg = parseFloat(w[1]);
+    if (w[2] != null) weightKgWomen = parseFloat(w[2]);
+  }
   s = s.replace(/\((?:[^)]*)\)/g, '').replace(/@.*$/, '').trim();
   // leading reps, tolerating a "reps"/"rep"/"x" word and a "—"/"-" separator
   const m = s.match(/^(\d+)\s*(?:reps?|x)?\s*[—\-:]?\s*(.+)$/i);
   if (m) {
-    return { reps: parseInt(m[1], 10), name: m[2].trim(), weightKg };
+    return { reps: parseInt(m[1], 10), name: m[2].trim(), weightKg, weightKgWomen };
   }
-  return { reps: null, name: s, weightKg };
+  return { reps: null, name: s, weightKg, weightKgWomen };
 }

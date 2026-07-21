@@ -489,13 +489,14 @@ export default function WODForm({ tournamentId, divisions = [], isLeague = false
         <div className="space-y-2">
           {movements.map((line, i) => {
             const parsed = parseMovementRow(line);
-            const showWeight = parsed.weightKg != null || isWeightedMovement(parsed.name);
-            const update = (reps: number | null, name: string, weightKg: number | null) => {
-              const w = showWeight ? weightKg : null;
+            const showWeight = parsed.weightKg != null || parsed.weightKgWomen != null || isWeightedMovement(parsed.name);
+            const update = (reps: number | null, name: string, weightKg: number | null, weightKgWomen: number | null) => {
+              const w  = showWeight ? weightKg : null;
+              const wW = showWeight ? weightKgWomen : null;
               if (reps == null) {
-                setMovement(i, w != null && w > 0 ? `${name.trim()} (${w} kg)` : name.trim());
+                setMovement(i, serializeMovement(0, name, w, wW).replace(/^0\s*/, '').trim());
               } else {
-                setMovement(i, serializeMovement(reps, name, w));
+                setMovement(i, serializeMovement(reps, name, w, wW));
               }
             };
             return (
@@ -504,24 +505,37 @@ export default function WODForm({ tournamentId, divisions = [], isLeague = false
                   type="number" min={0} inputMode="numeric"
                   className={`${inp} !w-16 shrink-0 text-center px-2`}
                   value={parsed.reps ?? ''}
-                  onChange={e => update(e.target.value === '' ? null : parseInt(e.target.value, 10), parsed.name, parsed.weightKg)}
+                  onChange={e => update(e.target.value === '' ? null : parseInt(e.target.value, 10), parsed.name, parsed.weightKg, parsed.weightKgWomen)}
                   placeholder="Reps" aria-label="Répétitions" />
                 <input
                   list="movement-catalog"
                   className={`${inp} flex-1 min-w-0`}
                   value={parsed.name}
-                  onChange={e => update(parsed.reps, e.target.value, parsed.weightKg)}
+                  onChange={e => update(parsed.reps, e.target.value, parsed.weightKg, parsed.weightKgWomen)}
                   placeholder="Exercice (rechercher…)" aria-label="Exercice" />
                 {showWeight && (
-                  <div className="relative w-24">
-                    <input
-                      type="number" min={0} step={0.5} inputMode="decimal"
-                      className={`${inp} pr-8`}
-                      value={parsed.weightKg ?? ''}
-                      onChange={e => update(parsed.reps, parsed.name, e.target.value === '' ? null : parseFloat(e.target.value))}
-                      placeholder="Charge" aria-label="Charge en kilos" />
-                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-500 pointer-events-none">kg</span>
-                  </div>
+                  <>
+                    <div className="relative w-20 shrink-0">
+                      <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] font-semibold text-gray-500 pointer-events-none">♂</span>
+                      <input
+                        type="number" min={0} step={0.5} inputMode="decimal"
+                        className={`${inp} !pl-6 pr-7`}
+                        value={parsed.weightKg ?? ''}
+                        onChange={e => update(parsed.reps, parsed.name, e.target.value === '' ? null : parseFloat(e.target.value), parsed.weightKgWomen)}
+                        placeholder="H" aria-label="Charge hommes en kilos" />
+                      <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-gray-500 pointer-events-none">kg</span>
+                    </div>
+                    <div className="relative w-20 shrink-0">
+                      <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] font-semibold text-gray-500 pointer-events-none">♀</span>
+                      <input
+                        type="number" min={0} step={0.5} inputMode="decimal"
+                        className={`${inp} !pl-6 pr-7`}
+                        value={parsed.weightKgWomen ?? ''}
+                        onChange={e => update(parsed.reps, parsed.name, parsed.weightKg, e.target.value === '' ? null : parseFloat(e.target.value))}
+                        placeholder="F" aria-label="Charge femmes en kilos" />
+                      <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-gray-500 pointer-events-none">kg</span>
+                    </div>
+                  </>
                 )}
                 <button type="button" onClick={() => removeMovement(i)} className="p-3 rounded-xl bg-white/5 border border-white/10 text-gray-500 hover:text-red-400 transition-colors">
                   <Trash2 size={14} />
@@ -536,7 +550,7 @@ export default function WODForm({ tournamentId, divisions = [], isLeague = false
             </button>
           )}
           <p className="text-[11px] text-gray-600 pt-1">
-            Reps + exercice (liste officielle) + charge : garantit le comptage des badges de mouvement des athlètes.
+            Reps + exercice (liste officielle) + charges ♂ hommes / ♀ femmes : garantit le comptage des badges de mouvement des athlètes.
           </p>
         </div>
       </div>
