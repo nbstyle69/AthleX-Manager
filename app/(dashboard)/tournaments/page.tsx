@@ -1,7 +1,7 @@
 ﻿import { createClient, getOwnerBox } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
-import { Plus, Trophy, Users, Clock, ChevronRight } from 'lucide-react';
+import { Plus, Trophy, Users, Clock, ChevronRight, Archive } from 'lucide-react';
 import { formatDate, tournamentStatusInfo } from '@/lib/utils';
 
 export default async function TournamentsPage() {
@@ -28,6 +28,66 @@ export default async function TournamentsPage() {
     });
   }
 
+  const active = (tournaments ?? []).filter((t: any) => t.status !== 'completed');
+  const history = (tournaments ?? []).filter((t: any) => t.status === 'completed');
+
+  const renderTable = (rows: any[]) => (
+    <div className="bg-[#111111] border border-white/8 rounded-2xl overflow-hidden">
+      <table className="w-full">
+        <thead>
+          <tr className="border-b border-white/8">
+            <th className="text-left px-5 py-3.5 text-xs font-bold text-gray-500 uppercase tracking-wider">Tournoi</th>
+            <th className="text-left px-5 py-3.5 text-xs font-bold text-gray-500 uppercase tracking-wider">Niveau</th>
+            <th className="text-left px-5 py-3.5 text-xs font-bold text-gray-500 uppercase tracking-wider">Participants</th>
+            <th className="text-left px-5 py-3.5 text-xs font-bold text-gray-500 uppercase tracking-wider">Statut</th>
+            <th className="text-left px-5 py-3.5 text-xs font-bold text-gray-500 uppercase tracking-wider">Date</th>
+            <th className="px-5 py-3.5"></th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((t: any, i: number) => {
+            const sb = tournamentStatusInfo(t.status, t.end_date);
+            return (
+              <tr key={t.id} className={`border-b border-white/5 last:border-0 hover:bg-white/3 transition-colors ${i % 2 === 0 ? '' : 'bg-white/[0.01]'}`}>
+                <td className="px-5 py-4">
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm font-semibold text-white">{t.name}</p>
+                    {t.format && t.format !== 'simple' && (
+                      <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-white/15 text-white">
+                        {t.format === 'bracket' ? 'Bracket' : t.format === 'swiss' ? 'Swiss' : t.format === 'league_div' ? 'Ligue' : t.format}
+                      </span>
+                    )}
+                  </div>
+                </td>
+                <td className="px-5 py-4">
+                  <span className="text-xs font-bold uppercase text-gray-400">{t.level ?? 'RX'}</span>
+                </td>
+                <td className="px-5 py-4">
+                  <div className="flex items-center gap-1.5 text-sm text-gray-300">
+                    <Users size={13} className="text-gray-500" />
+                    {participantCounts[t.id] ?? 0} / {t.max_participants}
+                  </div>
+                </td>
+                <td className="px-5 py-4">
+                  <span className="text-xs font-bold px-2.5 py-1 rounded-lg" style={{ backgroundColor: `${sb.color}20`, color: sb.color }}>
+                    {sb.label}
+                  </span>
+                </td>
+                <td className="px-5 py-4 text-sm text-gray-400">{formatDate(t.start_date ?? t.created_at)}</td>
+                <td className="px-5 py-4">
+                  <Link href={`/tournaments/${t.id}`}
+                    className="flex items-center gap-1 text-xs text-white hover:text-white font-semibold transition-colors">
+                    Gérer <ChevronRight size={13} />
+                  </Link>
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -52,59 +112,29 @@ export default async function TournamentsPage() {
           </Link>
         </div>
       ) : (
-        <div className="bg-[#111111] border border-white/8 rounded-2xl overflow-hidden">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-white/8">
-                <th className="text-left px-5 py-3.5 text-xs font-bold text-gray-500 uppercase tracking-wider">Tournoi</th>
-                <th className="text-left px-5 py-3.5 text-xs font-bold text-gray-500 uppercase tracking-wider">Niveau</th>
-                <th className="text-left px-5 py-3.5 text-xs font-bold text-gray-500 uppercase tracking-wider">Participants</th>
-                <th className="text-left px-5 py-3.5 text-xs font-bold text-gray-500 uppercase tracking-wider">Statut</th>
-                <th className="text-left px-5 py-3.5 text-xs font-bold text-gray-500 uppercase tracking-wider">Date</th>
-                <th className="px-5 py-3.5"></th>
-              </tr>
-            </thead>
-            <tbody>
-              {tournaments.map((t: any, i: number) => {
-                const sb = tournamentStatusInfo(t.status, t.end_date);
-                return (
-                  <tr key={t.id} className={`border-b border-white/5 last:border-0 hover:bg-white/3 transition-colors ${i % 2 === 0 ? '' : 'bg-white/[0.01]'}`}>
-                    <td className="px-5 py-4">
-                      <div className="flex items-center gap-2">
-                        <p className="text-sm font-semibold text-white">{t.name}</p>
-                        {t.format && t.format !== 'simple' && (
-                          <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-white/15 text-white">
-                            {t.format === 'bracket' ? 'Bracket' : t.format === 'swiss' ? 'Swiss' : t.format === 'league_div' ? 'Ligue' : t.format}
-                          </span>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-5 py-4">
-                      <span className="text-xs font-bold uppercase text-gray-400">{t.level ?? 'RX'}</span>
-                    </td>
-                    <td className="px-5 py-4">
-                      <div className="flex items-center gap-1.5 text-sm text-gray-300">
-                        <Users size={13} className="text-gray-500" />
-                        {participantCounts[t.id] ?? 0} / {t.max_participants}
-                      </div>
-                    </td>
-                    <td className="px-5 py-4">
-                      <span className="text-xs font-bold px-2.5 py-1 rounded-lg" style={{ backgroundColor: `${sb.color}20`, color: sb.color }}>
-                        {sb.label}
-                      </span>
-                    </td>
-                    <td className="px-5 py-4 text-sm text-gray-400">{formatDate(t.start_date ?? t.created_at)}</td>
-                    <td className="px-5 py-4">
-                      <Link href={`/tournaments/${t.id}`}
-                        className="flex items-center gap-1 text-xs text-white hover:text-white font-semibold transition-colors">
-                        Gérer <ChevronRight size={13} />
-                      </Link>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+        <div className="space-y-8">
+          <section className="space-y-3">
+            <div className="flex items-center gap-2">
+              <h2 className="text-sm font-bold text-gray-400 uppercase tracking-wider">En cours &amp; à venir</h2>
+              <span className="text-xs font-semibold text-gray-500">{active.length}</span>
+            </div>
+            {active.length ? renderTable(active) : (
+              <div className="bg-[#111111] border border-white/8 rounded-2xl p-8 text-center">
+                <p className="text-sm text-gray-500">Aucun tournoi actif. Les tournois clôturés sont dans l’historique ci-dessous.</p>
+              </div>
+            )}
+          </section>
+
+          {history.length > 0 && (
+            <section className="space-y-3">
+              <div className="flex items-center gap-2">
+                <Archive size={15} className="text-gray-500" />
+                <h2 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Historique</h2>
+                <span className="text-xs font-semibold text-gray-500">{history.length}</span>
+              </div>
+              {renderTable(history)}
+            </section>
+          )}
         </div>
       )}
     </div>
