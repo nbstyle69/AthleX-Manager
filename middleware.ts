@@ -25,9 +25,10 @@ export async function middleware(request: NextRequest) {
   const accessToken = request.cookies.get('sb-access-token')?.value;
   const tokenOk = accessToken ? isTokenValid(accessToken) : false;
 
-  // Always allow /login to render — never redirect from it in middleware
-  // (prevents loop when token looks valid locally but is revoked on Supabase)
-  if (pathname === '/login') {
+  // Always allow /login (and its athlete/box sub-routes) to render — never
+  // redirect from them in middleware (prevents loop when token looks valid
+  // locally but is revoked on Supabase)
+  if (pathname === '/login' || pathname.startsWith('/login/')) {
     const res = NextResponse.next();
     if (!tokenOk && accessToken) {
       res.cookies.delete('sb-access-token');
