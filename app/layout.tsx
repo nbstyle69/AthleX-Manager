@@ -19,8 +19,8 @@ const oswald = Oswald({
 });
 
 export const metadata: Metadata = {
-  title: 'Test Admin',
-  description: 'Back office for Test box owners',
+  title: 'AthleX — Back office',
+  description: 'Back office AthleX pour les gérants et coachs de box.',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
