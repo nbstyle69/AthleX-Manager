@@ -10,11 +10,11 @@ export function Tools() {
   return (
     <section id="tools" className="border-t border-border">
       <div className="mx-auto max-w-6xl px-6 py-24 md:py-28">
-        <div className="mb-14 max-w-2xl">
+        <div className="mb-14 max-w-3xl">
           <span className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
             {t.tools.tag}
           </span>
-          <h2 className="mt-3 font-display text-3xl font-semibold tracking-tight text-foreground md:text-4xl">
+          <h2 className="mt-3 font-display text-3xl font-semibold tracking-tight text-foreground md:text-4xl lg:whitespace-nowrap">
             {t.tools.title}
           </h2>
           <p className="mt-4 text-muted-foreground">{t.tools.subtitle}</p>
