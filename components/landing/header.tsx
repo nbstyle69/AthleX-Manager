@@ -23,12 +23,15 @@ export function LandingHeader() {
 
   return (
     <header className="sticky top-0 z-50 border-b border-border bg-background/70 backdrop-blur-xl">
-      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-6">
+      <div className="relative mx-auto flex h-16 max-w-6xl items-center justify-between px-6">
         <a href="#top" aria-label="AthleX">
           <Logo />
         </a>
 
-        <nav className="hidden items-center gap-8 md:flex" aria-label="Principale">
+        <nav
+          className="absolute left-1/2 hidden -translate-x-1/2 items-center gap-8 md:flex"
+          aria-label="Principale"
+        >
           {nav.map((item) => (
             <a
               key={item.href}
@@ -44,12 +47,14 @@ export function LandingHeader() {
           <LanguageToggle />
           <a
             href="/login"
-            className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+            className="inline-flex min-w-[76px] justify-center text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
           >
             {t.nav.login}
           </a>
           <Button asChild size="sm">
-            <a href={ONBOARDING}>{t.nav.cta}</a>
+            <a href={ONBOARDING}>
+              <span className="inline-block min-w-[96px] text-center">{t.nav.cta}</span>
+            </a>
           </Button>
         </div>
 
