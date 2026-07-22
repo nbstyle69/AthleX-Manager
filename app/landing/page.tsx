@@ -6,6 +6,7 @@ import { Features } from '@/components/landing/features';
 import { Experiences } from '@/components/landing/experiences';
 import { Steps } from '@/components/landing/steps';
 import { AppShowcase } from '@/components/landing/app-showcase';
+import { Tools } from '@/components/landing/tools';
 import { AthleteCta } from '@/components/landing/athlete-cta';
 import { Pricing } from '@/components/landing/pricing';
 import { FinalCta } from '@/components/landing/final-cta';
@@ -30,6 +31,7 @@ export default function LandingPage() {
         <Experiences />
         <Steps />
         <AppShowcase />
+        <Tools />
         <AthleteCta />
         <Pricing />
         <FinalCta />
