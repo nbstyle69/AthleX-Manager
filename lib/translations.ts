@@ -94,6 +94,19 @@ export const translations = {
       mockupTitle: 'WOD du jour',
       book: 'Réserver',
     },
+    tools: {
+      tag: 'Outils d’entraînement',
+      title: 'Tous tes outils d’entraînement, dans une seule app',
+      subtitle: 'Enregistre, chronomètre, calcule et compare — chaque séance devient une donnée.',
+      items: [
+        { title: 'Enregistrement vidéo', desc: 'Filme tes WODs avec le chrono incrusté dans l’image : rejoue tes reps, corrige ta technique, partage tes PR.' },
+        { title: 'Timer', desc: 'AMRAP, EMOM, For Time, Tabata, Splits, YWYR : un chrono pour tous tes entraînements.' },
+        { title: 'Calculateur 1RM', desc: 'Estime ta charge max sur chaque mouvement et déduis automatiquement tes pourcentages de travail.' },
+        { title: 'Classement', desc: 'Suis ta progression ELO et compare-toi aux athlètes de ta box comme à toute la communauté.' },
+        { title: 'Compétitions', desc: 'Compétitions et défis réguliers au sein de ta box ou contre les athlètes d’ailleurs.' },
+        { title: 'Générateur de WOD', desc: 'Génère un WOD adapté à ton niveau et à ton matériel en un tap, quand l’inspiration manque.' },
+      ],
+    },
     leaderboard: {
       tag: 'Communauté',
       title: 'Le classement AthleX',
@@ -275,6 +288,19 @@ export const translations = {
       benefits: ['One-tap booking', 'Scores & personal records', 'Box notifications', 'Real-time rankings'],
       mockupTitle: "Today's WOD",
       book: 'Book',
+    },
+    tools: {
+      tag: 'Training tools',
+      title: 'Every training tool, in a single app',
+      subtitle: 'Record, time, calculate and compare — every session becomes data.',
+      items: [
+        { title: 'Video recording', desc: 'Film your WODs with the timer burned into the frame: replay your reps, fix your technique, share your PRs.' },
+        { title: 'Timer', desc: 'AMRAP, EMOM, For Time, Tabata, Splits, YWYR: one timer for all your training.' },
+        { title: '1RM calculator', desc: 'Estimate your max load on any movement and auto-derive your working percentages.' },
+        { title: 'Leaderboard', desc: 'Track your ELO progression and measure up against your box and the whole community.' },
+        { title: 'Competitions', desc: 'Regular competitions and challenges within your box or against athletes elsewhere.' },
+        { title: 'WOD generator', desc: 'Generate a WOD tailored to your level and equipment in one tap, whenever inspiration runs dry.' },
+      ],
     },
     leaderboard: {
       tag: 'Community',
