@@ -16,7 +16,7 @@ export default async function TournamentScoresPage({ params }: { params: Promise
   const [{ data: tournament }, { data: rawScores }] = await Promise.all([
     svc.from('tournaments').select('name, box_id, require_video_proof').eq('id', tournamentId).single(),
     svc.from('tournament_scores')
-      .select('id, score_value, submitted_at, status, video_url, notes, admin_message, athlete_id, tournament_wod_id, tw:tournament_wods(title)')
+      .select('id, score_value, submitted_at, status, video_url, notes, admin_message, athlete_id, tournament_wod_id, tw:tournament_wods(title, type, reps_per_round)')
       .eq('tournament_id', tournamentId)
       .order('submitted_at', { ascending: false }),
   ]);
@@ -43,6 +43,8 @@ export default async function TournamentScoresPage({ params }: { params: Promise
     username:         profileMap[s.athlete_id]?.username ?? null,
     level:            profileMap[s.athlete_id]?.level    ?? null,
     wod_title:        (Array.isArray(s.tw) ? s.tw[0] : s.tw)?.title ?? null,
+    wod_type:         (Array.isArray(s.tw) ? s.tw[0] : s.tw)?.type ?? null,
+    reps_per_round:   (Array.isArray(s.tw) ? s.tw[0] : s.tw)?.reps_per_round ?? null,
   }));
 
   return (
