@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { Plus, Trash2, Loader2, X, Sparkles, ChevronDown, ChevronUp, Timer } from 'lucide-react';
 import { boGenerateFunctional, boGenerateHybrid } from '@/lib/wod/boAdapter';
-import { MOVEMENT_CATALOG, isWeightedMovement, serializeMovement, parseMovementRow } from '@/lib/movements';
+import { MOVEMENT_CATALOG, isWeightedMovement, serializeMovement, parseMovementRow, repsPerRoundFromMovements, isRepsScoredType } from '@/lib/movements';
 
 const WOD_TYPES = ['AMRAP', 'For Time', 'EMOM', 'Tabata', 'Max Reps', 'Strength'];
 const LEVELS    = ['scaled', 'inter', 'rx', 'rx+', 'gx', 'pro'];
@@ -83,6 +83,7 @@ export default function WODForm({ tournamentId, divisions = [], isLeague = false
     rest_seconds:     initial?.rest_seconds     ?? 10,
     division_id:      initial?.division_id      ?? '',
     bracket_stage:    (initial?.bracket_stage === null || initial?.bracket_stage === undefined) ? '' : String(initial.bracket_stage),
+    reps_per_round:   (initial?.reps_per_round === null || initial?.reps_per_round === undefined) ? '' : String(initial.reps_per_round),
   });
 
   const [movements, setMovements] = useState<string[]>(
@@ -197,6 +198,9 @@ export default function WODForm({ tournamentId, divisions = [], isLeague = false
       rest_seconds:     form.type === 'Tabata' ? form.rest_seconds : null,
       division_id:      isLeague ? (form.division_id || null) : null,
       bracket_stage:    isBracket ? (form.bracket_stage === '' ? null : Number(form.bracket_stage)) : null,
+      reps_per_round:   isRepsScoredType(form.type)
+        ? (form.reps_per_round === '' ? (repsPerRoundFromMovements(movements.filter(Boolean)) || null) : Number(form.reps_per_round))
+        : null,
     };
 
     let err;
@@ -561,6 +565,22 @@ export default function WODForm({ tournamentId, divisions = [], isLeague = false
           <label className={lbl}>Scoring</label>
           <input className={inp} value={form.scoring} onChange={e => set('scoring', e.target.value)} placeholder="ex: Score = temps total (cap 20 min)" />
         </div>
+        {isRepsScoredType(form.type) && (
+          <div className="col-span-2">
+            <label className={lbl}>Reps par tour</label>
+            <input
+              type="number"
+              min={1}
+              className={inp}
+              value={form.reps_per_round}
+              onChange={e => set('reps_per_round', e.target.value)}
+              placeholder={`auto : ${repsPerRoundFromMovements(movements.filter(Boolean)) || '—'} (somme des mouvements)`}
+            />
+            <p className="text-[11px] text-gray-600 pt-1">
+              Sert à convertir « tours + reps » ⇄ « reps totaux » à la saisie du score athlète (classement cohérent). Laisse vide pour utiliser la somme auto des mouvements ; corrige-la si un tour mélange reps et cardio (cal / m).
+            </p>
+          </div>
+        )}
         <div>
           <label className={lbl}>Ouverture programmée</label>
           <input type="datetime-local" className={inp} value={form.opens_at} onChange={e => set('opens_at', e.target.value)} />

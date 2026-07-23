@@ -6,6 +6,7 @@ import {
   CheckCircle, XCircle, ExternalLink, Loader2, Clock,
   Youtube, FileText, Pencil, Send, MessageSquare, RotateCcw,
 } from 'lucide-react';
+import { isRepsScoredType, formatAmrapScore } from '@/lib/movements';
 
 export interface ScoreRow {
   id: string;
@@ -20,6 +21,18 @@ export interface ScoreRow {
   username: string | null;
   level: string | null;
   wod_title: string | null;
+  wod_type: string | null;
+  reps_per_round: number | null;
+}
+
+// For AMRAP / Max Reps the stored score is a total rep count; show the
+// "123 reps (3 tours + 12)" recap so the owner reads the same thing whatever
+// the athlete typed.
+function amrapRecap(row: ScoreRow): string | null {
+  if (!isRepsScoredType(row.wod_type)) return null;
+  const total = parseFloat(row.score_value);
+  if (Number.isNaN(total)) return null;
+  return formatAmrapScore(total, row.reps_per_round);
 }
 
 interface Props {
@@ -193,13 +206,18 @@ export default function ScoresClient({ tournamentId, initialScores, requireVideo
                         </button>
                       </div>
                     ) : (
-                      <div className="flex items-center gap-2 justify-end">
-                        <p className="text-2xl font-black text-white">{score.score_value}</p>
-                        <button onClick={() => setEditingScore(prev => ({ ...prev, [score.id]: score.score_value }))}
-                          className="p-1.5 rounded-lg bg-white/5 text-gray-500 hover:text-white hover:bg-white/10 transition-colors"
-                          title="Modifier le score">
-                          <Pencil size={11} />
-                        </button>
+                      <div>
+                        <div className="flex items-center gap-2 justify-end">
+                          <p className="text-2xl font-black text-white">{score.score_value}</p>
+                          <button onClick={() => setEditingScore(prev => ({ ...prev, [score.id]: score.score_value }))}
+                            className="p-1.5 rounded-lg bg-white/5 text-gray-500 hover:text-white hover:bg-white/10 transition-colors"
+                            title="Modifier le score">
+                            <Pencil size={11} />
+                          </button>
+                        </div>
+                        {amrapRecap(score) && (
+                          <p className="text-xs text-gray-500 text-right mt-0.5">{amrapRecap(score)}</p>
+                        )}
                       </div>
                     )}
                     <div className="flex items-center gap-1 justify-end mt-1">
