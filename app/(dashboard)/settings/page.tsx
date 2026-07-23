@@ -73,6 +73,7 @@ export default function SettingsPage() {
   const [savedCover, setSavedCover] = useState(false);
 
   const [name, setName] = useState('');
+  const [description, setDescription] = useState('');
   const [address, setAddress] = useState('');
   const [websiteUrl, setWebsiteUrl] = useState('');
   const [contactEmail, setContactEmail] = useState('');
@@ -114,6 +115,7 @@ export default function SettingsPage() {
       setLogoUrl(boxData.logo_url ?? null);
       setCoverUrl(boxData.cover_url ?? null);
       setName(boxData.name ?? '');
+      setDescription(boxData.description ?? '');
       setAddress(boxData.address ?? '');
       setWebsiteUrl(boxData.website_url ?? '');
       setContactEmail(boxData.contact_email ?? '');
@@ -291,6 +293,7 @@ export default function SettingsPage() {
     const trimmedAddress = address.trim();
     const payload: Record<string, any> = {
       name: name.trim(),
+      description: description.trim() || null,
       address: trimmedAddress || null,
       website_url: websiteUrl.trim() || null,
       contact_email: contactEmail.trim() || null,
@@ -506,6 +509,22 @@ export default function SettingsPage() {
               placeholder="Nom de ma salle ici"
               className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-white/40 transition-colors"
             />
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">
+              Description
+            </label>
+            <textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              rows={4}
+              placeholder="Présente ta box : ambiance, coachs, spécialités, équipements… (visible sur ta page publique)"
+              className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-white/40 transition-colors resize-y"
+            />
+            <p className="text-[11px] text-gray-600 mt-1.5">
+              Affichée dans la section « À propos » de ta page publique AthleX.
+            </p>
           </div>
 
           <div>

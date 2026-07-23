@@ -143,6 +143,15 @@ export default async function BoxPublicPage({ params }: { params: Promise<{ slug
     return `${(cents / 100).toFixed(2)} €`;
   };
 
+  // Keyless Google Maps embed: prefer exact coordinates, else fall back to the address.
+  const mapQuery =
+    b.latitude != null && b.longitude != null
+      ? `${b.latitude},${b.longitude}`
+      : [b.address, b.city].filter(Boolean).join(', ') || null;
+  const mapsLink =
+    b.google_maps_url ??
+    (mapQuery ? `https://maps.google.com/?q=${encodeURIComponent(mapQuery)}` : null);
+
   return (
     <div className="min-h-screen bg-[#0A0A0A] text-white font-sans antialiased">
       {/* Navbar */}
@@ -468,28 +477,27 @@ export default async function BoxPublicPage({ params }: { params: Promise<{ slug
             )}
           </div>
 
-          {/* Map */}
-          {b.latitude && b.longitude && (
+          {/* Map (keyless Google embed) */}
+          {mapQuery && (
             <div className="bg-[#111] border border-white/[0.06] rounded-2xl overflow-hidden">
-              <a
-                href={b.google_maps_url ?? `https://maps.google.com/?q=${b.latitude},${b.longitude}`}
-                target="_blank" rel="noopener noreferrer"
-              >
-                <img
-                  src={`https://maps.googleapis.com/maps/api/staticmap?center=${b.latitude},${b.longitude}&zoom=14&size=400x200&scale=2&markers=color:0xFFFFFF%7C${b.latitude},${b.longitude}&style=element:geometry%7Ccolor:0x1d1d1d&style=element:labels.text.fill%7Ccolor:0x8e8e8e&style=feature:road%7Celement:geometry%7Ccolor:0x2c2c2c&style=feature:water%7Celement:geometry%7Ccolor:0x0e0e0e&key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY ?? ''}`}
-                  alt="Map"
-                  className="w-full h-44 object-cover"
-                />
-              </a>
-              <div className="p-3 text-center">
-                <a
-                  href={b.google_maps_url ?? `https://maps.google.com/?q=${b.latitude},${b.longitude}`}
-                  target="_blank" rel="noopener noreferrer"
-                  className="text-xs font-semibold text-gray-500 hover:text-white transition-colors flex items-center justify-center gap-1"
-                >
-                  Ouvrir dans Google Maps <ChevronRight size={13} />
-                </a>
-              </div>
+              <iframe
+                title={`Carte — ${b.name}`}
+                src={`https://www.google.com/maps?q=${encodeURIComponent(mapQuery)}&z=15&output=embed`}
+                className="w-full h-44 border-0"
+                loading="lazy"
+                referrerPolicy="no-referrer-when-downgrade"
+              />
+              {mapsLink && (
+                <div className="p-3 text-center">
+                  <a
+                    href={mapsLink}
+                    target="_blank" rel="noopener noreferrer"
+                    className="text-xs font-semibold text-gray-500 hover:text-white transition-colors flex items-center justify-center gap-1"
+                  >
+                    Ouvrir dans Google Maps <ChevronRight size={13} />
+                  </a>
+                </div>
+              )}
             </div>
           )}
 
@@ -503,8 +511,7 @@ export default async function BoxPublicPage({ params }: { params: Promise<{ slug
               <a
                 href="https://apps.apple.com"
                 target="_blank" rel="noopener noreferrer"
-                className="text-xs font-bold py-2.5 rounded-lg transition-colors text-white"
-                style={{ backgroundColor: GOLD }}
+                className="text-xs font-bold py-2.5 rounded-lg bg-white text-[#0A0A0A] hover:bg-gray-200 transition-colors"
               >
                 App Store
               </a>
