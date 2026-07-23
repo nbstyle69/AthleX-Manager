@@ -3,7 +3,7 @@
 import { Fragment, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
-import { Loader2, Play, Crown, ArrowRight, Trophy, AlertTriangle, RotateCcw, Pencil, Trash2, X, Save, Calendar } from 'lucide-react';
+import { Loader2, Play, Crown, ArrowRight, Trophy, AlertTriangle, RotateCcw, Pencil, Trash2, X, Save, Calendar, Zap } from 'lucide-react';
 
 interface Match {
   id: string;
@@ -23,7 +23,7 @@ interface Match {
 }
 
 interface Profile { id: string; username: string; level: string; elo: number; }
-interface Wod { id: string; name: string; position: number | null; bracket_stage: number | null; }
+interface Wod { id: string; name: string; type: string | null; position: number | null; bracket_stage: number | null; }
 
 interface Props {
   tournamentId: string;
@@ -34,11 +34,13 @@ interface Props {
   profilesById: Record<string, Profile>;
   participantsCount: number;
   wods: Wod[];
+  /** Validated scores per WOD then athlete — drives auto-decide winner from score. */
+  scoresByWod?: Record<string, Record<string, string>>;
 }
 
 export default function BracketManager({
   tournamentId, format, requireVideoProof, finalWodPool,
-  initialMatches, profilesById, participantsCount, wods,
+  initialMatches, profilesById, participantsCount, wods, scoresByWod = {},
 }: Props) {
   const router = useRouter();
   const [matches, setMatches] = useState<Match[]>(initialMatches);
@@ -71,11 +73,90 @@ export default function BracketManager({
   const winnerRounds = Object.keys(grouped.winnerByRound).map(Number).sort((a, b) => a - b);
   const loserRounds = Object.keys(grouped.loserByRound).map(Number).sort((a, b) => a - b);
 
+  // Total number of WB rounds this bracket will have (fixed for the whole bracket,
+  // derived from the round-1 participant count) — NOT the count generated so far.
+  // Using the fixed total keeps each round mapped to a stable WOD stage while rounds
+  // are generated one at a time (round 1 = 8es, …, last = finale = stage 0).
+  const totalRounds = useMemo(() => {
+    const r1 = grouped.winnerByRound[1] ?? [];
+    const n = r1.reduce((acc, m) => acc + (m.participant1_id ? 1 : 0) + (m.participant2_id ? 1 : 0), 0);
+    if (n < 2) return winnerRounds.length ? winnerRounds[winnerRounds.length - 1] : 1;
+    return Math.max(1, Math.ceil(Math.log2(n)));
+  }, [grouped, winnerRounds]);
+
   // Map each WB round to its assigned WOD via bracket_stage (distance to final).
-  const maxWBRound = winnerRounds.length ? winnerRounds[winnerRounds.length - 1] : 0;
   function wodForRound(r: number): Wod | undefined {
-    const stage = maxWBRound - r;
+    const stage = totalRounds - r;
     return wods.find(w => w.bracket_stage === stage);
+  }
+
+  // "Temps" (For Time) → le plus petit score gagne ; sinon (AMRAP/reps/…) le plus grand.
+  function parseScoreVal(v: string | undefined | null): number | null {
+    if (v == null) return null;
+    const s = String(v).trim();
+    if (!s) return null;
+    if (s.includes(':')) {
+      const parts = s.split(':').map(x => parseFloat(x.replace(',', '.')));
+      if (parts.some(p => Number.isNaN(p))) return null;
+      return parts.reduce((acc, p) => acc * 60 + p, 0);
+    }
+    const num = parseFloat(s.replace(',', '.').replace(/[^0-9.]/g, ''));
+    return Number.isNaN(num) ? null : num;
+  }
+
+  // Retourne l'athlète gagnant d'après les scores validés du WOD, ou null si indécidable
+  // (score manquant d'un côté, ou égalité → l'owner tranche manuellement).
+  function winnerFromScores(wod: Wod, aId: string, bId: string): string | null {
+    const map = scoresByWod[wod.id] ?? {};
+    const pa = parseScoreVal(map[aId]);
+    const pb = parseScoreVal(map[bId]);
+    if (pa == null || pb == null || pa === pb) return null;
+    const higherWins = (wod.type ?? '') !== 'For Time';
+    if (higherWins) return pa > pb ? aId : bId;
+    return pa < pb ? aId : bId;
+  }
+
+  // Option : décide automatiquement les gagnants d'une manche selon les meilleurs
+  // scores validés. L'owner peut ensuite corriger en cliquant sur un athlète (anti-triche).
+  async function autoResolveRound(round: number) {
+    const wod = wodForRound(round);
+    if (!wod) {
+      setError("Aucun WOD assigné à cette manche — impossible de décider selon les scores.");
+      return;
+    }
+    const pending = (grouped.winnerByRound[round] ?? []).filter(
+      m => m.status !== 'bye' && m.status !== 'completed' && m.winner_id == null && m.participant1_id && m.participant2_id,
+    );
+    const decisions = pending
+      .map(m => ({ m, w: winnerFromScores(wod, m.participant1_id!, m.participant2_id!) }))
+      .filter((d): d is { m: Match; w: string } => d.w != null);
+    if (decisions.length === 0) {
+      setError("Aucun match décidable : scores validés manquants ou à égalité. Valide d'abord les scores (onglet Scores).");
+      return;
+    }
+    const skipped = pending.length - decisions.length;
+    if (!confirm(
+      `Décider ${decisions.length} match(s) selon les meilleurs scores validés du WOD « ${wod.name} » ?`
+      + (skipped > 0 ? `\n\n${skipped} match(s) sans scores complets resteront à décider à la main.` : '')
+      + `\n\nTu pourras corriger un résultat en cliquant sur un athlète (anti-triche).`,
+    )) return;
+    setBusy(`auto-${round}`); setError(null);
+    const nowIso = new Date().toISOString();
+    for (const { m, w } of decisions) {
+      const loserId = w === m.participant1_id ? m.participant2_id : m.participant1_id;
+      const { error: err } = await supabase
+        .from('tournament_bracket_matches')
+        .update({ winner_id: w, loser_id: loserId, status: 'completed', completed_at: nowIso })
+        .eq('id', m.id);
+      if (err) { setBusy(null); setError(err.message); return; }
+    }
+    setMatches(arr => arr.map(m => {
+      const d = decisions.find(x => x.m.id === m.id);
+      if (!d) return m;
+      const loserId = d.w === m.participant1_id ? m.participant2_id : m.participant1_id;
+      return { ...m, winner_id: d.w, loser_id: loserId, status: 'completed' as const, completed_at: nowIso };
+    }));
+    setBusy(null);
   }
 
   // Latest WB round status
@@ -231,6 +312,23 @@ export default function BracketManager({
               {format === 'swiss' ? 'Winner Bracket' : 'Bracket'}
             </h2>
             <div className="flex items-center gap-2">
+              {/* Auto-decide winners from validated scores (opt-in, overridable) */}
+              {(() => {
+                const lastRound = winnerRounds[winnerRounds.length - 1];
+                const lastMatches = grouped.winnerByRound[lastRound] ?? [];
+                const decidable = lastMatches.some(
+                  m => m.status !== 'bye' && m.winner_id == null && m.participant1_id && m.participant2_id,
+                );
+                if (!decidable) return null;
+                return (
+                  <button onClick={() => autoResolveRound(lastRound)} disabled={busy === `auto-${lastRound}`}
+                    title="Décide les gagnants selon les meilleurs scores validés du WOD de la manche. Corrigeable ensuite à la main."
+                    className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold bg-purple-500/20 hover:bg-purple-500/30 text-purple-200 border border-purple-500/30 disabled:opacity-50 transition-colors">
+                    {busy === `auto-${lastRound}` ? <Loader2 size={12} className="animate-spin" /> : <Zap size={12} />}
+                    Décider selon les scores
+                  </button>
+                );
+              })()}
               {/* Advance round button */}
               {(() => {
                 const lastRound = winnerRounds[winnerRounds.length - 1];
@@ -255,7 +353,7 @@ export default function BracketManager({
           </div>
 
           <p className="text-[11px] text-gray-500">
-            Clique sur un athlète pour le désigner vainqueur. Survole une carte pour éditer (joueurs / date / notes) ou annuler le résultat.
+            Clique sur un athlète pour le désigner vainqueur, ou utilise <span className="text-purple-300 font-semibold">« Décider selon les scores »</span> pour trancher automatiquement d'après les scores validés (le plus grand gagne, ou le plus petit temps pour un WOD « For Time »). Tu peux toujours corriger un résultat à la main. Survole une carte pour éditer (joueurs / date / notes) ou annuler.
           </p>
 
           <div className="overflow-x-auto pb-2">

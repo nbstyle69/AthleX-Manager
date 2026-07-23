@@ -16,13 +16,17 @@ export default async function BracketPage({ params }: { params: Promise<{ id: st
   if (t.format !== 'bracket' && t.format !== 'swiss') redirect(`/tournaments/${id}`);
 
   const svc = createServiceClient();
-  const [{ data: matches }, { data: participants }, { data: wods }] = await Promise.all([
+  const [{ data: matches }, { data: participants }, { data: wods }, { data: validatedScores }] = await Promise.all([
     svc.from('tournament_bracket_matches').select('*').eq('tournament_id', id)
        .order('round', { ascending: true }).order('side').order('match_number'),
     svc.from('tournament_participants')
        .select('athlete_id')
        .eq('tournament_id', id),
-    svc.from('tournament_wods').select('id, title, order_index, bracket_stage').eq('tournament_id', id).order('order_index'),
+    svc.from('tournament_wods').select('id, title, type, order_index, bracket_stage').eq('tournament_id', id).order('order_index'),
+    svc.from('tournament_scores')
+       .select('athlete_id, tournament_wod_id, score_value')
+       .eq('tournament_id', id)
+       .eq('status', 'validated'),
   ]);
 
   // Profiles fetched separately (no FK embed — the relationship name is unreliable
@@ -36,10 +40,17 @@ export default async function BracketPage({ params }: { params: Promise<{ id: st
     (profs ?? []).forEach((p: any) => { profilesById[p.id] = p; });
   }
 
-  // Normalize WODs to the shape expected by BracketManager (name/position).
+  // Normalize WODs to the shape expected by BracketManager (name/position/type).
   const wodList = (wods ?? []).map((w: any) => ({
-    id: w.id, name: w.title, position: w.order_index ?? null, bracket_stage: w.bracket_stage ?? null,
+    id: w.id, name: w.title, type: w.type ?? null,
+    position: w.order_index ?? null, bracket_stage: w.bracket_stage ?? null,
   }));
+
+  // Validated scores grouped by WOD then athlete — drives "auto-decide winner from score".
+  const scoresByWod: Record<string, Record<string, string>> = {};
+  (validatedScores ?? []).forEach((s: any) => {
+    (scoresByWod[s.tournament_wod_id] ??= {})[s.athlete_id] = s.score_value;
+  });
 
   return (
     <div className="max-w-6xl space-y-6">
@@ -65,6 +76,7 @@ export default async function BracketPage({ params }: { params: Promise<{ id: st
         profilesById={profilesById}
         participantsCount={(participants ?? []).length}
         wods={wodList}
+        scoresByWod={scoresByWod}
       />
     </div>
   );
