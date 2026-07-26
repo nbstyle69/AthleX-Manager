@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/server';
 
 type Result = { ok: true } | { ok: false; error: string };
+type AdvanceResult = { ok: true; created: number } | { ok: false; error: string };
 
 /**
  * The back-office authenticates only via the HttpOnly `sb-access-token` cookie,
@@ -28,13 +29,14 @@ export async function generateRound1Action(tournamentId: string): Promise<Result
   return err ? { ok: false, error: err.message } : { ok: true };
 }
 
-export async function advanceRoundAction(tournamentId: string, completedRound: number): Promise<Result> {
+export async function advanceRoundAction(tournamentId: string, completedRound: number): Promise<AdvanceResult> {
   const { supabase, error } = await authorize(tournamentId);
   if (error) return { ok: false, error };
-  const { error: err } = await supabase.rpc('advance_bracket_round', {
+  const { data, error: err } = await supabase.rpc('advance_bracket_round', {
     p_tournament_id: tournamentId, p_completed_round: completedRound,
   });
-  return err ? { ok: false, error: err.message } : { ok: true };
+  if (err) return { ok: false, error: err.message };
+  return { ok: true, created: typeof data === 'number' ? data : 0 };
 }
 
 export async function setMatchWinnerAction(
