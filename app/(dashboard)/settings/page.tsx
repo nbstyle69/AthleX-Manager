@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { Upload, ImageIcon, Trash2, CheckCircle, Phone, MapPin, Calendar, User, Users } from 'lucide-react';
+import { Upload, ImageIcon, Trash2, CheckCircle, Phone, MapPin, Calendar, User, Users, FileText } from 'lucide-react';
 
 type GeoResult = {
   latitude: number;
@@ -63,6 +63,7 @@ export default function SettingsPage() {
   const supabase = createClient();
   const fileRef = useRef<HTMLInputElement>(null);
   const coverRef = useRef<HTMLInputElement>(null);
+  const termsRef = useRef<HTMLInputElement>(null);
 
   const [box, setBox] = useState<any>(null);
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
@@ -71,6 +72,9 @@ export default function SettingsPage() {
   const [coverUrl, setCoverUrl] = useState<string | null>(null);
   const [uploadingCover, setUploadingCover] = useState(false);
   const [savedCover, setSavedCover] = useState(false);
+  const [termsPdfUrl, setTermsPdfUrl] = useState<string | null>(null);
+  const [uploadingTerms, setUploadingTerms] = useState(false);
+  const [savedTerms, setSavedTerms] = useState(false);
 
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
@@ -114,6 +118,7 @@ export default function SettingsPage() {
       setBox(boxData);
       setLogoUrl(boxData.logo_url ?? null);
       setCoverUrl(boxData.cover_url ?? null);
+      setTermsPdfUrl(boxData.terms_pdf_url ?? null);
       setName(boxData.name ?? '');
       setDescription(boxData.description ?? '');
       setAddress(boxData.address ?? '');
@@ -269,6 +274,61 @@ export default function SettingsPage() {
     await supabase.from('boxes').update({ cover_url: null }).eq('id', box.id);
     setCoverUrl(null);
     setUploadingCover(false);
+  }
+
+  async function handleUploadTerms(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file || !box) return;
+
+    if (file.type !== 'application/pdf') {
+      alert('Veuillez sélectionner un fichier PDF.');
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      alert('Le PDF ne doit pas dépasser 10 Mo.');
+      return;
+    }
+
+    setUploadingTerms(true);
+    setSavedTerms(false);
+
+    const path = `${box.id}/terms.pdf`;
+
+    const { error: uploadError } = await supabase.storage
+      .from('box-logos')
+      .upload(path, file, { upsert: true, contentType: 'application/pdf' });
+
+    if (uploadError) {
+      alert(`Erreur upload: ${uploadError.message}`);
+      setUploadingTerms(false);
+      return;
+    }
+
+    const { data: urlData } = supabase.storage.from('box-logos').getPublicUrl(path);
+    const publicUrl = urlData.publicUrl + '?t=' + Date.now();
+
+    const { error: updateError } = await supabase
+      .from('boxes')
+      .update({ terms_pdf_url: publicUrl })
+      .eq('id', box.id);
+
+    if (updateError) {
+      alert(`Erreur mise à jour: ${updateError.message}`);
+    } else {
+      setTermsPdfUrl(publicUrl);
+      setSavedTerms(true);
+      setTimeout(() => setSavedTerms(false), 3000);
+    }
+
+    setUploadingTerms(false);
+  }
+
+  async function handleRemoveTerms() {
+    if (!box) return;
+    setUploadingTerms(true);
+    await supabase.from('boxes').update({ terms_pdf_url: null }).eq('id', box.id);
+    setTermsPdfUrl(null);
+    setUploadingTerms(false);
   }
 
   async function handleSaveInfo() {
@@ -483,6 +543,64 @@ export default function SettingsPage() {
             <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-400">
               <CheckCircle size={14} />
               Bannière mise à jour !
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Conditions générales (CGV) PDF section */}
+      <div className="bg-[#111111] border border-white/[0.06] rounded-2xl p-6 space-y-5">
+        <div>
+          <h2 className="text-sm font-bold text-white mb-1">Conditions générales (PDF)</h2>
+          <p className="text-xs text-gray-500">
+            Document PDF présentant les conditions propres à ta salle (engagement, résiliation, gel, règlement intérieur…).
+            Il est proposé aux futurs membres <strong>avant le paiement</strong> et reste accessible dans leur espace athlète. PDF, max 10 Mo.
+          </p>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-3">
+          {termsPdfUrl && (
+            <a
+              href={termsPdfUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/[0.06] text-gray-200 text-sm font-bold hover:bg-white/10 transition-colors"
+            >
+              <FileText size={15} />
+              Voir le PDF actuel
+            </a>
+          )}
+          <input
+            ref={termsRef}
+            type="file"
+            accept="application/pdf"
+            onChange={handleUploadTerms}
+            className="hidden"
+          />
+          <button
+            onClick={() => termsRef.current?.click()}
+            disabled={uploadingTerms}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/20 text-white text-sm font-bold hover:bg-white/30 transition-colors disabled:opacity-50"
+          >
+            <Upload size={15} />
+            {uploadingTerms ? 'Upload en cours…' : termsPdfUrl ? 'Changer le PDF' : 'Uploader un PDF'}
+          </button>
+
+          {termsPdfUrl && (
+            <button
+              onClick={handleRemoveTerms}
+              disabled={uploadingTerms}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-red-500/10 text-red-400 text-sm font-bold hover:bg-red-500/20 transition-colors disabled:opacity-50"
+            >
+              <Trash2 size={15} />
+              Supprimer le PDF
+            </button>
+          )}
+
+          {savedTerms && (
+            <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-400">
+              <CheckCircle size={14} />
+              Conditions mises à jour !
             </div>
           )}
         </div>

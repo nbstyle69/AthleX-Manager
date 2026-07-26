@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Loader2, Settings2, XCircle, FileUp, PauseCircle } from 'lucide-react';
+import { Loader2, Settings2, XCircle, FileUp, PauseCircle, FileText } from 'lucide-react';
 
 interface Plan { id: string; name: string; price_cents: number }
 
@@ -13,6 +13,7 @@ interface Props {
   commitmentEndDate: string | null;
   paused: boolean;
   pauseResumesAt: string | null;
+  termsPdfUrl?: string | null;
 }
 
 function fmt(cents: number) {
@@ -31,7 +32,7 @@ const REASONS = [
 ] as const;
 
 export default function ManageSubscription({
-  currentPlanId, plans, canManage, boxId, commitmentEndDate, paused, pauseResumesAt,
+  currentPlanId, plans, canManage, boxId, commitmentEndDate, paused, pauseResumesAt, termsPdfUrl = null,
 }: Props) {
   const [mode, setMode] = useState<null | 'change' | 'cancel' | 'request'>(null);
   const [planId, setPlanId] = useState('');
@@ -119,6 +120,16 @@ export default function ManageSubscription({
         <p className="text-[11px] text-amber-400/90 font-semibold">
           Engagement jusqu&apos;au {fmtDate(commitmentEndDate)}.
         </p>
+      )}
+      {termsPdfUrl && (
+        <a
+          href={termsPdfUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-gray-400 hover:text-white transition-colors"
+        >
+          <FileText size={12} /> Conditions générales de ma box (PDF)
+        </a>
       )}
 
       {message ? (

@@ -37,6 +37,7 @@ interface Box {
   opening_hours?: Record<string, string>;
   founded_at?: string;
   member_count?: number;
+  terms_pdf_url?: string | null;
 }
 
 interface MembershipPlan {
@@ -99,7 +100,7 @@ export default async function BoxPublicPage({ params }: { params: Promise<{ slug
   const { data: box } = await supabase
     .from('boxes')
     .select(
-      'id, name, slug, description, tagline, logo_url, cover_url, address, city, phone, contact_email, website_url, instagram_url, google_maps_url, latitude, longitude, sport_type, services, opening_hours, founded_at, member_count',
+      'id, name, slug, description, tagline, logo_url, cover_url, address, city, phone, contact_email, website_url, instagram_url, google_maps_url, latitude, longitude, sport_type, services, opening_hours, founded_at, member_count, terms_pdf_url',
     )
     .eq('slug', slug)
     .eq('is_active', true)
@@ -331,6 +332,7 @@ export default async function BoxPublicPage({ params }: { params: Promise<{ slug
                         description={pl.description ?? null}
                         maxSessionsPerWeek={pl.max_sessions_per_week}
                         terms={pl.terms ?? null}
+                        termsPdfUrl={b.terms_pdf_url ?? null}
                       />
                     </div>
                   </div>
