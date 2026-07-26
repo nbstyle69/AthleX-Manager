@@ -92,9 +92,20 @@ export default function LeaderboardClient({ general, wodRankings, divisionRankin
                     {(p.username ?? '?')[0].toUpperCase()}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <p className="text-sm font-bold text-white truncate">{p.username ?? '?'}</p>
                       <LevelBadge level={p.level} />
+                      {p.placement && (
+                        <span className={`text-[10px] font-black px-1.5 py-0.5 rounded uppercase ${
+                          p.placement === 'Champion'
+                            ? 'bg-yellow-500/15 text-yellow-300'
+                            : p.placement === 'Finaliste'
+                            ? 'bg-gray-400/15 text-gray-300'
+                            : 'bg-white/8 text-gray-400'
+                        }`}>
+                          {p.placement}
+                        </span>
+                      )}
                     </div>
                     <div className="flex items-center gap-1 mt-0.5">
                       <Star size={10} className="text-white" />
@@ -102,8 +113,21 @@ export default function LeaderboardClient({ general, wodRankings, divisionRankin
                     </div>
                   </div>
                   <div className="text-right shrink-0">
-                    <p className="text-xl font-black text-white">{p.total_score}</p>
-                    <p className="text-[10px] text-gray-500 font-semibold">pts</p>
+                    {p.elo_change != null ? (
+                      <>
+                        <p className={`text-xl font-black ${
+                          p.elo_change > 0 ? 'text-emerald-400' : p.elo_change < 0 ? 'text-red-400' : 'text-gray-400'
+                        }`}>
+                          {p.elo_change > 0 ? '+' : ''}{p.elo_change}
+                        </p>
+                        <p className="text-[10px] text-gray-500 font-semibold">ELO</p>
+                      </>
+                    ) : (
+                      <>
+                        <p className="text-xl font-black text-white">{p.total_score}</p>
+                        <p className="text-[10px] text-gray-500 font-semibold">pts</p>
+                      </>
+                    )}
                   </div>
                 </div>
               ))}

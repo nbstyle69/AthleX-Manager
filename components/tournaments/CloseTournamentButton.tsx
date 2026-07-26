@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Loader2, Lock, AlertTriangle, Zap } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
+import { computeBracketStandings, type BracketMatchRow } from '@/lib/bracket';
 
 function calcElo(athleteElo: number, rank: number, total: number, avgOpp: number, k = 48) {
   if (total <= 1) return 0;
@@ -26,18 +27,16 @@ export default function CloseTournamentButton({ tournamentId, pendingCount, stat
   const [result,  setResult]  = useState<string | null>(null);
   const [error,   setError]   = useState<string | null>(null);
 
-  if (status === 'completed') {
-    return (
+  // For league_div: closing is done per-season via end_season_and_advance (Divisions tab)
+  if (format === 'league_div') {
+    return status === 'completed' ? (
       <div className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold text-gray-500 border border-white/5 cursor-default">
         <Lock size={12} /> Tournoi clôturé
       </div>
-    );
+    ) : null;
   }
 
-  // For league_div: closing is done per-season via end_season_and_advance (Divisions tab)
-  if (format === 'league_div') {
-    return null;
-  }
+  const isCompleted = status === 'completed';
 
   async function handleClose() {
     setClosing(true);
@@ -69,26 +68,50 @@ export default function CloseTournamentButton({ tournamentId, pendingCount, stat
       .in('id', athleteIds);
     const profMap: Record<string, any> = {};
     (profs ?? []).forEach((pr: any) => { profMap[pr.id] = pr; });
-    const getProf = (p: any) => profMap[p.athlete_id] ?? null;
-    const avgElo  = Math.round(tp.reduce((s: number, p: any) => s + (getProf(p)?.elo ?? 1000), 0) / tp.length);
+
+    // Idempotent baseline: if the tournament was already closed, reuse the
+    // ELO recorded *before* that distribution so re-running corrects the result
+    // instead of stacking a new gain on top of the previous one.
+    const { data: prevHistory } = await supabase
+      .from('tournament_elo_history')
+      .select('athlete_id, elo_before')
+      .eq('tournament_id', tournamentId);
+    const baselineElo: Record<string, number> = {};
+    (prevHistory ?? []).forEach((h: any) => { baselineElo[h.athlete_id] = h.elo_before; });
+    const eloOf = (id: string) => baselineElo[id] ?? profMap[id]?.elo ?? 1000;
+
+    // Ranking source: for a bracket, derive placement from the bracket outcome
+    // (champion → finalist → semis …), otherwise fall back to the score order.
+    let ranked: { athlete_id: string; rank: number }[] = tp.map((p: any, i: number) => ({ athlete_id: p.athlete_id, rank: i + 1 }));
+    if (format === 'bracket') {
+      const { data: matches } = await supabase
+        .from('tournament_bracket_matches')
+        .select('round, side, participant1_id, participant2_id, winner_id, loser_id, status')
+        .eq('tournament_id', tournamentId);
+      const standings = computeBracketStandings((matches ?? []) as BracketMatchRow[]);
+      if (standings.length > 0) ranked = standings.map(s => ({ athlete_id: s.athlete_id, rank: s.rank }));
+    }
+
+    const total  = ranked.length;
+    const avgElo = Math.round(ranked.reduce((s, r) => s + eloOf(r.athlete_id), 0) / total);
     const changes: { name: string; rank: number; change: number }[] = [];
 
-    for (let i = 0; i < tp.length; i++) {
-      const p    = tp[i];
-      const prof = getProf(p);
-      const rank = i + 1;
-      const ch   = calcElo(prof?.elo ?? 1000, rank, tp.length, avgElo);
-      const newElo = Math.max(100, (prof?.elo ?? 1000) + ch);
+    for (const { athlete_id, rank } of ranked) {
+      const prof = profMap[athlete_id] ?? null;
+      const base = eloOf(athlete_id);
+      const ch   = calcElo(base, rank, total, avgElo);
+      const newElo = Math.max(100, base + ch);
 
-      await supabase.from('profiles').update({ elo: newElo }).eq('id', p.athlete_id);
+      await supabase.from('profiles').update({ elo: newElo }).eq('id', athlete_id);
       await supabase.from('tournament_elo_history').upsert({
-        tournament_id: tournamentId, athlete_id: p.athlete_id,
-        final_rank: rank, participants_count: tp.length,
-        avg_opponent_elo: avgElo, elo_before: prof?.elo ?? 1000,
+        tournament_id: tournamentId, athlete_id,
+        final_rank: rank, participants_count: total,
+        avg_opponent_elo: avgElo, elo_before: base,
         elo_after: newElo, elo_change: ch,
       }, { onConflict: 'tournament_id,athlete_id' });
       changes.push({ name: prof?.username ?? '?', rank, change: ch });
     }
+    changes.sort((a, b) => a.rank - b.rank);
 
     const { error: statusErr } = await supabase
       .from('tournaments')
@@ -113,7 +136,7 @@ export default function CloseTournamentButton({ tournamentId, pendingCount, stat
     <>
       <button onClick={() => setOpen(true)}
         className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold text-amber-400 hover:text-white hover:bg-amber-500/20 border border-amber-500/20 hover:border-amber-500/40 transition-colors">
-        <Zap size={13} /> Clôturer &amp; ELO
+        <Zap size={13} /> {isCompleted ? "Recalculer l'ELO" : 'Clôturer & ELO'}
       </button>
 
       {open && !result && (
@@ -122,10 +145,11 @@ export default function CloseTournamentButton({ tournamentId, pendingCount, stat
             <div className="flex items-start gap-3">
               <AlertTriangle size={22} className="text-amber-400 shrink-0 mt-0.5" />
               <div>
-                <h2 className="text-base font-black text-white mb-1">Clôturer le tournoi ?</h2>
+                <h2 className="text-base font-black text-white mb-1">{isCompleted ? "Recalculer l'ELO ?" : 'Clôturer le tournoi ?'}</h2>
                 <p className="text-sm text-gray-400">
-                  Les points ELO seront calculés et distribués à tous les participants selon leur classement.
-                  Cette action est <strong className="text-white">irréversible</strong>.
+                  {isCompleted
+                    ? "L'ELO est recalculé selon le classement final actuel (utile après une correction de vainqueur). Le recalcul repart de l'ELO d'avant clôture, il ne s'empile donc pas."
+                    : 'Les points ELO seront calculés et distribués à tous les participants selon leur classement.'}
                 </p>
                 {pendingCount > 0 && (
                   <div className="mt-3 bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3 text-xs text-red-400 font-semibold">
@@ -155,7 +179,7 @@ export default function CloseTournamentButton({ tournamentId, pendingCount, stat
       {result && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
           <div className="bg-[#111111] border border-white/10 rounded-2xl w-full max-w-md p-6 space-y-4">
-            <h2 className="text-base font-black text-white">✅ Tournoi clôturé !</h2>
+            <h2 className="text-base font-black text-white">{isCompleted ? '✅ ELO recalculé !' : '✅ Tournoi clôturé !'}</h2>
             <p className="text-sm text-gray-400">ELO distribué :</p>
             <pre className="text-sm text-white font-mono bg-white/5 rounded-xl p-4 whitespace-pre-wrap">{result}</pre>
             <button onClick={() => setResult(null)}
