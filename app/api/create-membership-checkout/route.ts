@@ -41,7 +41,7 @@ export async function POST(req: NextRequest) {
 
     const { data: plan, error: planErr } = await supabase
       .from('membership_plans')
-      .select('id, box_id, name, description, price_cents, currency, is_active, stripe_product_id, stripe_price_id, plan_type, credits, validity_days')
+      .select('id, box_id, name, description, price_cents, currency, is_active, stripe_product_id, stripe_price_id, plan_type, credits, validity_days, commitment_months')
       .eq('id', plan_id)
       .single();
 
@@ -55,6 +55,7 @@ export async function POST(req: NextRequest) {
       stripe_product_id: string | null; stripe_price_id: string | null;
       plan_type: 'subscription' | 'drop_in' | 'pack' | null;
       credits: number | null; validity_days: number | null;
+      commitment_months: number | null;
     };
     const planType = p.plan_type ?? 'subscription';
 
@@ -193,6 +194,7 @@ export async function POST(req: NextRequest) {
           buyer_email,
           amount_cents: String(p.price_cents),
           platform_fee_cents: String(feeAmount),
+          commitment_months: String(p.commitment_months ?? 0),
         },
       },
       { stripeAccount },

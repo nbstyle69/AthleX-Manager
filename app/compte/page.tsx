@@ -19,6 +19,9 @@ interface MemberRow {
   id: string; box_id: string; plan_id: string | null;
   subscription_status: string | null; subscription_current_period_end: string | null;
   amount_cents: number | null;
+  commitment_end_date: string | null;
+  subscription_paused: boolean | null;
+  pause_resumes_at: string | null;
   plan: PlanRef | PlanRef[] | null;
   box: BoxRef | BoxRef[] | null;
 }
@@ -70,7 +73,7 @@ export default async function AccountPage() {
 
   const { data: memberRaw } = await supabase
     .from('box_members')
-    .select('id, box_id, plan_id, subscription_status, subscription_current_period_end, amount_cents, plan:membership_plans(name, color, price_cents), box:boxes(id, name, slug)')
+    .select('id, box_id, plan_id, subscription_status, subscription_current_period_end, amount_cents, commitment_end_date, subscription_paused, pause_resumes_at, plan:membership_plans(name, color, price_cents), box:boxes(id, name, slug)')
     .eq('member_id', user.id)
     .not('subscription_status', 'is', null)
     .order('joined_at', { ascending: false });
@@ -157,6 +160,10 @@ export default async function AccountPage() {
               currentPlanId={activeSub.plan_id}
               plans={boxPlans}
               canManage={['active', 'trialing', 'past_due'].includes(activeSub.subscription_status ?? '')}
+              boxId={activeSub.box_id}
+              commitmentEndDate={activeSub.commitment_end_date}
+              paused={!!activeSub.subscription_paused}
+              pauseResumesAt={activeSub.pause_resumes_at}
             />
           </div>
         ) : (

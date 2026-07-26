@@ -66,11 +66,18 @@ export async function POST(req: NextRequest) {
           const feeCents = Number(session.metadata.platform_fee_cents ?? 0) || null;
           if (!planId || !boxId) break;
 
+          const commitmentMonths = Number(session.metadata.commitment_months ?? 0) || 0;
+
           const userId = await resolveUserId(buyerEmail);
           if (!userId) {
             console.warn(`Membership purchase without matching profile: ${buyerEmail}`);
             break;
           }
+
+          // Fige la fin d'engagement à la souscription (NULL = sans engagement).
+          const commitmentEnd = commitmentMonths > 0
+            ? (() => { const d = new Date(); d.setMonth(d.getMonth() + commitmentMonths); return d.toISOString(); })()
+            : null;
 
           const patch = {
             plan_id: planId,
@@ -80,6 +87,8 @@ export async function POST(req: NextRequest) {
             stripe_checkout_session_id: session.id,
             amount_cents: amountCents,
             platform_fee_cents: feeCents,
+            commitment_end_date: commitmentEnd,
+            subscription_paused: false,
           };
 
           const { data: existing } = await supabase.from('box_members')
@@ -193,7 +202,12 @@ export async function POST(req: NextRequest) {
           .eq('stripe_subscription_id', sub.id);
         // Abonnement salle résilié → retire la formule (déclenche la sync des groupes).
         await supabase.from('box_members')
-          .update({ subscription_status: 'cancelled', plan_id: null, subscription_cancel_at_period_end: false })
+          .update({
+            subscription_status: 'cancelled', plan_id: null,
+            subscription_cancel_at_period_end: false,
+            commitment_end_date: null, subscription_paused: false,
+            pause_started_at: null, pause_resumes_at: null,
+          })
           .eq('stripe_subscription_id', sub.id);
         break;
       }

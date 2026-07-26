@@ -49,6 +49,8 @@ interface MembershipPlan {
   plan_type: 'subscription' | 'drop_in' | 'pack';
   credits: number | null;
   validity_days: number | null;
+  commitment_months: number | null;
+  terms: string | null;
 }
 
 interface Program {
@@ -127,7 +129,7 @@ export default async function BoxPublicPage({ params }: { params: Promise<{ slug
   // Fetch membership plans (paid formulas only shown to the public)
   const { data: plansRaw } = await supabase
     .from('membership_plans')
-    .select('id, name, description, price_cents, max_sessions_per_week, color, plan_type, credits, validity_days')
+    .select('id, name, description, price_cents, max_sessions_per_week, color, plan_type, credits, validity_days, commitment_months, terms')
     .eq('box_id', b.id)
     .eq('is_active', true)
     .gt('price_cents', 0)
@@ -325,6 +327,10 @@ export default async function BoxPublicPage({ params }: { params: Promise<{ slug
                         planId={pl.id}
                         planName={pl.name}
                         priceLabel={`${formatPrice(pl.price_cents)}/mois`}
+                        commitmentMonths={pl.commitment_months ?? 0}
+                        description={pl.description ?? null}
+                        maxSessionsPerWeek={pl.max_sessions_per_week}
+                        terms={pl.terms ?? null}
                       />
                     </div>
                   </div>
