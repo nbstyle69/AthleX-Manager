@@ -54,11 +54,14 @@ export default async function LeaderboardPage({ params }: { params: Promise<{ id
 
   if (!tournament || (tournament as any).box_id !== box.id) redirect('/tournaments');
 
-  const isBracket = (tournament as any).format === 'bracket';
+  const format = (tournament as any).format;
+  const isBracket = format === 'bracket' || format === 'swiss';
   const eloChangeById: Record<string, number> = {};
   (eloHistory ?? []).forEach((h: any) => { eloChangeById[h.athlete_id] = h.elo_change; });
 
-  const athleteIds = [...new Set((rawParticipants ?? []).map((p: any) => p.athlete_id))];
+  // Include athletes found only in bracket matches (robustness for double-elim seeding).
+  const bracketAthleteIds = (bracketMatches ?? []).flatMap((m: any) => [m.participant1_id, m.participant2_id]).filter(Boolean);
+  const athleteIds = [...new Set([...(rawParticipants ?? []).map((p: any) => p.athlete_id), ...bracketAthleteIds])];
   let profileMap: Record<string, { username: string; level: string; elo: number }> = {};
   if (athleteIds.length > 0) {
     const { data: profs } = await svc.from('profiles').select('id, username, level, elo').in('id', athleteIds);
@@ -66,7 +69,7 @@ export default async function LeaderboardPage({ params }: { params: Promise<{ id
   }
 
   const bracketStandings = isBracket
-    ? computeBracketStandings((bracketMatches ?? []) as BracketMatchRow[])
+    ? computeBracketStandings((bracketMatches ?? []) as BracketMatchRow[], format === 'swiss')
     : [];
 
   const general: ParticipantRow[] = bracketStandings.length > 0

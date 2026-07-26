@@ -83,12 +83,12 @@ export default function CloseTournamentButton({ tournamentId, pendingCount, stat
     // Ranking source: for a bracket, derive placement from the bracket outcome
     // (champion → finalist → semis …), otherwise fall back to the score order.
     let ranked: { athlete_id: string; rank: number }[] = tp.map((p: any, i: number) => ({ athlete_id: p.athlete_id, rank: i + 1 }));
-    if (format === 'bracket') {
+    if (format === 'bracket' || format === 'swiss') {
       const { data: matches } = await supabase
         .from('tournament_bracket_matches')
         .select('round, side, participant1_id, participant2_id, winner_id, loser_id, status')
         .eq('tournament_id', tournamentId);
-      const standings = computeBracketStandings((matches ?? []) as BracketMatchRow[]);
+      const standings = computeBracketStandings((matches ?? []) as BracketMatchRow[], format === 'swiss');
       if (standings.length > 0) ranked = standings.map(s => ({ athlete_id: s.athlete_id, rank: s.rank }));
     }
 
