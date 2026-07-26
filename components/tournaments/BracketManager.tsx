@@ -2,8 +2,12 @@
 
 import { Fragment, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { createClient } from '@/lib/supabase/client';
 import { Loader2, Play, Crown, ArrowRight, Trophy, AlertTriangle, RotateCcw, Pencil, Trash2, X, Save, Calendar, Zap, Youtube } from 'lucide-react';
+import {
+  generateRound1Action, advanceRoundAction, setMatchWinnerAction, applyDecisionsAction,
+  setMatchWodAction, resetMatchAction, regenerateBracketAction, saveMatchEditAction,
+  createGrandFinalAction,
+} from '@/app/(dashboard)/tournaments/[id]/bracket/actions';
 import { formatAmrapScore, isRepsScoredType } from '@/lib/movements';
 
 /** A participant's submitted score for a match's WOD, resolved for display. */
@@ -71,8 +75,6 @@ export default function BracketManager({
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [editing, setEditing] = useState<Match | null>(null);
-
-  const supabase = createClient();
 
   // Tous les participants inscrits (pour le seeding / édition libre).
   const participantsList = useMemo(
@@ -184,14 +186,10 @@ export default function BracketManager({
     )) return;
     setBusy(`auto-${round}`); setError(null);
     const nowIso = new Date().toISOString();
-    for (const { m, w } of decisions) {
-      const loserId = w === m.participant1_id ? m.participant2_id : m.participant1_id;
-      const { error: err } = await supabase
-        .from('tournament_bracket_matches')
-        .update({ winner_id: w, loser_id: loserId, status: 'completed', completed_at: nowIso })
-        .eq('id', m.id);
-      if (err) { setBusy(null); setError(err.message); return; }
-    }
+    const res = await applyDecisionsAction(tournamentId, decisions.map(({ m, w }) => ({
+      matchId: m.id, winnerId: w, loserId: w === m.participant1_id ? m.participant2_id : m.participant1_id,
+    })));
+    if (!res.ok) { setBusy(null); setError(res.error); return; }
     setMatches(arr => arr.map(m => {
       const d = decisions.find(x => x.m.id === m.id);
       if (!d) return m;
@@ -210,21 +208,18 @@ export default function BracketManager({
   async function generateRound1() {
     if (!confirm(`Générer le round 1 avec ${participantsCount} participants ?`)) return;
     setBusy('generate'); setError(null);
-    const { error: err } = await supabase.rpc('generate_bracket_round_1', { p_tournament_id: tournamentId });
+    const res = await generateRound1Action(tournamentId);
     setBusy(null);
-    if (err) { setError(err.message); return; }
+    if (!res.ok) { setError(res.error); return; }
     router.refresh();
   }
 
   async function setMatchWinner(match: Match, winnerId: string) {
     const loserId = winnerId === match.participant1_id ? match.participant2_id : match.participant1_id;
     setBusy(match.id); setError(null);
-    const { error: err } = await supabase
-      .from('tournament_bracket_matches')
-      .update({ winner_id: winnerId, loser_id: loserId, status: 'completed', completed_at: new Date().toISOString() })
-      .eq('id', match.id);
+    const res = await setMatchWinnerAction(tournamentId, match.id, winnerId, loserId);
     setBusy(null);
-    if (err) { setError(err.message); return; }
+    if (!res.ok) { setError(res.error); return; }
     setMatches(arr => arr.map(m => m.id === match.id
       ? { ...m, winner_id: winnerId, loser_id: loserId, status: 'completed', completed_at: new Date().toISOString() }
       : m));
@@ -232,22 +227,17 @@ export default function BracketManager({
 
   async function advanceRound(round: number) {
     setBusy(`advance-${round}`); setError(null);
-    const { error: err } = await supabase.rpc('advance_bracket_round', {
-      p_tournament_id: tournamentId, p_completed_round: round,
-    });
+    const res = await advanceRoundAction(tournamentId, round);
     setBusy(null);
-    if (err) { setError(err.message); return; }
+    if (!res.ok) { setError(res.error); return; }
     router.refresh();
   }
 
   async function setMatchWod(matchId: string, wodId: string) {
     setBusy(matchId); setError(null);
-    const { error: err } = await supabase
-      .from('tournament_bracket_matches')
-      .update({ wod_id: wodId || null })
-      .eq('id', matchId);
+    const res = await setMatchWodAction(tournamentId, matchId, wodId || null);
     setBusy(null);
-    if (err) { setError(err.message); return; }
+    if (!res.ok) { setError(res.error); return; }
     setMatches(arr => arr.map(m => m.id === matchId ? { ...m, wod_id: wodId || null } : m));
   }
 
@@ -259,12 +249,9 @@ export default function BracketManager({
       + `Tu peux alors régénérer le bracket.`
     )) return;
     setBusy(match.id); setError(null);
-    const { error: err } = await supabase
-      .from('tournament_bracket_matches')
-      .update({ winner_id: null, loser_id: null, status: 'active', completed_at: null })
-      .eq('id', match.id);
+    const res = await resetMatchAction(tournamentId, match.id);
     setBusy(null);
-    if (err) { setError(err.message); return; }
+    if (!res.ok) { setError(res.error); return; }
     setMatches(arr => arr.map(m => m.id === match.id
       ? { ...m, winner_id: null, loser_id: null, status: 'active', completed_at: null }
       : m));
@@ -278,14 +265,9 @@ export default function BracketManager({
       + `au hasard parmi les ${participantsCount} participants.`
     )) return;
     setBusy('regenerate'); setError(null);
-    const { error: delErr } = await supabase
-      .from('tournament_bracket_matches')
-      .delete()
-      .eq('tournament_id', tournamentId);
-    if (delErr) { setBusy(null); setError(delErr.message); return; }
-    const { error: genErr } = await supabase.rpc('generate_bracket_round_1', { p_tournament_id: tournamentId });
+    const res = await regenerateBracketAction(tournamentId);
     setBusy(null);
-    if (genErr) { setError(genErr.message); return; }
+    if (!res.ok) { setError(res.error); return; }
     router.refresh();
   }
 
@@ -295,12 +277,9 @@ export default function BracketManager({
     patch: { participant1_id: string | null; participant2_id: string | null; scheduled_at: string | null; notes: string | null }
   ) {
     setBusy(matchId); setError(null);
-    const { error: err } = await supabase
-      .from('tournament_bracket_matches')
-      .update(patch)
-      .eq('id', matchId);
+    const res = await saveMatchEditAction(tournamentId, matchId, patch);
     setBusy(null);
-    if (err) { setError(err.message); return; }
+    if (!res.ok) { setError(res.error); return; }
     setMatches(arr => arr.map(m => m.id === matchId ? { ...m, ...patch } : m));
     setEditing(null);
   }
@@ -622,19 +601,15 @@ function GrandFinalSection({
   onSelectWinner: (m: Match, winnerId: string) => void;
   busyId: string | null;
 }) {
-  const supabase = createClient();
   const [creating, setCreating] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
   async function createGrandFinal() {
     if (!lbChampionId) return;
     setCreating(true); setErr(null);
-    const { error } = await supabase.from('tournament_bracket_matches').insert({
-      tournament_id: tournamentId, round: 99, match_number: 1, side: 'grand_final',
-      participant1_id: wbChampionId, participant2_id: lbChampionId, status: 'pending',
-    });
+    const res = await createGrandFinalAction(tournamentId, wbChampionId, lbChampionId);
     setCreating(false);
-    if (error) { setErr(error.message); return; }
+    if (!res.ok) { setErr(res.error); return; }
     onChange();
   }
 
