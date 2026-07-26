@@ -1,6 +1,6 @@
 'use client';
 
-import { Fragment, useMemo, useState } from 'react';
+import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Loader2, Play, Crown, ArrowRight, Trophy, AlertTriangle, RotateCcw, Pencil, Trash2, X, Save, Calendar, Zap, Youtube, FileText, Clock, CheckCircle2, MessageSquare, Dumbbell } from 'lucide-react';
 import {
@@ -102,6 +102,16 @@ export default function BracketManager({
   const [error, setError] = useState<string | null>(null);
   const [editing, setEditing] = useState<Match | null>(null);
   const [sheet, setSheet] = useState<SheetData | null>(null);
+  const [info, setInfo] = useState<string | null>(null);
+  const bracketScrollRef = useRef<HTMLDivElement>(null);
+
+  // Re-sync local state whenever the server sends fresh matches (after
+  // router.refresh() following generate/advance/regenerate). Without this,
+  // useState keeps the initial snapshot and a newly generated round never
+  // appears — the bracket looks unchanged ("rien ne se passe").
+  useEffect(() => {
+    setMatches(initialMatches);
+  }, [initialMatches]);
 
   // Tous les participants inscrits (pour le seeding / édition libre).
   const participantsList = useMemo(
@@ -125,6 +135,17 @@ export default function BracketManager({
 
   const winnerRounds = Object.keys(grouped.winnerByRound).map(Number).sort((a, b) => a - b);
   const loserRounds = Object.keys(grouped.loserByRound).map(Number).sort((a, b) => a - b);
+
+  // When a new round appears, scroll the bracket to reveal it (it renders on the
+  // far right, otherwise the advance seems to do nothing).
+  const prevRoundCountRef = useRef(winnerRounds.length);
+  useEffect(() => {
+    const el = bracketScrollRef.current;
+    if (el && winnerRounds.length > prevRoundCountRef.current) {
+      el.scrollTo({ left: el.scrollWidth, behavior: 'smooth' });
+    }
+    prevRoundCountRef.current = winnerRounds.length;
+  }, [winnerRounds.length]);
 
   // Total number of WB rounds this bracket will have (fixed for the whole bracket,
   // derived from the round-1 participant count) — NOT the count generated so far.
@@ -283,10 +304,13 @@ export default function BracketManager({
   }
 
   async function advanceRound(round: number) {
-    setBusy(`advance-${round}`); setError(null);
+    setBusy(`advance-${round}`); setError(null); setInfo(null);
     const res = await advanceRoundAction(tournamentId, round);
     setBusy(null);
     if (!res.ok) { setError(res.error); return; }
+    setInfo(res.created > 0
+      ? `Round suivant généré (${res.created} match${res.created > 1 ? 's' : ''}). Décide ses vainqueurs pour continuer.`
+      : `Le round suivant existe déjà — affichage mis à jour. Décide ses vainqueurs pour continuer.`);
     router.refresh();
   }
 
@@ -355,6 +379,12 @@ export default function BracketManager({
       {error && (
         <div className="bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3 text-sm text-red-400 flex items-center gap-2">
           <AlertTriangle size={14} /> {error}
+        </div>
+      )}
+
+      {info && (
+        <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl px-4 py-3 text-sm text-emerald-300 flex items-center gap-2">
+          <CheckCircle2 size={14} /> {info}
         </div>
       )}
 
@@ -434,7 +464,7 @@ export default function BracketManager({
             Clique sur le <span className="text-gray-300 font-semibold">nom d'un athlète</span> pour ouvrir sa <span className="text-gray-300 font-semibold">fiche de soumission</span> (score détaillé, mouvements du WOD, vidéo, statut). Pour désigner le vainqueur, clique sur la <span className="text-yellow-300 font-semibold">couronne</span> de son côté, ou utilise <span className="text-purple-300 font-semibold">« Décider selon les scores »</span> pour trancher automatiquement d'après les scores validés (le plus grand gagne, ou le plus petit temps pour un WOD « For Time »). Un <span className="text-gray-400 font-semibold">*</span> signale un score non encore validé. Tu peux toujours corriger un résultat à la main. Survole une carte pour éditer (joueurs / date / notes) ou annuler.
           </p>
 
-          <div className="overflow-x-auto pb-2">
+          <div ref={bracketScrollRef} className="overflow-x-auto pb-2">
             <VisualBracket
               rounds={winnerRounds}
               matchesByRound={grouped.winnerByRound}
