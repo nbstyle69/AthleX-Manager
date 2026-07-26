@@ -102,6 +102,7 @@ export async function POST(req: NextRequest) {
           mode: 'payment',
           payment_method_types: ['card'],
           customer_email: buyer_email,
+          allow_promotion_codes: true,
           line_items: [
             {
               price_data: {
@@ -174,6 +175,7 @@ export async function POST(req: NextRequest) {
         mode: 'subscription',
         payment_method_types: ['card'],
         customer_email: buyer_email,
+        allow_promotion_codes: true,
         line_items: [{ price: priceId, quantity: 1 }],
         subscription_data: {
           // Prorata calendaire : 1re facture = jours restants du mois en cours,

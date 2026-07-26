@@ -117,6 +117,7 @@ export async function POST(req: NextRequest) {
         mode: isSubscription ? 'subscription' : 'payment',
         payment_method_types: ['card'],
         customer_email: buyer_email,
+        allow_promotion_codes: true,
         line_items: [{ price: priceId, quantity: 1 }],
         ...(isSubscription
           ? {
