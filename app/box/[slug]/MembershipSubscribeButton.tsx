@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { X, Loader2 } from 'lucide-react';
+import { X, Loader2, FileText } from 'lucide-react';
 
 interface Props {
   planId: string;
@@ -13,11 +13,12 @@ interface Props {
   description?: string | null;
   maxSessionsPerWeek?: number | null;
   terms?: string | null;
+  termsPdfUrl?: string | null;
 }
 
 export default function MembershipSubscribeButton({
   planId, planName, priceLabel, mode = 'subscription',
-  commitmentMonths = 0, description = null, maxSessionsPerWeek = null, terms = null,
+  commitmentMonths = 0, description = null, maxSessionsPerWeek = null, terms = null, termsPdfUrl = null,
 }: Props) {
   const oneShot = mode === 'oneshot';
   const cta = oneShot ? 'Acheter' : 'S\'abonner';
@@ -103,6 +104,16 @@ export default function MembershipSubscribeButton({
                     ? `Résiliation libre après ${commitmentMonths} mois. Avant l'échéance : uniquement pour motif légitime (déménagement, santé) sur justificatif. Gel possible en cas de blessure/absence.`
                     : `Résiliation à tout moment (effet à la fin de la période payée). Gel possible en cas de blessure/absence.`}
                 </p>
+                {termsPdfUrl && (
+                  <a
+                    href={termsPdfUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1.5 text-[11px] font-semibold text-white/80 hover:text-white pt-1.5 border-t border-white/[0.06]"
+                  >
+                    <FileText size={12} /> Voir les conditions générales (PDF)
+                  </a>
+                )}
               </div>
             )}
 
