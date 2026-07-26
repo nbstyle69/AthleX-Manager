@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { Users, FolderOpen, MessageSquare, LayoutDashboard, LogOut, Dumbbell, Sun, Moon, CalendarClock, Newspaper, BarChart3, Trophy, Settings, BookOpen, CreditCard } from 'lucide-react';
+import { Users, FolderOpen, MessageSquare, LayoutDashboard, LogOut, Dumbbell, Sun, Moon, CalendarClock, Newspaper, BarChart3, Trophy, Settings, BookOpen, CreditCard, LifeBuoy, Inbox } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { cn } from '@/lib/utils';
 import { useTheme } from '@/components/ThemeProvider';
@@ -19,6 +19,7 @@ const NAV = [
   { href: '/subscribers',  label: 'Abonnés',     icon: CreditCard },
   { href: '/stats',        label: 'Statistiques', icon: BarChart3 },
   { href: '/messages',     label: 'Messages',    icon: MessageSquare },
+  { href: '/support',      label: 'Support',     icon: LifeBuoy },
   { href: '/settings',     label: 'Réglages',    icon: Settings },
 ];
 
@@ -26,9 +27,12 @@ interface SidebarProps {
   box: { name: string; plan: string } | null;
   email: string;
   unreadCount?: number;
+  supportUnread?: number;
+  isSupportAdmin?: boolean;
+  supportAdminUnread?: number;
 }
 
-export default function Sidebar({ box, email, unreadCount = 0 }: SidebarProps) {
+export default function Sidebar({ box, email, unreadCount = 0, supportUnread = 0, isSupportAdmin = false, supportAdminUnread = 0 }: SidebarProps) {
   const pathname = usePathname();
   const router   = useRouter();
   const { theme, toggle } = useTheme();
@@ -69,7 +73,11 @@ export default function Sidebar({ box, email, unreadCount = 0 }: SidebarProps) {
       {/* Nav */}
       <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
         {NAV.map(({ href, label, icon: Icon }) => {
-          const active = href === '/' ? pathname === '/' : pathname.startsWith(href);
+          const active = href === '/'
+            ? pathname === '/'
+            : href === '/support'
+              ? (pathname === '/support' || (pathname.startsWith('/support') && !pathname.startsWith('/support/admin')))
+              : pathname.startsWith(href);
           return (
             <Link
               key={href} href={href}
@@ -87,9 +95,34 @@ export default function Sidebar({ box, email, unreadCount = 0 }: SidebarProps) {
                   {unreadCount > 99 ? '99+' : unreadCount}
                 </span>
               )}
+              {label === 'Support' && supportUnread > 0 && (
+                <span className="ml-auto bg-white text-[#0A0A0A] text-[10px] font-black rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1">
+                  {supportUnread > 99 ? '99+' : supportUnread}
+                </span>
+              )}
             </Link>
           );
         })}
+        {isSupportAdmin && (() => {
+          const active = pathname.startsWith('/support/admin');
+          return (
+            <Link
+              href="/support/admin"
+              className={cn(
+                'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all relative',
+                active ? 'bg-white/20 text-white' : 'text-gray-400 hover:text-white hover:bg-white/5'
+              )}
+            >
+              <Inbox size={17} className={active ? 'text-white' : ''} />
+              Support (Admin)
+              {supportAdminUnread > 0 && (
+                <span className="ml-auto bg-white text-[#0A0A0A] text-[10px] font-black rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1">
+                  {supportAdminUnread > 99 ? '99+' : supportAdminUnread}
+                </span>
+              )}
+            </Link>
+          );
+        })()}
       </nav>
 
       {/* Footer */}

@@ -21,11 +21,17 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     );
   }
 
+  const { count: supportUnread } = await supabase
+    .from('support_tickets')
+    .select('id', { count: 'exact', head: true })
+    .eq('admin_unread', true);
+
   return (
     <div className="min-h-screen bg-[#0A0A0A] flex">
       <AdminSidebar
         username={profile.username ?? 'Admin'}
         email={user.email ?? ''}
+        supportUnread={supportUnread ?? 0}
       />
       <main className="flex-1 ml-60 min-h-screen p-8 overflow-y-auto">
         {children}

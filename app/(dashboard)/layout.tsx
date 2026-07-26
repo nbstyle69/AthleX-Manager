@@ -54,12 +54,32 @@ export default async function DashboardLayout({ children }: { children: React.Re
     subStatus !== 'past_due' &&
     !(subStatus === 'trialing' && daysLeft > 0);
 
+  // Support: unread replies for this box, and admin inbox visibility/unread.
+  const { count: supportUnread } = await supabase
+    .from('support_tickets')
+    .select('id', { count: 'exact', head: true })
+    .eq('box_id', box.id)
+    .eq('requester_unread', true);
+
+  const { data: isSupportAdmin } = await supabase.rpc('is_support_admin');
+  let supportAdminUnread = 0;
+  if (isSupportAdmin) {
+    const { count } = await supabase
+      .from('support_tickets')
+      .select('id', { count: 'exact', head: true })
+      .eq('admin_unread', true);
+    supportAdminUnread = count ?? 0;
+  }
+
   return (
     <div className="min-h-screen bg-[#0A0A0A] flex">
       <Sidebar
         box={{ name: box.name, plan: (sub?.plan_tier as string) ?? 'starter' }}
         email={user.email ?? ''}
         unreadCount={0}
+        supportUnread={supportUnread ?? 0}
+        isSupportAdmin={!!isSupportAdmin}
+        supportAdminUnread={supportAdminUnread}
       />
       <main className="flex-1 ml-60 min-h-screen p-8 overflow-y-auto">
         <TrialBanner

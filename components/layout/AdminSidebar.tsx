@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { Shield, LayoutDashboard, Swords, Users, Trophy, LogOut, Sun, Moon, Building2, Globe2, Award, Dumbbell, FileText, MapPin, BarChart3, Handshake, Flag } from 'lucide-react';
+import { Shield, LayoutDashboard, Swords, Users, Trophy, LogOut, Sun, Moon, Building2, Globe2, Award, Dumbbell, FileText, MapPin, BarChart3, Handshake, Flag, LifeBuoy } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { cn } from '@/lib/utils';
 import { useTheme } from '@/components/ThemeProvider';
@@ -18,6 +18,7 @@ const NAV = [
   { href: '/admin/physical-competitions', label: 'Compet. Physiques', icon: MapPin },
   { href: '/admin/badges',              label: 'Badges',            icon: Award },
   { href: '/admin/movements',           label: 'Mouvements',        icon: Dumbbell },
+  { href: '/admin/support',              label: 'Support',           icon: LifeBuoy },
   { href: '/admin/partners',             label: 'Partenaires',       icon: Handshake },
   { href: '/admin/analytics',            label: 'Statistiques',      icon: BarChart3 },
   { href: '/admin/changelog',           label: 'Changelog',         icon: FileText },
@@ -26,9 +27,10 @@ const NAV = [
 interface AdminSidebarProps {
   username: string;
   email: string;
+  supportUnread?: number;
 }
 
-export default function AdminSidebar({ username, email }: AdminSidebarProps) {
+export default function AdminSidebar({ username, email, supportUnread = 0 }: AdminSidebarProps) {
   const pathname = usePathname();
   const router   = useRouter();
   const { theme, toggle } = useTheme();
@@ -76,6 +78,11 @@ export default function AdminSidebar({ username, email }: AdminSidebarProps) {
             >
               <Icon size={17} className={active ? 'text-emerald-400' : ''} />
               {label}
+              {label === 'Support' && supportUnread > 0 && (
+                <span className="ml-auto bg-emerald-500 text-[#0A0A0A] text-[10px] font-black rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1">
+                  {supportUnread > 99 ? '99+' : supportUnread}
+                </span>
+              )}
             </Link>
           );
         })}
