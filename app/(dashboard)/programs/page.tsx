@@ -41,6 +41,8 @@ interface MembershipPlan {
   plan_type: PlanType;
   credits: number | null;
   validity_days: number | null;
+  commitment_months: number;
+  terms: string | null;
 }
 
 interface ProgramWOD {
@@ -88,6 +90,8 @@ const EMPTY_PLAN_FORM = {
   plan_type: 'subscription' as PlanType,
   credits: '' as string,          // pack: nb de séances
   validity_months: '' as string,  // pack: validité en mois ; drop_in: converti en jours
+  commitment_months: '0' as string, // durée d'engagement (abonnement) ; 0 = sans engagement
+  terms: '' as string,            // conditions / mentions affichées à la souscription
 };
 
 function genCode(): string {
@@ -195,7 +199,7 @@ export default function BoxOwnerProgramsPage() {
   async function loadPlans(id: string) {
     const { data } = await supabase
       .from('membership_plans')
-      .select('id, box_id, name, description, price_cents, max_sessions_per_week, color, is_active, sort_order, plan_type, credits, validity_days')
+      .select('id, box_id, name, description, price_cents, max_sessions_per_week, color, is_active, sort_order, plan_type, credits, validity_days, commitment_months, terms')
       .eq('box_id', id)
       .order('sort_order', { ascending: true })
       .order('price_cents', { ascending: true });
@@ -336,6 +340,8 @@ export default function BoxOwnerProgramsPage() {
       plan_type: pl.plan_type ?? 'subscription',
       credits: pl.credits ? String(pl.credits) : '',
       validity_months: pl.validity_days ? String(Math.round(pl.validity_days / 30)) : '',
+      commitment_months: String(pl.commitment_months ?? 0),
+      terms: pl.terms ?? '',
     });
     setPlanError(null);
     setShowPlanForm(true);
@@ -399,6 +405,10 @@ export default function BoxOwnerProgramsPage() {
       plan_type: type,
       credits,
       validity_days: validityDays,
+      commitment_months: type === 'subscription'
+        ? (Number.isFinite(parseInt(planForm.commitment_months)) ? Math.max(0, parseInt(planForm.commitment_months)) : 0)
+        : 0,
+      terms: planForm.terms.trim() || null,
     };
 
     const { error } = editPlanId
@@ -674,6 +684,9 @@ export default function BoxOwnerProgramsPage() {
                           ? `${pl.max_sessions_per_week} séance${pl.max_sessions_per_week > 1 ? 's' : ''}/semaine`
                           : 'Séances illimitées'}
                       </span>
+                      {pl.plan_type === 'subscription' && (pl.commitment_months ?? 0) > 0 && (
+                        <span className="font-semibold text-amber-400/90">· engagement {pl.commitment_months} mois</span>
+                      )}
                     </div>
                   </div>
                   <div className="flex items-center gap-2 ml-4 flex-shrink-0">
@@ -955,6 +968,29 @@ export default function BoxOwnerProgramsPage() {
                       className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white outline-none focus:border-emerald-500/50"
                       value={planForm.max_sessions_per_week} onChange={e => setPlanForm({ ...planForm, max_sessions_per_week: e.target.value })}
                       placeholder="∞ (illimité)"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-bold text-gray-400 mb-1 block">Engagement</label>
+                    <select
+                      className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white outline-none focus:border-emerald-500/50"
+                      value={planForm.commitment_months}
+                      onChange={e => setPlanForm({ ...planForm, commitment_months: e.target.value })}
+                    >
+                      <option value="0">Sans engagement</option>
+                      <option value="3">3 mois</option>
+                      <option value="6">6 mois</option>
+                      <option value="12">12 mois</option>
+                    </select>
+                    <p className="text-[11px] text-gray-500 mt-1.5">Durée minimale avant résiliation libre. Au-delà, l'adhérent peut résilier au mois.</p>
+                  </div>
+                  <div className="col-span-2">
+                    <label className="text-xs font-bold text-gray-400 mb-1 block">Conditions / mentions (affichées à la souscription)</label>
+                    <textarea
+                      rows={3}
+                      className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white outline-none focus:border-emerald-500/50 resize-none"
+                      value={planForm.terms} onChange={e => setPlanForm({ ...planForm, terms: e.target.value })}
+                      placeholder="Ex. Prix TTC. Horaires d'accès 6h–22h. Résiliation possible pour motif légitime (déménagement, blessure) sur justificatif."
                     />
                   </div>
                 </div>

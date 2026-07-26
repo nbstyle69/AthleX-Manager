@@ -26,18 +26,32 @@ export async function POST() {
     const supabase = createServiceClient();
 
     const { data: memberRaw } = await supabase.from('box_members')
-      .select('id, box_id, subscription_status, stripe_subscription_id')
+      .select('id, box_id, subscription_status, stripe_subscription_id, commitment_end_date')
       .eq('member_id', user.id)
       .not('stripe_subscription_id', 'is', null)
       .order('joined_at', { ascending: false });
 
     const members = (memberRaw ?? []) as {
-      id: string; box_id: string; subscription_status: string | null; stripe_subscription_id: string | null;
+      id: string; box_id: string; subscription_status: string | null;
+      stripe_subscription_id: string | null; commitment_end_date: string | null;
     }[];
     const m = members.find(x => ACTIVE_STATUSES.includes(x.subscription_status ?? '')) ?? null;
 
     if (!m?.stripe_subscription_id) {
       return NextResponse.json({ error: 'Aucun abonnement actif à résilier.' }, { status: 404 });
+    }
+
+    // Engagement encore en cours → la résiliation classique est bloquée.
+    // L'athlète doit passer par une demande de résiliation anticipée (justificatif).
+    if (m.commitment_end_date && new Date(m.commitment_end_date) > new Date()) {
+      return NextResponse.json(
+        {
+          error: 'ENGAGEMENT_ACTIVE',
+          commitment_end_date: m.commitment_end_date,
+          message: 'Ton abonnement est engagé jusqu\'à cette date. Fais une demande de résiliation anticipée sur justificatif.',
+        },
+        { status: 409 },
+      );
     }
 
     const { data: box } = await supabase

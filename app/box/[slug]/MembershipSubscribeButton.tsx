@@ -9,9 +9,16 @@ interface Props {
   priceLabel: string;
   /** 'subscription' (mensuel) ou 'oneshot' (Drop-in / Carnet, paiement unique) */
   mode?: 'subscription' | 'oneshot';
+  commitmentMonths?: number;
+  description?: string | null;
+  maxSessionsPerWeek?: number | null;
+  terms?: string | null;
 }
 
-export default function MembershipSubscribeButton({ planId, planName, priceLabel, mode = 'subscription' }: Props) {
+export default function MembershipSubscribeButton({
+  planId, planName, priceLabel, mode = 'subscription',
+  commitmentMonths = 0, description = null, maxSessionsPerWeek = null, terms = null,
+}: Props) {
   const oneShot = mode === 'oneshot';
   const cta = oneShot ? 'Acheter' : 'S\'abonner';
   const [open, setOpen] = useState(false);
@@ -65,6 +72,40 @@ export default function MembershipSubscribeButton({ planId, planName, priceLabel
                 ? `${priceLabel} — paiement unique. Utilise l'e-mail de ton compte AthleX : tes crédits de séances s'activent automatiquement après paiement.`
                 : `${priceLabel} — abonnement mensuel. Utilise l'e-mail de ton compte AthleX : ton abonnement et l'accès aux cours s'activent automatiquement dans l'app après paiement.`}
             </p>
+
+            {!oneShot && (
+              <div className="bg-white/[0.03] border border-white/10 rounded-xl p-3 mb-4 space-y-1.5">
+                <p className="text-[11px] font-black text-gray-300 uppercase tracking-wide mb-1">Récapitulatif du contrat</p>
+                <div className="flex justify-between text-xs">
+                  <span className="text-gray-500">Prix TTC</span>
+                  <span className="text-white font-semibold">{priceLabel} / mois</span>
+                </div>
+                <div className="flex justify-between text-xs">
+                  <span className="text-gray-500">Engagement</span>
+                  <span className="text-white font-semibold">
+                    {commitmentMonths > 0 ? `${commitmentMonths} mois` : 'Sans engagement'}
+                  </span>
+                </div>
+                <div className="flex justify-between text-xs">
+                  <span className="text-gray-500">Séances</span>
+                  <span className="text-white font-semibold">
+                    {maxSessionsPerWeek ? `${maxSessionsPerWeek} / semaine` : 'Illimitées'}
+                  </span>
+                </div>
+                {description && (
+                  <p className="text-[11px] text-gray-400 pt-1.5 border-t border-white/[0.06] whitespace-pre-wrap">{description}</p>
+                )}
+                {terms && (
+                  <p className="text-[11px] text-gray-500 pt-1.5 border-t border-white/[0.06] whitespace-pre-wrap">{terms}</p>
+                )}
+                <p className="text-[10px] text-gray-600 pt-1.5 border-t border-white/[0.06]">
+                  {commitmentMonths > 0
+                    ? `Résiliation libre après ${commitmentMonths} mois. Avant l'échéance : uniquement pour motif légitime (déménagement, santé) sur justificatif. Gel possible en cas de blessure/absence.`
+                    : `Résiliation à tout moment (effet à la fin de la période payée). Gel possible en cas de blessure/absence.`}
+                </p>
+              </div>
+            )}
+
             <input
               type="email"
               value={email}
