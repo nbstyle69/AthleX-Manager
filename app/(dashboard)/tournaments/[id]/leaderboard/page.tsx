@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, Trophy } from 'lucide-react';
 import LeaderboardClient from './LeaderboardClient';
+import { computeBracketStandings, type BracketMatchRow } from '@/lib/bracket';
 
 export interface ParticipantRow {
   rank: number;
@@ -11,6 +12,8 @@ export interface ParticipantRow {
   username: string | null;
   level: string | null;
   elo: number | null;
+  placement?: string | null;
+  elo_change?: number | null;
 }
 
 export interface WodRanking {
@@ -38,16 +41,22 @@ export default async function LeaderboardPage({ params }: { params: Promise<{ id
 
   const svc = createServiceClient();
 
-  const [{ data: tournament }, { data: rawParticipants }, { data: wods }, { data: validatedScores }, { data: divisionsRaw }, { data: divMembersRaw }] = await Promise.all([
+  const [{ data: tournament }, { data: rawParticipants }, { data: wods }, { data: validatedScores }, { data: divisionsRaw }, { data: divMembersRaw }, { data: bracketMatches }, { data: eloHistory }] = await Promise.all([
     svc.from('tournaments').select('*').eq('id', tournamentId).single(),
     svc.from('tournament_participants').select('athlete_id, score').eq('tournament_id', tournamentId).order('score', { ascending: false }),
     svc.from('tournament_wods').select('id, title, order_index').eq('tournament_id', tournamentId).order('order_index'),
     svc.from('tournament_scores').select('athlete_id, tournament_wod_id, score_value').eq('tournament_id', tournamentId).eq('status', 'validated'),
     svc.from('tournament_divisions').select('*').eq('tournament_id', tournamentId).order('level'),
     svc.from('tournament_division_members').select('division_id, athlete_id, points, rank').order('points', { ascending: false }),
+    svc.from('tournament_bracket_matches').select('round, side, participant1_id, participant2_id, winner_id, loser_id, status').eq('tournament_id', tournamentId),
+    svc.from('tournament_elo_history').select('athlete_id, elo_change, final_rank').eq('tournament_id', tournamentId),
   ]);
 
   if (!tournament || (tournament as any).box_id !== box.id) redirect('/tournaments');
+
+  const isBracket = (tournament as any).format === 'bracket';
+  const eloChangeById: Record<string, number> = {};
+  (eloHistory ?? []).forEach((h: any) => { eloChangeById[h.athlete_id] = h.elo_change; });
 
   const athleteIds = [...new Set((rawParticipants ?? []).map((p: any) => p.athlete_id))];
   let profileMap: Record<string, { username: string; level: string; elo: number }> = {};
@@ -56,14 +65,30 @@ export default async function LeaderboardPage({ params }: { params: Promise<{ id
     (profs ?? []).forEach((p: any) => { profileMap[p.id] = { username: p.username, level: p.level, elo: p.elo }; });
   }
 
-  const general: ParticipantRow[] = (rawParticipants ?? []).map((p: any, i: number) => ({
-    rank:        i + 1,
-    athlete_id:  p.athlete_id,
-    total_score: p.score ?? 0,
-    username:    profileMap[p.athlete_id]?.username ?? null,
-    level:       profileMap[p.athlete_id]?.level    ?? null,
-    elo:         profileMap[p.athlete_id]?.elo       ?? null,
-  }));
+  const bracketStandings = isBracket
+    ? computeBracketStandings((bracketMatches ?? []) as BracketMatchRow[])
+    : [];
+
+  const general: ParticipantRow[] = bracketStandings.length > 0
+    ? bracketStandings.map(s => ({
+        rank:        s.rank,
+        athlete_id:  s.athlete_id,
+        total_score: 0,
+        username:    profileMap[s.athlete_id]?.username ?? null,
+        level:       profileMap[s.athlete_id]?.level    ?? null,
+        elo:         profileMap[s.athlete_id]?.elo       ?? null,
+        placement:   s.placement,
+        elo_change:  eloChangeById[s.athlete_id] ?? null,
+      }))
+    : (rawParticipants ?? []).map((p: any, i: number) => ({
+        rank:        i + 1,
+        athlete_id:  p.athlete_id,
+        total_score: p.score ?? 0,
+        username:    profileMap[p.athlete_id]?.username ?? null,
+        level:       profileMap[p.athlete_id]?.level    ?? null,
+        elo:         profileMap[p.athlete_id]?.elo       ?? null,
+        elo_change:  eloChangeById[p.athlete_id] ?? null,
+      }));
 
   const wodRankings: WodRanking[] = (wods ?? []).map((wod: any) => {
     const wodScores = (validatedScores ?? [])
