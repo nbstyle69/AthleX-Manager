@@ -3,7 +3,31 @@
 import { Fragment, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
-import { Loader2, Play, Crown, ArrowRight, Trophy, AlertTriangle, RotateCcw, Pencil, Trash2, X, Save, Calendar, Zap } from 'lucide-react';
+import { Loader2, Play, Crown, ArrowRight, Trophy, AlertTriangle, RotateCcw, Pencil, Trash2, X, Save, Calendar, Zap, Youtube } from 'lucide-react';
+import { formatAmrapScore, isRepsScoredType } from '@/lib/movements';
+
+/** A participant's submitted score for a match's WOD, resolved for display. */
+interface Submission { label: string; video: string | null; validated: boolean; }
+
+// Human-readable score: For Time → mm:ss, AMRAP/Max Reps → "123 reps (3 tours + 12)",
+// anything else → the raw stored value.
+function formatScoreLabel(value: string, wod: { type: string | null; reps_per_round: number | null }): string {
+  const raw = String(value ?? '').trim();
+  if (!raw) return '—';
+  if ((wod.type ?? '') === 'For Time') {
+    if (raw.includes(':')) return raw;
+    const secs = parseInt(raw.replace(/[^0-9]/g, ''), 10);
+    if (Number.isNaN(secs)) return raw;
+    const m = Math.floor(secs / 60);
+    const s = secs % 60;
+    return `${m}:${String(s).padStart(2, '0')}`;
+  }
+  if (isRepsScoredType(wod.type)) {
+    const total = parseFloat(raw);
+    if (!Number.isNaN(total)) return formatAmrapScore(total, wod.reps_per_round);
+  }
+  return raw;
+}
 
 interface Match {
   id: string;
@@ -23,7 +47,7 @@ interface Match {
 }
 
 interface Profile { id: string; username: string; level: string; elo: number; }
-interface Wod { id: string; name: string; type: string | null; position: number | null; bracket_stage: number | null; }
+interface Wod { id: string; name: string; type: string | null; position: number | null; bracket_stage: number | null; reps_per_round: number | null; }
 
 interface Props {
   tournamentId: string;
@@ -34,8 +58,8 @@ interface Props {
   profilesById: Record<string, Profile>;
   participantsCount: number;
   wods: Wod[];
-  /** Validated scores per WOD then athlete — drives auto-decide winner from score. */
-  scoresByWod?: Record<string, Record<string, string>>;
+  /** Submitted scores per WOD then athlete — shown on cards; validated ones drive auto-decide. */
+  scoresByWod?: Record<string, Record<string, { value: string; video: string | null; status: string }>>;
 }
 
 export default function BracketManager({
@@ -105,15 +129,33 @@ export default function BracketManager({
   }
 
   // Retourne l'athlète gagnant d'après les scores validés du WOD, ou null si indécidable
-  // (score manquant d'un côté, ou égalité → l'owner tranche manuellement).
+  // (score manquant/non validé d'un côté, ou égalité → l'owner tranche manuellement).
   function winnerFromScores(wod: Wod, aId: string, bId: string): string | null {
     const map = scoresByWod[wod.id] ?? {};
-    const pa = parseScoreVal(map[aId]);
-    const pb = parseScoreVal(map[bId]);
+    const sa = map[aId];
+    const sb = map[bId];
+    const pa = sa && sa.status === 'validated' ? parseScoreVal(sa.value) : null;
+    const pb = sb && sb.status === 'validated' ? parseScoreVal(sb.value) : null;
     if (pa == null || pb == null || pa === pb) return null;
     const higherWins = (wod.type ?? '') !== 'For Time';
     if (higherWins) return pa > pb ? aId : bId;
     return pa < pb ? aId : bId;
+  }
+
+  // WOD assigné à un match (colonne explicite sinon la manche).
+  function wodForMatch(match: Match): Wod | undefined {
+    if (match.wod_id) return wods.find(w => w.id === match.wod_id);
+    return wodForRound(match.round);
+  }
+
+  // Score soumis d'un athlète pour le WOD du match, formaté pour l'affichage.
+  function submissionFor(match: Match, pid: string | null): Submission | null {
+    if (!pid) return null;
+    const wod = wodForMatch(match);
+    if (!wod) return null;
+    const sub = scoresByWod[wod.id]?.[pid];
+    if (!sub) return null;
+    return { label: formatScoreLabel(sub.value, wod), video: sub.video, validated: sub.status === 'validated' };
   }
 
   // Option : décide automatiquement les gagnants d'une manche selon les meilleurs
@@ -353,7 +395,7 @@ export default function BracketManager({
           </div>
 
           <p className="text-[11px] text-gray-500">
-            Clique sur un athlète pour le désigner vainqueur, ou utilise <span className="text-purple-300 font-semibold">« Décider selon les scores »</span> pour trancher automatiquement d'après les scores validés (le plus grand gagne, ou le plus petit temps pour un WOD « For Time »). Tu peux toujours corriger un résultat à la main. Survole une carte pour éditer (joueurs / date / notes) ou annuler.
+            Le score soumis par chaque athlète (et sa vidéo si dispo) s'affiche sur sa carte — un <span className="text-gray-400 font-semibold">*</span> signale un score non encore validé (à valider dans l'onglet Scores). Clique sur un athlète pour le désigner vainqueur, ou utilise <span className="text-purple-300 font-semibold">« Décider selon les scores »</span> pour trancher automatiquement d'après les scores validés (le plus grand gagne, ou le plus petit temps pour un WOD « For Time »). Tu peux toujours corriger un résultat à la main. Survole une carte pour éditer (joueurs / date / notes) ou annuler.
           </p>
 
           <div className="overflow-x-auto pb-2">
@@ -366,6 +408,7 @@ export default function BracketManager({
               onEdit={setEditing}
               busyId={busy}
               pName={pName}
+              submissionFor={submissionFor}
             />
           </div>
         </div>
@@ -383,6 +426,7 @@ export default function BracketManager({
                   onSelectWinner={setMatchWinner}
                   busyId={busy}
                   pName={pName}
+                  submissionFor={submissionFor}
                 />
               ))}
             </div>
@@ -437,7 +481,7 @@ export default function BracketManager({
 /* ─────────────────────────────────────────────────────────── */
 
 function RoundColumn({
-  title, wodName, matches, onSelectWinner, busyId, pName,
+  title, wodName, matches, onSelectWinner, busyId, pName, submissionFor,
 }: {
   title: string;
   wodName?: string;
@@ -445,6 +489,7 @@ function RoundColumn({
   onSelectWinner: (m: Match, winnerId: string) => void;
   busyId: string | null;
   pName: (id: string | null) => string;
+  submissionFor: (m: Match, pid: string | null) => Submission | null;
 }) {
   return (
     <div className="w-64 shrink-0 space-y-3">
@@ -459,14 +504,14 @@ function RoundColumn({
         )}
       </div>
       {matches.map(m => (
-        <MatchCard key={m.id} match={m} onSelectWinner={onSelectWinner} busyId={busyId} pName={pName} />
+        <MatchCard key={m.id} match={m} onSelectWinner={onSelectWinner} busyId={busyId} pName={pName} submissionFor={submissionFor} />
       ))}
     </div>
   );
 }
 
 function MatchCard({
-  match, onSelectWinner, busyId, pName, onReset, onEdit,
+  match, onSelectWinner, busyId, pName, onReset, onEdit, submissionFor,
 }: {
   match: Match;
   onSelectWinner: (m: Match, winnerId: string) => void;
@@ -474,6 +519,7 @@ function MatchCard({
   pName: (id: string | null) => string;
   onReset?: (m: Match) => void;
   onEdit?: (m: Match) => void;
+  submissionFor?: (m: Match, pid: string | null) => Submission | null;
 }) {
   const isBye = match.status === 'bye';
   const completed = match.status === 'completed';
@@ -483,19 +529,36 @@ function MatchCard({
     if (!pid) return <div className="text-xs text-gray-600 italic px-3 py-2">{label}</div>;
     const isWinner = match.winner_id === pid;
     const isLoser = match.loser_id === pid;
+    const sub = submissionFor?.(match, pid) ?? null;
     return (
-      <button
-        type="button"
-        disabled={completed || isBye || busy || !match.participant1_id || !match.participant2_id}
-        onClick={() => onSelectWinner(match, pid)}
-        className={`w-full text-left rounded-lg px-3 py-2 text-xs font-semibold transition-colors flex items-center justify-between
-          ${isWinner ? 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/30'
-            : isLoser ? 'bg-white/[0.02] text-gray-500 line-through'
-              : 'bg-white/[0.04] text-white hover:bg-white/[0.08] border border-white/5 disabled:opacity-50 disabled:hover:bg-white/[0.04]'}`}
-      >
-        <span className="truncate">{pName(pid)}</span>
-        {isWinner && <Crown size={12} className="text-yellow-400 shrink-0" />}
-      </button>
+      <div className="space-y-0.5">
+        <button
+          type="button"
+          disabled={completed || isBye || busy || !match.participant1_id || !match.participant2_id}
+          onClick={() => onSelectWinner(match, pid)}
+          className={`w-full text-left rounded-lg px-3 py-2 text-xs font-semibold transition-colors flex items-center justify-between gap-2
+            ${isWinner ? 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/30'
+              : isLoser ? 'bg-white/[0.02] text-gray-500 line-through'
+                : 'bg-white/[0.04] text-white hover:bg-white/[0.08] border border-white/5 disabled:opacity-50 disabled:hover:bg-white/[0.04]'}`}
+        >
+          <span className="truncate">{pName(pid)}</span>
+          <span className="flex items-center gap-1.5 shrink-0">
+            {sub && (
+              <span className={`text-[10px] font-bold tabular-nums ${isLoser ? 'text-gray-500' : 'text-gray-300'}`}
+                title={sub.validated ? 'Score validé' : 'Score non validé'}>
+                {sub.label}{!sub.validated && ' *'}
+              </span>
+            )}
+            {isWinner && <Crown size={12} className="text-yellow-400" />}
+          </span>
+        </button>
+        {sub?.video && (
+          <a href={sub.video} target="_blank" rel="noreferrer"
+            className="inline-flex items-center gap-1 pl-3 text-[10px] text-red-400 hover:text-red-300 transition-colors">
+            <Youtube size={11} className="shrink-0" /> Vidéo
+          </a>
+        )}
+      </div>
     );
   }
 
@@ -652,7 +715,7 @@ function GrandFinalSection({
 /* ─── Bracket visuel (arbre connecté) ─────────────────────────── */
 
 function VisualBracket({
-  rounds, matchesByRound, wodForRound, onSelectWinner, onReset, onEdit, busyId, pName,
+  rounds, matchesByRound, wodForRound, onSelectWinner, onReset, onEdit, busyId, pName, submissionFor,
 }: {
   rounds: number[];
   matchesByRound: Record<number, Match[]>;
@@ -662,8 +725,9 @@ function VisualBracket({
   onEdit: (m: Match) => void;
   busyId: string | null;
   pName: (id: string | null) => string;
+  submissionFor: (m: Match, pid: string | null) => Submission | null;
 }) {
-  const CARD_H = 96;
+  const CARD_H = 132;
   const COL_W = 240;
   const GAP_X = 56;
   const TITLE_H = 56;
@@ -702,7 +766,7 @@ function VisualBracket({
                 {ms.map((m, k) => (
                   <div key={m.id} style={{ position: 'absolute', top: centers[k] - CARD_H / 2, width: COL_W }}>
                     <MatchCard match={m} onSelectWinner={onSelectWinner} busyId={busyId} pName={pName}
-                      onReset={onReset} onEdit={onEdit} />
+                      onReset={onReset} onEdit={onEdit} submissionFor={submissionFor} />
                   </div>
                 ))}
               </div>
