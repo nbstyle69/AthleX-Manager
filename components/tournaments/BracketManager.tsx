@@ -2,13 +2,13 @@
 
 import { Fragment, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Loader2, Play, Crown, ArrowRight, Trophy, AlertTriangle, RotateCcw, Pencil, Trash2, X, Save, Calendar, Zap, Youtube } from 'lucide-react';
+import { Loader2, Play, Crown, ArrowRight, Trophy, AlertTriangle, RotateCcw, Pencil, Trash2, X, Save, Calendar, Zap, Youtube, FileText, Clock, CheckCircle2, MessageSquare, Dumbbell } from 'lucide-react';
 import {
   generateRound1Action, advanceRoundAction, setMatchWinnerAction, applyDecisionsAction,
   setMatchWodAction, resetMatchAction, regenerateBracketAction, saveMatchEditAction,
   createGrandFinalAction,
 } from '@/app/(dashboard)/tournaments/[id]/bracket/actions';
-import { formatAmrapScore, isRepsScoredType } from '@/lib/movements';
+import { formatAmrapScore, isRepsScoredType, parseMovementRow } from '@/lib/movements';
 
 /** A participant's submitted score for a match's WOD, resolved for display. */
 interface Submission { label: string; video: string | null; validated: boolean; }
@@ -51,7 +51,30 @@ interface Match {
 }
 
 interface Profile { id: string; username: string; level: string; elo: number; }
-interface Wod { id: string; name: string; type: string | null; position: number | null; bracket_stage: number | null; reps_per_round: number | null; }
+interface Wod {
+  id: string; name: string; type: string | null; position: number | null;
+  bracket_stage: number | null; reps_per_round: number | null;
+  movements: string[] | null; description: string | null; scoring: string | null;
+}
+
+/** Full per-athlete submission detail shown in the submission sheet modal. */
+interface SheetData {
+  athleteName: string;
+  athleteLevel: string | null;
+  wodTitle: string;
+  wodType: string | null;
+  wodDescription: string | null;
+  scoring: string | null;
+  movements: string[] | null;
+  hasSubmission: boolean;
+  scoreLabel: string;
+  rawValue: string | null;
+  tiebreak: string | null;
+  validated: boolean;
+  video: string | null;
+  notes: string | null;
+  submittedAt: string | null;
+}
 
 interface Props {
   tournamentId: string;
@@ -63,7 +86,10 @@ interface Props {
   participantsCount: number;
   wods: Wod[];
   /** Submitted scores per WOD then athlete — shown on cards; validated ones drive auto-decide. */
-  scoresByWod?: Record<string, Record<string, { value: string; video: string | null; status: string }>>;
+  scoresByWod?: Record<string, Record<string, {
+    value: string; tiebreak?: string | null; video: string | null;
+    notes?: string | null; status: string; submittedAt?: string | null;
+  }>>;
 }
 
 export default function BracketManager({
@@ -75,6 +101,7 @@ export default function BracketManager({
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [editing, setEditing] = useState<Match | null>(null);
+  const [sheet, setSheet] = useState<SheetData | null>(null);
 
   // Tous les participants inscrits (pour le seeding / édition libre).
   const participantsList = useMemo(
@@ -158,6 +185,36 @@ export default function BracketManager({
     const sub = scoresByWod[wod.id]?.[pid];
     if (!sub) return null;
     return { label: formatScoreLabel(sub.value, wod), video: sub.video, validated: sub.status === 'validated' };
+  }
+
+  // Fiche de soumission complète d'un athlète pour le WOD du match (ouverte au clic sur le nom).
+  function buildSheet(match: Match, pid: string | null): SheetData | null {
+    if (!pid) return null;
+    const prof = profilesById[pid];
+    const wod = wodForMatch(match);
+    const sub = wod ? scoresByWod[wod.id]?.[pid] : undefined;
+    return {
+      athleteName: prof?.username ?? '—',
+      athleteLevel: prof?.level ?? null,
+      wodTitle: wod?.name ?? 'WOD non assigné',
+      wodType: wod?.type ?? null,
+      wodDescription: wod?.description ?? null,
+      scoring: wod?.scoring ?? null,
+      movements: wod?.movements ?? null,
+      hasSubmission: !!sub,
+      scoreLabel: sub && wod ? formatScoreLabel(sub.value, wod) : '—',
+      rawValue: sub?.value ?? null,
+      tiebreak: sub?.tiebreak ?? null,
+      validated: sub?.status === 'validated',
+      video: sub?.video ?? null,
+      notes: sub?.notes ?? null,
+      submittedAt: sub?.submittedAt ?? null,
+    };
+  }
+
+  function openSheet(match: Match, pid: string | null) {
+    const s = buildSheet(match, pid);
+    if (s) setSheet(s);
   }
 
   // Option : décide automatiquement les gagnants d'une manche selon les meilleurs
@@ -374,7 +431,7 @@ export default function BracketManager({
           </div>
 
           <p className="text-[11px] text-gray-500">
-            Le score soumis par chaque athlète (et sa vidéo si dispo) s'affiche sur sa carte — un <span className="text-gray-400 font-semibold">*</span> signale un score non encore validé (à valider dans l'onglet Scores). Clique sur un athlète pour le désigner vainqueur, ou utilise <span className="text-purple-300 font-semibold">« Décider selon les scores »</span> pour trancher automatiquement d'après les scores validés (le plus grand gagne, ou le plus petit temps pour un WOD « For Time »). Tu peux toujours corriger un résultat à la main. Survole une carte pour éditer (joueurs / date / notes) ou annuler.
+            Clique sur le <span className="text-gray-300 font-semibold">nom d'un athlète</span> pour ouvrir sa <span className="text-gray-300 font-semibold">fiche de soumission</span> (score détaillé, mouvements du WOD, vidéo, statut). Pour désigner le vainqueur, clique sur la <span className="text-yellow-300 font-semibold">couronne</span> de son côté, ou utilise <span className="text-purple-300 font-semibold">« Décider selon les scores »</span> pour trancher automatiquement d'après les scores validés (le plus grand gagne, ou le plus petit temps pour un WOD « For Time »). Un <span className="text-gray-400 font-semibold">*</span> signale un score non encore validé. Tu peux toujours corriger un résultat à la main. Survole une carte pour éditer (joueurs / date / notes) ou annuler.
           </p>
 
           <div className="overflow-x-auto pb-2">
@@ -388,6 +445,7 @@ export default function BracketManager({
               busyId={busy}
               pName={pName}
               submissionFor={submissionFor}
+              onOpenSheet={openSheet}
             />
           </div>
         </div>
@@ -406,6 +464,7 @@ export default function BracketManager({
                   busyId={busy}
                   pName={pName}
                   submissionFor={submissionFor}
+                  onOpenSheet={openSheet}
                 />
               ))}
             </div>
@@ -453,6 +512,9 @@ export default function BracketManager({
           onSave={saveMatchEdit}
         />
       )}
+
+      {/* Fiche de soumission d'un athlète */}
+      {sheet && <SubmissionSheetModal data={sheet} onClose={() => setSheet(null)} />}
     </div>
   );
 }
@@ -460,7 +522,7 @@ export default function BracketManager({
 /* ─────────────────────────────────────────────────────────── */
 
 function RoundColumn({
-  title, wodName, matches, onSelectWinner, busyId, pName, submissionFor,
+  title, wodName, matches, onSelectWinner, busyId, pName, submissionFor, onOpenSheet,
 }: {
   title: string;
   wodName?: string;
@@ -469,6 +531,7 @@ function RoundColumn({
   busyId: string | null;
   pName: (id: string | null) => string;
   submissionFor: (m: Match, pid: string | null) => Submission | null;
+  onOpenSheet: (m: Match, pid: string | null) => void;
 }) {
   return (
     <div className="w-64 shrink-0 space-y-3">
@@ -483,14 +546,14 @@ function RoundColumn({
         )}
       </div>
       {matches.map(m => (
-        <MatchCard key={m.id} match={m} onSelectWinner={onSelectWinner} busyId={busyId} pName={pName} submissionFor={submissionFor} />
+        <MatchCard key={m.id} match={m} onSelectWinner={onSelectWinner} busyId={busyId} pName={pName} submissionFor={submissionFor} onOpenSheet={onOpenSheet} />
       ))}
     </div>
   );
 }
 
 function MatchCard({
-  match, onSelectWinner, busyId, pName, onReset, onEdit, submissionFor,
+  match, onSelectWinner, busyId, pName, onReset, onEdit, submissionFor, onOpenSheet,
 }: {
   match: Match;
   onSelectWinner: (m: Match, winnerId: string) => void;
@@ -499,10 +562,12 @@ function MatchCard({
   onReset?: (m: Match) => void;
   onEdit?: (m: Match) => void;
   submissionFor?: (m: Match, pid: string | null) => Submission | null;
+  onOpenSheet?: (m: Match, pid: string | null) => void;
 }) {
   const isBye = match.status === 'bye';
   const completed = match.status === 'completed';
   const busy = busyId === match.id;
+  const canPickWinner = !completed && !isBye && !!match.participant1_id && !!match.participant2_id;
 
   function row(pid: string | null, label: string) {
     if (!pid) return <div className="text-xs text-gray-600 italic px-3 py-2">{label}</div>;
@@ -511,26 +576,41 @@ function MatchCard({
     const sub = submissionFor?.(match, pid) ?? null;
     return (
       <div className="space-y-0.5">
-        <button
-          type="button"
-          disabled={completed || isBye || busy || !match.participant1_id || !match.participant2_id}
-          onClick={() => onSelectWinner(match, pid)}
-          className={`w-full text-left rounded-lg px-3 py-2 text-xs font-semibold transition-colors flex items-center justify-between gap-2
-            ${isWinner ? 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/30'
-              : isLoser ? 'bg-white/[0.02] text-gray-500 line-through'
-                : 'bg-white/[0.04] text-white hover:bg-white/[0.08] border border-white/5 disabled:opacity-50 disabled:hover:bg-white/[0.04]'}`}
-        >
-          <span className="truncate">{pName(pid)}</span>
-          <span className="flex items-center gap-1.5 shrink-0">
-            {sub && (
-              <span className={`text-[10px] font-bold tabular-nums ${isLoser ? 'text-gray-500' : 'text-gray-300'}`}
-                title={sub.validated ? 'Score validé' : 'Score non validé'}>
-                {sub.label}{!sub.validated && ' *'}
-              </span>
-            )}
-            {isWinner && <Crown size={12} className="text-yellow-400" />}
-          </span>
-        </button>
+        <div className="flex items-stretch gap-1">
+          {/* Nom + score → ouvre la fiche de soumission */}
+          <button
+            type="button"
+            onClick={() => onOpenSheet?.(match, pid)}
+            title="Voir la fiche de soumission"
+            className={`flex-1 min-w-0 text-left rounded-lg px-3 py-2 text-xs font-semibold transition-colors flex items-center justify-between gap-2
+              ${isWinner ? 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/30'
+                : isLoser ? 'bg-white/[0.02] text-gray-500 line-through'
+                  : 'bg-white/[0.04] text-white hover:bg-white/[0.08] border border-white/5'}`}
+          >
+            <span className="truncate underline decoration-dotted decoration-white/20 underline-offset-2">{pName(pid)}</span>
+            <span className="flex items-center gap-1.5 shrink-0">
+              {sub && (
+                <span className={`text-[10px] font-bold tabular-nums ${isLoser ? 'text-gray-500' : 'text-gray-300'}`}
+                  title={sub.validated ? 'Score validé' : 'Score non validé'}>
+                  {sub.label}{!sub.validated && ' *'}
+                </span>
+              )}
+              {isWinner && <Crown size={12} className="text-yellow-400" />}
+            </span>
+          </button>
+          {/* Bouton dédié : désigner ce participant vainqueur */}
+          {canPickWinner && (
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => onSelectWinner(match, pid)}
+              title="Désigner vainqueur"
+              className="shrink-0 flex items-center justify-center w-8 rounded-lg bg-white/[0.04] border border-white/5 text-gray-500 hover:text-yellow-300 hover:bg-yellow-500/10 hover:border-yellow-500/30 disabled:opacity-40 transition-colors"
+            >
+              <Crown size={13} />
+            </button>
+          )}
+        </div>
         {sub?.video && (
           <a href={sub.video} target="_blank" rel="noreferrer"
             className="inline-flex items-center gap-1 pl-3 text-[10px] text-red-400 hover:text-red-300 transition-colors">
@@ -690,7 +770,7 @@ function GrandFinalSection({
 /* ─── Bracket visuel (arbre connecté) ─────────────────────────── */
 
 function VisualBracket({
-  rounds, matchesByRound, wodForRound, onSelectWinner, onReset, onEdit, busyId, pName, submissionFor,
+  rounds, matchesByRound, wodForRound, onSelectWinner, onReset, onEdit, busyId, pName, submissionFor, onOpenSheet,
 }: {
   rounds: number[];
   matchesByRound: Record<number, Match[]>;
@@ -701,6 +781,7 @@ function VisualBracket({
   busyId: string | null;
   pName: (id: string | null) => string;
   submissionFor: (m: Match, pid: string | null) => Submission | null;
+  onOpenSheet: (m: Match, pid: string | null) => void;
 }) {
   const CARD_H = 132;
   const COL_W = 240;
@@ -741,7 +822,7 @@ function VisualBracket({
                 {ms.map((m, k) => (
                   <div key={m.id} style={{ position: 'absolute', top: centers[k] - CARD_H / 2, width: COL_W }}>
                     <MatchCard match={m} onSelectWinner={onSelectWinner} busyId={busyId} pName={pName}
-                      onReset={onReset} onEdit={onEdit} submissionFor={submissionFor} />
+                      onReset={onReset} onEdit={onEdit} submissionFor={submissionFor} onOpenSheet={onOpenSheet} />
                   </div>
                 ))}
               </div>
@@ -886,6 +967,135 @@ function MatchEditModal({
             {busy ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
             Enregistrer
           </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ─── Fiche de soumission d'un athlète ─────────────────────────── */
+
+// Convertit une URL YouTube (watch / youtu.be / shorts) en URL d'embed, sinon null.
+function youtubeEmbedUrl(url: string): string | null {
+  const m = url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([\w-]{11})/);
+  return m ? `https://www.youtube.com/embed/${m[1]}` : null;
+}
+
+function SubmissionSheetModal({ data, onClose }: { data: SheetData; onClose: () => void }) {
+  const embed = data.video ? youtubeEmbedUrl(data.video) : null;
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4" onClick={onClose}>
+      <div className="bg-[#141414] border border-white/10 rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+        <div className="flex items-start justify-between p-5 border-b border-white/8 sticky top-0 bg-[#141414]">
+          <div className="space-y-1">
+            <h3 className="text-base font-bold text-white flex items-center gap-2">
+              <FileText size={16} className="text-purple-300" />
+              {data.athleteName}
+            </h3>
+            <div className="flex items-center gap-2 text-[11px] text-gray-500">
+              {data.athleteLevel && (
+                <span className="uppercase font-bold px-1.5 py-0.5 rounded bg-white/5 text-gray-400">{data.athleteLevel}</span>
+              )}
+              <span>{data.wodTitle}{data.wodType ? ` · ${data.wodType}` : ''}</span>
+            </div>
+          </div>
+          <button onClick={onClose} className="text-gray-400 hover:text-white shrink-0"><X size={18} /></button>
+        </div>
+
+        <div className="p-5 space-y-5">
+          {!data.hasSubmission ? (
+            <div className="text-sm text-gray-400 bg-white/[0.03] border border-white/8 rounded-xl px-4 py-6 text-center">
+              Aucun score soumis par cet athlète pour ce WOD.
+            </div>
+          ) : (
+            <>
+              {/* Score */}
+              <div className="bg-white/[0.03] border border-white/8 rounded-xl p-4 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Score soumis</span>
+                  <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-md ${
+                    data.validated ? 'bg-emerald-500/15 text-emerald-300' : 'bg-yellow-500/15 text-yellow-300'}`}>
+                    {data.validated ? <><CheckCircle2 size={11} /> Validé</> : <><AlertTriangle size={11} /> En attente de validation</>}
+                  </span>
+                </div>
+                <div className="text-2xl font-bold text-white tabular-nums">{data.scoreLabel}</div>
+                {data.rawValue != null && data.rawValue !== data.scoreLabel && (
+                  <div className="text-[11px] text-gray-500">Valeur brute enregistrée : <span className="text-gray-300 font-semibold">{data.rawValue}</span></div>
+                )}
+                {data.tiebreak && (
+                  <div className="text-[11px] text-gray-500">Tiebreak : <span className="text-gray-300 font-semibold">{data.tiebreak}</span></div>
+                )}
+              </div>
+
+              {/* Mouvements du WOD */}
+              {data.movements && data.movements.length > 0 && (
+                <div className="space-y-2">
+                  <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider flex items-center gap-1.5">
+                    <Dumbbell size={12} /> Détail du WOD
+                  </span>
+                  {data.wodDescription && <p className="text-[11px] text-gray-400">{data.wodDescription}</p>}
+                  <ul className="space-y-1">
+                    {data.movements.map((line, i) => {
+                      const mv = parseMovementRow(line);
+                      return (
+                        <li key={i} className="flex items-center gap-2 text-sm text-gray-200 bg-white/[0.02] border border-white/5 rounded-lg px-3 py-1.5">
+                          {mv.reps != null && <span className="text-purple-300 font-bold tabular-nums shrink-0 w-8 text-right">{mv.reps}</span>}
+                          <span className="flex-1">{mv.name}</span>
+                          {mv.weightKg != null && (
+                            <span className="text-[11px] text-gray-500 shrink-0">
+                              {mv.weightKg}{mv.weightKgWomen != null ? `/${mv.weightKgWomen}` : ''} kg
+                            </span>
+                          )}
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
+              )}
+
+              {/* Vidéo */}
+              <div className="space-y-2">
+                <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider flex items-center gap-1.5">
+                  <Youtube size={12} className="text-red-400" /> Preuve vidéo
+                </span>
+                {data.video ? (
+                  <>
+                    {embed && (
+                      <div className="relative w-full rounded-xl overflow-hidden border border-white/8" style={{ aspectRatio: '16 / 9' }}>
+                        <iframe src={embed} title="Preuve vidéo" allowFullScreen
+                          className="absolute inset-0 w-full h-full" referrerPolicy="strict-origin-when-cross-origin" />
+                      </div>
+                    )}
+                    <a href={data.video} target="_blank" rel="noreferrer"
+                      className="inline-flex items-center gap-1.5 text-xs text-red-400 hover:text-red-300 transition-colors break-all">
+                      <Youtube size={13} className="shrink-0" /> {data.video}
+                    </a>
+                  </>
+                ) : (
+                  <p className="text-sm text-gray-500 italic">Aucune vidéo soumise.</p>
+                )}
+              </div>
+
+              {/* Notes athlète */}
+              {data.notes && (
+                <div className="space-y-1">
+                  <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider flex items-center gap-1.5">
+                    <MessageSquare size={12} /> Note de l'athlète
+                  </span>
+                  <p className="text-sm text-gray-300 bg-white/[0.02] border border-white/5 rounded-lg px-3 py-2 whitespace-pre-wrap">{data.notes}</p>
+                </div>
+              )}
+
+              {/* Date de soumission */}
+              {data.submittedAt && (
+                <div className="flex items-center gap-1.5 text-[11px] text-gray-500">
+                  <Clock size={12} /> Soumis le {new Date(data.submittedAt).toLocaleString('fr-FR', {
+                    day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit',
+                  })}
+                </div>
+              )}
+            </>
+          )}
         </div>
       </div>
     </div>
