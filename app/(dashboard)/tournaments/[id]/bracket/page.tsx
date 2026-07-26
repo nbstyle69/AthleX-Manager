@@ -16,17 +16,17 @@ export default async function BracketPage({ params }: { params: Promise<{ id: st
   if (t.format !== 'bracket' && t.format !== 'swiss') redirect(`/tournaments/${id}`);
 
   const svc = createServiceClient();
-  const [{ data: matches }, { data: participants }, { data: wods }, { data: validatedScores }] = await Promise.all([
+  const [{ data: matches }, { data: participants }, { data: wods }, { data: scoreRows }] = await Promise.all([
     svc.from('tournament_bracket_matches').select('*').eq('tournament_id', id)
        .order('round', { ascending: true }).order('side').order('match_number'),
     svc.from('tournament_participants')
        .select('athlete_id')
        .eq('tournament_id', id),
-    svc.from('tournament_wods').select('id, title, type, order_index, bracket_stage').eq('tournament_id', id).order('order_index'),
+    svc.from('tournament_wods').select('id, title, type, order_index, bracket_stage, reps_per_round, movements, description, scoring').eq('tournament_id', id).order('order_index'),
     svc.from('tournament_scores')
-       .select('athlete_id, tournament_wod_id, score_value')
+       .select('athlete_id, tournament_wod_id, score_value, tiebreak_value, video_url, notes, status, submitted_at')
        .eq('tournament_id', id)
-       .eq('status', 'validated'),
+       .in('status', ['pending', 'validated']),
   ]);
 
   // Profiles fetched separately (no FK embed — the relationship name is unreliable
@@ -44,12 +44,23 @@ export default async function BracketPage({ params }: { params: Promise<{ id: st
   const wodList = (wods ?? []).map((w: any) => ({
     id: w.id, name: w.title, type: w.type ?? null,
     position: w.order_index ?? null, bracket_stage: w.bracket_stage ?? null,
+    reps_per_round: w.reps_per_round ?? null,
+    movements: Array.isArray(w.movements) ? w.movements : null,
+    description: w.description ?? null,
+    scoring: w.scoring ?? null,
   }));
 
-  // Validated scores grouped by WOD then athlete — drives "auto-decide winner from score".
-  const scoresByWod: Record<string, Record<string, string>> = {};
-  (validatedScores ?? []).forEach((s: any) => {
-    (scoresByWod[s.tournament_wod_id] ??= {})[s.athlete_id] = s.score_value;
+  // Submitted scores grouped by WOD then athlete — displayed on each match card, in the
+  // per-athlete submission sheet, and (validated ones) drive "auto-decide winner from score".
+  const scoresByWod: Record<string, Record<string, {
+    value: string; tiebreak: string | null; video: string | null;
+    notes: string | null; status: string; submittedAt: string | null;
+  }>> = {};
+  (scoreRows ?? []).forEach((s: any) => {
+    (scoresByWod[s.tournament_wod_id] ??= {})[s.athlete_id] = {
+      value: s.score_value, tiebreak: s.tiebreak_value ?? null, video: s.video_url ?? null,
+      notes: s.notes ?? null, status: s.status, submittedAt: s.submitted_at ?? null,
+    };
   });
 
   return (
