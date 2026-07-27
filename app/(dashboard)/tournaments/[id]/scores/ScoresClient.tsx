@@ -7,6 +7,7 @@ import {
   Youtube, FileText, Pencil, Send, MessageSquare, RotateCcw,
 } from 'lucide-react';
 import { isRepsScoredType, formatAmrapScore } from '@/lib/movements';
+import { rankClassique, type RawScore } from '@/lib/tournamentScoring';
 
 export interface ScoreRow {
   id: string;
@@ -53,22 +54,17 @@ export default function ScoresClient({ tournamentId, initialScores, requireVideo
 
   async function recalcLeaderboard() {
     const { data: allValidated } = await supabase
-      .from('tournament_scores').select('athlete_id, score_value, tournament_wod_id')
+      .from('tournament_scores')
+      .select('athlete_id, score_value, tournament_wod_id, tw:tournament_wods(type)')
       .eq('tournament_id', tournamentId).eq('status', 'validated');
     if (!allValidated) return;
-    const pointsMap: Record<string, number> = {};
-    const byWod: Record<string, { athlete_id: string; score_value: string }[]> = {};
-    allValidated.forEach((s: any) => {
-      if (!byWod[s.tournament_wod_id]) byWod[s.tournament_wod_id] = [];
-      byWod[s.tournament_wod_id].push(s);
-    });
-    for (const [, wodScores] of Object.entries(byWod)) {
-      const sorted = [...wodScores].sort((a, b) => parseFloat(b.score_value) - parseFloat(a.score_value));
-      sorted.forEach((s, i) => {
-        const pts = Math.max(1, 100 - i * 3);
-        pointsMap[s.athlete_id] = (pointsMap[s.athlete_id] ?? 0) + pts;
-      });
-    }
+    const rawScores: RawScore[] = allValidated.map((s: any) => ({
+      athlete_id: s.athlete_id,
+      score_value: s.score_value,
+      tournament_wod_id: s.tournament_wod_id,
+      wod_type: (Array.isArray(s.tw) ? s.tw[0] : s.tw)?.type ?? null,
+    }));
+    const pointsMap = rankClassique(rawScores);
     for (const [athleteId, pts] of Object.entries(pointsMap)) {
       await supabase.from('tournament_participants')
         .update({ score: pts }).eq('tournament_id', tournamentId).eq('athlete_id', athleteId);

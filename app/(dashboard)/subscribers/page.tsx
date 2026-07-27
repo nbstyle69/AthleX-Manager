@@ -81,9 +81,17 @@ export default function SubscribersPage() {
     // Abonnements de salle (formules payantes)
     const { data: memberRows } = await supabase
       .from('box_members')
-      .select('id, member_id, amount_cents, subscription_status, subscription_current_period_end, subscription_cancel_at_period_end, stripe_subscription_id, subscription_paused, pause_resumes_at, commitment_end_date, plan:membership_plans(name, color, price_cents), profile:profiles(username, email)')
+      .select('id, member_id, subscription_status, subscription_current_period_end, subscription_cancel_at_period_end, subscription_paused, pause_resumes_at, commitment_end_date, plan:membership_plans(name, color, price_cents), profile:profiles(username, email)')
       .eq('box_id', box.id)
       .not('subscription_status', 'is', null);
+
+    // Colonnes de facturation (amount_cents, présence Stripe) via RPC sécurisé
+    // (ces colonnes ne sont pas lisibles directement par le rôle authenticated)
+    const { data: billingRows } = await supabase.rpc('get_box_billing', { p_box_id: box.id });
+    const billingById: Record<string, { amount_cents: number | null; has_stripe_sub: boolean }> = {};
+    (billingRows ?? []).forEach((b: any) => {
+      billingById[b.id] = { amount_cents: b.amount_cents, has_stripe_sub: b.has_stripe_sub };
+    });
 
     // Demandes de résiliation en attente
     const { data: reqRows } = await supabase
@@ -107,6 +115,7 @@ export default function SubscribersPage() {
     const memberships: Row[] = (memberRows ?? []).map((r: any, i: number) => {
       const p = Array.isArray(r.profile) ? r.profile[0] : r.profile;
       const plan = Array.isArray(r.plan) ? r.plan[0] : r.plan;
+      const billing = billingById[r.id];
       return {
         key: `m-${r.member_id}-${i}`,
         kind: 'membership' as Kind,
@@ -114,12 +123,12 @@ export default function SubscribersPage() {
         email: p?.email ?? '',
         label: plan?.name ?? 'Formule',
         color: plan?.color ?? '#FFFFFF',
-        amountCents: r.amount_cents ?? plan?.price_cents ?? null,
+        amountCents: billing?.amount_cents ?? plan?.price_cents ?? null,
         status: r.subscription_status ?? 'active',
         periodEnd: r.subscription_current_period_end ?? null,
         cancelAtPeriodEnd: !!r.subscription_cancel_at_period_end,
         boxMemberId: r.id ?? null,
-        hasStripeSub: !!r.stripe_subscription_id,
+        hasStripeSub: !!billing?.has_stripe_sub,
         paused: !!r.subscription_paused,
         pauseResumesAt: r.pause_resumes_at ?? null,
         commitmentEndDate: r.commitment_end_date ?? null,

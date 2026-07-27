@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { createClient, getServerUser } from '@/lib/supabase/server';
+import { createClient, createServiceClient, getServerUser } from '@/lib/supabase/server';
 import { CreditCard, Ticket, Dumbbell, CalendarClock, Search } from 'lucide-react';
 import AccountProfileForm from './AccountProfileForm';
 import ManageSubscription from './ManageSubscription';
@@ -71,7 +71,11 @@ export default async function AccountPage() {
     .single();
   const profile = profileRaw as ProfileRow | null;
 
-  const { data: memberRaw } = await supabase
+  // amount_cents n'est pas lisible par le rôle authenticated (colonne protégée) ;
+  // on lit les données personnelles de l'utilisateur via le client service-role,
+  // strictement filtrées sur member_id = user.id.
+  const svc = createServiceClient();
+  const { data: memberRaw } = await svc
     .from('box_members')
     .select('id, box_id, plan_id, subscription_status, subscription_current_period_end, amount_cents, commitment_end_date, subscription_paused, pause_resumes_at, plan:membership_plans(name, color, price_cents), box:boxes(id, name, slug, terms_pdf_url)')
     .eq('member_id', user.id)
