@@ -153,14 +153,6 @@ export default function TournamentForm({ boxId, initial, allowedFormats = ['simp
               );
             })}
           </div>
-          {(form.format === 'bracket' || form.format === 'swiss') && (
-            <label className="flex items-center gap-3 mt-2 cursor-pointer">
-              <input type="checkbox" checked={form.require_video_proof}
-                onChange={e => set('require_video_proof', e.target.checked)}
-                className="w-4 h-4 accent-white" />
-              <span className="text-sm text-gray-300">Exiger une preuve vidéo pour valider les scores</span>
-            </label>
-          )}
         </div>
       )}
       {!initial && allowedFormats.length === 1 && (
@@ -246,6 +238,12 @@ export default function TournamentForm({ boxId, initial, allowedFormats = ['simp
             <input className={inp} value={form.prize} onChange={e => set('prize', e.target.value)} placeholder="🏆 Médaille + Badge Elite" />
           </div>
         </div>
+        <label className="flex items-center gap-3 cursor-pointer">
+          <input type="checkbox" checked={form.require_video_proof}
+            onChange={e => set('require_video_proof', e.target.checked)}
+            className="w-4 h-4 accent-white" />
+          <span className="text-sm text-gray-300">Exiger une preuve vidéo pour valider les scores</span>
+        </label>
       </div>
 
       {/* Divisions (league_div uniquement) */}
