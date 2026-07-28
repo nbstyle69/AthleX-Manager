@@ -7,6 +7,7 @@ import {
   Eye, EyeOff, X, Loader2, Dumbbell, Upload, Download, FileText, Calendar, LayoutGrid, List, Video,
 } from 'lucide-react';
 import { getMyBox } from '@/lib/getMyBox';
+import { MOVEMENT_CATALOG, isWeightedMovement, serializeMovement, parseMovementRow } from '@/lib/movements';
 import { useRef } from 'react';
 
 type WodType = 'for-time' | 'amrap' | 'emom' | 'tabata' | 'strength' | 'custom';
@@ -84,6 +85,7 @@ export default function WODsPage() {
   const [modal,       setModal]       = useState(false);
   const [editWOD,     setEditWOD]     = useState<BoxWOD | null>(null);
   const [form,        setForm]        = useState(EMPTY);
+  const [movements,   setMovements]   = useState<string[]>([]);
   const [saving,      setSaving]      = useState(false);
   const [formError,   setFormError]   = useState<string | null>(null);
   const [importing,   setImporting]   = useState(false);
@@ -197,9 +199,14 @@ export default function WODsPage() {
   function openCreate(date: string) {
     setEditWOD(null);
     setForm({ ...EMPTY, date });
+    setMovements([]);
     setFormError(null);
     setModal(true);
   }
+
+  function addMovement()                     { setMovements(m => [...m, '']); }
+  function removeMovement(i: number)         { setMovements(m => m.filter((_, idx) => idx !== i)); }
+  function setMovement(i: number, v: string) { setMovements(m => m.map((x, idx) => idx === i ? v : x)); }
 
   async function loadWodGroups(wodId: string): Promise<string[]> {
     const { data } = await supabase.from('wod_group_access').select('group_id').eq('wod_id', wodId);
@@ -228,6 +235,7 @@ export default function WODsPage() {
       tabataWork: wod.tabata_work_seconds ? String(wod.tabata_work_seconds) : '20',
       tabataRest: wod.tabata_rest_seconds != null ? String(wod.tabata_rest_seconds) : '10',
     });
+    setMovements(wod.description ? wod.description.split('\n').map(l => l.trim()).filter(Boolean) : []);
     setFormError(null);
     setModal(true);
   }
@@ -238,7 +246,7 @@ export default function WODsPage() {
     const payload = {
       box_id: boxId, created_by: userId,
       title: form.title.trim(),
-      description: form.description.trim() || null,
+      description: movements.map(l => l.trim()).filter(Boolean).join('\n') || null,
       wod_type: form.wod_type || null,
       block_name: form.block || null,
       scheduled_date: form.date,
@@ -1305,10 +1313,62 @@ export default function WODsPage() {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-gray-400 mb-1.5 uppercase tracking-wider">Description</label>
-                <textarea rows={3} className={`${inp} resize-none`} value={form.description}
-                  onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
-                  placeholder="21-15-9 Thrusters + Pull-ups…" />
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider">Programme / Mouvements</label>
+                  <button type="button" onClick={addMovement} className="text-xs text-white font-semibold flex items-center gap-1 hover:opacity-80">
+                    <Plus size={12} /> Ajouter
+                  </button>
+                </div>
+                <datalist id="box-movement-catalog">
+                  {MOVEMENT_CATALOG.map(mv => <option key={mv.name} value={mv.name} />)}
+                </datalist>
+                <div className="space-y-2">
+                  {movements.map((line, i) => {
+                    const parsed = parseMovementRow(line);
+                    const showWeight = parsed.weightKg != null || isWeightedMovement(parsed.name);
+                    const update = (reps: number | null, name: string, weightKg: number | null) => {
+                      const w = showWeight ? weightKg : null;
+                      if (reps == null) setMovement(i, serializeMovement(0, name, w, null).replace(/^0\s*/, '').trim());
+                      else              setMovement(i, serializeMovement(reps, name, w, null));
+                    };
+                    return (
+                      <div key={i} className="flex gap-2 items-center">
+                        <input type="number" min={0} inputMode="numeric"
+                          className={`${inp} !w-16 shrink-0 text-center px-2`}
+                          value={parsed.reps ?? ''}
+                          onChange={e => update(e.target.value === '' ? null : parseInt(e.target.value, 10), parsed.name, parsed.weightKg)}
+                          placeholder="Reps" aria-label="Répétitions" />
+                        <input list="box-movement-catalog"
+                          className={`${inp} flex-1 min-w-0`}
+                          value={parsed.name}
+                          onChange={e => update(parsed.reps, e.target.value, parsed.weightKg)}
+                          placeholder="Exercice (rechercher…)" aria-label="Exercice" />
+                        {showWeight && (
+                          <div className="relative w-24 shrink-0">
+                            <input type="number" min={0} step={0.5} inputMode="decimal"
+                              className={`${inp} !pr-6 text-center`}
+                              value={parsed.weightKg ?? ''}
+                              onChange={e => update(parsed.reps, parsed.name, e.target.value === '' ? null : parseFloat(e.target.value))}
+                              placeholder="kg" aria-label="Charge en kilos" />
+                            <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-gray-500 pointer-events-none">kg</span>
+                          </div>
+                        )}
+                        <button type="button" onClick={() => removeMovement(i)} className="p-3 rounded-xl bg-white/5 border border-white/10 text-gray-500 hover:text-red-400 transition-colors">
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    );
+                  })}
+                  {movements.length === 0 && (
+                    <button type="button" onClick={addMovement}
+                      className="w-full py-3 rounded-xl border border-dashed border-white/10 text-xs text-gray-600 hover:border-white/30 hover:text-white/60 transition-colors">
+                      + Ajouter un mouvement
+                    </button>
+                  )}
+                  <p className="text-[11px] text-gray-600 pt-1">
+                    Reps + exercice (liste officielle) + charge : garantit le comptage des badges de mouvement des athlètes.
+                  </p>
+                </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
