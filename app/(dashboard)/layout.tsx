@@ -1,8 +1,9 @@
 ﻿import { redirect } from 'next/navigation';
-import { createClient, getActiveBox, getOwnerBoxes, getServerProfile, getServerUser } from '@/lib/supabase/server';
+import { createClient, getActiveBox, getOwnerBoxes, getBoxBillingState, getServerProfile, getServerUser } from '@/lib/supabase/server';
 import Sidebar from '@/components/layout/Sidebar';
 import TrialBanner from '@/components/TrialBanner';
 import PaywallOverlay from '@/components/PaywallOverlay';
+import MultiBoxUpgradeOverlay from '@/components/MultiBoxUpgradeOverlay';
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const user = await getServerUser();
@@ -50,10 +51,22 @@ export default async function DashboardLayout({ children }: { children: React.Re
   // Lock the back-office once the trial is over and there's no paying subscription.
   // `active` = paid, `past_due` = paid-but-dunning (kept accessible), `trialing` with
   // days left = still in trial. Everything else past the trial end is locked.
-  const locked =
+  // Owner-level Solo/Multi entitlement. Additional boxes are locked behind the
+  // Multi plan; the Multi plan also supersedes the legacy per-box paywall.
+  const billing = await getBoxBillingState({ id: box.id, owner_id: box.owner_id });
+
+  const legacyLocked =
     subStatus !== 'active' &&
     subStatus !== 'past_due' &&
     !(subStatus === 'trialing' && daysLeft > 0);
+
+  // Primary box: keep legacy gate unless Multi already covers it.
+  // Additional box: gated purely by the Multi plan.
+  const locked = billing.requiresMulti
+    ? false // handled by the Multi upgrade overlay below
+    : billing.coveredByMulti
+      ? false
+      : legacyLocked;
 
   // Support: unread replies for this box, and admin inbox visibility/unread.
   const { count: supportUnread } = await supabase
@@ -95,6 +108,13 @@ export default async function DashboardLayout({ children }: { children: React.Re
         {children}
       </main>
       {locked && <PaywallOverlay boxId={box.id} trialEndsAt={trialEndsAt} />}
+      {billing.requiresMulti && (
+        <MultiBoxUpgradeOverlay
+          boxName={box.name}
+          boxCount={billing.boxCount}
+          primaryBoxId={boxes[0]?.id ?? null}
+        />
+      )}
     </div>
   );
 }
