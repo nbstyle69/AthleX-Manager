@@ -1,0 +1,621 @@
+'use client';
+
+import { useEffect, useState, useCallback } from 'react';
+import { createClient } from '@/lib/supabase/client';
+import {
+  Store, Plus, Pencil, Trash2, X, Check, Loader2, Search, Package,
+  CalendarDays, Users, Globe, Lock, ChevronDown, ChevronUp,
+} from 'lucide-react';
+
+const DISCIPLINES = ['crossfit', 'hyrox', 'hybrid', 'haltero', 'endurance'];
+const LEVELS = ['all', 'beginner', 'intermediate', 'advanced'];
+const LEVEL_LABEL: Record<string, string> = {
+  all: 'Tous niveaux', beginner: 'Débutant', intermediate: 'Intermédiaire', advanced: 'Avancé',
+};
+const DAY_LABELS = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
+const ACTIVE_BOX_COOKIE = 'active_box_id';
+const INPUT_CLS = 'w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-white/30';
+
+function readCookie(name: string): string | null {
+  if (typeof document === 'undefined') return null;
+  const m = document.cookie.match(new RegExp('(?:^|; )' + name + '=([^;]*)'));
+  return m ? decodeURIComponent(m[1]) : null;
+}
+
+interface Box { id: string; name: string }
+
+interface Programming {
+  id: string;
+  publisher_box_id: string;
+  title: string;
+  description: string | null;
+  discipline: string | null;
+  level: string | null;
+  days_per_week: number | null;
+  weeks_count: number;
+  billing: 'free' | 'one_time' | 'monthly';
+  price_cents: number;
+  currency: string;
+  is_published: boolean;
+  publisher_name?: string;
+}
+
+interface ProgWod {
+  id: string;
+  programming_id: string;
+  week_number: number;
+  day_of_week: number;
+  title: string;
+  description: string | null;
+  wod_type: string | null;
+  time_cap_seconds: number | null;
+  sort_order: number;
+}
+
+interface Subscription {
+  id: string;
+  programming_id: string;
+  subscriber_box_id: string;
+  status: string;
+}
+
+const EMPTY_OFFER = {
+  title: '', description: '', discipline: 'crossfit', level: 'all',
+  days_per_week: '5', weeks_count: '4', billing: 'free' as const,
+  price: '',
+};
+
+export default function ProgrammingPage() {
+  const supabase = createClient();
+  const [loading, setLoading] = useState(true);
+  const [tab, setTab] = useState<'catalogue' | 'mine'>('catalogue');
+
+  const [myBoxes, setMyBoxes] = useState<Box[]>([]);
+  const [activeBoxId, setActiveBoxId] = useState<string | null>(null);
+
+  const [catalogue, setCatalogue] = useState<Programming[]>([]);
+  const [subs, setSubs] = useState<Subscription[]>([]);
+  const [myOffers, setMyOffers] = useState<Programming[]>([]);
+
+  // filters
+  const [q, setQ] = useState('');
+  const [fDiscipline, setFDiscipline] = useState('');
+  const [fLevel, setFLevel] = useState('');
+  const [fFree, setFFree] = useState(false);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) { setLoading(false); return; }
+
+    // Resolve the owner's boxes (owned + co-owned), active-box aware.
+    const boxMap = new Map<string, Box>();
+    const { data: owned } = await supabase
+      .from('boxes').select('id, name, created_at')
+      .eq('owner_id', user.id).order('created_at', { ascending: true });
+    for (const b of owned ?? []) boxMap.set(b.id, { id: b.id, name: b.name });
+    const { data: co } = await supabase
+      .from('box_members').select('box_id, boxes(id, name)')
+      .eq('member_id', user.id).eq('role', 'owner').eq('status', 'active');
+    for (const m of (co ?? []) as unknown as { box_id: string; boxes: { id: string; name: string }[] | { id: string; name: string } | null }[]) {
+      const bx = Array.isArray(m.boxes) ? m.boxes[0] : m.boxes;
+      if (bx && !boxMap.has(bx.id)) boxMap.set(bx.id, { id: bx.id, name: bx.name });
+    }
+    const boxes = Array.from(boxMap.values());
+    setMyBoxes(boxes);
+    const cookieBox = readCookie(ACTIVE_BOX_COOKIE);
+    const active = (cookieBox && boxes.find((b) => b.id === cookieBox)?.id) || boxes[0]?.id || null;
+    setActiveBoxId(active);
+    const myBoxIds = boxes.map((b) => b.id);
+
+    // Catalogue: published offers (RLS lets a managing box see them). Enrich with publisher name.
+    const { data: cat } = await supabase
+      .from('box_programming')
+      .select('*, boxes:publisher_box_id(name)')
+      .eq('is_published', true)
+      .order('created_at', { ascending: false });
+    setCatalogue(((cat ?? []) as (Programming & { boxes: { name: string } | null })[]).map((p) => ({
+      ...p, publisher_name: p.boxes?.name ?? 'Box',
+    })));
+
+    // My subscriptions (across my boxes) + my own offers.
+    if (myBoxIds.length) {
+      const { data: mySubs } = await supabase
+        .from('box_programming_subscriptions')
+        .select('*').in('subscriber_box_id', myBoxIds);
+      setSubs((mySubs ?? []) as Subscription[]);
+
+      const { data: offers } = await supabase
+        .from('box_programming')
+        .select('*').in('publisher_box_id', myBoxIds)
+        .order('created_at', { ascending: false });
+      setMyOffers((offers ?? []) as Programming[]);
+    }
+    setLoading(false);
+  }, [supabase]);
+
+  useEffect(() => { load(); }, [load]);
+
+  const myBoxIds = new Set(myBoxes.map((b) => b.id));
+
+  if (loading) {
+    return <div className="flex items-center justify-center h-64"><Loader2 className="animate-spin text-white/40" /></div>;
+  }
+
+  return (
+    <div className="max-w-6xl mx-auto px-6 py-8">
+      <div className="flex items-center gap-3 mb-1">
+        <Store className="text-white" size={26} />
+        <h1 className="text-2xl font-black text-white">Programmation</h1>
+      </div>
+      <p className="text-sm text-gray-400 mb-6">
+        Recevez la programmation d&apos;autres box dans votre Whiteboard, ou vendez la vôtre. Réservé aux owners/coaches.
+      </p>
+
+      <div className="flex gap-1 mb-6 border-b border-white/10">
+        {([['catalogue', 'Catalogue'], ['mine', 'Mes offres']] as const).map(([k, label]) => (
+          <button key={k} onClick={() => setTab(k)}
+            className={`px-4 py-2.5 text-sm font-bold border-b-2 -mb-px transition-colors ${
+              tab === k ? 'border-white text-white' : 'border-transparent text-gray-500 hover:text-gray-300'}`}>
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {tab === 'catalogue' ? (
+        <Catalogue
+          catalogue={catalogue} subs={subs} myBoxes={myBoxes} myBoxIds={myBoxIds}
+          q={q} setQ={setQ} fDiscipline={fDiscipline} setFDiscipline={setFDiscipline}
+          fLevel={fLevel} setFLevel={setFLevel} fFree={fFree} setFFree={setFFree}
+          onChanged={load}
+        />
+      ) : (
+        <MyOffers offers={myOffers} activeBoxId={activeBoxId} onChanged={load} />
+      )}
+    </div>
+  );
+}
+
+/* ─────────────────────────── Catalogue ─────────────────────────── */
+function Catalogue({
+  catalogue, subs, myBoxes, myBoxIds, q, setQ, fDiscipline, setFDiscipline,
+  fLevel, setFLevel, fFree, setFFree, onChanged,
+}: {
+  catalogue: Programming[]; subs: Subscription[]; myBoxes: Box[]; myBoxIds: Set<string>;
+  q: string; setQ: (v: string) => void; fDiscipline: string; setFDiscipline: (v: string) => void;
+  fLevel: string; setFLevel: (v: string) => void; fFree: boolean; setFFree: (v: boolean) => void;
+  onChanged: () => void;
+}) {
+  const [subModal, setSubModal] = useState<Programming | null>(null);
+
+  const visible = catalogue.filter((p) => {
+    if (myBoxIds.has(p.publisher_box_id)) return false; // don't subscribe to your own offers
+    if (q && !p.title.toLowerCase().includes(q.toLowerCase())) return false;
+    if (fDiscipline && p.discipline !== fDiscipline) return false;
+    if (fLevel && p.level !== fLevel) return false;
+    if (fFree && p.billing !== 'free') return false;
+    return true;
+  });
+
+  const subscribedProgIds = new Set(subs.filter((s) => s.status === 'active').map((s) => s.programming_id));
+
+  return (
+    <div>
+      <div className="flex flex-wrap gap-2 mb-5">
+        <div className="relative flex-1 min-w-[180px]">
+          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
+          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Rechercher…"
+            className="w-full pl-9 pr-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-white/30" />
+        </div>
+        <select value={fDiscipline} onChange={(e) => setFDiscipline(e.target.value)}
+          className="px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm text-white">
+          <option value="">Toutes disciplines</option>
+          {DISCIPLINES.map((d) => <option key={d} value={d}>{d}</option>)}
+        </select>
+        <select value={fLevel} onChange={(e) => setFLevel(e.target.value)}
+          className="px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm text-white">
+          <option value="">Tous niveaux</option>
+          {LEVELS.map((l) => <option key={l} value={l}>{LEVEL_LABEL[l]}</option>)}
+        </select>
+        <button onClick={() => setFFree(!fFree)}
+          className={`px-3 py-2 rounded-lg text-sm font-semibold border transition-colors ${
+            fFree ? 'bg-white text-black border-white' : 'bg-white/5 text-gray-300 border-white/10'}`}>
+          Gratuit
+        </button>
+      </div>
+
+      {visible.length === 0 ? (
+        <div className="text-center py-16 text-gray-500 text-sm">Aucune programmation disponible pour ces filtres.</div>
+      ) : (
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {visible.map((p) => {
+            const subscribed = subscribedProgIds.has(p.id);
+            return (
+              <div key={p.id} className="rounded-2xl bg-white/[0.03] border border-white/10 p-5 flex flex-col">
+                <div className="flex items-start justify-between gap-2 mb-2">
+                  <h3 className="font-bold text-white text-base leading-tight">{p.title}</h3>
+                  {p.billing === 'free'
+                    ? <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400">Gratuit</span>
+                    : <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded bg-white/10 text-white">{(p.price_cents / 100).toFixed(0)}€{p.billing === 'monthly' ? '/mois' : ''}</span>}
+                </div>
+                <p className="text-xs text-gray-500 mb-1">par {p.publisher_name}</p>
+                {p.description && <p className="text-sm text-gray-400 mb-3 line-clamp-3">{p.description}</p>}
+                <div className="flex flex-wrap gap-1.5 mb-4 mt-auto">
+                  {p.discipline && <Tag>{p.discipline}</Tag>}
+                  {p.level && <Tag>{LEVEL_LABEL[p.level] ?? p.level}</Tag>}
+                  {p.days_per_week && <Tag>{p.days_per_week} j/sem</Tag>}
+                  <Tag>{p.weeks_count} sem</Tag>
+                </div>
+                {subscribed ? (
+                  <div className="flex items-center justify-center gap-2 py-2 rounded-lg bg-emerald-500/10 text-emerald-400 text-sm font-bold">
+                    <Check size={15} /> Abonné
+                  </div>
+                ) : (
+                  <button onClick={() => setSubModal(p)}
+                    className="py-2 rounded-lg bg-white text-black text-sm font-bold hover:bg-gray-200 transition-colors">
+                    S&apos;abonner
+                  </button>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {subModal && (
+        <SubscribeModal
+          programming={subModal} myBoxes={myBoxes} subs={subs}
+          onClose={() => setSubModal(null)} onDone={() => { setSubModal(null); onChanged(); }}
+        />
+      )}
+    </div>
+  );
+}
+
+function Tag({ children }: { children: React.ReactNode }) {
+  return <span className="text-[11px] font-semibold px-2 py-0.5 rounded bg-white/5 text-gray-300 border border-white/10">{children}</span>;
+}
+
+/* ────────────────── Subscribe modal (multi-box opt-out) ────────────────── */
+function SubscribeModal({
+  programming, myBoxes, subs, onClose, onDone,
+}: {
+  programming: Programming; myBoxes: Box[]; subs: Subscription[];
+  onClose: () => void; onDone: () => void;
+}) {
+  const supabase = createClient();
+  const alreadyIds = new Set(subs.filter((s) => s.programming_id === programming.id && s.status === 'active').map((s) => s.subscriber_box_id));
+  // Opt-out default: all boxes selected (except those already subscribed).
+  const [selected, setSelected] = useState<Set<string>>(
+    new Set(myBoxes.filter((b) => !alreadyIds.has(b.id)).map((b) => b.id)),
+  );
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  function toggle(id: string) {
+    setSelected((prev) => {
+      const n = new Set(prev);
+      if (n.has(id)) n.delete(id); else n.add(id);
+      return n;
+    });
+  }
+
+  async function confirm() {
+    setError(null);
+    const targets = [...selected].filter((id) => !alreadyIds.has(id));
+    if (targets.length === 0) { onClose(); return; }
+    setSaving(true);
+    if (programming.billing !== 'free') {
+      setError('Le paiement Stripe pour cette offre arrive bientôt. Seules les offres gratuites sont activables pour l’instant.');
+      setSaving(false);
+      return;
+    }
+    const { data: { user } } = await supabase.auth.getUser();
+    const rows = targets.map((boxId) => ({
+      programming_id: programming.id,
+      subscriber_box_id: boxId,
+      status: 'active',
+      created_by: user?.id ?? null,
+    }));
+    const { error: err } = await supabase.from('box_programming_subscriptions').insert(rows);
+    setSaving(false);
+    if (err) { setError(err.message); return; }
+    onDone();
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4" onClick={onClose}>
+      <div className="w-full max-w-md rounded-2xl bg-[#111] border border-white/10 p-6" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between mb-1">
+          <h3 className="text-lg font-black text-white">S&apos;abonner</h3>
+          <button onClick={onClose} className="text-gray-500 hover:text-white"><X size={18} /></button>
+        </div>
+        <p className="text-sm text-gray-400 mb-4">{programming.title}</p>
+        <p className="text-xs text-gray-500 mb-2">Diffuser à mes box (décochez celles à exclure) :</p>
+        <div className="space-y-1.5 mb-4 max-h-60 overflow-y-auto">
+          {myBoxes.map((b) => {
+            const already = alreadyIds.has(b.id);
+            const on = selected.has(b.id);
+            return (
+              <button key={b.id} disabled={already} onClick={() => toggle(b.id)}
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg border text-left transition-colors ${
+                  already ? 'border-white/5 bg-white/[0.02] opacity-50 cursor-not-allowed'
+                    : on ? 'border-white/30 bg-white/10' : 'border-white/10 bg-white/[0.02] hover:bg-white/5'}`}>
+                <div className={`w-5 h-5 rounded border flex items-center justify-center ${on || already ? 'bg-white border-white' : 'border-white/30'}`}>
+                  {(on || already) && <Check size={12} color="#000" strokeWidth={3} />}
+                </div>
+                <span className="text-sm font-semibold text-white flex-1">{b.name}</span>
+                {already && <span className="text-[10px] text-emerald-400 font-bold">déjà abonnée</span>}
+              </button>
+            );
+          })}
+        </div>
+        {error && <p className="text-xs text-red-400 mb-3">{error}</p>}
+        <button onClick={confirm} disabled={saving}
+          className="w-full py-2.5 rounded-lg bg-white text-black text-sm font-bold hover:bg-gray-200 disabled:opacity-60 flex items-center justify-center gap-2">
+          {saving && <Loader2 size={15} className="animate-spin" />}
+          Confirmer l&apos;abonnement
+        </button>
+        <p className="text-[11px] text-gray-500 mt-3 text-center">
+          Les WOD apparaîtront dans le Whiteboard de chaque box, révélés le dimanche 18h (comme pour les athlètes).
+        </p>
+      </div>
+    </div>
+  );
+}
+
+/* ─────────────────────────── Mes offres ─────────────────────────── */
+function MyOffers({ offers, activeBoxId, onChanged }: {
+  offers: Programming[]; activeBoxId: string | null; onChanged: () => void;
+}) {
+  const supabase = createClient();
+  const [editing, setEditing] = useState<Programming | 'new' | null>(null);
+
+  async function togglePublish(o: Programming) {
+    await supabase.from('box_programming').update({ is_published: !o.is_published }).eq('id', o.id);
+    onChanged();
+  }
+  async function remove(o: Programming) {
+    if (!confirm(`Supprimer « ${o.title} » ? Les box abonnées ne recevront plus de nouvelles semaines.`)) return;
+    await supabase.from('box_programming').delete().eq('id', o.id);
+    onChanged();
+  }
+
+  return (
+    <div>
+      <div className="flex justify-between items-center mb-5">
+        <p className="text-sm text-gray-400">Vos programmations publiées pour d&apos;autres box.</p>
+        <button onClick={() => setEditing('new')}
+          className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-white text-black text-sm font-bold hover:bg-gray-200">
+          <Plus size={15} /> Nouvelle programmation
+        </button>
+      </div>
+
+      {offers.length === 0 ? (
+        <div className="text-center py-16 text-gray-500 text-sm">
+          <Package size={32} className="mx-auto mb-3 opacity-40" />
+          Vous n&apos;avez pas encore publié de programmation.
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {offers.map((o) => (
+            <div key={o.id} className="rounded-2xl bg-white/[0.03] border border-white/10 p-5">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 mb-1">
+                    <h3 className="font-bold text-white">{o.title}</h3>
+                    {o.is_published
+                      ? <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 flex items-center gap-1"><Globe size={10} /> Publiée</span>
+                      : <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded bg-white/10 text-gray-400 flex items-center gap-1"><Lock size={10} /> Brouillon</span>}
+                  </div>
+                  <p className="text-xs text-gray-500">
+                    {o.discipline} · {LEVEL_LABEL[o.level ?? 'all']} · {o.weeks_count} sem · {o.billing === 'free' ? 'Gratuit' : `${(o.price_cents / 100).toFixed(0)}€${o.billing === 'monthly' ? '/mois' : ''}`}
+                  </p>
+                </div>
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <button onClick={() => togglePublish(o)} title={o.is_published ? 'Dépublier' : 'Publier'}
+                    className="px-2.5 py-1.5 rounded-lg bg-white/5 border border-white/10 text-xs font-semibold text-gray-300 hover:text-white">
+                    {o.is_published ? 'Dépublier' : 'Publier'}
+                  </button>
+                  <button onClick={() => setEditing(o)} className="p-2 rounded-lg bg-white/5 border border-white/10 text-gray-400 hover:text-white"><Pencil size={14} /></button>
+                  <button onClick={() => remove(o)} className="p-2 rounded-lg bg-white/5 border border-white/10 text-gray-400 hover:text-red-400"><Trash2 size={14} /></button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {editing && (
+        <OfferEditor
+          offer={editing === 'new' ? null : editing}
+          publisherBoxId={activeBoxId}
+          onClose={() => setEditing(null)}
+          onSaved={() => { setEditing(null); onChanged(); }}
+        />
+      )}
+    </div>
+  );
+}
+
+/* ────────────────── Offer editor (offer + weekly WODs) ────────────────── */
+function OfferEditor({ offer, publisherBoxId, onClose, onSaved }: {
+  offer: Programming | null; publisherBoxId: string | null;
+  onClose: () => void; onSaved: () => void;
+}) {
+  const supabase = createClient();
+  const [form, setForm] = useState(offer ? {
+    title: offer.title, description: offer.description ?? '', discipline: offer.discipline ?? 'crossfit',
+    level: offer.level ?? 'all', days_per_week: String(offer.days_per_week ?? 5),
+    weeks_count: String(offer.weeks_count), billing: offer.billing, price: offer.price_cents ? String(offer.price_cents / 100) : '',
+  } : { ...EMPTY_OFFER });
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [offerId, setOfferId] = useState<string | null>(offer?.id ?? null);
+  const [wods, setWods] = useState<ProgWod[]>([]);
+  const [week, setWeek] = useState(1);
+  const [wodsLoaded, setWodsLoaded] = useState(false);
+
+  const loadWods = useCallback(async (id: string) => {
+    const { data } = await supabase.from('box_programming_wods').select('*').eq('programming_id', id).order('sort_order');
+    setWods((data ?? []) as ProgWod[]);
+    setWodsLoaded(true);
+  }, [supabase]);
+
+  useEffect(() => { if (offerId) loadWods(offerId); else setWodsLoaded(true); }, [offerId, loadWods]);
+
+  async function saveOffer() {
+    if (!form.title.trim()) { setError('Titre requis'); return; }
+    if (!publisherBoxId) { setError('Aucune box active'); return; }
+    setError(null); setSaving(true);
+    const payload = {
+      publisher_box_id: publisherBoxId,
+      title: form.title.trim(),
+      description: form.description.trim() || null,
+      discipline: form.discipline,
+      level: form.level,
+      days_per_week: form.days_per_week ? Number(form.days_per_week) : null,
+      weeks_count: Number(form.weeks_count) || 1,
+      billing: form.billing,
+      price_cents: form.billing === 'free' ? 0 : Math.round(Number(form.price || 0) * 100),
+      updated_at: new Date().toISOString(),
+    };
+    if (offerId) {
+      const { error: err } = await supabase.from('box_programming').update(payload).eq('id', offerId);
+      setSaving(false);
+      if (err) { setError(err.message); return; }
+    } else {
+      const { data: { user } } = await supabase.auth.getUser();
+      const { data, error: err } = await supabase.from('box_programming')
+        .insert({ ...payload, created_by: user?.id ?? null }).select('id').single();
+      setSaving(false);
+      if (err) { setError(err.message); return; }
+      setOfferId((data as { id: string }).id);
+    }
+  }
+
+  async function addWod(dow: number) {
+    if (!offerId) return;
+    const { data, error: err } = await supabase.from('box_programming_wods').insert({
+      programming_id: offerId, week_number: week, day_of_week: dow,
+      title: 'Nouveau WOD', description: '', sort_order: wods.length,
+    }).select('*').single();
+    if (!err && data) setWods((w) => [...w, data as ProgWod]);
+  }
+  async function updateWod(id: string, patch: Partial<ProgWod>) {
+    setWods((w) => w.map((x) => (x.id === id ? { ...x, ...patch } : x)));
+    await supabase.from('box_programming_wods').update(patch).eq('id', id);
+  }
+  async function delWod(id: string) {
+    setWods((w) => w.filter((x) => x.id !== id));
+    await supabase.from('box_programming_wods').delete().eq('id', id);
+  }
+
+  const weeksCount = Number(form.weeks_count) || 1;
+  const weekWods = wods.filter((w) => w.week_number === week).sort((a, b) => a.day_of_week - b.day_of_week);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4" onClick={onClose}>
+      <div className="w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl bg-[#111] border border-white/10 p-6" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-black text-white">{offerId ? 'Modifier la programmation' : 'Nouvelle programmation'}</h3>
+          <button onClick={onClose} className="text-gray-500 hover:text-white"><X size={18} /></button>
+        </div>
+
+        <div className="space-y-3 mb-4">
+          <Field label="Titre">
+            <input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })}
+              className={INPUT_CLS} placeholder="Ex. Programmation Compétiteur — Bloc Force" />
+          </Field>
+          <Field label="Description">
+            <textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })}
+              rows={2} className={INPUT_CLS} placeholder="À qui s'adresse cette prog, objectifs…" />
+          </Field>
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Discipline">
+              <select value={form.discipline} onChange={(e) => setForm({ ...form, discipline: e.target.value })} className={INPUT_CLS}>
+                {DISCIPLINES.map((d) => <option key={d} value={d}>{d}</option>)}
+              </select>
+            </Field>
+            <Field label="Niveau">
+              <select value={form.level} onChange={(e) => setForm({ ...form, level: e.target.value })} className={INPUT_CLS}>
+                {LEVELS.map((l) => <option key={l} value={l}>{LEVEL_LABEL[l]}</option>)}
+              </select>
+            </Field>
+            <Field label="Jours / semaine">
+              <input type="number" min={1} max={7} value={form.days_per_week}
+                onChange={(e) => setForm({ ...form, days_per_week: e.target.value })} className={INPUT_CLS} />
+            </Field>
+            <Field label="Nombre de semaines">
+              <input type="number" min={1} max={52} value={form.weeks_count}
+                onChange={(e) => setForm({ ...form, weeks_count: e.target.value })} className={INPUT_CLS} />
+            </Field>
+            <Field label="Facturation">
+              <select value={form.billing} onChange={(e) => setForm({ ...form, billing: e.target.value as typeof form.billing })} className={INPUT_CLS}>
+                <option value="free">Gratuit</option>
+                <option value="one_time">Paiement unique</option>
+                <option value="monthly">Mensuel</option>
+              </select>
+            </Field>
+            {form.billing !== 'free' && (
+              <Field label="Prix (€)">
+                <input type="number" min={0} step="0.01" value={form.price}
+                  onChange={(e) => setForm({ ...form, price: e.target.value })} className={INPUT_CLS} />
+              </Field>
+            )}
+          </div>
+          {error && <p className="text-xs text-red-400">{error}</p>}
+          <button onClick={saveOffer} disabled={saving}
+            className="w-full py-2.5 rounded-lg bg-white text-black text-sm font-bold hover:bg-gray-200 disabled:opacity-60 flex items-center justify-center gap-2">
+            {saving && <Loader2 size={15} className="animate-spin" />}
+            {offerId ? 'Enregistrer' : 'Créer et ajouter des WOD'}
+          </button>
+        </div>
+
+        {offerId && wodsLoaded && (
+          <div className="border-t border-white/10 pt-4">
+            <div className="flex items-center gap-2 mb-3 flex-wrap">
+              <span className="text-sm font-bold text-white mr-1">Semaine :</span>
+              {Array.from({ length: weeksCount }, (_, i) => i + 1).map((w) => (
+                <button key={w} onClick={() => setWeek(w)}
+                  className={`w-8 h-8 rounded-lg text-sm font-bold ${week === w ? 'bg-white text-black' : 'bg-white/5 text-gray-400 border border-white/10'}`}>{w}</button>
+              ))}
+            </div>
+            <div className="space-y-2 mb-3">
+              {weekWods.length === 0 && <p className="text-xs text-gray-500">Aucun WOD pour la semaine {week}. Ajoutez-en un jour ci-dessous.</p>}
+              {weekWods.map((w) => (
+                <div key={w.id} className="rounded-xl bg-white/[0.03] border border-white/10 p-3">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-[11px] font-black uppercase px-2 py-0.5 rounded bg-white/10 text-white">{DAY_LABELS[w.day_of_week - 1]}</span>
+                    <input value={w.title} onChange={(e) => updateWod(w.id, { title: e.target.value })}
+                      className="flex-1 bg-transparent text-sm font-semibold text-white focus:outline-none border-b border-transparent focus:border-white/20" />
+                    <button onClick={() => delWod(w.id)} className="text-gray-500 hover:text-red-400"><Trash2 size={13} /></button>
+                  </div>
+                  <textarea value={w.description ?? ''} onChange={(e) => updateWod(w.id, { description: e.target.value })}
+                    rows={3} placeholder={'Une ligne par mouvement : "21 Thruster (43/30 kg)"'}
+                    className="w-full bg-black/30 rounded-lg px-3 py-2 text-xs text-gray-200 placeholder-gray-600 focus:outline-none border border-white/5 focus:border-white/20" />
+                </div>
+              ))}
+            </div>
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <span className="text-xs text-gray-500 mr-1">Ajouter :</span>
+              {DAY_LABELS.map((d, i) => (
+                <button key={d} onClick={() => addWod(i + 1)}
+                  className="px-2.5 py-1 rounded-lg bg-white/5 border border-white/10 text-xs font-semibold text-gray-300 hover:text-white">{d}</button>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <label className="block">
+      <span className="text-xs font-semibold text-gray-400 mb-1 block">{label}</span>
+      {children}
+    </label>
+  );
+}
