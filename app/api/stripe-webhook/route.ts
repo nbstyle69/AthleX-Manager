@@ -32,10 +32,30 @@ export async function POST(req: NextRequest) {
     switch (event.type) {
       case 'checkout.session.completed': {
         const session = event.data.object as Stripe.Checkout.Session;
-        const boxId = session.metadata?.box_id;
         const customerId = session.customer as string;
         const subscriptionId = session.subscription as string;
 
+        // Owner-level Multi-box subscription.
+        if (session.metadata?.owner_subscription === '1') {
+          const ownerId = session.metadata?.supabase_owner_id;
+          const quota = Number(session.metadata?.box_quota ?? '1') || 1;
+          if (!ownerId) break;
+          const ownerSub = await stripe.subscriptions.retrieve(subscriptionId) as any;
+          await supabase.from('owner_subscriptions').upsert({
+            owner_id: ownerId,
+            plan_tier: 'multi',
+            box_quota: quota,
+            status: ownerSub.status === 'trialing' ? 'trialing' : 'active',
+            stripe_customer_id: customerId,
+            stripe_subscription_id: subscriptionId,
+            current_period_end: new Date(ownerSub.current_period_end * 1000).toISOString(),
+            updated_at: new Date().toISOString(),
+          }, { onConflict: 'owner_id' });
+          console.log(`Owner Multi checkout completed for owner ${ownerId}`);
+          break;
+        }
+
+        const boxId = session.metadata?.box_id;
         if (!boxId) break;
 
         const subscription = await stripe.subscriptions.retrieve(subscriptionId) as any;
@@ -81,6 +101,15 @@ export async function POST(req: NextRequest) {
           })
           .eq('stripe_customer_id', customerId);
 
+        // Owner-level subscription mirrors the same status transitions.
+        await supabase.from('owner_subscriptions')
+          .update({
+            status,
+            current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
+            updated_at: new Date().toISOString(),
+          })
+          .eq('stripe_customer_id', customerId);
+
         break;
       }
 
@@ -92,6 +121,10 @@ export async function POST(req: NextRequest) {
           .update({ status: 'canceled', stripe_subscription_id: null })
           .eq('stripe_customer_id', customerId);
 
+        await supabase.from('owner_subscriptions')
+          .update({ status: 'canceled', stripe_subscription_id: null, updated_at: new Date().toISOString() })
+          .eq('stripe_customer_id', customerId);
+
         break;
       }
 
@@ -101,6 +134,10 @@ export async function POST(req: NextRequest) {
 
         await supabase.from('box_subscriptions')
           .update({ status: 'past_due' })
+          .eq('stripe_customer_id', customerId);
+
+        await supabase.from('owner_subscriptions')
+          .update({ status: 'past_due', updated_at: new Date().toISOString() })
           .eq('stripe_customer_id', customerId);
 
         break;
