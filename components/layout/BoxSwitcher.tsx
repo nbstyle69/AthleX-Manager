@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useRef, useEffect, useTransition } from 'react';
-import { useRouter } from 'next/navigation';
 import { Check, ChevronsUpDown } from 'lucide-react';
 import { setActiveBox } from '@/app/(dashboard)/actions';
 import { cn } from '@/lib/utils';
@@ -18,7 +17,6 @@ export default function BoxSwitcher({
   boxes: SwitcherBox[];
   activeBoxId: string;
 }) {
-  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [pending, startTransition] = useTransition();
   const ref = useRef<HTMLDivElement>(null);
@@ -38,7 +36,9 @@ export default function BoxSwitcher({
     if (id === activeBoxId) return;
     startTransition(async () => {
       await setActiveBox(id);
-      router.refresh();
+      // Full reload so every component (incl. client-only cards that fetch
+      // their own box) picks up the new active box, not just server ones.
+      window.location.reload();
     });
   }
 
