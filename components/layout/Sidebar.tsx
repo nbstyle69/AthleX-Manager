@@ -6,6 +6,7 @@ import { Users, FolderOpen, MessageSquare, LayoutDashboard, LogOut, Dumbbell, Su
 import { createClient } from '@/lib/supabase/client';
 import { cn } from '@/lib/utils';
 import { useTheme } from '@/components/ThemeProvider';
+import BoxSwitcher, { type SwitcherBox } from '@/components/layout/BoxSwitcher';
 
 const NAV = [
   { href: '/',             label: 'Dashboard',   icon: LayoutDashboard },
@@ -30,9 +31,11 @@ interface SidebarProps {
   supportUnread?: number;
   isSupportAdmin?: boolean;
   supportAdminUnread?: number;
+  boxes?: SwitcherBox[];
+  activeBoxId?: string;
 }
 
-export default function Sidebar({ box, email, unreadCount = 0, supportUnread = 0, isSupportAdmin = false, supportAdminUnread = 0 }: SidebarProps) {
+export default function Sidebar({ box, email, unreadCount = 0, supportUnread = 0, isSupportAdmin = false, supportAdminUnread = 0, boxes = [], activeBoxId }: SidebarProps) {
   const pathname = usePathname();
   const router   = useRouter();
   const { theme, toggle } = useTheme();
@@ -68,6 +71,9 @@ export default function Sidebar({ box, email, unreadCount = 0, supportUnread = 0
         >
           {planLabel}
         </span>
+        {boxes.length > 1 && activeBoxId && (
+          <BoxSwitcher boxes={boxes} activeBoxId={activeBoxId} />
+        )}
       </div>
 
       {/* Nav */}
