@@ -120,3 +120,56 @@ export async function getOwnerBox(
 ): Promise<BoxRow | null> {
   return getActiveBox(supabase, userId);
 }
+
+export interface BoxBillingState {
+  /** Multi-box owner subscription is active/trialing/past_due. */
+  multiActive: boolean;
+  /** This box is unlocked by the owner's active Multi plan. */
+  coveredByMulti: boolean;
+  /** This is an additional box and Multi is not active → must upgrade to unlock. */
+  requiresMulti: boolean;
+  /** Number of boxes owned directly by the box owner. */
+  boxCount: number;
+  /** This box is the owner's primary (oldest) box. */
+  isPrimary: boolean;
+}
+
+/**
+ * Billing entitlement for a given box under the owner-level Solo/Multi model.
+ *
+ * - The primary (oldest) box keeps its legacy per-box `box_subscriptions` gate.
+ * - Every additional box is LOCKED until the owner has an active Multi plan
+ *   (`owner_subscriptions`) whose `box_quota` covers it (base + 29 €/box).
+ *
+ * Uses the service client so it resolves correctly for co-owners too (billing
+ * follows the box's actual `owner_id`, not the current viewer).
+ */
+export async function getBoxBillingState(
+  box: { id: string; owner_id: string },
+): Promise<BoxBillingState> {
+  const svc = createServiceClient();
+
+  const { data: owned } = await svc
+    .from('boxes').select('id, created_at')
+    .eq('owner_id', box.owner_id)
+    .order('created_at', { ascending: true });
+  const ids = (owned ?? []).map((b) => (b as { id: string }).id);
+  const boxCount = ids.length;
+  const index = ids.indexOf(box.id);
+  const isPrimary = index === 0;
+
+  const { data: sub } = await svc
+    .from('owner_subscriptions')
+    .select('status, box_quota')
+    .eq('owner_id', box.owner_id)
+    .maybeSingle();
+
+  const s = sub as { status: string; box_quota: number } | null;
+  const multiActive = !!s && ['active', 'trialing', 'past_due'].includes(s.status);
+  // Ranked position of this box among the owner's boxes (1-based).
+  const rank = index >= 0 ? index + 1 : boxCount;
+  const coveredByMulti = multiActive && (s?.box_quota ?? 0) >= rank;
+  const requiresMulti = !coveredByMulti && !isPrimary;
+
+  return { multiActive, coveredByMulti, requiresMulti, boxCount, isPrimary };
+}
