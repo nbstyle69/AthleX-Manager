@@ -1,5 +1,5 @@
 ﻿import { redirect } from 'next/navigation';
-import { createClient, getOwnerBox, getServerProfile, getServerUser } from '@/lib/supabase/server';
+import { createClient, getActiveBox, getOwnerBoxes, getServerProfile, getServerUser } from '@/lib/supabase/server';
 import Sidebar from '@/components/layout/Sidebar';
 import TrialBanner from '@/components/TrialBanner';
 import PaywallOverlay from '@/components/PaywallOverlay';
@@ -16,7 +16,8 @@ export default async function DashboardLayout({ children }: { children: React.Re
     redirect('/admin');
   }
 
-  const box = await getOwnerBox(supabase, user.id);
+  const boxes = await getOwnerBoxes(supabase, user.id);
+  const box = await getActiveBox(supabase, user.id);
   if (!box) {
     return (
       <div className="min-h-screen bg-[#0A0A0A] flex items-center justify-center">
@@ -80,6 +81,8 @@ export default async function DashboardLayout({ children }: { children: React.Re
         supportUnread={supportUnread ?? 0}
         isSupportAdmin={!!isSupportAdmin}
         supportAdminUnread={supportAdminUnread}
+        boxes={boxes.map((b) => ({ id: b.id, name: b.name }))}
+        activeBoxId={box.id}
       />
       <main className="flex-1 ml-60 min-h-screen p-8 overflow-y-auto">
         <TrialBanner
