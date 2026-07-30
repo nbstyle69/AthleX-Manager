@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
 import { CreditCard, Loader2, Search, Users, BookOpen, Pause, Play, FileText, Check, X } from 'lucide-react';
 import { getMyBox } from '@/lib/getMyBox';
+import UnpaidPanel from '@/components/UnpaidPanel';
 
 const supabase = createClient();
 
@@ -70,6 +71,7 @@ export default function SubscribersPage() {
   const [cancelReqs, setCancelReqs] = useState<CancelRequest[]>([]);
   const [actionBusy, setActionBusy] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [boxId, setBoxId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -77,6 +79,7 @@ export default function SubscribersPage() {
     if (!user) { router.push('/login'); return; }
     const box = await getMyBox(supabase, user.id);
     if (!box) { router.push('/login'); return; }
+    setBoxId(box.id);
 
     // Abonnements de salle (formules payantes)
     const { data: memberRows } = await supabase
@@ -257,6 +260,9 @@ export default function SubscribersPage() {
       {actionError && (
         <div className="bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-2.5 text-sm text-red-400">{actionError}</div>
       )}
+
+      {/* Impayés : relance, encaissement, suspension des droits */}
+      {boxId && <UnpaidPanel boxId={boxId} onChange={load} />}
 
       {/* Demandes de résiliation anticipée (motif légitime + justificatif) */}
       {cancelReqs.length > 0 && (
