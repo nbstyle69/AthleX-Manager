@@ -305,9 +305,31 @@ function SubscribeModal({
     const targets = [...selected].filter((id) => !alreadyIds.has(id));
     if (targets.length === 0) { onClose(); return; }
     setSaving(true);
+    // Offre payante : checkout Stripe Connect, une box à la fois (le paiement
+    // redirige le navigateur, on ne peut pas enchaîner plusieurs box).
     if (programming.billing !== 'free') {
-      setError('Le paiement Stripe pour cette offre arrive bientôt. Seules les offres gratuites sont activables pour l’instant.');
-      setSaving(false);
+      if (targets.length !== 1) {
+        setError('Les offres payantes s\u2019activent une box à la fois. Sélectionne une seule box.');
+        setSaving(false);
+        return;
+      }
+      try {
+        const res = await fetch('/api/create-programming-checkout', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ programming_id: programming.id, subscriber_box_id: targets[0] }),
+        });
+        const json = await res.json();
+        if (!res.ok || !json.url) {
+          setError(json.error ?? 'Impossible de démarrer le paiement.');
+          setSaving(false);
+          return;
+        }
+        window.location.href = json.url;
+      } catch (e) {
+        setError((e as Error).message);
+        setSaving(false);
+      }
       return;
     }
     const { data: { user } } = await supabase.auth.getUser();
@@ -331,6 +353,11 @@ function SubscribeModal({
           <button onClick={onClose} className="text-gray-500 hover:text-white"><X size={18} /></button>
         </div>
         <p className="text-sm text-gray-400 mb-4">{programming.title}</p>
+        {programming.billing !== 'free' && (
+          <p className="text-xs text-amber-300/90 bg-amber-500/10 border border-amber-500/20 rounded-lg px-3 py-2 mb-3">
+            Offre payante ({(programming.price_cents / 100).toFixed(0)}€{programming.billing === 'monthly' ? '/mois' : ''}) — paiement sécurisé Stripe, une box à la fois.
+          </p>
+        )}
         <p className="text-xs text-gray-500 mb-2">Diffuser à mes box (décochez celles à exclure) :</p>
         <div className="space-y-1.5 mb-4 max-h-60 overflow-y-auto">
           {myBoxes.map((b) => {
