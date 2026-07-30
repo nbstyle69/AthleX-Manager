@@ -172,7 +172,14 @@ export default function ProspectsPage() {
       {tab === 'pipeline' ? (
         <Pipeline followups={followups} plans={plans} onStatus={setStatus} />
       ) : (
-        <Slots boxId={boxId} slots={slots} onChange={() => load(boxId)} />
+        <Slots
+          boxId={boxId}
+          slots={slots}
+          onAdded={(s) => setSlots((prev) =>
+            [...prev, s].sort((a, b) => a.starts_at.localeCompare(b.starts_at)))}
+          onRemoved={(id) => setSlots((prev) => prev.filter((s) => s.id !== id))}
+          onChange={() => load(boxId)}
+        />
       )}
     </div>
   );
@@ -310,11 +317,13 @@ function ProspectCard({
 }
 
 function Slots({
-  boxId, slots, onChange,
+  boxId, slots, onAdded, onRemoved, onChange,
 }: {
   boxId: string;
   slots: Slot[];
-  onChange: () => void;
+  onAdded: (s: Slot) => void;
+  onRemoved: (id: string) => void;
+  onChange: () => Promise<void>;
 }) {
   const [date, setDate] = useState('');
   const [start, setStart] = useState('');
@@ -332,23 +341,25 @@ function Slots({
     if (endsAt <= startsAt) { setErr('L\u2019heure de fin doit suivre le début.'); return; }
     setSaving(true);
     const { data: { user } } = await supabase.auth.getUser();
-    const { error } = await supabase.from('box_appointment_slots').insert({
+    const { data: inserted, error } = await supabase.from('box_appointment_slots').insert({
       box_id: boxId,
       starts_at: startsAt.toISOString(),
       ends_at: endsAt.toISOString(),
       capacity: Math.max(1, Number(capacity) || 1),
       coach: coach || null,
       created_by: user?.id ?? null,
-    });
+    }).select('id, starts_at, ends_at, capacity, coach, notes').single();
     setSaving(false);
     if (error) { setErr(error.message); return; }
+    if (inserted) onAdded({ ...(inserted as Omit<Slot, 'booked'>), booked: 0 });
     setDate(''); setStart(''); setEnd(''); setCapacity('1'); setCoach('');
-    onChange();
+    void onChange();
   }
 
   async function del(id: string) {
+    onRemoved(id);
     await supabase.from('box_appointment_slots').delete().eq('id', id);
-    onChange();
+    void onChange();
   }
 
   return (
