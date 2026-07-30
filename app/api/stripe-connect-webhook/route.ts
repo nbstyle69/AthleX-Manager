@@ -155,6 +155,45 @@ export async function POST(req: NextRequest) {
           break;
         }
 
+        // ── Abonnement d'une box à une programmation (marketplace box→box) ─
+        if (session.metadata?.kind === 'box_programming') {
+          const programmingId = session.metadata.programming_id;
+          const subscriberBoxId = session.metadata.subscriber_box_id;
+          const createdBy = session.metadata.created_by ?? null;
+          if (!programmingId || !subscriberBoxId) break;
+
+          // Ancre = lundi de la semaine courante (Europe/Paris) → base de la
+          // rotation des semaines dans materialize_box_programming.
+          const nowParis = new Date(
+            new Date().toLocaleString('en-US', { timeZone: 'Europe/Paris' }),
+          );
+          const isoDow = nowParis.getDay() === 0 ? 7 : nowParis.getDay();
+          const monday = new Date(nowParis);
+          monday.setDate(nowParis.getDate() - isoDow + 1);
+          const weekAnchor = monday.toISOString().split('T')[0];
+
+          const { error: subErr } = await supabase
+            .from('box_programming_subscriptions')
+            .upsert(
+              {
+                programming_id: programmingId,
+                subscriber_box_id: subscriberBoxId,
+                status: 'active',
+                week_anchor: weekAnchor,
+                created_by: createdBy,
+                stripe_customer_id: (session.customer as string) ?? null,
+                stripe_subscription_id: (session.subscription as string) ?? null,
+              },
+              { onConflict: 'programming_id,subscriber_box_id' },
+            );
+          if (subErr) {
+            console.error(`box_programming_subscriptions write failed (prog ${programmingId}, box ${subscriberBoxId}):`, subErr.message);
+            return NextResponse.json({ error: subErr.message }, { status: 500 });
+          }
+          console.log(`Box programming ${programmingId} activated for box ${subscriberBoxId}`);
+          break;
+        }
+
         if (session.metadata?.kind !== 'program') break;
 
         const programId = session.metadata.program_id;
@@ -200,6 +239,10 @@ export async function POST(req: NextRequest) {
         await supabase.from('program_members')
           .update({ status: 'cancelled' })
           .eq('stripe_subscription_id', sub.id);
+        // Abonnement programmation box→box résilié → stoppe la matérialisation.
+        await supabase.from('box_programming_subscriptions')
+          .update({ status: 'canceled' })
+          .eq('stripe_subscription_id', sub.id);
         // Abonnement salle résilié → retire la formule (déclenche la sync des groupes).
         await supabase.from('box_members')
           .update({
@@ -223,6 +266,15 @@ export async function POST(req: NextRequest) {
           : 'cancelled';
         await supabase.from('program_members')
           .update({ status })
+          .eq('stripe_subscription_id', sub.id);
+        // Programmation box→box : active / past_due / canceled + fin de période.
+        await supabase.from('box_programming_subscriptions')
+          .update({
+            status: sub.status === 'active' || sub.status === 'trialing' ? 'active'
+              : sub.status === 'past_due' || sub.status === 'unpaid' ? 'past_due'
+              : 'canceled',
+            current_period_end: subscriptionPeriodEnd(sub),
+          })
           .eq('stripe_subscription_id', sub.id);
         // Statut d'abonnement salle : active / past_due (impayé) / cancelled.
         const memberStatus = sub.status === 'active' || sub.status === 'trialing' ? 'active'
