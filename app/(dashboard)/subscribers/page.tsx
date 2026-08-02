@@ -73,8 +73,8 @@ export default function SubscribersPage() {
   const [actionError, setActionError] = useState<string | null>(null);
   const [boxId, setBoxId] = useState<string | null>(null);
 
-  const load = useCallback(async () => {
-    setLoading(true);
+  const load = useCallback(async ({ silent }: { silent?: boolean } = {}) => {
+    if (!silent) setLoading(true);
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { router.push('/login'); return; }
     const box = await getMyBox(supabase, user.id);
@@ -262,7 +262,7 @@ export default function SubscribersPage() {
       )}
 
       {/* Impayés : relance, encaissement, suspension des droits */}
-      {boxId && <UnpaidPanel boxId={boxId} onChange={load} />}
+      {boxId && <UnpaidPanel boxId={boxId} onChange={() => load({ silent: true })} />}
 
       {/* Demandes de résiliation anticipée (motif légitime + justificatif) */}
       {cancelReqs.length > 0 && (
