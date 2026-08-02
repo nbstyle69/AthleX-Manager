@@ -79,10 +79,32 @@ export async function POST(req: NextRequest) {
             ? (() => { const d = new Date(); d.setMonth(d.getMonth() + commitmentMonths); return d.toISOString(); })()
             : null;
 
+          // Moyen de paiement retenu (carte vs prélèvement SEPA) : affiché
+          // dans le back-office et utile au diagnostic d'un impayé.
+          let paymentMethodType: string | null = null;
+          const membershipSubId = (session.subscription as string) ?? null;
+          if (membershipSubId && event.account) {
+            try {
+              const sub = await stripe.subscriptions.retrieve(
+                membershipSubId,
+                { expand: ['default_payment_method'] },
+                { stripeAccount: event.account },
+              ) as any;
+              paymentMethodType = sub.default_payment_method?.type ?? null;
+            } catch (e: any) {
+              console.warn(`Payment method lookup failed for ${membershipSubId}: ${e.message}`);
+            }
+          }
+
           const patch = {
             plan_id: planId,
             subscription_status: 'active',
             status: 'active',
+            payment_method_type: paymentMethodType,
+            past_due_since: null,
+            dunning_attempts: 0,
+            last_payment_error: null,
+            dunning_reminders_sent: 0,
             stripe_subscription_id: (session.subscription as string) ?? null,
             stripe_checkout_session_id: session.id,
             amount_cents: amountCents,
@@ -303,6 +325,17 @@ export async function POST(req: NextRequest) {
         const { error: subUpdErr } = await supabase.from('box_members')
           .update({
             subscription_status: memberStatus,
+            // Sortie d'impayé : on efface l'ancre de suspension et le compteur
+            // de relances pour rétablir l'accès immédiatement.
+            ...(memberStatus === 'active'
+              ? {
+                  past_due_since: null,
+                  dunning_attempts: 0,
+                  last_payment_error: null,
+                  dunning_reminders_sent: 0,
+                  dunning_last_reminder_at: null,
+                }
+              : {}),
             subscription_current_period_end: periodEnd,
             subscription_cancel_at_period_end: !!sub.cancel_at_period_end,
             ...(memberStatus !== 'cancelled' ? planPatch : {}),
@@ -310,6 +343,82 @@ export async function POST(req: NextRequest) {
           .eq('stripe_subscription_id', sub.id);
         if (subUpdErr) {
           console.error(`box_members subscription update failed for ${sub.id}:`, subUpdErr.message);
+        }
+        // Ancre l'impayé si l'événement d'abonnement arrive avant
+        // invoice.payment_failed. `.is(null)` garantit l'idempotence : la date
+        // du premier échec n'est jamais repoussée par une nouvelle tentative.
+        if (memberStatus === 'past_due') {
+          await supabase.from('box_members')
+            .update({ past_due_since: new Date().toISOString() })
+            .eq('stripe_subscription_id', sub.id)
+            .is('past_due_since', null);
+        }
+        break;
+      }
+
+      // ── Impayés (dunning) sur les abonnements de salle ───────────────
+      // Stripe gère les nouvelles tentatives (Smart Retries) ; on garde ici
+      // les conséquences métier : depuis quand l'abonnement est impayé, le
+      // nombre de tentatives et le motif. `past_due_since` est la source du
+      // délai de grâce et de la suspension des réservations (trigger SQL
+      // membership_access_blocked), donc on ne l'écrase pas à chaque échec.
+      case 'invoice.payment_failed':
+      case 'invoice.payment_action_required': {
+        const invoice = event.data.object as any;
+        const subId = (invoice.subscription as string) ?? null;
+        if (!subId) break;
+
+        const { data: member } = await supabase
+          .from('box_members')
+          .select('id, past_due_since, dunning_attempts')
+          .eq('stripe_subscription_id', subId)
+          .maybeSingle();
+        const m = member as { id: string; past_due_since: string | null; dunning_attempts: number | null } | null;
+        if (!m) break;
+
+        const reason: string | null =
+          (invoice.last_payment_error?.message as string | undefined) ??
+          (invoice.last_finalization_error?.message as string | undefined) ??
+          null;
+
+        const { error: dunErr } = await supabase
+          .from('box_members')
+          .update({
+            subscription_status: 'past_due',
+            past_due_since: m.past_due_since ?? new Date().toISOString(),
+            dunning_attempts: (m.dunning_attempts ?? 0) + 1,
+            last_payment_error: reason,
+          })
+          .eq('id', m.id);
+        if (dunErr) {
+          console.error(`box_members dunning update failed for ${subId}:`, dunErr.message);
+          return NextResponse.json({ error: dunErr.message }, { status: 500 });
+        }
+        console.log(`Membership past_due recorded for subscription ${subId}`);
+        break;
+      }
+
+      // Régularisation : l'accès est rétabli dès que past_due_since repasse à
+      // NULL (le blocage est dérivé, aucun cron de réactivation nécessaire).
+      case 'invoice.paid': {
+        const invoice = event.data.object as any;
+        const subId = (invoice.subscription as string) ?? null;
+        if (!subId) break;
+
+        const { error: paidErr } = await supabase
+          .from('box_members')
+          .update({
+            subscription_status: 'active',
+            past_due_since: null,
+            dunning_attempts: 0,
+            last_payment_error: null,
+            dunning_reminders_sent: 0,
+            dunning_last_reminder_at: null,
+          })
+          .eq('stripe_subscription_id', subId);
+        if (paidErr) {
+          console.error(`box_members dunning reset failed for ${subId}:`, paidErr.message);
+          return NextResponse.json({ error: paidErr.message }, { status: 500 });
         }
         break;
       }

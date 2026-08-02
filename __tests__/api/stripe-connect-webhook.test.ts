@@ -23,7 +23,7 @@ function makeChain(cfg: ChainCfg = {}) {
   const awaited = cfg.awaited ?? { data: null, error: null };
   const c: any = {};
   const ret = () => c;
-  ['select', 'insert', 'update', 'upsert', 'delete', 'eq', 'neq', 'ilike', 'in', 'order'].forEach(
+  ['select', 'insert', 'update', 'upsert', 'delete', 'eq', 'neq', 'is', 'ilike', 'in', 'order'].forEach(
     (m) => (c[m] = jest.fn(ret)),
   );
   c.then = (resolve: Function) => Promise.resolve(awaited).then(resolve as any);
@@ -210,6 +210,116 @@ describe('POST /api/stripe-connect-webhook', () => {
     expect(chains.program_members.eq).toHaveBeenCalledWith('stripe_payment_intent', 'pi_9');
     expect(chains.member_class_credits.update).toHaveBeenCalledWith({ status: 'refunded' });
     expect(chains.member_class_credits.eq).toHaveBeenCalledWith('stripe_payment_intent', 'pi_9');
+  });
+
+  it('records the dunning state on invoice.payment_failed', async () => {
+    chains.box_members = makeChain({
+      maybeSingle: { data: { id: 'bm-1', past_due_since: null, dunning_attempts: 0 } },
+      awaited: { error: null },
+    });
+    mockConstructEvent.mockReturnValue({
+      type: 'invoice.payment_failed',
+      data: { object: { id: 'in_1', subscription: 'sub_1', last_payment_error: { message: 'insufficient_funds' } } },
+    });
+
+    const res = (await POST(makeReq() as any)) as any;
+
+    expect(res._status).toBe(200);
+    expect(chains.box_members.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        subscription_status: 'past_due',
+        dunning_attempts: 1,
+        last_payment_error: 'insufficient_funds',
+        past_due_since: expect.any(String),
+      }),
+    );
+  });
+
+  it('keeps the original past_due_since on a repeated payment failure', async () => {
+    const firstFailure = '2026-07-01T10:00:00.000Z';
+    chains.box_members = makeChain({
+      maybeSingle: { data: { id: 'bm-1', past_due_since: firstFailure, dunning_attempts: 2 } },
+      awaited: { error: null },
+    });
+    mockConstructEvent.mockReturnValue({
+      type: 'invoice.payment_failed',
+      data: { object: { id: 'in_2', subscription: 'sub_1' } },
+    });
+
+    const res = (await POST(makeReq() as any)) as any;
+
+    expect(res._status).toBe(200);
+    expect(chains.box_members.update).toHaveBeenCalledWith(
+      expect.objectContaining({ past_due_since: firstFailure, dunning_attempts: 3, last_payment_error: null }),
+    );
+  });
+
+  it('ignores a payment failure with no matching membership', async () => {
+    chains.box_members = makeChain({ maybeSingle: { data: null } });
+    mockConstructEvent.mockReturnValue({
+      type: 'invoice.payment_failed',
+      data: { object: { id: 'in_3', subscription: 'sub_unknown' } },
+    });
+
+    const res = (await POST(makeReq() as any)) as any;
+
+    expect(res._status).toBe(200);
+    expect(chains.box_members.update).not.toHaveBeenCalled();
+  });
+
+  it('restores access on invoice.paid', async () => {
+    chains.box_members = makeChain({ awaited: { error: null } });
+    mockConstructEvent.mockReturnValue({
+      type: 'invoice.paid',
+      data: { object: { id: 'in_4', subscription: 'sub_1' } },
+    });
+
+    const res = (await POST(makeReq() as any)) as any;
+
+    expect(res._status).toBe(200);
+    expect(chains.box_members.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        subscription_status: 'active',
+        past_due_since: null,
+        dunning_attempts: 0,
+        dunning_reminders_sent: 0,
+      }),
+    );
+    expect(chains.box_members.eq).toHaveBeenCalledWith('stripe_subscription_id', 'sub_1');
+  });
+
+  it('anchors past_due_since when the subscription flips to past_due', async () => {
+    chains.program_members = makeChain({ awaited: { error: null } });
+    chains.box_members = makeChain({ awaited: { error: null } });
+    mockConstructEvent.mockReturnValue({
+      type: 'customer.subscription.updated',
+      data: { object: { id: 'sub_1', status: 'past_due', current_period_end: 1785000000, items: { data: [{}] }, metadata: {} } },
+    });
+
+    const res = (await POST(makeReq() as any)) as any;
+
+    expect(res._status).toBe(200);
+    expect(chains.box_members.update).toHaveBeenCalledWith(
+      expect.objectContaining({ past_due_since: expect.any(String) }),
+    );
+    expect(chains.box_members.is).toHaveBeenCalledWith('past_due_since', null);
+  });
+
+  it('clears the dunning state when the subscription is active again', async () => {
+    chains.program_members = makeChain({ awaited: { error: null } });
+    chains.box_members = makeChain({ awaited: { error: null } });
+    mockConstructEvent.mockReturnValue({
+      type: 'customer.subscription.updated',
+      data: { object: { id: 'sub_1', status: 'active', current_period_end: 1785000000, items: { data: [{}] }, metadata: {} } },
+    });
+
+    const res = (await POST(makeReq() as any)) as any;
+
+    expect(res._status).toBe(200);
+    expect(chains.box_members.update).toHaveBeenCalledWith(
+      expect.objectContaining({ subscription_status: 'active', past_due_since: null, dunning_reminders_sent: 0 }),
+    );
+    expect(chains.box_members.is).not.toHaveBeenCalled();
   });
 
   it('returns 500 when the membership write fails', async () => {

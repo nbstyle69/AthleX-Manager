@@ -86,6 +86,7 @@ export default function SettingsPage() {
   const [savingInfo, setSavingInfo] = useState(false);
   const [savedInfo, setSavedInfo] = useState(false);
   const [foundedAt, setFoundedAt] = useState('');
+  const [dunningGraceDays, setDunningGraceDays] = useState('7');
   const [ownerName, setOwnerName] = useState('');
   const [coaches, setCoaches] = useState<{id:string; username:string; avatar_url:string|null}[]>([]);
 
@@ -127,6 +128,7 @@ export default function SettingsPage() {
       setPhone(boxData.phone ?? '');
       setGoogleMapsUrl(boxData.google_maps_url ?? '');
       setFoundedAt(boxData.founded_at ?? '');
+      setDunningGraceDays(String(boxData.dunning_grace_days ?? 7));
 
       // Fetch owner + coaches in parallel
       const [ownerRes, coachRes] = await Promise.all([
@@ -347,6 +349,12 @@ export default function SettingsPage() {
       return;
     }
 
+    const graceDays = Number(dunningGraceDays);
+    if (!Number.isInteger(graceDays) || graceDays < 0 || graceDays > 90) {
+      alert('Le délai avant suspension doit être un nombre de jours entre 0 et 90.');
+      return;
+    }
+
     setSavingInfo(true);
     setSavedInfo(false);
 
@@ -360,6 +368,7 @@ export default function SettingsPage() {
       phone: phone.trim() || null,
       google_maps_url: googleMapsUrl.trim() || null,
       founded_at: foundedAt || null,
+      dunning_grace_days: graceDays,
     };
 
     // Coordonnées pour l'affichage sur la carte (app mobile + page publique).
@@ -720,6 +729,23 @@ export default function SettingsPage() {
               onChange={(e) => setFoundedAt(e.target.value)}
               className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-white/40 transition-colors"
             />
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">
+              Impayé : délai avant suspension (jours)
+            </label>
+            <input
+              type="number"
+              min={0}
+              max={90}
+              value={dunningGraceDays}
+              onChange={(e) => setDunningGraceDays(e.target.value)}
+              className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-white/40 transition-colors"
+            />
+            <p className="text-xs text-gray-500 mt-1.5">
+              Passé ce délai après un prélèvement refusé, le membre ne peut plus réserver. L&apos;accès est rétabli dès le paiement. 0 = suspension immédiate.
+            </p>
           </div>
         </div>
 

@@ -12,6 +12,18 @@ function getStripe() {
 const MEMBERSHIP_FEE_PERCENT = Number(process.env.MEMBERSHIP_FEE_PERCENT ?? '0');
 
 /**
+ * Moyens de paiement d'un abonnement mensuel.
+ * Le prélèvement SEPA (mandat collecté par Stripe au checkout) est la norme
+ * en zone euro pour une adhésion récurrente : on l'ouvre dès que la formule
+ * est libellée en EUR. Les achats à l'unité (Drop-in / Carnet) restent en
+ * carte : le SEPA met 2 à 5 jours à se dénouer, incompatible avec un accès
+ * immédiat à la séance.
+ */
+function subscriptionPaymentMethods(currency: string): ('card' | 'sepa_debit')[] {
+  return currency.toLowerCase() === 'eur' ? ['card', 'sepa_debit'] : ['card'];
+}
+
+/**
  * Prorata calendaire : ancre la facturation au 1er du mois suivant (00:00 UTC).
  * Combiné à proration_behavior='create_prorations', Stripe facture au checkout
  * uniquement les jours restants du mois en cours, puis le plein tarif chaque 1er.
@@ -173,7 +185,7 @@ export async function POST(req: NextRequest) {
     const session = await stripe.checkout.sessions.create(
       {
         mode: 'subscription',
-        payment_method_types: ['card'],
+        payment_method_types: subscriptionPaymentMethods(p.currency || 'eur'),
         customer_email: buyer_email,
         allow_promotion_codes: true,
         line_items: [{ price: priceId, quantity: 1 }],
