@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { Fragment, useState, useEffect, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
-import { CreditCard, Loader2, Search, Users, BookOpen, Pause, Play, FileText, Check, X } from 'lucide-react';
+import { CreditCard, Loader2, Search, Users, BookOpen, Pause, Play, FileText, Check, X, ChevronDown, ChevronRight, ExternalLink } from 'lucide-react';
 import { getMyBox } from '@/lib/getMyBox';
 import UnpaidPanel from '@/components/UnpaidPanel';
 
@@ -63,21 +63,33 @@ function fmtDate(iso: string | null) {
   return new Date(iso).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' });
 }
 
-/**
- * Montant réellement facturé le 1er mois. Le checkout ancre la facturation au
- * 1er du mois suivant avec `proration_behavior: 'create_prorations'` : Stripe
- * ne facture que la fraction de mois restante à la souscription. On reproduit
- * ce calcul (au prorata du temps restant) tant que ce 1er mois court encore.
- */
-function firstMonthProrataCents(amountCents: number | null, joinedAt: string | null) {
-  if (!amountCents || !joinedAt) return null;
-  const start = new Date(joinedAt);
-  const monthStart = Date.UTC(start.getUTCFullYear(), start.getUTCMonth(), 1);
-  const monthEnd = Date.UTC(start.getUTCFullYear(), start.getUTCMonth() + 1, 1);
-  if (Date.now() >= monthEnd) return null; // le mois d'arrivée est passé : plein tarif
-  const ratio = (monthEnd - start.getTime()) / (monthEnd - monthStart);
-  if (ratio >= 1) return null; // souscrit le 1er : pas de prorata
-  return Math.round(amountCents * ratio);
+interface InvoiceRow {
+  id: string;
+  number: string | null;
+  month: string;
+  created: string;
+  amount_paid_cents: number;
+  amount_due_cents: number;
+  status: string | null;
+  url: string | null;
+}
+
+const INVOICE_STATUS_LABEL: Record<string, string> = {
+  paid: 'Payée',
+  open: 'En attente',
+  void: 'Annulée',
+  uncollectible: 'Irrécouvrable',
+  draft: 'Brouillon',
+};
+
+function currentMonthKey() {
+  const d = new Date();
+  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`;
+}
+
+function fmtMonth(month: string) {
+  const [y, m] = month.split('-').map(Number);
+  return new Date(Date.UTC(y, m - 1, 1)).toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
 }
 
 export default function SubscribersPage() {
@@ -90,6 +102,9 @@ export default function SubscribersPage() {
   const [actionBusy, setActionBusy] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [boxId, setBoxId] = useState<string | null>(null);
+  // Factures Stripe par box_member : montant réellement prélevé (prorata inclus).
+  const [invoices, setInvoices] = useState<Record<string, InvoiceRow[]>>({});
+  const [openHistory, setOpenHistory] = useState<string | null>(null);
 
   const load = useCallback(async ({ silent }: { silent?: boolean } = {}) => {
     if (!silent) setLoading(true);
@@ -182,6 +197,13 @@ export default function SubscribersPage() {
 
     setRows([...memberships, ...programs]);
     setLoading(false);
+
+    // Facturation réelle : lecture Stripe côté serveur, en arrière-plan pour
+    // ne pas retarder l'affichage du tableau.
+    fetch(`/api/subscriber-invoices?box_id=${box.id}`)
+      .then(res => res.ok ? res.json() : { invoices: {} })
+      .then(data => setInvoices(data.invoices ?? {}))
+      .catch(() => {});
   }, [router]);
 
   useEffect(() => { load(); }, [load]);
@@ -248,6 +270,8 @@ export default function SubscribersPage() {
   const isFormer = (r: Row) => r.status === 'cancelled' || r.status === 'refunded';
   const current = filtered.filter(r => !isFormer(r));
   const former = filtered.filter(isFormer);
+
+  const memberInvoices = (r: Row) => (r.boxMemberId ? invoices[r.boxMemberId] ?? [] : []);
 
   const activeCount = rows.filter(r => r.status === 'active').length;
   const mrrCents = rows
@@ -358,8 +382,11 @@ export default function SubscribersPage() {
           <tbody>
             {current.map(r => {
               const st = STATUS_STYLE[r.status] ?? { label: r.status, color: '#9CA3AF' };
+              const history = memberInvoices(r);
+              const historyOpen = openHistory === r.key;
               return (
-                <tr key={r.key} className="border-b border-white/[0.04] hover:bg-white/[0.02]">
+                <Fragment key={r.key}>
+                <tr className="border-b border-white/[0.04] hover:bg-white/[0.02]">
                   <td className="px-4 py-3">
                     <p className="font-semibold text-white">{r.username}</p>
                     <p className="text-xs text-gray-500">{r.email}</p>
@@ -379,11 +406,12 @@ export default function SubscribersPage() {
                   <td className="px-4 py-3 text-xs text-gray-400">{fmtDate(r.joinedAt)}</td>
                   <td className="px-4 py-3 font-bold text-white">
                     {fmtPrice(r.amountCents)}{r.kind === 'membership' && <span className="text-[10px] text-gray-500 font-semibold">/mois</span>}
-                    {r.kind === 'membership' && (() => {
-                      const prorata = firstMonthProrataCents(r.amountCents, r.joinedAt);
-                      return prorata === null ? null : (
+                    {(() => {
+                      const thisMonth = memberInvoices(r).find(i => i.month === currentMonthKey());
+                      return !thisMonth ? null : (
                         <span className="block text-[10px] font-semibold text-sky-400/80">
-                          1er mois au prorata : {fmtPrice(prorata)}
+                          facturé ce mois : {fmtPrice(thisMonth.amount_due_cents)}
+                          {thisMonth.status !== 'paid' && ` (${INVOICE_STATUS_LABEL[thisMonth.status ?? ''] ?? thisMonth.status})`}
                         </span>
                       );
                     })()}
@@ -412,7 +440,13 @@ export default function SubscribersPage() {
                       <span className="block text-[10px] text-sky-400/80">reprise le {fmtDate(r.pauseResumesAt)}</span>
                     )}
                   </td>
-                  <td className="px-4 py-3 text-right">
+                  <td className="px-4 py-3 text-right space-x-2 whitespace-nowrap">
+                    {history.length > 0 && (
+                      <button onClick={() => setOpenHistory(historyOpen ? null : r.key)}
+                        className="inline-flex items-center gap-1 text-xs font-bold text-gray-300 bg-white/5 hover:bg-white/10 rounded-lg px-2.5 py-1.5">
+                        {historyOpen ? <ChevronDown size={13} /> : <ChevronRight size={13} />} Factures
+                      </button>
+                    )}
                     {r.kind === 'membership' && r.hasStripeSub && r.status !== 'cancelled' && (
                       <button onClick={() => togglePause(r)} disabled={actionBusy === r.key}
                         className={`inline-flex items-center gap-1 text-xs font-bold rounded-lg px-2.5 py-1.5 disabled:opacity-50 ${r.paused ? 'text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20' : 'text-sky-400 bg-sky-500/10 hover:bg-sky-500/20'}`}>
@@ -422,6 +456,32 @@ export default function SubscribersPage() {
                     )}
                   </td>
                 </tr>
+                {historyOpen && (
+                  <tr className="border-b border-white/[0.04] bg-black/30">
+                    <td colSpan={8} className="px-4 py-3">
+                      <p className="text-xs font-bold text-gray-400 mb-2">Historique de facturation (montants réellement prélevés)</p>
+                      <div className="space-y-1">
+                        {history.map(inv => (
+                          <div key={inv.id} className="flex items-center gap-3 text-xs">
+                            <span className="w-32 text-gray-400 capitalize">{fmtMonth(inv.month)}</span>
+                            <span className="w-24 font-bold text-white">{fmtPrice(inv.amount_due_cents)}</span>
+                            <span className={inv.status === 'paid' ? 'text-emerald-400' : 'text-amber-400'}>
+                              {INVOICE_STATUS_LABEL[inv.status ?? ''] ?? inv.status}
+                            </span>
+                            <span className="text-gray-600">{fmtDate(inv.created)}</span>
+                            {inv.url && (
+                              <a href={inv.url} target="_blank" rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1 text-gray-400 hover:text-white">
+                                <ExternalLink size={12} /> {inv.number ?? 'Facture'}
+                              </a>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </td>
+                  </tr>
+                )}
+                </Fragment>
               );
             })}
             {current.length === 0 && (
