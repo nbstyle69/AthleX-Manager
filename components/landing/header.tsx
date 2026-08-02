@@ -18,6 +18,7 @@ export function LandingHeader() {
     { href: '#app', label: t.nav.app },
     { href: '/classement', label: t.nav.ranking },
     { href: '#pricing', label: t.nav.pricing },
+    { href: '#faq', label: t.faq.tag },
     { href: '/box', label: t.nav.boxes },
   ];
 
