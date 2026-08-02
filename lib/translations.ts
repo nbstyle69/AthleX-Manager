@@ -195,6 +195,68 @@ export const translations = {
       },
       rights: 'Tous droits réservés.',
     },
+    proof: {
+      tag: 'Pensé pour les box',
+      title: 'Tout ce qu\'il faut pour gérer, sans usine à gaz',
+      subtitle:
+        'Une plateforme complète, des paiements sécurisés et une app mobile pour tes athlètes — sans coût caché.',
+      pillars: [
+        { title: 'Paiements sécurisés', desc: 'Abonnements et ventes encaissés via Stripe, directement sur ton compte.' },
+        { title: 'App iOS & Android', desc: 'Tes athlètes réservent, suivent leurs WODs et scores depuis leur téléphone.' },
+        { title: 'Classement ELO', desc: 'Tournois, classements et communauté en temps réel pour animer ta box.' },
+        { title: 'Données protégées', desc: 'Hébergement européen, isolation stricte par box, conforme RGPD.' },
+      ],
+      testimonialsTag: 'Témoignages',
+      testimonialsTitle: 'Ils pilotent leur box avec AthleX',
+      testimonials: [
+        {
+          quote: 'La réservation des cours et le suivi des abonnements se gèrent tout seuls. Je récupère des heures chaque semaine.',
+          name: 'Exemple — à remplacer',
+          role: 'Gérant(e) de box',
+        },
+        {
+          quote: 'Les athlètes adorent l\'app : ils voient le WOD du jour, réservent et suivent leurs records. L\'engagement a grimpé.',
+          name: 'Exemple — à remplacer',
+          role: 'Coach',
+        },
+        {
+          quote: 'Les tournois inter-box et le classement ELO créent une vraie communauté. C\'est ce qui nous différencie.',
+          name: 'Exemple — à remplacer',
+          role: 'Propriétaire de box',
+        },
+      ],
+    },
+    faq: {
+      tag: 'FAQ',
+      title: 'Les questions qu\'on nous pose',
+      subtitle: 'Tout ce que tu dois savoir avant de te lancer.',
+      items: [
+        {
+          q: 'Ai-je besoin d\'une carte bancaire pour commencer ?',
+          a: 'Non. L\'essai gratuit de 14 jours du plan Box ne demande aucune carte. Tu ne paies que si tu décides de continuer.',
+        },
+        {
+          q: 'Mes athlètes doivent-ils payer l\'application ?',
+          a: 'Non. L\'app mobile iOS et Android est gratuite pour tes athlètes : ils créent un compte et rejoignent ta box avec ton code d\'invitation.',
+        },
+        {
+          q: 'Comment sont gérés les paiements des abonnements ?',
+          a: 'Via Stripe. Les paiements de tes membres arrivent directement sur ton compte Stripe connecté ; AthleX ne fait qu\'orchestrer les abonnements et les accès.',
+        },
+        {
+          q: 'Puis-je gérer plusieurs box avec un seul compte ?',
+          a: 'Oui. Le plan Multi permet de gérer plusieurs box depuis un seul compte owner, avec un tarif de base + 29 €/box supplémentaire.',
+        },
+        {
+          q: 'Puis-je changer de formule ou annuler à tout moment ?',
+          a: 'Oui. Tu peux passer d\'un plan à l\'autre ou résilier quand tu veux, sans engagement de durée.',
+        },
+        {
+          q: 'Mes données sont-elles en sécurité ?',
+          a: 'Oui. Hébergement en Europe, chiffrement en transit, isolation stricte des données de chaque box et conformité RGPD.',
+        },
+      ],
+    },
   },
   en: {
     nav: {
@@ -389,6 +451,68 @@ export const translations = {
         legal: ['Privacy', 'Terms', 'Legal notice'],
       },
       rights: 'All rights reserved.',
+    },
+    proof: {
+      tag: 'Built for boxes',
+      title: 'Everything you need to run your box — no bloat',
+      subtitle:
+        'A complete platform, secure payments and a mobile app for your athletes — no hidden fees.',
+      pillars: [
+        { title: 'Secure payments', desc: 'Memberships and sales collected via Stripe, straight to your account.' },
+        { title: 'iOS & Android app', desc: 'Your athletes book, track their WODs and scores from their phone.' },
+        { title: 'ELO leaderboard', desc: 'Tournaments, rankings and community in real time to energize your box.' },
+        { title: 'Protected data', desc: 'European hosting, strict per-box isolation, GDPR compliant.' },
+      ],
+      testimonialsTag: 'Testimonials',
+      testimonialsTitle: 'They run their box on AthleX',
+      testimonials: [
+        {
+          quote: 'Class booking and membership tracking run themselves. I get hours back every week.',
+          name: 'Sample — replace me',
+          role: 'Box manager',
+        },
+        {
+          quote: 'Athletes love the app: they see the daily WOD, book classes and track PRs. Engagement is up.',
+          name: 'Sample — replace me',
+          role: 'Coach',
+        },
+        {
+          quote: 'Inter-box tournaments and the ELO leaderboard build a real community. That\'s our edge.',
+          name: 'Sample — replace me',
+          role: 'Box owner',
+        },
+      ],
+    },
+    faq: {
+      tag: 'FAQ',
+      title: 'Questions we get asked',
+      subtitle: 'Everything you need to know before getting started.',
+      items: [
+        {
+          q: 'Do I need a credit card to start?',
+          a: 'No. The 14-day free trial of the Box plan requires no card. You only pay if you decide to continue.',
+        },
+        {
+          q: 'Do my athletes have to pay for the app?',
+          a: 'No. The iOS and Android app is free for your athletes: they create an account and join your box with your invite code.',
+        },
+        {
+          q: 'How are membership payments handled?',
+          a: 'Via Stripe. Your members\' payments go straight to your connected Stripe account; AthleX only orchestrates subscriptions and access.',
+        },
+        {
+          q: 'Can I manage several boxes from one account?',
+          a: 'Yes. The Multi plan lets you manage several boxes from a single owner account, with a base price + €29/extra box.',
+        },
+        {
+          q: 'Can I switch plans or cancel anytime?',
+          a: 'Yes. You can move between plans or cancel whenever you like, with no lock-in.',
+        },
+        {
+          q: 'Is my data safe?',
+          a: 'Yes. European hosting, encryption in transit, strict isolation of each box\'s data and GDPR compliance.',
+        },
+      ],
     },
   },
 } as const;

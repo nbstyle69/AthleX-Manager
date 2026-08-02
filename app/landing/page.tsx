@@ -2,6 +2,8 @@ import type { Metadata } from 'next';
 import { LandingHeader } from '@/components/landing/header';
 import { Hero } from '@/components/landing/hero';
 import { Stats } from '@/components/landing/stats';
+import { Proof } from '@/components/landing/proof';
+import { Faq } from '@/components/landing/faq';
 import { Features } from '@/components/landing/features';
 import { Experiences } from '@/components/landing/experiences';
 import { Steps } from '@/components/landing/steps';
@@ -27,6 +29,7 @@ export default function LandingPage() {
       <main>
         <Hero />
         <Stats />
+        <Proof />
         <Features />
         <Experiences />
         <Steps />
@@ -34,6 +37,7 @@ export default function LandingPage() {
         <Tools />
         <AthleteCta />
         <Pricing />
+        <Faq />
         <FinalCta />
       </main>
       <LandingFooter />
