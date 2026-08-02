@@ -82,6 +82,7 @@ export async function POST(req: NextRequest) {
           // Moyen de paiement retenu (carte vs prélèvement SEPA) : affiché
           // dans le back-office et utile au diagnostic d'un impayé.
           let paymentMethodType: string | null = null;
+          let periodEnd: string | null = null;
           const membershipSubId = (session.subscription as string) ?? null;
           if (membershipSubId && event.account) {
             try {
@@ -91,6 +92,7 @@ export async function POST(req: NextRequest) {
                 { stripeAccount: event.account },
               ) as any;
               paymentMethodType = sub.default_payment_method?.type ?? null;
+              periodEnd = subscriptionPeriodEnd(sub);
             } catch (e: any) {
               console.warn(`Payment method lookup failed for ${membershipSubId}: ${e.message}`);
             }
@@ -107,6 +109,7 @@ export async function POST(req: NextRequest) {
             dunning_reminders_sent: 0,
             stripe_subscription_id: (session.subscription as string) ?? null,
             stripe_checkout_session_id: session.id,
+            subscription_current_period_end: periodEnd,
             amount_cents: amountCents,
             platform_fee_cents: feeCents,
             commitment_end_date: commitmentEnd,

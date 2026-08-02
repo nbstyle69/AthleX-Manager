@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { Fragment, useState, useEffect, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
-import { CreditCard, Loader2, Search, Users, BookOpen, Pause, Play, FileText, Check, X } from 'lucide-react';
+import { CreditCard, Loader2, Search, Users, BookOpen, Pause, Play, FileText, Check, X, ChevronDown, ChevronRight, ExternalLink } from 'lucide-react';
 import { getMyBox } from '@/lib/getMyBox';
 import UnpaidPanel from '@/components/UnpaidPanel';
 
@@ -27,6 +27,7 @@ interface Row {
   paused: boolean;
   pauseResumesAt: string | null;
   commitmentEndDate: string | null;
+  joinedAt: string | null;
 }
 
 const REASON_LABEL: Record<string, string> = {
@@ -62,6 +63,35 @@ function fmtDate(iso: string | null) {
   return new Date(iso).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' });
 }
 
+interface InvoiceRow {
+  id: string;
+  number: string | null;
+  month: string;
+  created: string;
+  amount_paid_cents: number;
+  amount_due_cents: number;
+  status: string | null;
+  url: string | null;
+}
+
+const INVOICE_STATUS_LABEL: Record<string, string> = {
+  paid: 'Payée',
+  open: 'En attente',
+  void: 'Annulée',
+  uncollectible: 'Irrécouvrable',
+  draft: 'Brouillon',
+};
+
+function currentMonthKey() {
+  const d = new Date();
+  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`;
+}
+
+function fmtMonth(month: string) {
+  const [y, m] = month.split('-').map(Number);
+  return new Date(Date.UTC(y, m - 1, 1)).toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
+}
+
 export default function SubscribersPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
@@ -72,6 +102,9 @@ export default function SubscribersPage() {
   const [actionBusy, setActionBusy] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [boxId, setBoxId] = useState<string | null>(null);
+  // Factures Stripe par box_member : montant réellement prélevé (prorata inclus).
+  const [invoices, setInvoices] = useState<Record<string, InvoiceRow[]>>({});
+  const [openHistory, setOpenHistory] = useState<string | null>(null);
 
   const load = useCallback(async ({ silent }: { silent?: boolean } = {}) => {
     if (!silent) setLoading(true);
@@ -84,7 +117,7 @@ export default function SubscribersPage() {
     // Abonnements de salle (formules payantes)
     const { data: memberRows } = await supabase
       .from('box_members')
-      .select('id, member_id, subscription_status, subscription_current_period_end, subscription_cancel_at_period_end, subscription_paused, pause_resumes_at, commitment_end_date, plan:membership_plans(name, color, price_cents), profile:profiles(username, email)')
+      .select('id, member_id, joined_at, subscription_status, subscription_current_period_end, subscription_cancel_at_period_end, subscription_paused, pause_resumes_at, commitment_end_date, plan:membership_plans(name, color, price_cents), profile:profiles(username, email)')
       .eq('box_id', box.id)
       .not('subscription_status', 'is', null);
 
@@ -112,7 +145,7 @@ export default function SubscribersPage() {
     // Achats de programmes
     const { data: programRows } = await supabase
       .from('program_members')
-      .select('user_id, amount_cents, status, program:programs!inner(title, box_id), profile:profiles(username, email)')
+      .select('user_id, created_at, amount_cents, status, program:programs!inner(title, box_id), profile:profiles(username, email)')
       .eq('program.box_id', box.id);
 
     const memberships: Row[] = (memberRows ?? []).map((r: any, i: number) => {
@@ -135,6 +168,7 @@ export default function SubscribersPage() {
         paused: !!r.subscription_paused,
         pauseResumesAt: r.pause_resumes_at ?? null,
         commitmentEndDate: r.commitment_end_date ?? null,
+        joinedAt: r.joined_at ?? null,
       };
     });
 
@@ -157,11 +191,19 @@ export default function SubscribersPage() {
         paused: false,
         pauseResumesAt: null,
         commitmentEndDate: null,
+        joinedAt: r.created_at ?? null,
       };
     });
 
     setRows([...memberships, ...programs]);
     setLoading(false);
+
+    // Facturation réelle : lecture Stripe côté serveur, en arrière-plan pour
+    // ne pas retarder l'affichage du tableau.
+    fetch(`/api/subscriber-invoices?box_id=${box.id}`)
+      .then(res => res.ok ? res.json() : { invoices: {} })
+      .then(data => setInvoices(data.invoices ?? {}))
+      .catch(() => {});
   }, [router]);
 
   useEffect(() => { load(); }, [load]);
@@ -222,6 +264,14 @@ export default function SubscribersPage() {
     if (!q) return true;
     return r.username.toLowerCase().includes(q) || r.email.toLowerCase().includes(q) || r.label.toLowerCase().includes(q);
   });
+
+  // Anciens membres : abonnement résilié / remboursé → tableau séparé pour ne
+  // pas polluer la liste des abonnés en cours.
+  const isFormer = (r: Row) => r.status === 'cancelled' || r.status === 'refunded';
+  const current = filtered.filter(r => !isFormer(r));
+  const former = filtered.filter(isFormer);
+
+  const memberInvoices = (r: Row) => (r.boxMemberId ? invoices[r.boxMemberId] ?? [] : []);
 
   const activeCount = rows.filter(r => r.status === 'active').length;
   const mrrCents = rows
@@ -322,6 +372,7 @@ export default function SubscribersPage() {
               <th className="px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Membre</th>
               <th className="px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Type</th>
               <th className="px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Formule / Programme</th>
+              <th className="px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Inscrit le</th>
               <th className="px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Montant</th>
               <th className="px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Statut</th>
               <th className="px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Prochaine échéance</th>
@@ -329,10 +380,13 @@ export default function SubscribersPage() {
             </tr>
           </thead>
           <tbody>
-            {filtered.map(r => {
+            {current.map(r => {
               const st = STATUS_STYLE[r.status] ?? { label: r.status, color: '#9CA3AF' };
+              const history = memberInvoices(r);
+              const historyOpen = openHistory === r.key;
               return (
-                <tr key={r.key} className="border-b border-white/[0.04] hover:bg-white/[0.02]">
+                <Fragment key={r.key}>
+                <tr className="border-b border-white/[0.04] hover:bg-white/[0.02]">
                   <td className="px-4 py-3">
                     <p className="font-semibold text-white">{r.username}</p>
                     <p className="text-xs text-gray-500">{r.email}</p>
@@ -349,8 +403,18 @@ export default function SubscribersPage() {
                       {r.label}
                     </span>
                   </td>
+                  <td className="px-4 py-3 text-xs text-gray-400">{fmtDate(r.joinedAt)}</td>
                   <td className="px-4 py-3 font-bold text-white">
                     {fmtPrice(r.amountCents)}{r.kind === 'membership' && <span className="text-[10px] text-gray-500 font-semibold">/mois</span>}
+                    {(() => {
+                      const thisMonth = memberInvoices(r).find(i => i.month === currentMonthKey());
+                      return !thisMonth ? null : (
+                        <span className="block text-[10px] font-semibold text-sky-400/80">
+                          facturé ce mois : {fmtPrice(thisMonth.amount_due_cents)}
+                          {thisMonth.status !== 'paid' && ` (${INVOICE_STATUS_LABEL[thisMonth.status ?? ''] ?? thisMonth.status})`}
+                        </span>
+                      );
+                    })()}
                   </td>
                   <td className="px-4 py-3">
                     <span className="inline-flex items-center gap-1.5 text-xs font-bold px-2 py-1 rounded-lg"
@@ -376,7 +440,13 @@ export default function SubscribersPage() {
                       <span className="block text-[10px] text-sky-400/80">reprise le {fmtDate(r.pauseResumesAt)}</span>
                     )}
                   </td>
-                  <td className="px-4 py-3 text-right">
+                  <td className="px-4 py-3 text-right space-x-2 whitespace-nowrap">
+                    {history.length > 0 && (
+                      <button onClick={() => setOpenHistory(historyOpen ? null : r.key)}
+                        className="inline-flex items-center gap-1 text-xs font-bold text-gray-300 bg-white/5 hover:bg-white/10 rounded-lg px-2.5 py-1.5">
+                        {historyOpen ? <ChevronDown size={13} /> : <ChevronRight size={13} />} Factures
+                      </button>
+                    )}
                     {r.kind === 'membership' && r.hasStripeSub && r.status !== 'cancelled' && (
                       <button onClick={() => togglePause(r)} disabled={actionBusy === r.key}
                         className={`inline-flex items-center gap-1 text-xs font-bold rounded-lg px-2.5 py-1.5 disabled:opacity-50 ${r.paused ? 'text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20' : 'text-sky-400 bg-sky-500/10 hover:bg-sky-500/20'}`}>
@@ -386,10 +456,36 @@ export default function SubscribersPage() {
                     )}
                   </td>
                 </tr>
+                {historyOpen && (
+                  <tr className="border-b border-white/[0.04] bg-black/30">
+                    <td colSpan={8} className="px-4 py-3">
+                      <p className="text-xs font-bold text-gray-400 mb-2">Historique de facturation (montants réellement prélevés)</p>
+                      <div className="space-y-1">
+                        {history.map(inv => (
+                          <div key={inv.id} className="flex items-center gap-3 text-xs">
+                            <span className="w-32 text-gray-400 capitalize">{fmtMonth(inv.month)}</span>
+                            <span className="w-24 font-bold text-white">{fmtPrice(inv.amount_due_cents)}</span>
+                            <span className={inv.status === 'paid' ? 'text-emerald-400' : 'text-amber-400'}>
+                              {INVOICE_STATUS_LABEL[inv.status ?? ''] ?? inv.status}
+                            </span>
+                            <span className="text-gray-600">{fmtDate(inv.created)}</span>
+                            {inv.url && (
+                              <a href={inv.url} target="_blank" rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1 text-gray-400 hover:text-white">
+                                <ExternalLink size={12} /> {inv.number ?? 'Facture'}
+                              </a>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </td>
+                  </tr>
+                )}
+                </Fragment>
               );
             })}
-            {filtered.length === 0 && (
-              <tr><td colSpan={7} className="px-4 py-10 text-center text-sm text-gray-600">
+            {current.length === 0 && (
+              <tr><td colSpan={8} className="px-4 py-10 text-center text-sm text-gray-600">
                 <CreditCard size={22} className="mx-auto mb-2 text-gray-700" />
                 Aucun abonné pour l'instant.
               </td></tr>
@@ -397,6 +493,62 @@ export default function SubscribersPage() {
           </tbody>
         </table>
       </div>
+
+      {/* Anciens membres : abonnements résiliés ou remboursés */}
+      {former.length > 0 && (
+        <div className="space-y-2">
+          <p className="text-sm font-black text-gray-400">Anciens membres ({former.length})</p>
+          <div className="bg-[#111111] border border-white/8 rounded-2xl overflow-hidden opacity-80">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-white/8 text-left">
+                  <th className="px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Membre</th>
+                  <th className="px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Type</th>
+                  <th className="px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Formule / Programme</th>
+                  <th className="px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Inscrit le</th>
+                  <th className="px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Montant</th>
+                  <th className="px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Statut</th>
+                  <th className="px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Fin d'abonnement</th>
+                </tr>
+              </thead>
+              <tbody>
+                {former.map(r => {
+                  const st = STATUS_STYLE[r.status] ?? { label: r.status, color: '#9CA3AF' };
+                  return (
+                    <tr key={r.key} className="border-b border-white/[0.04] hover:bg-white/[0.02]">
+                      <td className="px-4 py-3">
+                        <p className="font-semibold text-gray-300">{r.username}</p>
+                        <p className="text-xs text-gray-600">{r.email}</p>
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-gray-500">
+                          {r.kind === 'membership' ? <Users size={13} /> : <BookOpen size={13} />}
+                          {r.kind === 'membership' ? 'Salle' : 'Programme'}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className="inline-flex items-center gap-2 text-gray-300 font-semibold">
+                          <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: r.color }} />
+                          {r.label}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-xs text-gray-500">{fmtDate(r.joinedAt)}</td>
+                      <td className="px-4 py-3 font-bold text-gray-300">{fmtPrice(r.amountCents)}</td>
+                      <td className="px-4 py-3">
+                        <span className="inline-flex items-center gap-1.5 text-xs font-bold px-2 py-1 rounded-lg"
+                          style={{ color: st.color, backgroundColor: `${st.color}18` }}>
+                          {st.label}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-xs text-gray-500">{fmtDate(r.periodEnd)}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
