@@ -27,6 +27,7 @@ interface Row {
   paused: boolean;
   pauseResumesAt: string | null;
   commitmentEndDate: string | null;
+  joinedAt: string | null;
 }
 
 const REASON_LABEL: Record<string, string> = {
@@ -62,6 +63,23 @@ function fmtDate(iso: string | null) {
   return new Date(iso).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' });
 }
 
+/**
+ * Montant réellement facturé le 1er mois. Le checkout ancre la facturation au
+ * 1er du mois suivant avec `proration_behavior: 'create_prorations'` : Stripe
+ * ne facture que la fraction de mois restante à la souscription. On reproduit
+ * ce calcul (au prorata du temps restant) tant que ce 1er mois court encore.
+ */
+function firstMonthProrataCents(amountCents: number | null, joinedAt: string | null) {
+  if (!amountCents || !joinedAt) return null;
+  const start = new Date(joinedAt);
+  const monthStart = Date.UTC(start.getUTCFullYear(), start.getUTCMonth(), 1);
+  const monthEnd = Date.UTC(start.getUTCFullYear(), start.getUTCMonth() + 1, 1);
+  if (Date.now() >= monthEnd) return null; // le mois d'arrivée est passé : plein tarif
+  const ratio = (monthEnd - start.getTime()) / (monthEnd - monthStart);
+  if (ratio >= 1) return null; // souscrit le 1er : pas de prorata
+  return Math.round(amountCents * ratio);
+}
+
 export default function SubscribersPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
@@ -84,7 +102,7 @@ export default function SubscribersPage() {
     // Abonnements de salle (formules payantes)
     const { data: memberRows } = await supabase
       .from('box_members')
-      .select('id, member_id, subscription_status, subscription_current_period_end, subscription_cancel_at_period_end, subscription_paused, pause_resumes_at, commitment_end_date, plan:membership_plans(name, color, price_cents), profile:profiles(username, email)')
+      .select('id, member_id, joined_at, subscription_status, subscription_current_period_end, subscription_cancel_at_period_end, subscription_paused, pause_resumes_at, commitment_end_date, plan:membership_plans(name, color, price_cents), profile:profiles(username, email)')
       .eq('box_id', box.id)
       .not('subscription_status', 'is', null);
 
@@ -112,7 +130,7 @@ export default function SubscribersPage() {
     // Achats de programmes
     const { data: programRows } = await supabase
       .from('program_members')
-      .select('user_id, amount_cents, status, program:programs!inner(title, box_id), profile:profiles(username, email)')
+      .select('user_id, created_at, amount_cents, status, program:programs!inner(title, box_id), profile:profiles(username, email)')
       .eq('program.box_id', box.id);
 
     const memberships: Row[] = (memberRows ?? []).map((r: any, i: number) => {
@@ -135,6 +153,7 @@ export default function SubscribersPage() {
         paused: !!r.subscription_paused,
         pauseResumesAt: r.pause_resumes_at ?? null,
         commitmentEndDate: r.commitment_end_date ?? null,
+        joinedAt: r.joined_at ?? null,
       };
     });
 
@@ -157,6 +176,7 @@ export default function SubscribersPage() {
         paused: false,
         pauseResumesAt: null,
         commitmentEndDate: null,
+        joinedAt: r.created_at ?? null,
       };
     });
 
@@ -222,6 +242,12 @@ export default function SubscribersPage() {
     if (!q) return true;
     return r.username.toLowerCase().includes(q) || r.email.toLowerCase().includes(q) || r.label.toLowerCase().includes(q);
   });
+
+  // Anciens membres : abonnement résilié / remboursé → tableau séparé pour ne
+  // pas polluer la liste des abonnés en cours.
+  const isFormer = (r: Row) => r.status === 'cancelled' || r.status === 'refunded';
+  const current = filtered.filter(r => !isFormer(r));
+  const former = filtered.filter(isFormer);
 
   const activeCount = rows.filter(r => r.status === 'active').length;
   const mrrCents = rows
@@ -322,6 +348,7 @@ export default function SubscribersPage() {
               <th className="px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Membre</th>
               <th className="px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Type</th>
               <th className="px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Formule / Programme</th>
+              <th className="px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Inscrit le</th>
               <th className="px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Montant</th>
               <th className="px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Statut</th>
               <th className="px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Prochaine échéance</th>
@@ -329,7 +356,7 @@ export default function SubscribersPage() {
             </tr>
           </thead>
           <tbody>
-            {filtered.map(r => {
+            {current.map(r => {
               const st = STATUS_STYLE[r.status] ?? { label: r.status, color: '#9CA3AF' };
               return (
                 <tr key={r.key} className="border-b border-white/[0.04] hover:bg-white/[0.02]">
@@ -349,8 +376,17 @@ export default function SubscribersPage() {
                       {r.label}
                     </span>
                   </td>
+                  <td className="px-4 py-3 text-xs text-gray-400">{fmtDate(r.joinedAt)}</td>
                   <td className="px-4 py-3 font-bold text-white">
                     {fmtPrice(r.amountCents)}{r.kind === 'membership' && <span className="text-[10px] text-gray-500 font-semibold">/mois</span>}
+                    {r.kind === 'membership' && (() => {
+                      const prorata = firstMonthProrataCents(r.amountCents, r.joinedAt);
+                      return prorata === null ? null : (
+                        <span className="block text-[10px] font-semibold text-sky-400/80">
+                          1er mois au prorata : {fmtPrice(prorata)}
+                        </span>
+                      );
+                    })()}
                   </td>
                   <td className="px-4 py-3">
                     <span className="inline-flex items-center gap-1.5 text-xs font-bold px-2 py-1 rounded-lg"
@@ -388,8 +424,8 @@ export default function SubscribersPage() {
                 </tr>
               );
             })}
-            {filtered.length === 0 && (
-              <tr><td colSpan={7} className="px-4 py-10 text-center text-sm text-gray-600">
+            {current.length === 0 && (
+              <tr><td colSpan={8} className="px-4 py-10 text-center text-sm text-gray-600">
                 <CreditCard size={22} className="mx-auto mb-2 text-gray-700" />
                 Aucun abonné pour l'instant.
               </td></tr>
@@ -397,6 +433,62 @@ export default function SubscribersPage() {
           </tbody>
         </table>
       </div>
+
+      {/* Anciens membres : abonnements résiliés ou remboursés */}
+      {former.length > 0 && (
+        <div className="space-y-2">
+          <p className="text-sm font-black text-gray-400">Anciens membres ({former.length})</p>
+          <div className="bg-[#111111] border border-white/8 rounded-2xl overflow-hidden opacity-80">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-white/8 text-left">
+                  <th className="px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Membre</th>
+                  <th className="px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Type</th>
+                  <th className="px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Formule / Programme</th>
+                  <th className="px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Inscrit le</th>
+                  <th className="px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Montant</th>
+                  <th className="px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Statut</th>
+                  <th className="px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Fin d'abonnement</th>
+                </tr>
+              </thead>
+              <tbody>
+                {former.map(r => {
+                  const st = STATUS_STYLE[r.status] ?? { label: r.status, color: '#9CA3AF' };
+                  return (
+                    <tr key={r.key} className="border-b border-white/[0.04] hover:bg-white/[0.02]">
+                      <td className="px-4 py-3">
+                        <p className="font-semibold text-gray-300">{r.username}</p>
+                        <p className="text-xs text-gray-600">{r.email}</p>
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-gray-500">
+                          {r.kind === 'membership' ? <Users size={13} /> : <BookOpen size={13} />}
+                          {r.kind === 'membership' ? 'Salle' : 'Programme'}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className="inline-flex items-center gap-2 text-gray-300 font-semibold">
+                          <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: r.color }} />
+                          {r.label}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-xs text-gray-500">{fmtDate(r.joinedAt)}</td>
+                      <td className="px-4 py-3 font-bold text-gray-300">{fmtPrice(r.amountCents)}</td>
+                      <td className="px-4 py-3">
+                        <span className="inline-flex items-center gap-1.5 text-xs font-bold px-2 py-1 rounded-lg"
+                          style={{ color: st.color, backgroundColor: `${st.color}18` }}>
+                          {st.label}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-xs text-gray-500">{fmtDate(r.periodEnd)}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
