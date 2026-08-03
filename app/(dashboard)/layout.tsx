@@ -4,6 +4,7 @@ import Sidebar from '@/components/layout/Sidebar';
 import TrialBanner from '@/components/TrialBanner';
 import PaywallOverlay from '@/components/PaywallOverlay';
 import MultiBoxUpgradeOverlay from '@/components/MultiBoxUpgradeOverlay';
+import { getOwnerPricing } from '@/lib/owner-pricing';
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const user = await getServerUser();
@@ -85,6 +86,11 @@ export default async function DashboardLayout({ children }: { children: React.Re
     supportAdminUnread = count ?? 0;
   }
 
+  // Resolve Multi-box amounts from Stripe only when the upgrade overlay is shown.
+  const ownerPricing = billing.requiresMulti
+    ? await getOwnerPricing()
+    : { basePrice: 0, extraPerBox: 0 };
+
   return (
     <div className="min-h-screen bg-[#0A0A0A] flex">
       <Sidebar
@@ -113,6 +119,8 @@ export default async function DashboardLayout({ children }: { children: React.Re
           boxName={box.name}
           boxCount={billing.boxCount}
           primaryBoxId={boxes[0]?.id ?? null}
+          basePrice={ownerPricing.basePrice}
+          extraPerBox={ownerPricing.extraPerBox}
         />
       )}
     </div>

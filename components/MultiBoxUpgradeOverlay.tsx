@@ -8,17 +8,16 @@ interface Props {
   boxName: string;
   boxCount: number;
   primaryBoxId: string | null;
+  basePrice: number;
+  extraPerBox: number;
 }
 
-const BASE_PRICE = 49; // € / mois (plan de base, à ajuster si besoin)
-const EXTRA_PER_BOX = 29; // € / mois par box supplémentaire
-
-export default function MultiBoxUpgradeOverlay({ boxName, boxCount, primaryBoxId }: Props) {
+export default function MultiBoxUpgradeOverlay({ boxName, boxCount, primaryBoxId, basePrice, extraPerBox }: Props) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const extraBoxes = Math.max(0, boxCount - 1);
-  const monthly = BASE_PRICE + extraBoxes * EXTRA_PER_BOX;
+  const monthly = basePrice + extraBoxes * extraPerBox;
 
   async function upgrade() {
     setLoading(true);
@@ -65,11 +64,11 @@ export default function MultiBoxUpgradeOverlay({ boxName, boxCount, primaryBoxId
 
         <div className="rounded-xl bg-white/5 border border-white/10 p-4 mb-5 text-left">
           <div className="flex items-center justify-between text-sm text-gray-300 mb-1">
-            <span>Plan de base</span><span>{BASE_PRICE} €</span>
+            <span>Plan de base</span><span>{basePrice} €</span>
           </div>
           <div className="flex items-center justify-between text-sm text-gray-300 mb-2">
-            <span>{extraBoxes} box supplémentaire{extraBoxes > 1 ? 's' : ''} × {EXTRA_PER_BOX} €</span>
-            <span>{extraBoxes * EXTRA_PER_BOX} €</span>
+            <span>{extraBoxes} box supplémentaire{extraBoxes > 1 ? 's' : ''} × {extraPerBox} €</span>
+            <span>{extraBoxes * extraPerBox} €</span>
           </div>
           <div className="flex items-center justify-between text-white font-bold border-t border-white/10 pt-2">
             <span>Total</span><span>{monthly} € / mois</span>
