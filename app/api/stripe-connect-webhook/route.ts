@@ -277,6 +277,13 @@ export async function POST(req: NextRequest) {
             pause_started_at: null, pause_resumes_at: null,
           })
           .eq('stripe_subscription_id', sub.id);
+        // Fin réelle de l'abonnement → l'adhérent n'est plus membre actif : il perd
+        // l'accès gardé par status='active' (créneaux, réservation, WOD de box).
+        // On ne touche pas un membre 'banned' (déjà sans accès, décision de l'owner).
+        await supabase.from('box_members')
+          .update({ status: 'inactive' })
+          .eq('stripe_subscription_id', sub.id)
+          .eq('status', 'active');
         break;
       }
 
