@@ -49,6 +49,18 @@ const config: Config = {
         border: 'hsl(var(--border) / <alpha-value>)',
         input: 'hsl(var(--input) / <alpha-value>)',
         ring: 'hsl(var(--ring) / <alpha-value>)',
+        // landing surfaces — translucent glass used by the pricing / CTA chrome
+        landing: {
+          surface: 'rgba(255,255,255,0.10)',
+          'surface-hover': 'rgba(255,255,255,0.16)',
+          border: 'rgba(255,255,255,0.10)',
+        },
+        // brand accent — emerald, used for glows and the featured plan ring
+        brand: {
+          DEFAULT: '#10B981',
+          light: '#6EE7B7',
+          dark: '#047857',
+        },
         // legacy tokens (back office) — kept until its restyle
         bg:      '#0A0A0A',
         accent2: '#FFFFFF',
