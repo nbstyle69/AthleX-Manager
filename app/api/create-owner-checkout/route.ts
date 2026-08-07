@@ -77,7 +77,7 @@ export async function POST(req: NextRequest) {
       lineItems.push({ price: PRICE_EXTRA, quantity: extraBoxes });
     }
 
-    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://athlex.app';
+    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://the-hub-rho.vercel.app';
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       mode: 'subscription',

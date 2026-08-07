@@ -124,7 +124,13 @@ export default function LoginForm({ audience }: { audience: Audience }) {
           </button>
         </form>
 
-        <p className="text-sm text-gray-400 text-center mt-6">
+        <p className="text-sm text-gray-400 text-center mt-5">
+          <Link href="/reset-password" className="text-white/70 hover:text-white hover:underline">
+            Mot de passe oublié ?
+          </Link>
+        </p>
+
+        <p className="text-sm text-gray-400 text-center mt-4">
           {copy.signupPrompt}{' '}
           <a href={copy.signupHref} className="text-white font-semibold hover:underline">
             {copy.signupCta}

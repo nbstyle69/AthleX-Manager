@@ -87,7 +87,7 @@ export async function POST(req: NextRequest) {
     }
 
     const priceId = billing === 'annual' ? PRICE_ANNUAL : PRICE_MONTHLY;
-    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://athlex.app';
+    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://the-hub-rho.vercel.app';
 
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
