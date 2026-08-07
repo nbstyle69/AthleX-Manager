@@ -28,7 +28,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'No Stripe customer found' }, { status: 404 });
     }
 
-    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://athlex.app';
+    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://the-hub-rho.vercel.app';
 
     const portalSession = await stripe.billingPortal.sessions.create({
       customer: sub.stripe_customer_id,
