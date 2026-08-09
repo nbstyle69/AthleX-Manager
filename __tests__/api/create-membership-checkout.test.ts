@@ -32,8 +32,11 @@ function makeChain(cfg: ChainCfg = {}) {
 let chains: Record<string, any>;
 const fromSpy = jest.fn((table: string) => (chains[table] ??= makeChain()));
 
+const mockGetServerUser = jest.fn();
+
 jest.mock('@/lib/supabase/server', () => ({
   createServiceClient: jest.fn(() => ({ from: fromSpy })),
+  getServerUser: (...args: unknown[]) => mockGetServerUser(...args),
 }));
 
 import { POST } from '../../app/api/create-membership-checkout/route';
@@ -62,12 +65,41 @@ beforeEach(() => {
   jest.clearAllMocks();
   chains = {};
   mockSessionsCreate.mockResolvedValue({ url: 'https://checkout.test/s' });
+  mockGetServerUser.mockResolvedValue(null);
 });
 
 describe('POST /api/create-membership-checkout', () => {
-  it('returns 400 without plan_id or buyer_email', async () => {
+  it('returns 400 without plan_id', async () => {
     const res = (await POST(makeReq({}) as any)) as any;
     expect(res._status).toBe(400);
+  });
+
+  // Lot 7A-bis : le tunnel reste public, mais l'e-mail du body n'attribue rien.
+  it('lets Stripe collect the email for an anonymous buyer (body email not trusted)', async () => {
+    chains.membership_plans = makeChain({ single: { data: plan(), error: null } });
+    chains.boxes = makeChain({ single: { data: BOX, error: null } });
+
+    const res = (await POST(makeReq({ plan_id: 'plan-1', buyer_email: 'victim@b.com' }) as any)) as any;
+
+    expect(res._status).toBe(200);
+    const [params] = mockSessionsCreate.mock.calls[0];
+    expect(params.customer_email).toBeUndefined();
+    expect(params.metadata.user_id).toBeUndefined();
+    expect(params.metadata.submitted_email).toBe('victim@b.com');
+  });
+
+  it('forces the session identity when the buyer is signed in', async () => {
+    mockGetServerUser.mockResolvedValue({ id: 'user-7', email: 'owner@b.com' });
+    chains.membership_plans = makeChain({ single: { data: plan(), error: null } });
+    chains.boxes = makeChain({ single: { data: BOX, error: null } });
+
+    const res = (await POST(makeReq({ plan_id: 'plan-1', buyer_email: 'victim@b.com' }) as any)) as any;
+
+    expect(res._status).toBe(200);
+    const [params] = mockSessionsCreate.mock.calls[0];
+    expect(params.customer_email).toBe('owner@b.com');
+    expect(params.metadata.user_id).toBe('user-7');
+    expect(params.subscription_data.metadata.user_id).toBe('user-7');
   });
 
   it('offers card + SEPA debit on a euro subscription', async () => {

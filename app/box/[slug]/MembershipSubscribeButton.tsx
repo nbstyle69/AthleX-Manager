@@ -23,22 +23,19 @@ export default function MembershipSubscribeButton({
   const oneShot = mode === 'oneshot';
   const cta = oneShot ? 'Acheter' : 'S\'abonner';
   const [open, setOpen] = useState(false);
-  const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   async function handleCheckout() {
-    if (!email.trim()) {
-      setError('Renseigne ton e-mail AthleX.');
-      return;
-    }
     setLoading(true);
     setError(null);
     try {
+      // L'e-mail n'est plus saisi ici : c'est celui du paiement Stripe (ou de la
+      // session si l'acheteur est connecté) qui détermine le compte crédité.
       const res = await fetch('/api/create-membership-checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ plan_id: planId, buyer_email: email.trim() }),
+        body: JSON.stringify({ plan_id: planId }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? 'Erreur de paiement');
@@ -70,8 +67,8 @@ export default function MembershipSubscribeButton({
             <h3 className="text-lg font-black mb-1">{cta} — {planName}</h3>
             <p className="text-xs text-gray-500 mb-5">
               {oneShot
-                ? `${priceLabel} — paiement unique. Utilise l'e-mail de ton compte AthleX : tes crédits de séances s'activent automatiquement après paiement.`
-                : `${priceLabel} — abonnement mensuel. Utilise l'e-mail de ton compte AthleX : ton abonnement et l'accès aux cours s'activent automatiquement dans l'app après paiement.`}
+                ? `${priceLabel} — paiement unique. Utilise l'e-mail de ton compte AthleX au paiement : tes crédits de séances s'activent automatiquement. Pas encore de compte ? Ton achat sera rattaché à ton inscription.`
+                : `${priceLabel} — abonnement mensuel. Utilise l'e-mail de ton compte AthleX au paiement : ton abonnement et l'accès aux cours s'activent automatiquement dans l'app. Pas encore de compte ? Ton abonnement sera rattaché à ton inscription.`}
             </p>
 
             {!oneShot && (
@@ -117,13 +114,6 @@ export default function MembershipSubscribeButton({
               </div>
             )}
 
-            <input
-              type="email"
-              value={email}
-              onChange={e => setEmail(e.target.value)}
-              placeholder="ton@email.com"
-              className="w-full bg-[#0A0A0A] border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-white/30 mb-3"
-            />
             {error && <p className="text-xs text-red-400 mb-3">{error}</p>}
             <button
               onClick={handleCheckout}
