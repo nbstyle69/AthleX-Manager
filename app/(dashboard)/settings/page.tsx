@@ -61,6 +61,13 @@ async function geocodeAddress(address: string): Promise<GeoResult | null> {
   }
 }
 
+/**
+ * Colonnes de `boxes` lues avec le JWT de l'owner. Jamais `*` : la Phase 3
+ * révoque `invite_code`, `stripe_account_id` et `dunning_grace_days` à
+ * `authenticated`. Le délai d'impayé passe par /api/box/dunning.
+ */
+const BOX_SETTINGS_COLUMNS = 'id, owner_id, name, slug, tagline, description, logo_url, cover_url, terms_pdf_url, address, city, postal_code, country, latitude, longitude, phone, contact_email, website_url, instagram_url, google_maps_url, founded_at, is_active, is_listed' as const;
+
 export default function SettingsPage() {
   const supabase = createClient();
   const fileRef = useRef<HTMLInputElement>(null);
@@ -101,7 +108,7 @@ export default function SettingsPage() {
       if (!active) return;
 
       const { data: boxData } = await supabase
-        .from('boxes').select('*').eq('id', active.id).maybeSingle();
+        .from('boxes').select(BOX_SETTINGS_COLUMNS).eq('id', active.id).maybeSingle();
 
       if (!boxData) return;
 
@@ -118,7 +125,11 @@ export default function SettingsPage() {
       setPhone(boxData.phone ?? '');
       setGoogleMapsUrl(boxData.google_maps_url ?? '');
       setFoundedAt(boxData.founded_at ?? '');
-      setDunningGraceDays(String(boxData.dunning_grace_days ?? 7));
+      const dunningRes = await fetch('/api/box/dunning');
+      if (dunningRes.ok) {
+        const dunning = await dunningRes.json();
+        setDunningGraceDays(String(dunning.dunning_grace_days ?? 7));
+      }
 
       // Fetch owner + coaches in parallel
       const [ownerRes, coachRes] = await Promise.all([
@@ -373,7 +384,6 @@ export default function SettingsPage() {
       phone: phone.trim() || null,
       google_maps_url: googleMapsUrl.trim() || null,
       founded_at: foundedAt || null,
-      dunning_grace_days: graceDays,
     };
 
     // Coordonnées pour l'affichage sur la carte (app mobile + page publique).
@@ -404,8 +414,20 @@ export default function SettingsPage() {
       payload.longitude = null;
     }
 
+    const dunningRes = await fetch('/api/box/dunning', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ dunning_grace_days: graceDays }),
+    });
+    if (!dunningRes.ok) {
+      const json = await dunningRes.json().catch(() => ({ error: 'Erreur' }));
+      alert(`Erreur: ${json.error ?? 'délai avant suspension non enregistré'}`);
+      setSavingInfo(false);
+      return;
+    }
+
     const { data: updated, error } = await supabase.from('boxes')
-      .update(payload).eq('id', box.id).select('*').maybeSingle();
+      .update(payload).eq('id', box.id).select(BOX_SETTINGS_COLUMNS).maybeSingle();
 
     if (error || !updated) {
       alert(`Erreur: ${error?.message ?? 'aucune ligne modifiée (droits insuffisants)'}`);

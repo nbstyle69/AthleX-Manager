@@ -49,9 +49,17 @@ export async function getServerProfile(supabase: Awaited<ReturnType<typeof creat
 
 type BoxRow = {
   id: string; name: string; slug: string; owner_id: string;
-  city: string | null; plan: string; logo_url: string | null;
+  city: string | null; logo_url: string | null;
   is_active: boolean; created_at: string;
 };
+
+/**
+ * Colonnes de `boxes` lues avec le JWT de l'utilisateur. Jamais `*` : la Phase 3
+ * révoque `invite_code`, `stripe_account_id` et `dunning_grace_days` à
+ * `authenticated`, et une étoile tomberait alors en 42501 pour tout le tableau.
+ * Le code d'invitation passe par `get_my_box_invite_code`.
+ */
+const BOX_ROW_COLUMNS = 'id, name, slug, owner_id, city, logo_url, is_active, created_at';
 
 export const ACTIVE_BOX_COOKIE = 'active_box_id';
 
@@ -70,7 +78,7 @@ export async function getOwnerBoxes(
 
   // 1. Primary owner (boxes.owner_id)
   const { data: owned } = await supabase
-    .from('boxes').select('*').eq('owner_id', uid);
+    .from('boxes').select(BOX_ROW_COLUMNS).eq('owner_id', uid);
   for (const b of (owned ?? []) as BoxRow[]) byId.set(b.id, b);
 
   // 2. Co-owner (box_members.role = 'owner')
@@ -82,7 +90,7 @@ export async function getOwnerBoxes(
     .filter((id) => !byId.has(id));
   if (coIds.length > 0) {
     const { data: coBoxes } = await supabase
-      .from('boxes').select('*').in('id', coIds);
+      .from('boxes').select(BOX_ROW_COLUMNS).in('id', coIds);
     for (const b of (coBoxes ?? []) as BoxRow[]) byId.set(b.id, b);
   }
 

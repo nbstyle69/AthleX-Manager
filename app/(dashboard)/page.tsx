@@ -17,6 +17,9 @@ export default async function DashboardPage() {
     supabase.from('message_groups').select('id').eq('box_id', box.id),
     supabase.auth.getUser(),
   ]);
+  // Le code d'invitation n'est plus lu sur `boxes` (Phase 3 le révoque à
+  // `authenticated`) : la RPC ne le rend qu'aux admins de la box.
+  const { data: inviteCode } = await supabase.rpc('get_my_box_invite_code', { p_box_id: box.id });
   const tournamentIds = (boxTournaments ?? []).map((t: any) => t.id);
   const groupIds = (boxGroups ?? []).map((g: any) => g.id);
   const ownerId = authUser?.id ?? '';
@@ -98,8 +101,8 @@ export default async function DashboardPage() {
       </div>
 
       {/* Invite code */}
-      {(box as any).invite_code && (
-        <InviteCodeWidget initialCode={(box as any).invite_code} boxName={box.name} />
+      {inviteCode && (
+        <InviteCodeWidget initialCode={inviteCode} boxName={box.name} />
       )}
 
       {/* Logo upload */}

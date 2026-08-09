@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { ArrowLeft, Loader2, UserPlus, UserMinus, Users2, MessageSquare, Search, SlidersHorizontal, X, Pencil, Check } from 'lucide-react';
 import { getMyBox } from '@/lib/getMyBox';
+import { getMemberEmails } from '@/lib/memberEmails';
 
 const COLORS = [
   '#FFFFFF', '#8B5CF6', '#EC4899', '#EF4444',
@@ -62,7 +63,7 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
     const [{ data: grp }, { data: boxMembers }, { data: groups }] = await Promise.all([
       supabase.from('message_groups').select('id, name, color, wod_visibility_mode, members').eq('id', groupId).single(),
       supabase.from('box_members')
-        .select('member_id, profiles(id, username, level, email, elo)')
+        .select('member_id, profiles(id, username, level, elo)')
         .eq('box_id', box.id).eq('status', 'active'),
       supabase.from('message_groups').select('id, name, color, members').eq('box_id', box.id),
     ]);
@@ -83,12 +84,14 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
     const groupMap: Record<string, { id: string; name: string; color: string }> = {};
     for (const g of groups ?? []) groupMap[g.id] = g;
 
+    const emails = await getMemberEmails(supabase, box.id);
+
     const toMember = (m: any): Member | null => {
       const p = Array.isArray(m.profiles) ? m.profiles[0] : m.profiles;
       if (!p) return null;
       const memberGroups = (membershipMap[p.id] ?? [])
         .map((gid: string) => groupMap[gid]).filter(Boolean);
-      return { id: p.id, username: p.username ?? '?', level: p.level ?? 'rx', email: p.email ?? '', elo: p.elo ?? 1000, groups: memberGroups };
+      return { id: p.id, username: p.username ?? '?', level: p.level ?? 'rx', email: emails.get(p.id) ?? '', elo: p.elo ?? 1000, groups: memberGroups };
     };
 
     const allMapped = (boxMembers ?? []).map(toMember).filter(Boolean) as Member[];
