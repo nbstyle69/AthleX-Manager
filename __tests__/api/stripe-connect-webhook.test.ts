@@ -69,7 +69,7 @@ describe('POST /api/stripe-connect-webhook', () => {
     chains.box_members = makeChain({ maybeSingle: { data: { id: 'bm-1' } }, awaited: { error: null } });
     mockConstructEvent.mockReturnValue({
       type: 'checkout.session.completed',
-      data: { object: { id: 'cs_1', subscription: 'sub_1', metadata: { kind: 'membership', plan_id: 'plan-1', box_id: 'box-1', buyer_email: 'a@b.com' } } },
+      data: { object: { id: 'cs_1', customer_details: { email: 'a@b.com' }, subscription: 'sub_1', metadata: { kind: 'membership', plan_id: 'plan-1', box_id: 'box-1' } } },
     });
 
     const res = (await POST(makeReq() as any)) as any;
@@ -86,7 +86,7 @@ describe('POST /api/stripe-connect-webhook', () => {
     chains.box_members = makeChain({ maybeSingle: { data: null }, awaited: { error: null } });
     mockConstructEvent.mockReturnValue({
       type: 'checkout.session.completed',
-      data: { object: { id: 'cs_1', subscription: 'sub_1', metadata: { kind: 'membership', plan_id: 'plan-1', box_id: 'box-1', buyer_email: 'a@b.com' } } },
+      data: { object: { id: 'cs_1', customer_details: { email: 'a@b.com' }, subscription: 'sub_1', metadata: { kind: 'membership', plan_id: 'plan-1', box_id: 'box-1' } } },
     });
 
     const res = (await POST(makeReq() as any)) as any;
@@ -97,12 +97,13 @@ describe('POST /api/stripe-connect-webhook', () => {
     );
   });
 
-  it('skips the membership write when no profile matches the buyer email', async () => {
+  it('parks a pending entitlement when no profile matches the verified email', async () => {
     chains.profiles = makeChain({ maybeSingle: { data: null } });
     chains.box_members = makeChain();
+    chains.pending_entitlements = makeChain({ awaited: { error: null } });
     mockConstructEvent.mockReturnValue({
       type: 'checkout.session.completed',
-      data: { object: { id: 'cs_1', metadata: { kind: 'membership', plan_id: 'plan-1', box_id: 'box-1', buyer_email: 'ghost@b.com' } } },
+      data: { object: { id: 'cs_1', customer_details: { email: 'Ghost@B.com' }, metadata: { kind: 'membership', plan_id: 'plan-1', box_id: 'box-1' } } },
     });
 
     const res = (await POST(makeReq() as any)) as any;
@@ -110,6 +111,113 @@ describe('POST /api/stripe-connect-webhook', () => {
     expect(res._status).toBe(200);
     expect(chains.box_members.insert).not.toHaveBeenCalled();
     expect(chains.box_members.update).not.toHaveBeenCalled();
+    expect(chains.pending_entitlements.insert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        email: 'ghost@b.com',
+        kind: 'membership',
+        stripe_checkout_session_id: 'cs_1',
+        payload: expect.objectContaining({ box_id: 'box-1', plan_id: 'plan-1' }),
+      }),
+    );
+  });
+
+  it('attributes to metadata.user_id and ignores the email lookup when the buyer was signed in', async () => {
+    chains.profiles = makeChain({ maybeSingle: { data: { id: 'user-9' } } });
+    chains.box_members = makeChain({ maybeSingle: { data: null }, awaited: { error: null } });
+    mockConstructEvent.mockReturnValue({
+      type: 'checkout.session.completed',
+      data: {
+        object: {
+          id: 'cs_1',
+          customer_details: { email: 'someone.else@b.com' },
+          metadata: { kind: 'membership', plan_id: 'plan-1', box_id: 'box-1', user_id: 'user-9', submitted_email: 'victim@b.com' },
+        },
+      },
+    });
+
+    const res = (await POST(makeReq() as any)) as any;
+
+    expect(res._status).toBe(200);
+    expect(chains.box_members.insert).toHaveBeenCalledWith(
+      expect.objectContaining({ member_id: 'user-9' }),
+    );
+    // Identité prise sur user_id : aucune résolution par e-mail (ilike).
+    expect(chains.profiles.ilike).not.toHaveBeenCalled();
+  });
+
+  it('never attributes to the submitted email when it differs from the Stripe one', async () => {
+    const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    chains.profiles = makeChain({ maybeSingle: { data: { id: 'user-1' } } });
+    chains.box_members = makeChain({ maybeSingle: { data: null }, awaited: { error: null } });
+    mockConstructEvent.mockReturnValue({
+      type: 'checkout.session.completed',
+      data: {
+        object: {
+          id: 'cs_1',
+          customer_details: { email: 'payer@b.com' },
+          metadata: { kind: 'membership', plan_id: 'plan-1', box_id: 'box-1', submitted_email: 'victim@b.com' },
+        },
+      },
+    });
+
+    const res = (await POST(makeReq() as any)) as any;
+
+    expect(res._status).toBe(200);
+    expect(chains.profiles.ilike).toHaveBeenCalledWith('email', 'payer@b.com');
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('Buyer email mismatch'));
+    warn.mockRestore();
+  });
+
+  it('parks a pending credit pack instead of dropping the purchase', async () => {
+    chains.profiles = makeChain({ maybeSingle: { data: null } });
+    chains.member_class_credits = makeChain();
+    chains.pending_entitlements = makeChain({ awaited: { error: null } });
+    mockConstructEvent.mockReturnValue({
+      type: 'checkout.session.completed',
+      data: { object: { id: 'cs_2', customer_details: { email: 'ghost@b.com' }, payment_intent: 'pi_1', metadata: { kind: 'credit', box_id: 'box-1', credits: '10', validity_days: '90' } } },
+    });
+
+    const res = (await POST(makeReq() as any)) as any;
+
+    expect(res._status).toBe(200);
+    expect(chains.member_class_credits.insert).not.toHaveBeenCalled();
+    expect(chains.pending_entitlements.insert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        kind: 'credit',
+        payload: expect.objectContaining({ credits: 10, validity_days: 90 }),
+      }),
+    );
+  });
+
+  it('parks a pending program purchase instead of dropping it', async () => {
+    chains.profiles = makeChain({ maybeSingle: { data: null } });
+    chains.program_members = makeChain();
+    chains.pending_entitlements = makeChain({ awaited: { error: null } });
+    mockConstructEvent.mockReturnValue({
+      type: 'checkout.session.completed',
+      data: { object: { id: 'cs_3', customer_details: { email: 'ghost@b.com' }, payment_intent: 'pi_1', metadata: { kind: 'program', program_id: 'prog-1' } } },
+    });
+
+    const res = (await POST(makeReq() as any)) as any;
+
+    expect(res._status).toBe(200);
+    expect(chains.program_members.upsert).not.toHaveBeenCalled();
+    expect(chains.pending_entitlements.insert).toHaveBeenCalledWith(
+      expect.objectContaining({ kind: 'program', payload: expect.objectContaining({ program_id: 'prog-1' }) }),
+    );
+  });
+
+  it('treats a duplicate pending entitlement (23505) as success', async () => {
+    chains.profiles = makeChain({ maybeSingle: { data: null } });
+    chains.pending_entitlements = makeChain({ awaited: { error: { code: '23505', message: 'dup' } } });
+    mockConstructEvent.mockReturnValue({
+      type: 'checkout.session.completed',
+      data: { object: { id: 'cs_1', customer_details: { email: 'ghost@b.com' }, metadata: { kind: 'membership', plan_id: 'plan-1', box_id: 'box-1' } } },
+    });
+
+    const res = (await POST(makeReq() as any)) as any;
+
+    expect(res._status).toBe(200);
   });
 
   it('activates a credit pack on a credit checkout', async () => {
@@ -117,7 +225,7 @@ describe('POST /api/stripe-connect-webhook', () => {
     chains.member_class_credits = makeChain({ awaited: { error: null } });
     mockConstructEvent.mockReturnValue({
       type: 'checkout.session.completed',
-      data: { object: { id: 'cs_1', payment_intent: 'pi_1', metadata: { kind: 'credit', box_id: 'box-1', buyer_email: 'a@b.com', credits: '10', validity_days: '90' } } },
+      data: { object: { id: 'cs_1', customer_details: { email: 'a@b.com' }, payment_intent: 'pi_1', metadata: { kind: 'credit', box_id: 'box-1', credits: '10', validity_days: '90' } } },
     });
 
     const res = (await POST(makeReq() as any)) as any;
@@ -133,7 +241,7 @@ describe('POST /api/stripe-connect-webhook', () => {
     chains.member_class_credits = makeChain({ awaited: { error: { code: '23505', message: 'dup' } } });
     mockConstructEvent.mockReturnValue({
       type: 'checkout.session.completed',
-      data: { object: { id: 'cs_1', payment_intent: 'pi_1', metadata: { kind: 'credit', box_id: 'box-1', buyer_email: 'a@b.com', credits: '10', validity_days: '90' } } },
+      data: { object: { id: 'cs_1', customer_details: { email: 'a@b.com' }, payment_intent: 'pi_1', metadata: { kind: 'credit', box_id: 'box-1', credits: '10', validity_days: '90' } } },
     });
 
     const res = (await POST(makeReq() as any)) as any;
@@ -146,7 +254,7 @@ describe('POST /api/stripe-connect-webhook', () => {
     chains.program_members = makeChain({ awaited: { error: null } });
     mockConstructEvent.mockReturnValue({
       type: 'checkout.session.completed',
-      data: { object: { id: 'cs_1', payment_intent: 'pi_1', metadata: { kind: 'program', program_id: 'prog-1', buyer_email: 'a@b.com' } } },
+      data: { object: { id: 'cs_1', customer_details: { email: 'a@b.com' }, payment_intent: 'pi_1', metadata: { kind: 'program', program_id: 'prog-1' } } },
     });
 
     const res = (await POST(makeReq() as any)) as any;
@@ -327,7 +435,7 @@ describe('POST /api/stripe-connect-webhook', () => {
     chains.box_members = makeChain({ maybeSingle: { data: { id: 'bm-1' } }, awaited: { error: { message: 'boom' } } });
     mockConstructEvent.mockReturnValue({
       type: 'checkout.session.completed',
-      data: { object: { id: 'cs_1', subscription: 'sub_1', metadata: { kind: 'membership', plan_id: 'plan-1', box_id: 'box-1', buyer_email: 'a@b.com' } } },
+      data: { object: { id: 'cs_1', customer_details: { email: 'a@b.com' }, subscription: 'sub_1', metadata: { kind: 'membership', plan_id: 'plan-1', box_id: 'box-1' } } },
     });
 
     const res = (await POST(makeReq() as any)) as any;

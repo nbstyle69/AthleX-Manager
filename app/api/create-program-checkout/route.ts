@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
-import { createServiceClient } from '@/lib/supabase/server';
+import { createServiceClient, getServerUser } from '@/lib/supabase/server';
+import { buyerIdentity, customerEmailField, identityMetadata } from '@/lib/buyerIdentity';
 
 function getStripe() {
   return new Stripe(process.env.STRIPE_SECRET_KEY!, {
@@ -24,9 +25,14 @@ export async function POST(req: NextRequest) {
   try {
     const { program_id, buyer_email } = await req.json();
 
-    if (!program_id || !buyer_email) {
-      return NextResponse.json({ error: 'program_id and buyer_email required' }, { status: 400 });
+    if (!program_id) {
+      return NextResponse.json({ error: 'program_id required' }, { status: 400 });
     }
+
+    // Tunnel PUBLIC : pas d'auth exigée, mais le buyer_email du body n'attribue
+    // plus rien (voir lib/buyerIdentity).
+    const sessionUser = await getServerUser();
+    const identity = buyerIdentity(sessionUser, buyer_email);
 
     const supabase = createServiceClient();
 
@@ -116,20 +122,20 @@ export async function POST(req: NextRequest) {
       {
         mode: isSubscription ? 'subscription' : 'payment',
         payment_method_types: ['card'],
-        customer_email: buyer_email,
+        ...customerEmailField(identity),
         allow_promotion_codes: true,
         line_items: [{ price: priceId, quantity: 1 }],
         ...(isSubscription
           ? {
               subscription_data: {
                 application_fee_percent: PLATFORM_FEE_PERCENT,
-                metadata: { program_id: p.id, box_id: p.box_id, buyer_email },
+                metadata: { program_id: p.id, box_id: p.box_id, ...identityMetadata(identity) },
               },
             }
           : {
               payment_intent_data: {
                 application_fee_amount: feeAmount,
-                metadata: { program_id: p.id, box_id: p.box_id, buyer_email },
+                metadata: { program_id: p.id, box_id: p.box_id, ...identityMetadata(identity) },
               },
             }),
         success_url: `${baseUrl}${successBase}?purchase=success`,
@@ -138,7 +144,7 @@ export async function POST(req: NextRequest) {
           kind: 'program',
           program_id: p.id,
           box_id: p.box_id,
-          buyer_email,
+          ...identityMetadata(identity),
           amount_cents: String(p.price_cents),
           platform_fee_cents: String(feeAmount),
         },

@@ -52,6 +52,77 @@ export async function POST(req: NextRequest) {
     return (data as { id?: string } | null)?.id ?? null;
   }
 
+  /**
+   * Lot 7A-bis — à qui appartient l'achat.
+   * `metadata.user_id` (acheteur connecté) fait foi ; sinon l'e-mail **vérifié
+   * par Stripe au paiement**. Le `submitted_email` du formulaire public ne sert
+   * plus qu'à journaliser un écart : il n'attribue rien.
+   */
+  async function resolveBuyer(session: Stripe.Checkout.Session): Promise<{
+    userId: string | null;
+    email: string | null;
+  }> {
+    const verifiedEmail =
+      session.customer_details?.email ?? session.customer_email ?? null;
+    const submitted = session.metadata?.submitted_email ?? null;
+    if (submitted && verifiedEmail && submitted.toLowerCase() !== verifiedEmail.toLowerCase()) {
+      console.warn(
+        `Buyer email mismatch on session ${session.id}: submitted=${submitted} verified=${verifiedEmail} — attributing to the verified email.`,
+      );
+    }
+
+    const metaUserId = session.metadata?.user_id ?? null;
+    if (metaUserId) {
+      // La metadata est posée serveur depuis la session : on confirme quand même
+      // que le profil existe avant d'écrire.
+      const { data } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('id', metaUserId)
+        .maybeSingle();
+      if ((data as { id?: string } | null)?.id) {
+        return { userId: metaUserId, email: verifiedEmail };
+      }
+      console.warn(`Session ${session.id} carries unknown user_id ${metaUserId} — falling back to the Stripe email.`);
+    }
+
+    return { userId: await resolveUserId(verifiedEmail), email: verifiedEmail };
+  }
+
+  /**
+   * Paiement encaissé pour un e-mail sans compte : l'achat est déposé en attente
+   * et réclamé automatiquement à la création du profil (trigger
+   * trg_profiles_claim_pending_entitlements). Avant, il était simplement perdu.
+   */
+  async function parkPendingEntitlement(
+    kind: 'membership' | 'credit' | 'program',
+    email: string | null,
+    sessionId: string,
+    payload: Record<string, unknown>,
+  ): Promise<NextResponse | null> {
+    if (!email) {
+      console.error(`Cannot park ${kind} purchase for session ${sessionId}: no verified email on the Stripe session.`);
+      return null;
+    }
+    const { error } = await supabase.from('pending_entitlements').insert({
+      email: email.toLowerCase(),
+      kind,
+      payload,
+      stripe_checkout_session_id: sessionId,
+    });
+    if (error) {
+      // Rejeu du même événement : la contrainte unique sur la session tient.
+      if (error.code === '23505') {
+        console.log(`Pending ${kind} for session ${sessionId} already parked — skipping duplicate.`);
+        return null;
+      }
+      console.error(`pending_entitlements insert failed for session ${sessionId}:`, error.message);
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+    console.log(`Pending ${kind} parked for ${email} (session ${sessionId}) — will be claimed at signup.`);
+    return null;
+  }
+
   try {
     switch (event.type) {
       case 'checkout.session.completed': {
@@ -61,18 +132,12 @@ export async function POST(req: NextRequest) {
         if (session.metadata?.kind === 'membership') {
           const planId = session.metadata.plan_id;
           const boxId = session.metadata.box_id;
-          const buyerEmail = session.metadata.buyer_email ?? session.customer_email ?? null;
           const amountCents = Number(session.metadata.amount_cents ?? 0) || null;
           const feeCents = Number(session.metadata.platform_fee_cents ?? 0) || null;
           if (!planId || !boxId) break;
 
           const commitmentMonths = Number(session.metadata.commitment_months ?? 0) || 0;
-
-          const userId = await resolveUserId(buyerEmail);
-          if (!userId) {
-            console.warn(`Membership purchase without matching profile: ${buyerEmail}`);
-            break;
-          }
+          const { userId, email: buyerEmail } = await resolveBuyer(session);
 
           // Fige la fin d'engagement à la souscription (NULL = sans engagement).
           const commitmentEnd = commitmentMonths > 0
@@ -116,6 +181,21 @@ export async function POST(req: NextRequest) {
             subscription_paused: false,
           };
 
+          if (!userId) {
+            const parked = await parkPendingEntitlement('membership', buyerEmail, session.id, {
+              box_id: boxId,
+              plan_id: planId,
+              stripe_subscription_id: patch.stripe_subscription_id,
+              subscription_current_period_end: periodEnd,
+              amount_cents: amountCents,
+              platform_fee_cents: feeCents,
+              commitment_end_date: commitmentEnd,
+              payment_method_type: paymentMethodType,
+            });
+            if (parked) return parked;
+            break;
+          }
+
           const { data: existing } = await supabase.from('box_members')
             .select('id')
             .eq('box_id', boxId)
@@ -140,14 +220,20 @@ export async function POST(req: NextRequest) {
         if (session.metadata?.kind === 'credit') {
           const planId = session.metadata.plan_id ?? null;
           const boxId = session.metadata.box_id;
-          const buyerEmail = session.metadata.buyer_email ?? session.customer_email ?? null;
           const credits = Number(session.metadata.credits ?? 0);
           const validityDays = Number(session.metadata.validity_days ?? 0);
           if (!boxId || credits <= 0 || validityDays <= 0) break;
 
-          const userId = await resolveUserId(buyerEmail);
+          const { userId, email: buyerEmail } = await resolveBuyer(session);
           if (!userId) {
-            console.warn(`Credit purchase without matching profile: ${buyerEmail}`);
+            const parked = await parkPendingEntitlement('credit', buyerEmail, session.id, {
+              box_id: boxId,
+              plan_id: planId,
+              credits,
+              validity_days: validityDays,
+              stripe_payment_intent: (session.payment_intent as string) ?? null,
+            });
+            if (parked) return parked;
             break;
           }
 
@@ -222,16 +308,21 @@ export async function POST(req: NextRequest) {
         if (session.metadata?.kind !== 'program') break;
 
         const programId = session.metadata.program_id;
-        const buyerEmail = session.metadata.buyer_email ?? session.customer_email ?? null;
         const amountCents = Number(session.metadata.amount_cents ?? 0) || null;
         const feeCents = Number(session.metadata.platform_fee_cents ?? 0) || null;
         if (!programId) break;
 
-        const userId = await resolveUserId(buyerEmail);
+        const { userId, email: buyerEmail } = await resolveBuyer(session);
         if (!userId) {
-          // L'acheteur n'a pas (encore) de compte app : on garde une trace pending
-          // par email pour réconciliation ultérieure côté app.
-          console.warn(`Program purchase without matching profile: ${buyerEmail}`);
+          // L'acheteur n'a pas (encore) de compte : l'achat attend son inscription.
+          const parked = await parkPendingEntitlement('program', buyerEmail, session.id, {
+            program_id: programId,
+            amount_cents: amountCents,
+            platform_fee_cents: feeCents,
+            stripe_subscription_id: (session.subscription as string) ?? null,
+            stripe_payment_intent: (session.payment_intent as string) ?? null,
+          });
+          if (parked) return parked;
           break;
         }
 

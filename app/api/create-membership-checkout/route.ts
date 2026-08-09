@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
-import { createServiceClient } from '@/lib/supabase/server';
+import { createServiceClient, getServerUser } from '@/lib/supabase/server';
+import { buyerIdentity, customerEmailField, identityMetadata } from '@/lib/buyerIdentity';
 
 function getStripe() {
   return new Stripe(process.env.STRIPE_SECRET_KEY!, {
@@ -45,9 +46,15 @@ export async function POST(req: NextRequest) {
   try {
     const { plan_id, buyer_email } = await req.json();
 
-    if (!plan_id || !buyer_email) {
-      return NextResponse.json({ error: 'plan_id and buyer_email required' }, { status: 400 });
+    if (!plan_id) {
+      return NextResponse.json({ error: 'plan_id required' }, { status: 400 });
     }
+
+    // Tunnel PUBLIC : aucune auth exigée. Mais l'e-mail du body n'attribue plus
+    // rien — soit l'acheteur est connecté (on impose son e-mail de session et on
+    // pose user_id), soit Stripe collecte et vérifie l'e-mail au paiement.
+    const sessionUser = await getServerUser();
+    const identity = buyerIdentity(sessionUser, buyer_email);
 
     const supabase = createServiceClient();
 
@@ -113,7 +120,7 @@ export async function POST(req: NextRequest) {
         {
           mode: 'payment',
           payment_method_types: ['card'],
-          customer_email: buyer_email,
+          ...customerEmailField(identity),
           allow_promotion_codes: true,
           line_items: [
             {
@@ -138,7 +145,7 @@ export async function POST(req: NextRequest) {
             plan_type: planType,
             plan_id: p.id,
             box_id: p.box_id,
-            buyer_email,
+            ...identityMetadata(identity),
             credits: String(credits),
             validity_days: String(validityDays),
             amount_cents: String(p.price_cents),
@@ -186,7 +193,7 @@ export async function POST(req: NextRequest) {
       {
         mode: 'subscription',
         payment_method_types: subscriptionPaymentMethods(p.currency || 'eur'),
-        customer_email: buyer_email,
+        ...customerEmailField(identity),
         allow_promotion_codes: true,
         line_items: [{ price: priceId, quantity: 1 }],
         subscription_data: {
@@ -197,7 +204,7 @@ export async function POST(req: NextRequest) {
           ...(MEMBERSHIP_FEE_PERCENT > 0
             ? { application_fee_percent: MEMBERSHIP_FEE_PERCENT }
             : {}),
-          metadata: { plan_id: p.id, box_id: p.box_id, buyer_email },
+          metadata: { plan_id: p.id, box_id: p.box_id, ...identityMetadata(identity) },
         },
         success_url: `${baseUrl}${successBase}?subscription=success`,
         cancel_url: `${baseUrl}${successBase}?subscription=cancel`,
@@ -205,7 +212,7 @@ export async function POST(req: NextRequest) {
           kind: 'membership',
           plan_id: p.id,
           box_id: p.box_id,
-          buyer_email,
+          ...identityMetadata(identity),
           amount_cents: String(p.price_cents),
           platform_fee_cents: String(feeAmount),
           commitment_months: String(p.commitment_months ?? 0),
