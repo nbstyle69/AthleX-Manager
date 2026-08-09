@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation';
-import { createClient, getServerUser } from '@/lib/supabase/server';
+import { cookies } from 'next/headers';
+import { createClient, getServerUser, getActiveBox, ACTIVE_BOX_COOKIE } from '@/lib/supabase/server';
 import OwnerSupport from '@/components/support/OwnerSupport';
 
 export default async function SupportPage() {
@@ -8,15 +9,17 @@ export default async function SupportPage() {
 
   const supabase = await createClient();
 
-  // Resolve the box this user is staff of (owner or coach).
-  const { data: owned } = await supabase.from('boxes').select('id').eq('owner_id', user.id).maybeSingle();
-  let boxId = owned?.id ?? null;
+  // Owner / co-owner : la box active du back-office. Coach : sa box de staff,
+  // en respectant la box active quand il en encadre plusieurs.
+  const active = await getActiveBox(supabase, user.id);
+  let boxId = active?.id ?? null;
   if (!boxId) {
-    const { data: membership } = await supabase
+    const { data: memberships } = await supabase
       .from('box_members').select('box_id')
-      .eq('member_id', user.id).in('role', ['owner', 'coach']).eq('status', 'active')
-      .maybeSingle();
-    boxId = membership?.box_id ?? null;
+      .eq('member_id', user.id).in('role', ['owner', 'coach']).eq('status', 'active');
+    const ids = (memberships ?? []).map((m) => (m as { box_id: string }).box_id);
+    const wanted = (await cookies()).get(ACTIVE_BOX_COOKIE)?.value;
+    boxId = (wanted && ids.includes(wanted) ? wanted : ids[0]) ?? null;
   }
 
   if (!boxId) {

@@ -9,6 +9,7 @@ import {
   Check, Download, UserPlus, Search, AlertTriangle, AlertCircle,
 } from 'lucide-react';
 import { getMyBox } from '@/lib/getMyBox';
+import { writeFailure } from '@/lib/writeGuard';
 
 interface Participant {
   reservation_id: string;
@@ -316,12 +317,14 @@ export default function SchedulesPage() {
     const next = current === true ? false : true;
     setTogglingAtt(reservationId);
     setParticipants(prev => prev.map(p => p.reservation_id === reservationId ? { ...p, attended: next } : p));
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('class_reservations')
       .update({ attended: next })
-      .eq('id', reservationId);
-    if (error) {
-      alert('Erreur : ' + error.message);
+      .eq('id', reservationId)
+      .select('id');
+    const fail = writeFailure(error, data);
+    if (fail) {
+      alert('Erreur : ' + fail);
       setParticipants(prev => prev.map(p => p.reservation_id === reservationId ? { ...p, attended: current } : p));
     }
     setTogglingAtt(null);
@@ -365,7 +368,10 @@ export default function SchedulesPage() {
 
   async function addMemberToSlot(memberId: string, username: string, email: string) {
     if (!detailItem || !boxId) return;
-    const { error } = await supabase
+    // La capacité est arbitrée en base (trigger enforce_reservation_capacity),
+    // qui bascule la ligne en 'waiting' quand le créneau est plein : on relit le
+    // statut réellement enregistré plutôt que d'afficher un « confirmé » faux.
+    const { data: inserted, error } = await supabase
       .from('class_reservations')
       .insert({
         schedule_id: detailItem.id,
@@ -373,15 +379,21 @@ export default function SchedulesPage() {
         box_id: boxId,
         status: 'confirmed',
         attended: true,
-      });
+      })
+      .select('id, status')
+      .single();
     if (error) {
       if (error.code === '23505') alert('Ce membre est déjà inscrit à ce créneau.');
       else alert('Erreur : ' + error.message);
       return;
     }
+    const savedStatus = inserted?.status ?? 'confirmed';
+    if (savedStatus !== 'confirmed') {
+      alert(`Créneau complet (${detailItem.max_capacity} places) : ${username} est placé en liste d'attente.`);
+    }
     setParticipants(prev => [
       ...prev,
-      { reservation_id: `tmp-${memberId}`, member_id: memberId, username, email, status: 'confirmed', attended: true, created_at: new Date().toISOString() },
+      { reservation_id: inserted?.id ?? `tmp-${memberId}`, member_id: memberId, username, email, status: savedStatus, attended: savedStatus === 'confirmed', created_at: new Date().toISOString() },
     ]);
     setAddMemberOpen(false);
     setMemberSearch('');
@@ -391,7 +403,14 @@ export default function SchedulesPage() {
   async function kickMember(reservationId: string) {
     if (!confirm('Retirer ce membre du créneau ?')) return;
     setKicking(reservationId);
-    await supabase.from('class_reservations').delete().eq('id', reservationId);
+    const { data, error } = await supabase
+      .from('class_reservations').delete().eq('id', reservationId).select('id');
+    const fail = writeFailure(error, data);
+    if (fail) {
+      alert(`Impossible de retirer ce membre : ${fail}`);
+      setKicking(null);
+      return;
+    }
     setParticipants(prev => prev.filter(p => p.reservation_id !== reservationId));
     // Update counts in schedule list
     if (detailItem) {
@@ -416,7 +435,10 @@ export default function SchedulesPage() {
 
   async function handleDelete(item: ClassSchedule) {
     if (!confirm(`Supprimer « ${item.title} — ${item.start_time} » ?`)) return;
-    await supabase.from('class_schedules').delete().eq('id', item.id);
+    const { data, error } = await supabase
+      .from('class_schedules').delete().eq('id', item.id).select('id');
+    const fail = writeFailure(error, data);
+    if (fail) { alert(`Suppression impossible : ${fail}`); return; }
     load();
   }
 

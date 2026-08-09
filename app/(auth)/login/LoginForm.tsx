@@ -72,14 +72,16 @@ export default function LoginForm({ audience }: { audience: Audience }) {
       }
 
       // Owner (propriétaire ou co-owner) → back-office ; sinon athlète → espace compte.
-      const { data: ownedBox } = await supabase
-        .from('boxes').select('id').eq('owner_id', data.user.id).maybeSingle();
-      let isOwner = !!ownedBox;
+      // Pas de box active au login : on cherche seulement s'il en existe une,
+      // sans jamais supposer qu'il n'y en a qu'une (maybeSingle échoue à 2+).
+      const { data: ownedBoxes } = await supabase
+        .from('boxes').select('id').eq('owner_id', data.user.id).limit(1);
+      let isOwner = (ownedBoxes ?? []).length > 0;
       if (!isOwner) {
         const { data: coOwner } = await supabase
           .from('box_members').select('id')
-          .eq('member_id', data.user.id).eq('role', 'owner').eq('status', 'active').maybeSingle();
-        isOwner = !!coOwner;
+          .eq('member_id', data.user.id).eq('role', 'owner').eq('status', 'active').limit(1);
+        isOwner = (coOwner ?? []).length > 0;
       }
       window.location.href = isOwner ? '/' : '/compte';
     } catch (err: unknown) {

@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { getMyBox } from '@/lib/getMyBox';
+import { writeFailure } from '@/lib/writeGuard';
 import {
   Loader2, UserPlus, Star, CalendarPlus, CalendarClock, Trash2, Check, X, Send, Users,
 } from 'lucide-react';
@@ -133,9 +134,12 @@ export default function ProspectsPage() {
   }, [load]);
 
   async function setStatus(f: Followup, status: Status, planId?: string) {
-    await supabase.from('session_followups')
+    const { data, error } = await supabase.from('session_followups')
       .update({ status, converted_plan_id: planId ?? f.converted_plan_id, updated_at: new Date().toISOString() })
-      .eq('id', f.id);
+      .eq('id', f.id)
+      .select('id');
+    const fail = writeFailure(error, data);
+    if (fail) { alert(`Impossible de mettre à jour ce prospect : ${fail}`); return; }
     if (boxId) await load(boxId);
   }
 
@@ -357,8 +361,11 @@ function Slots({
   }
 
   async function del(id: string) {
+    const { data, error } = await supabase
+      .from('box_appointment_slots').delete().eq('id', id).select('id');
+    const fail = writeFailure(error, data);
+    if (fail) { alert(`Suppression du créneau impossible : ${fail}`); return; }
     onRemoved(id);
-    await supabase.from('box_appointment_slots').delete().eq('id', id);
     void onChange();
   }
 

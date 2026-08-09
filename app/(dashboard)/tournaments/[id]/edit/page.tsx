@@ -5,6 +5,7 @@ import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
 import { ChevronLeft, Trash2, Trophy, Loader2, AlertTriangle } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
+import { getMyBox } from '@/lib/getMyBox';
 import TournamentForm from '@/components/tournaments/TournamentForm';
 
 export default function EditTournamentPage() {
@@ -25,24 +26,9 @@ export default function EditTournamentPage() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { router.replace('/login'); return; }
 
-      // 1. Primary owner via boxes.owner_id
-      let resolvedBoxId: string | null = null;
-      const { data: ownedBox } = await supabase
-        .from('boxes').select('id').eq('owner_id', user.id).maybeSingle();
-      if (ownedBox) {
-        resolvedBoxId = ownedBox.id;
-      } else {
-        // 2. Co-owner via box_members
-        const { data: member } = await supabase
-          .from('box_members')
-          .select('box_id')
-          .eq('member_id', user.id)
-          .eq('role', 'owner')
-          .eq('status', 'active')
-          .maybeSingle();
-        if (member) resolvedBoxId = member.box_id;
-      }
-      if (!resolvedBoxId) { router.replace('/login'); return; }
+      const active = await getMyBox(supabase, user.id);
+      if (!active) { router.replace('/login'); return; }
+      const resolvedBoxId = active.id;
 
       const { data: t } = await supabase
         .from('tournaments')

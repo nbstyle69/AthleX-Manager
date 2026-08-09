@@ -142,11 +142,24 @@ export default function SubscribersPage() {
       username: (Array.isArray(r.requester) ? r.requester[0] : r.requester)?.username ?? '?',
     })));
 
-    // Achats de programmes
-    const { data: programRows } = await supabase
+    // Achats de programmes. `program_members.user_id` référence auth.users et non
+    // profiles : PostgREST refuse l'embed, donc les acheteurs sont résolus par une
+    // seconde requête sur profiles.
+    const { data: programRows, error: programError } = await supabase
       .from('program_members')
-      .select('user_id, created_at, amount_cents, status, program:programs!inner(title, box_id), profile:profiles(username, email)')
+      .select('user_id, created_at, amount_cents, status, program:programs!inner(title, box_id)')
       .eq('program.box_id', box.id);
+    if (programError) setActionError(`Achats de programmes indisponibles : ${programError.message}`);
+
+    const buyerIds = Array.from(new Set((programRows ?? []).map((r) => (r as { user_id: string }).user_id)));
+    const buyerById: Record<string, { username: string | null; email: string | null }> = {};
+    if (buyerIds.length > 0) {
+      const { data: buyers } = await supabase
+        .from('profiles').select('id, username, email').in('id', buyerIds);
+      for (const b of (buyers ?? []) as { id: string; username: string | null; email: string | null }[]) {
+        buyerById[b.id] = { username: b.username, email: b.email };
+      }
+    }
 
     const memberships: Row[] = (memberRows ?? []).map((r: any, i: number) => {
       const p = Array.isArray(r.profile) ? r.profile[0] : r.profile;
@@ -173,7 +186,7 @@ export default function SubscribersPage() {
     });
 
     const programs: Row[] = (programRows ?? []).map((r: any, i: number) => {
-      const p = Array.isArray(r.profile) ? r.profile[0] : r.profile;
+      const p = buyerById[r.user_id];
       const prog = Array.isArray(r.program) ? r.program[0] : r.program;
       return {
         key: `p-${r.user_id}-${i}`,

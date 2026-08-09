@@ -21,14 +21,16 @@ const makeChain = (overrides: Record<string, any> = {}) => {
 jest.mock('@/lib/supabase/server', () => ({
   getServerUser:       jest.fn(),
   createClient:        jest.fn(),
+  getActiveBox:        jest.fn(),
   createServiceClient: jest.fn(() => ({ from: jest.fn(() => makeChain()) })),
 }));
 
 import { POST } from '../../app/api/box/invite-code/route';
-import { getServerUser, createClient, createServiceClient } from '@/lib/supabase/server';
+import { getServerUser, createClient, getActiveBox, createServiceClient } from '@/lib/supabase/server';
 
 const mockGetServerUser    = getServerUser as jest.Mock;
 const mockCreateClient     = createClient as jest.Mock;
+const mockGetActiveBox     = getActiveBox as jest.Mock;
 const mockCreateSvcClient  = createServiceClient as jest.Mock;
 
 function makeReq(body: any): any {
@@ -46,55 +48,40 @@ describe('POST /api/box/invite-code', () => {
 
   it('returns 404 when user has no box', async () => {
     mockGetServerUser.mockResolvedValueOnce({ id: 'user-1' });
-    mockCreateClient.mockResolvedValueOnce({
-      from: jest.fn(() => makeChain({
-        single: jest.fn().mockResolvedValue({ data: null }),
-      })),
-    });
+    mockCreateClient.mockResolvedValueOnce({ from: jest.fn(() => makeChain()) });
+    mockGetActiveBox.mockResolvedValueOnce(null);
     const res = await POST(makeReq({ invite_code: 'ABCDEF' }) as any) as any;
     expect(res._status).toBe(404);
   });
 
   it('returns 400 when invite_code is too short (< 3 chars)', async () => {
     mockGetServerUser.mockResolvedValueOnce({ id: 'user-1' });
-    mockCreateClient.mockResolvedValueOnce({
-      from: jest.fn(() => makeChain({
-        single: jest.fn().mockResolvedValue({ data: { id: 'box-1' } }),
-      })),
-    });
+    mockCreateClient.mockResolvedValueOnce({ from: jest.fn(() => makeChain()) });
+    mockGetActiveBox.mockResolvedValueOnce({ id: 'box-1' });
     const res = await POST(makeReq({ invite_code: 'AB' }) as any) as any;
     expect(res._status).toBe(400);
   });
 
   it('returns 400 when invite_code is empty', async () => {
     mockGetServerUser.mockResolvedValueOnce({ id: 'user-1' });
-    mockCreateClient.mockResolvedValueOnce({
-      from: jest.fn(() => makeChain({
-        single: jest.fn().mockResolvedValue({ data: { id: 'box-1' } }),
-      })),
-    });
+    mockCreateClient.mockResolvedValueOnce({ from: jest.fn(() => makeChain()) });
+    mockGetActiveBox.mockResolvedValueOnce({ id: 'box-1' });
     const res = await POST(makeReq({ invite_code: '' }) as any) as any;
     expect(res._status).toBe(400);
   });
 
   it('returns 400 when invite_code is missing', async () => {
     mockGetServerUser.mockResolvedValueOnce({ id: 'user-1' });
-    mockCreateClient.mockResolvedValueOnce({
-      from: jest.fn(() => makeChain({
-        single: jest.fn().mockResolvedValue({ data: { id: 'box-1' } }),
-      })),
-    });
+    mockCreateClient.mockResolvedValueOnce({ from: jest.fn(() => makeChain()) });
+    mockGetActiveBox.mockResolvedValueOnce({ id: 'box-1' });
     const res = await POST(makeReq({}) as any) as any;
     expect(res._status).toBe(400);
   });
 
   it('returns 409 when code already used by another box', async () => {
     mockGetServerUser.mockResolvedValueOnce({ id: 'user-1' });
-    mockCreateClient.mockResolvedValueOnce({
-      from: jest.fn(() => makeChain({
-        single: jest.fn().mockResolvedValue({ data: { id: 'box-1' } }),
-      })),
-    });
+    mockCreateClient.mockResolvedValueOnce({ from: jest.fn(() => makeChain()) });
+    mockGetActiveBox.mockResolvedValueOnce({ id: 'box-1' });
     mockCreateSvcClient.mockReturnValueOnce({
       from: jest.fn(() => makeChain({
         maybeSingle: jest.fn().mockResolvedValue({ data: { id: 'other-box' } }),
@@ -106,11 +93,8 @@ describe('POST /api/box/invite-code', () => {
 
   it('returns 200 with new invite_code on success', async () => {
     mockGetServerUser.mockResolvedValueOnce({ id: 'user-1' });
-    mockCreateClient.mockResolvedValueOnce({
-      from: jest.fn(() => makeChain({
-        single: jest.fn().mockResolvedValue({ data: { id: 'box-1' } }),
-      })),
-    });
+    mockCreateClient.mockResolvedValueOnce({ from: jest.fn(() => makeChain()) });
+    mockGetActiveBox.mockResolvedValueOnce({ id: 'box-1' });
     mockCreateSvcClient.mockReturnValueOnce({
       from: jest.fn(() => makeChain({
         maybeSingle: jest.fn().mockResolvedValue({ data: null }),
@@ -124,11 +108,8 @@ describe('POST /api/box/invite-code', () => {
 
   it('uppercases the invite_code before saving', async () => {
     mockGetServerUser.mockResolvedValueOnce({ id: 'user-1' });
-    mockCreateClient.mockResolvedValueOnce({
-      from: jest.fn(() => makeChain({
-        single: jest.fn().mockResolvedValue({ data: { id: 'box-1' } }),
-      })),
-    });
+    mockCreateClient.mockResolvedValueOnce({ from: jest.fn(() => makeChain()) });
+    mockGetActiveBox.mockResolvedValueOnce({ id: 'box-1' });
     mockCreateSvcClient.mockReturnValueOnce({
       from: jest.fn(() => makeChain({
         maybeSingle: jest.fn().mockResolvedValue({ data: null }),
@@ -137,5 +118,22 @@ describe('POST /api/box/invite-code', () => {
     });
     const res = await POST(makeReq({ invite_code: 'nord01' }) as any) as any;
     expect(res._data?.invite_code).toBe('NORD01');
+  });
+  it('écrit le code sur la box active, pas sur une box arbitraire', async () => {
+    mockGetServerUser.mockResolvedValueOnce({ id: 'user-1' });
+    mockCreateClient.mockResolvedValueOnce({ from: jest.fn(() => makeChain()) });
+    mockGetActiveBox.mockResolvedValueOnce({ id: 'box-B' });
+    const eq = jest.fn();
+    const chain = makeChain({
+      maybeSingle: jest.fn().mockResolvedValue({ data: null }),
+      single: jest.fn().mockResolvedValue({ data: { invite_code: 'CODEB1' }, error: null }),
+    });
+    const origEq = chain.eq;
+    chain.eq = jest.fn((...args: any[]) => { eq(...args); return origEq(...args); });
+    mockCreateSvcClient.mockReturnValueOnce({ from: jest.fn(() => chain) });
+
+    const res = await POST(makeReq({ invite_code: 'codeb1' }) as any) as any;
+    expect(res._status).toBe(200);
+    expect(eq).toHaveBeenCalledWith('id', 'box-B');
   });
 });

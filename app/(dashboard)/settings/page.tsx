@@ -2,6 +2,8 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import { getMyBox } from '@/lib/getMyBox';
+import { writeFailure } from '@/lib/writeGuard';
 import { Upload, ImageIcon, Trash2, CheckCircle, Phone, MapPin, Calendar, User, Users, FileText } from 'lucide-react';
 
 type GeoResult = {
@@ -95,23 +97,11 @@ export default function SettingsPage() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      // Fetch box directly (skip redundant getMyBox + second query)
-      let boxData: any = null;
-      const { data: ownedBox } = await supabase
-        .from('boxes').select('*').eq('owner_id', user.id).maybeSingle();
+      const active = await getMyBox(supabase, user.id);
+      if (!active) return;
 
-      if (ownedBox) {
-        boxData = ownedBox;
-      } else {
-        const { data: membership } = await supabase
-          .from('box_members').select('box_id')
-          .eq('member_id', user.id).eq('role', 'owner').eq('status', 'active').maybeSingle();
-        if (membership) {
-          const { data: coBox } = await supabase
-            .from('boxes').select('*').eq('id', membership.box_id).maybeSingle();
-          boxData = coBox;
-        }
-      }
+      const { data: boxData } = await supabase
+        .from('boxes').select('*').eq('id', active.id).maybeSingle();
 
       if (!boxData) return;
 
@@ -193,13 +183,15 @@ export default function SettingsPage() {
     const publicUrl = urlData.publicUrl + '?t=' + Date.now();
 
     // Update box record
-    const { error: updateError } = await supabase
+    const { data: updated, error: updateError } = await supabase
       .from('boxes')
       .update({ logo_url: publicUrl })
-      .eq('id', box.id);
+      .eq('id', box.id)
+      .select('id');
 
-    if (updateError) {
-      alert(`Erreur mise à jour: ${updateError.message}`);
+    const updateFail = writeFailure(updateError, updated);
+    if (updateFail) {
+      alert(`Erreur mise à jour: ${updateFail}`);
     } else {
       setLogoUrl(publicUrl);
       setSaved(true);
@@ -213,12 +205,15 @@ export default function SettingsPage() {
     if (!box) return;
     setUploading(true);
 
-    await supabase
+    const { data, error } = await supabase
       .from('boxes')
       .update({ logo_url: null })
-      .eq('id', box.id);
+      .eq('id', box.id)
+      .select('id');
 
-    setLogoUrl(null);
+    const fail = writeFailure(error, data);
+    if (fail) alert(`Suppression du logo impossible : ${fail}`);
+    else setLogoUrl(null);
     setUploading(false);
   }
 
@@ -254,13 +249,15 @@ export default function SettingsPage() {
     const { data: urlData } = supabase.storage.from('box-logos').getPublicUrl(path);
     const publicUrl = urlData.publicUrl + '?t=' + Date.now();
 
-    const { error: updateError } = await supabase
+    const { data: updated, error: updateError } = await supabase
       .from('boxes')
       .update({ cover_url: publicUrl })
-      .eq('id', box.id);
+      .eq('id', box.id)
+      .select('id');
 
-    if (updateError) {
-      alert(`Erreur mise à jour: ${updateError.message}`);
+    const updateFail = writeFailure(updateError, updated);
+    if (updateFail) {
+      alert(`Erreur mise à jour: ${updateFail}`);
     } else {
       setCoverUrl(publicUrl);
       setSavedCover(true);
@@ -273,8 +270,11 @@ export default function SettingsPage() {
   async function handleRemoveCover() {
     if (!box) return;
     setUploadingCover(true);
-    await supabase.from('boxes').update({ cover_url: null }).eq('id', box.id);
-    setCoverUrl(null);
+    const { data, error } = await supabase
+      .from('boxes').update({ cover_url: null }).eq('id', box.id).select('id');
+    const fail = writeFailure(error, data);
+    if (fail) alert(`Suppression de la bannière impossible : ${fail}`);
+    else setCoverUrl(null);
     setUploadingCover(false);
   }
 
@@ -309,13 +309,15 @@ export default function SettingsPage() {
     const { data: urlData } = supabase.storage.from('box-logos').getPublicUrl(path);
     const publicUrl = urlData.publicUrl + '?t=' + Date.now();
 
-    const { error: updateError } = await supabase
+    const { data: updated, error: updateError } = await supabase
       .from('boxes')
       .update({ terms_pdf_url: publicUrl })
-      .eq('id', box.id);
+      .eq('id', box.id)
+      .select('id');
 
-    if (updateError) {
-      alert(`Erreur mise à jour: ${updateError.message}`);
+    const updateFail = writeFailure(updateError, updated);
+    if (updateFail) {
+      alert(`Erreur mise à jour: ${updateFail}`);
     } else {
       setTermsPdfUrl(publicUrl);
       setSavedTerms(true);
@@ -328,8 +330,11 @@ export default function SettingsPage() {
   async function handleRemoveTerms() {
     if (!box) return;
     setUploadingTerms(true);
-    await supabase.from('boxes').update({ terms_pdf_url: null }).eq('id', box.id);
-    setTermsPdfUrl(null);
+    const { data, error } = await supabase
+      .from('boxes').update({ terms_pdf_url: null }).eq('id', box.id).select('id');
+    const fail = writeFailure(error, data);
+    if (fail) alert(`Suppression du PDF impossible : ${fail}`);
+    else setTermsPdfUrl(null);
     setUploadingTerms(false);
   }
 
@@ -402,8 +407,8 @@ export default function SettingsPage() {
     const { data: updated, error } = await supabase.from('boxes')
       .update(payload).eq('id', box.id).select('*').maybeSingle();
 
-    if (error) {
-      alert(`Erreur: ${error.message}`);
+    if (error || !updated) {
+      alert(`Erreur: ${error?.message ?? 'aucune ligne modifiée (droits insuffisants)'}`);
     } else {
       if (updated) setBox(updated);
       setSavedInfo(true);

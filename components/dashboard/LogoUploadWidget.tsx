@@ -2,6 +2,8 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import { getMyBox } from '@/lib/getMyBox';
+import { writeFailure } from '@/lib/writeGuard';
 import { Upload, ImageIcon, Trash2, CheckCircle } from 'lucide-react';
 
 export default function LogoUploadWidget() {
@@ -17,11 +19,13 @@ export default function LogoUploadWidget() {
     async function load() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
+      const active = await getMyBox(supabase, user.id);
+      if (!active) return;
       const { data } = await supabase
         .from('boxes')
         .select('id, logo_url')
-        .eq('owner_id', user.id)
-        .single();
+        .eq('id', active.id)
+        .maybeSingle();
       if (data) {
         setBoxId(data.id);
         setLogoUrl(data.logo_url ?? null);
@@ -65,13 +69,15 @@ export default function LogoUploadWidget() {
 
     const publicUrl = urlData.publicUrl + '?t=' + Date.now();
 
-    const { error: updateError } = await supabase
+    const { data: updated, error: updateError } = await supabase
       .from('boxes')
       .update({ logo_url: publicUrl })
-      .eq('id', boxId);
+      .eq('id', boxId)
+      .select('id');
 
-    if (updateError) {
-      alert(`Erreur mise à jour: ${updateError.message}`);
+    const updateFail = writeFailure(updateError, updated);
+    if (updateFail) {
+      alert(`Erreur mise à jour: ${updateFail}`);
     } else {
       setLogoUrl(publicUrl);
       setSaved(true);
@@ -85,12 +91,15 @@ export default function LogoUploadWidget() {
     if (!boxId) return;
     setUploading(true);
 
-    await supabase
+    const { data, error } = await supabase
       .from('boxes')
       .update({ logo_url: null })
-      .eq('id', boxId);
+      .eq('id', boxId)
+      .select('id');
 
-    setLogoUrl(null);
+    const fail = writeFailure(error, data);
+    if (fail) alert(`Suppression du logo impossible : ${fail}`);
+    else setLogoUrl(null);
     setUploading(false);
   }
 
