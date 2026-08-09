@@ -33,6 +33,12 @@ function ManageContent() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ box_id: boxId }),
         });
+        if (res.status === 401) {
+          // Page ouverte depuis l'app mobile : aucune session web. Connexion
+          // puis retour direct sur le portail.
+          window.location.href = `/login/box?next=${encodeURIComponent(`/pricing/manage?box_id=${boxId}`)}`;
+          return;
+        }
         const data = await res.json();
         if (data.url) {
           window.location.href = data.url;

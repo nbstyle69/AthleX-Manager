@@ -13,7 +13,7 @@ description: Test TheHub owner back-office (dashboard) flows end-to-end in the b
 None extra — `SUPABASE_DB_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` are already in `.env.local`.
 
 ## Login in the browser (owner or athlete)
-Use the built-in diagnostic page `/test-login` (`app/test-login/page.tsx`): set email + password, click **Tester**. It signs in client-side and POSTs tokens to `/api/auth/set-session` so the server sees the `sb-access-token` cookie. Owners land on `/` (dashboard); athletes get "Box non configurée" → go to `/compte`.
+Use the real login page `/login/box` (owners/coachs) or `/login/athlete`. It signs in client-side and POSTs the tokens to `/api/auth/set-session`, so the server sees the `sb-access-token` cookie. Owners land on `/` (dashboard); athletes get "Box non configurée" → go to `/compte`. Add `?next=/some/path` to come back to a specific page after login (used by `/pricing` and `/pricing/manage` when opened from the mobile app without a web session). The old `/test-login` diagnostic page and `/api/session` were removed in Lot 7A.
 
 ## Seeding a disposable owner + box + subscribed athlete
 Create auth users via `supabase.auth.admin.createUser({email, password, email_confirm:true})`, then rows. Gotchas learned:
@@ -58,6 +58,13 @@ To detect: `select` the column with the anon key — a `42501 permission denied`
 - Back on owner `/prospects`: prospect moved to « RDV pris », shows the stars+comment; slot shows `1/1 réservé`.
 - ⚠️ **VM clock caveat**: the box clock may be **far ahead of the env note's date** (e.g. env said June but VM was 2026-07-30). The slot list filters `starts_at >= now()-24h`, so always date test slots in the future relative to `date -u` on the box, not the stated date — otherwise slots silently vanish from the list (looks like a bug but isn't).
 - RLS note: `book_appointment_slot` / `submit_followup_feedback` are `SECURITY DEFINER`; the member only sees/acts on their own `session_followups` (member_id=auth.uid()); owner/coach via `manages_box_funnel(box_id)`.
+
+## Box access model — what résiliation actually gates (verified via RLS)
+Prove athlete access at the **RLS boundary** with the athlete's real JWT (anon client + `signInWithPassword`), not via UI (the athlete app is React Native, no simulator). Run the app's exact `.select()/.insert()` calls and count rows per state.
+- **The only membership gate is `box_members.status='active'`** (via `get_user_box_ids()`/`is_box_member`). It gates `class_schedules`, `class_reservations` (SELECT), and the reservation read-back. `boxes` and `box_wods` are effectively **public to any logged-in user** (`boxes_select_all USING true`, `box_wods_read USING auth.uid() IS NOT NULL`) — so box/WOD row counts are NOT valid "has access" indicators. Tournaments (`tournament_wods`) are public read too.
+- **"Résilier" = `cancel_at_period_end=true`** (`cancel-membership` / `cancellation-request/review`) → subscription stays active until period end → **no access change**.
+- At real period end, webhook `customer.subscription.deleted` sets `subscription_status='cancelled'`, `plan_id=null` but **leaves `status='active'`** (`stripe-connect-webhook/route.ts:272-279`) → the athlete **still sees schedules and can still book**. So résiliation does NOT revoke box access. Only **banning** (`status='banned'`) does (schedules→0, reservation insert→RLS 42501, 0 row persisted).
+- To reproduce states without real Stripe time-advance, apply the exact webhook `box_members` UPDATE with the service role; cite the webhook lines in the report. Reservation `insert().select().single()` mirrors `ReservationScreen.toggleBooking`; a banned member's insert fails on the RETURNING SELECT (status='active' gate).
 
 ## Cleanup
 Delete `membership_promo_codes`, `box_members`, `membership_plans`, `box_subscriptions`, the `box-logos/{id}/terms.pdf` object, the `boxes` row, `profiles`, then `auth.admin.deleteUser` for every `zz_*` user. For promo tests, also try to delete the Stripe coupons; if `del` fails (test-mode quirk), deactivate the promotion codes instead.
