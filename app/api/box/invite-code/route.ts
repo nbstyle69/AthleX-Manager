@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient, getServerUser } from '@/lib/supabase/server';
+import { createClient, getServerUser, getActiveBox } from '@/lib/supabase/server';
 import { createServiceClient } from '@/lib/supabase/server';
 
 export async function POST(req: NextRequest) {
@@ -8,12 +8,8 @@ export async function POST(req: NextRequest) {
 
   const supabase = await createClient();
 
-  // Find the box owned by this user
-  const { data: box } = await supabase
-    .from('boxes')
-    .select('id')
-    .eq('owner_id', user.id)
-    .single();
+  // Cible la box active du back-office, jamais « la première ».
+  const box = await getActiveBox(supabase, user.id);
 
   if (!box) return NextResponse.json({ error: 'Aucune box trouvée pour ce compte' }, { status: 404 });
 

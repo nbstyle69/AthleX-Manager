@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import { getMyBox } from '@/lib/getMyBox';
+import { writeFailure } from '@/lib/writeGuard';
 import {
   BookOpen, Plus, Pencil, Trash2, X, Globe, Eye, Copy, Check,
   Users, Calendar, Clock, Hash, ChevronLeft, ChevronRight, FileText,
@@ -201,12 +203,14 @@ export default function BoxOwnerProgramsPage() {
     if (!user) return;
     setUserId(user.id);
 
+    const active = await getMyBox(supabase, user.id);
+    if (!active) { setLoading(false); return; }
+
     const { data: box } = await supabase
       .from('boxes')
       .select('id, slug, stripe_account_id, stripe_onboarding_complete')
-      .eq('owner_id', user.id)
-      .limit(1)
-      .single();
+      .eq('id', active.id)
+      .maybeSingle();
 
     if (!box) { setLoading(false); return; }
     setBoxId(box.id);
@@ -285,8 +289,11 @@ export default function BoxOwnerProgramsPage() {
     if (!boxId || !slug.trim()) return;
     setSlugSaving(true);
     const clean = slug.trim().toLowerCase().replace(/[^a-z0-9-]/g, '').replace(/--+/g, '-');
-    const { error } = await supabase.from('boxes').update({ slug: clean }).eq('id', boxId);
-    if (!error) { setSlug(clean); setSlugSaved(clean); setSlugEditing(false); }
+    const { data, error } = await supabase
+      .from('boxes').update({ slug: clean }).eq('id', boxId).select('id');
+    const fail = writeFailure(error, data);
+    if (fail) alert(`Impossible d'enregistrer l'adresse publique : ${fail}`);
+    else { setSlug(clean); setSlugSaved(clean); setSlugEditing(false); }
     setSlugSaving(false);
   }
 
@@ -342,26 +349,34 @@ export default function BoxOwnerProgramsPage() {
       updated_at: new Date().toISOString(),
     };
 
+    let res;
     if (editId) {
-      await supabase.from('programs').update(payload).eq('id', editId);
+      res = await supabase.from('programs').update(payload).eq('id', editId).select('id');
     } else {
       payload.invite_code = genCode();
-      await supabase.from('programs').insert(payload);
+      res = await supabase.from('programs').insert(payload).select('id');
     }
 
     setSaving(false);
+    const fail = writeFailure(res.error, res.data);
+    if (fail) { alert(`Impossible d'enregistrer le programme : ${fail}`); return; }
     setShowForm(false);
     loadAll();
   }
 
   async function handleDelete(id: string) {
     if (!confirm('Supprimer ce programme et tous ses WODs ?')) return;
-    await supabase.from('programs').delete().eq('id', id);
+    const { data, error } = await supabase.from('programs').delete().eq('id', id).select('id');
+    const fail = writeFailure(error, data);
+    if (fail) { alert(`Suppression impossible : ${fail}`); return; }
     loadAll();
   }
 
   async function toggleActive(p: Program) {
-    await supabase.from('programs').update({ is_active: !p.is_active }).eq('id', p.id);
+    const { data, error } = await supabase
+      .from('programs').update({ is_active: !p.is_active }).eq('id', p.id).select('id');
+    const fail = writeFailure(error, data);
+    if (fail) { alert(`Impossible de changer l'état du programme : ${fail}`); return; }
     loadAll();
   }
 
@@ -456,15 +471,16 @@ export default function BoxOwnerProgramsPage() {
       terms: planForm.terms.trim() || null,
     };
 
-    const { error } = editPlanId
-      ? await supabase.from('membership_plans').update(payload).eq('id', editPlanId)
-      : await supabase.from('membership_plans').insert(payload);
+    const { data, error } = editPlanId
+      ? await supabase.from('membership_plans').update(payload).eq('id', editPlanId).select('id')
+      : await supabase.from('membership_plans').insert(payload).select('id');
 
-    if (error) {
+    const fail = writeFailure(error, data);
+    if (fail) {
       setPlanError(
-        error.code === '23505'
+        error?.code === '23505'
           ? 'Une formule porte déjà ce nom.'
-          : "Impossible d'enregistrer la formule.",
+          : `Impossible d'enregistrer la formule : ${fail}`,
       );
       setPlanSaving(false);
       return;
@@ -477,12 +493,18 @@ export default function BoxOwnerProgramsPage() {
 
   async function handleDeletePlan(id: string) {
     if (!confirm('Supprimer cette formule ? Les membres associés passeront en illimité.')) return;
-    await supabase.from('membership_plans').delete().eq('id', id);
+    const { data, error } = await supabase
+      .from('membership_plans').delete().eq('id', id).select('id');
+    const fail = writeFailure(error, data);
+    if (fail) { alert(`Suppression impossible : ${fail}`); return; }
     if (boxId) await loadPlans(boxId);
   }
 
   async function togglePlanActive(pl: MembershipPlan) {
-    await supabase.from('membership_plans').update({ is_active: !pl.is_active }).eq('id', pl.id);
+    const { data, error } = await supabase
+      .from('membership_plans').update({ is_active: !pl.is_active }).eq('id', pl.id).select('id');
+    const fail = writeFailure(error, data);
+    if (fail) { alert(`Impossible de changer l'état de la formule : ${fail}`); return; }
     if (boxId) await loadPlans(boxId);
   }
 
@@ -637,20 +659,25 @@ export default function BoxOwnerProgramsPage() {
       time_cap_seconds: wodForm.time_cap ? parseInt(wodForm.time_cap) * 60 : null,
       notes: wodForm.notes.trim() || null,
     };
+    let res;
     if (editWodId) {
-      await supabase.from('program_wods').update(payload).eq('id', editWodId);
+      res = await supabase.from('program_wods').update(payload).eq('id', editWodId).select('id');
     } else {
       payload.sort_order = wodsForDay(wodDayNumber).length;
-      await supabase.from('program_wods').insert(payload);
+      res = await supabase.from('program_wods').insert(payload).select('id');
     }
-    setShowWodForm(false);
     setWodSaving(false);
+    const fail = writeFailure(res.error, res.data);
+    if (fail) { alert(`Impossible d'enregistrer le WOD : ${fail}`); return; }
+    setShowWodForm(false);
     loadWods(editorProgram.id);
   }
 
   async function deleteWod(id: string) {
     if (!confirm('Supprimer ce WOD ?') || !editorProgram) return;
-    await supabase.from('program_wods').delete().eq('id', id);
+    const { data, error } = await supabase.from('program_wods').delete().eq('id', id).select('id');
+    const fail = writeFailure(error, data);
+    if (fail) { alert(`Suppression impossible : ${fail}`); return; }
     loadWods(editorProgram.id);
   }
 
@@ -670,7 +697,9 @@ export default function BoxOwnerProgramsPage() {
       notes: w.notes,
       sort_order: w.sort_order,
     }));
-    await supabase.from('program_wods').insert(inserts);
+    const { data, error } = await supabase.from('program_wods').insert(inserts).select('id');
+    const fail = writeFailure(error, data);
+    if (fail) { alert(`Duplication impossible : ${fail}`); return; }
     setWeekIdx(prev => prev + 1);
     loadWods(editorProgram.id);
   }
