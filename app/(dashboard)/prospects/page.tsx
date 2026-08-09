@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { getMyBox } from '@/lib/getMyBox';
+import { getMemberEmails } from '@/lib/memberEmails';
 import { writeFailure } from '@/lib/writeGuard';
 import {
   Loader2, UserPlus, Star, CalendarPlus, CalendarClock, Trash2, Check, X, Send, Users,
@@ -76,18 +77,19 @@ export default function ProspectsPage() {
       .order('first_seen_at', { ascending: false });
     const rows = (fu ?? []) as Omit<Followup, 'username' | 'email'>[];
     const memberIds = [...new Set(rows.map((r) => r.member_id))];
-    const profByeId = new Map<string, { username: string; email: string }>();
+    const profByeId = new Map<string, { username: string }>();
+    const emails = await getMemberEmails(supabase, bid);
     if (memberIds.length) {
       const { data: profs } = await supabase
-        .from('profiles').select('id, username, email').in('id', memberIds);
-      for (const p of (profs ?? []) as { id: string; username: string; email: string }[]) {
-        profByeId.set(p.id, { username: p.username, email: p.email });
+        .from('profiles').select('id, username').in('id', memberIds);
+      for (const p of (profs ?? []) as { id: string; username: string }[]) {
+        profByeId.set(p.id, { username: p.username });
       }
     }
     setFollowups(rows.map((r) => ({
       ...r,
       username: profByeId.get(r.member_id)?.username ?? '—',
-      email: profByeId.get(r.member_id)?.email ?? '',
+      email: emails.get(r.member_id) ?? '',
     })));
 
     // Créneaux RDV + nb réservés

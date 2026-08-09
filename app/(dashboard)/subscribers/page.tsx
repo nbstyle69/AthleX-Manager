@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
 import { CreditCard, Loader2, Search, Users, BookOpen, Pause, Play, FileText, Check, X, ChevronDown, ChevronRight, ExternalLink } from 'lucide-react';
 import { getMyBox } from '@/lib/getMyBox';
+import { getMemberEmails } from '@/lib/memberEmails';
 import UnpaidPanel from '@/components/UnpaidPanel';
 
 const supabase = createClient();
@@ -117,9 +118,13 @@ export default function SubscribersPage() {
     // Abonnements de salle (formules payantes)
     const { data: memberRows } = await supabase
       .from('box_members')
-      .select('id, member_id, joined_at, subscription_status, subscription_current_period_end, subscription_cancel_at_period_end, subscription_paused, pause_resumes_at, commitment_end_date, plan:membership_plans(name, color, price_cents), profile:profiles(username, email)')
+      .select('id, member_id, joined_at, subscription_status, subscription_current_period_end, subscription_cancel_at_period_end, subscription_paused, pause_resumes_at, commitment_end_date, plan:membership_plans(name, color, price_cents), profile:profiles(username)')
       .eq('box_id', box.id)
       .not('subscription_status', 'is', null);
+
+    // `profiles.email` n'est plus lisible par `authenticated` (Phase 3) : les
+    // e-mails des adhérents viennent de la RPC réservée aux admins de la box.
+    const memberEmails = await getMemberEmails(supabase, box.id);
 
     // Colonnes de facturation (amount_cents, présence Stripe) via RPC sécurisé
     // (ces colonnes ne sont pas lisibles directement par le rôle authenticated)
@@ -155,9 +160,9 @@ export default function SubscribersPage() {
     const buyerById: Record<string, { username: string | null; email: string | null }> = {};
     if (buyerIds.length > 0) {
       const { data: buyers } = await supabase
-        .from('profiles').select('id, username, email').in('id', buyerIds);
-      for (const b of (buyers ?? []) as { id: string; username: string | null; email: string | null }[]) {
-        buyerById[b.id] = { username: b.username, email: b.email };
+        .from('profiles').select('id, username').in('id', buyerIds);
+      for (const b of (buyers ?? []) as { id: string; username: string | null }[]) {
+        buyerById[b.id] = { username: b.username, email: memberEmails.get(b.id) ?? null };
       }
     }
 
@@ -169,7 +174,7 @@ export default function SubscribersPage() {
         key: `m-${r.member_id}-${i}`,
         kind: 'membership' as Kind,
         username: p?.username ?? '?',
-        email: p?.email ?? '',
+        email: memberEmails.get(r.member_id) ?? '',
         label: plan?.name ?? 'Formule',
         color: plan?.color ?? '#FFFFFF',
         amountCents: billing?.amount_cents ?? plan?.price_cents ?? null,

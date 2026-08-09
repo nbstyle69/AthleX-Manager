@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Users, Search, SlidersHorizontal, X, Loader2, ChevronDown, ChevronUp, Check, Trash2, CreditCard, ShieldCheck, Crown } from 'lucide-react';
 import { getMyBox } from '@/lib/getMyBox';
+import { getMemberEmails } from '@/lib/memberEmails';
 
 const LEVELS = ['rx+', 'rx', 'scaled', 'foundations'];
 const LEVEL_LABEL: Record<string, string> = { 'rx+': 'RX+', rx: 'RX', scaled: 'SCALED', foundations: 'FOUNDATIONS' };
@@ -268,7 +269,7 @@ export default function MembersPage() {
 
     const [{ data: membersRaw }, { data: groups }, { data: groupMemberships }, { data: plansData }, { data: planGroupData }] = await Promise.all([
       supabase.from('box_members')
-        .select('member_id, status, joined_at, plan_id, role, profile:profiles(id, username, level, elo, email)')
+        .select('member_id, status, joined_at, plan_id, role, profile:profiles(id, username, level, elo)')
         .eq('box_id', box.id).in('status', ['active', 'banned'])
         .order('joined_at', { ascending: false }),
       supabase.from('message_groups').select('id, name, color').eq('box_id', box.id),
@@ -296,12 +297,14 @@ export default function MembersPage() {
     const groupMap: Record<string, { id: string; name: string; color: string }> = {};
     for (const g of groups ?? []) groupMap[g.id] = g;
 
+    const emails = await getMemberEmails(supabase, box.id);
+
     const parsed: Member[] = (membersRaw ?? []).map((m: any) => {
       const p = Array.isArray(m.profile) ? m.profile[0] : m.profile;
       if (!p) return null;
       return {
         id: p.id, username: p.username ?? '?', level: p.level ?? 'rx',
-        elo: p.eo ?? 1000, email: p.email ?? '', joined_at: m.joined_at,
+        elo: p.eo ?? 1000, email: emails.get(p.id) ?? '', joined_at: m.joined_at,
         is_banned: m.status === 'banned',
         plan_id: m.plan_id ?? null,
         role: m.role ?? 'member',

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import { getMemberEmails } from '@/lib/memberEmails';
 import TemplatesDrawer from '@/components/TemplatesDrawer';
 import {
   Plus, ChevronLeft, ChevronRight, Pencil, Trash2,
@@ -294,16 +295,17 @@ export default function SchedulesPage() {
     setMemberSearch('');
     const { data } = await supabase
       .from('class_reservations')
-      .select('id, member_id, status, attended, created_at, profile:profiles(username, email)')
+      .select('id, member_id, status, attended, created_at, profile:profiles(username)')
       .eq('schedule_id', item.id)
       .order('created_at', { ascending: true });
+    const emails = boxId ? await getMemberEmails(supabase, boxId) : new Map<string, string>();
     const list: Participant[] = (data ?? []).map((r: any) => {
       const p = Array.isArray(r.profile) ? r.profile[0] : r.profile;
       return {
         reservation_id: r.id,
         member_id: r.member_id,
         username: p?.username ?? '?',
-        email: p?.email ?? '',
+        email: emails.get(r.member_id) ?? '',
         status: r.status,
         attended: r.attended ?? null,
         created_at: r.created_at,
@@ -352,14 +354,15 @@ export default function SchedulesPage() {
     setSearching(true);
     const { data } = await supabase
       .from('box_members')
-      .select('member_id, profiles:member_id(id, username, email)')
+      .select('member_id, profiles:member_id(id, username)')
       .eq('box_id', boxId)
       .eq('status', 'active');
+    const emails = await getMemberEmails(supabase, boxId);
     const existingIds = new Set(participants.map(p => p.member_id));
     const results = (data ?? [])
       .map((m: any) => {
         const pr = Array.isArray(m.profiles) ? m.profiles[0] : m.profiles;
-        return { id: pr?.id ?? m.member_id, username: pr?.username ?? '?', email: pr?.email ?? '' };
+        return { id: pr?.id ?? m.member_id, username: pr?.username ?? '?', email: emails.get(m.member_id) ?? '' };
       })
       .filter((m: any) => !existingIds.has(m.id) && m.username.toLowerCase().includes(query.toLowerCase()));
     setSearchResults(results);

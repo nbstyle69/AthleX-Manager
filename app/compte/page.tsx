@@ -8,7 +8,7 @@ import ManageSubscription from './ManageSubscription';
 export const dynamic = 'force-dynamic';
 
 interface ProfileRow {
-  id: string; email: string | null; username: string | null;
+  id: string; username: string | null;
   full_name: string | null; bio: string | null; avatar_url: string | null;
 }
 
@@ -66,7 +66,9 @@ export default async function AccountPage() {
 
   const { data: profileRaw } = await supabase
     .from('profiles')
-    .select('id, email, username, full_name, bio, avatar_url')
+    // Pas d'`email` : la Phase 3 le révoque à `authenticated`. L'e-mail du
+    // compte connecté vient de la session auth, qui le porte déjà.
+    .select('id, username, full_name, bio, avatar_url')
     .eq('id', user.id)
     .single();
   const profile = profileRaw as ProfileRow | null;
@@ -127,7 +129,7 @@ export default async function AccountPage() {
         <h2 className="text-base font-black text-white mb-4">Informations personnelles</h2>
         <AccountProfileForm
           userId={user.id}
-          email={profile?.email ?? user.email ?? ''}
+          email={user.email ?? ''}
           username={profile?.username ?? ''}
           fullName={profile?.full_name ?? ''}
           bio={profile?.bio ?? ''}
