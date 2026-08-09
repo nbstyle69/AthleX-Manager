@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { Loader2, AlertCircle, ArrowLeft } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 
@@ -22,7 +23,15 @@ const COPY: Record<Audience, { subtitle: string; signupPrompt: string; signupCta
   },
 };
 
+/** Only same-origin relative paths are honoured, so `next` can't be an open redirect. */
+function safeNext(raw: string | null): string | null {
+  if (!raw || !raw.startsWith('/') || raw.startsWith('//')) return null;
+  return raw;
+}
+
 export default function LoginForm({ audience }: { audience: Audience }) {
+  const params = useSearchParams();
+  const next = safeNext(params.get('next'));
   const [email, setEmail]       = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading]   = useState(false);
@@ -50,6 +59,8 @@ export default function LoginForm({ audience }: { audience: Audience }) {
       });
       const json = await res.json();
       if (!json.ok) { setError('Erreur serveur: ' + json.error); setLoading(false); return; }
+
+      if (next) { window.location.href = next; return; }
 
       // Check role to redirect super_admin to /admin
       const { data: profile } = await supabase

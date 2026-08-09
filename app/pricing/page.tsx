@@ -55,6 +55,12 @@ function PricingContent() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ box_id: boxId, billing }),
       });
+      if (res.status === 401) {
+        // Souvent le cas quand la page est ouverte depuis l'app mobile : pas de
+        // session web. On renvoie vers la connexion puis on revient ici.
+        window.location.href = `/login/box?next=${encodeURIComponent(`/pricing?box_id=${boxId}`)}`;
+        return;
+      }
       const data = await res.json();
       if (data.url) {
         window.location.href = data.url;
