@@ -4,6 +4,11 @@ import { useEffect, useMemo, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { Plus, Pencil, Trash2, Timer, CheckCircle, Clock, Layers, Globe, Calendar, Trophy } from 'lucide-react';
 import WODForm from './WODForm';
+import { isScheduledAhead } from '@/lib/datetime';
+
+function formatSchedule(value: string) {
+  return new Date(value).toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' });
+}
 
 interface Division { id: string; name: string; level: number; }
 interface BracketStage { value: number; label: string; }
@@ -51,6 +56,7 @@ export default function TournamentWODManager({ tournamentId, initialWODs, divisi
   const [eloDone, setEloDone]   = useState<Record<string, boolean>>({});
   const [eloBusy, setEloBusy]   = useState<string | null>(null);
   const [eloMsg,  setEloMsg]    = useState<{ id: string; text: string; ok: boolean } | null>(null);
+  const [statusErr, setStatusErr] = useState<{ id: string; text: string } | null>(null);
 
   useEffect(() => {
     if (!isLeague) return;
@@ -118,8 +124,23 @@ export default function TournamentWODManager({ tournamentId, initialWODs, divisi
 
   async function toggleStatus(wod: any) {
     const next = wod.status === 'active' ? 'pending' : 'active';
+    const patch: { status: string; opens_at?: null } = { status: next };
+
+    // A WOD scheduled in the future stays hidden from participants even when
+    // its status is « Ouvert » — offer to lift the schedule at the same time.
+    if (next === 'active' && isScheduledAhead(wod.opens_at)) {
+      const openNow = confirm(
+        `Ce WOD est programmé pour le ${formatSchedule(wod.opens_at)} : il restera invisible pour les participants jusque-là.\n\n` +
+        'OK — l’ouvrir maintenant (retire la programmation)\n' +
+        'Annuler — garder la programmation',
+      );
+      if (openNow) patch.opens_at = null;
+    }
+
+    setStatusErr(null);
     const supabase = createClient();
-    await supabase.from('tournament_wods').update({ status: next }).eq('id', wod.id);
+    const { error } = await supabase.from('tournament_wods').update(patch).eq('id', wod.id);
+    if (error) { setStatusErr({ id: wod.id, text: error.message }); return; }
     reload();
   }
 
@@ -238,7 +259,17 @@ export default function TournamentWODManager({ tournamentId, initialWODs, divisi
                     }`}>
                       {wod.status === 'active' ? '● Ouvert' : wod.status === 'closed' ? '● Fermé' : '● En attente'}
                     </span>
+                    {isScheduledAhead(wod.opens_at) && (
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-400 inline-flex items-center gap-1">
+                        <Clock size={9} />
+                        Visible le {formatSchedule(wod.opens_at)}
+                      </span>
+                    )}
                   </div>
+
+                  {statusErr && statusErr.id === wod.id && (
+                    <p className="text-xs text-red-400 mb-2">{statusErr.text}</p>
+                  )}
 
                   {/* Timer badge */}
                   <div className="flex items-center gap-1.5 mb-2">

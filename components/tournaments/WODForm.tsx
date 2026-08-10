@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/client';
 import { Plus, Trash2, Loader2, X, Sparkles, ChevronDown, ChevronUp, Timer } from 'lucide-react';
 import { boGenerateFunctional, boGenerateHybrid } from '@/lib/wod/boAdapter';
 import { MOVEMENT_CATALOG, isWeightedMovement, serializeMovement, parseMovementRow, repsPerRoundFromMovements, isRepsScoredType } from '@/lib/movements';
+import { toDatetimeLocal, fromDatetimeLocal, isScheduledAhead } from '@/lib/datetime';
 
 const WOD_TYPES = ['AMRAP', 'For Time', 'EMOM', 'Tabata', 'Max Reps', 'Strength'];
 const LEVELS    = ['scaled', 'inter', 'rx', 'rx+', 'gx', 'pro'];
@@ -74,8 +75,8 @@ export default function WODForm({ tournamentId, divisions = [], isLeague = false
     scoring:          initial?.scoring          ?? '',
     deadline_hours:   initial?.deadline_hours   ?? 24,
     status:           initial?.status           ?? 'pending',
-    opens_at:         initial?.opens_at         ?? '',
-    closes_at:        initial?.closes_at        ?? '',
+    opens_at:         toDatetimeLocal(initial?.opens_at),
+    closes_at:        toDatetimeLocal(initial?.closes_at),
     timer_type:       initial?.timer_type       ?? 'stopwatch',
     time_cap:         initial?.time_cap_seconds ? Math.floor(initial.time_cap_seconds / 60) : 20,
     rounds:           initial?.rounds           ?? 8,
@@ -188,8 +189,8 @@ export default function WODForm({ tournamentId, divisions = [], isLeague = false
       scoring:          form.scoring,
       deadline_hours:   form.deadline_hours,
       status:           form.status,
-      opens_at:         form.opens_at  || null,
-      closes_at:        form.closes_at || null,
+      opens_at:         fromDatetimeLocal(form.opens_at),
+      closes_at:        fromDatetimeLocal(form.closes_at),
       movements:        movements.filter(Boolean),
       timer_type:       form.timer_type,
       time_cap_seconds: timeCap,
@@ -584,6 +585,11 @@ export default function WODForm({ tournamentId, divisions = [], isLeague = false
         <div>
           <label className={lbl}>Ouverture programmée</label>
           <input type="datetime-local" className={inp} value={form.opens_at} onChange={e => set('opens_at', e.target.value)} />
+          {isScheduledAhead(fromDatetimeLocal(form.opens_at)) && (
+            <p className="text-[11px] text-amber-400/90 pt-1">
+              Invisible pour les participants jusqu&apos;à cette date, même si le WOD est « Ouvert ». Laisse vide pour le rendre visible immédiatement.
+            </p>
+          )}
         </div>
         <div>
           <label className={lbl}>Fermeture programmée</label>
