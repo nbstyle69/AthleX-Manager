@@ -1,4 +1,24 @@
-import { toDatetimeLocal, fromDatetimeLocal, isScheduledAhead } from '@/lib/datetime';
+import { toDatetimeLocal, fromDatetimeLocal, toDateInput, fromDateInput, isScheduledAhead } from '@/lib/datetime';
+
+describe('toDateInput / fromDateInput', () => {
+  it('feeds an <input type="date"> from a timestamptz', () => {
+    expect(toDateInput('2026-10-08T00:00:00+00:00')).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+  });
+
+  it('leaves a plain `date` column untouched (no timezone shift)', () => {
+    expect(toDateInput('2026-10-08')).toBe('2026-10-08');
+  });
+
+  it('never produces an empty string for the payload — empty means null', () => {
+    expect(fromDateInput('')).toBeNull();
+    expect(fromDateInput(null)).toBeNull();
+    expect(fromDateInput(undefined)).toBeNull();
+  });
+
+  it('round-trips a picked day without drifting to the day before', () => {
+    expect(toDateInput(fromDateInput('2026-10-08'))).toBe('2026-10-08');
+  });
+});
 
 describe('toDatetimeLocal', () => {
   it('converts a Postgres timestamptz to the datetime-local format', () => {

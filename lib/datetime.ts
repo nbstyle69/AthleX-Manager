@@ -23,6 +23,24 @@ export function fromDatetimeLocal(value: string | null | undefined): string | nu
   return d.toISOString();
 }
 
+/** Same round-trip for an `<input type="date">` (`YYYY-MM-DD`, local day). */
+export function toDateInput(value: string | null | undefined): string {
+  if (!value) return '';
+  // A `date` column already comes back in the right shape — parsing it as a
+  // Date would shift it by a day in negative UTC offsets.
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return '';
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
+export function fromDateInput(value: string | null | undefined): string | null {
+  if (!value) return null;
+  const d = new Date(`${value}T00:00`);
+  if (Number.isNaN(d.getTime())) return null;
+  return d.toISOString();
+}
+
 export function isScheduledAhead(value: string | null | undefined, now: number = Date.now()): boolean {
   if (!value) return false;
   const t = new Date(value).getTime();
