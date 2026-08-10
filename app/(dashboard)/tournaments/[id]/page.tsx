@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { ChevronLeft, Dumbbell, Users, BarChart2, Trophy, Pencil, ClipboardCheck, GitBranch, Layers } from 'lucide-react';
 import CloseTournamentButton from '@/components/tournaments/CloseTournamentButton';
 import StartTournamentButton from '@/components/tournaments/StartTournamentButton';
+import FinishTournamentButton from '@/components/tournaments/FinishTournamentButton';
 import DeleteTournamentButton from '@/components/tournaments/DeleteTournamentButton';
 import { tournamentStatusInfo } from '@/lib/utils';
 
@@ -23,14 +24,16 @@ export default async function TournamentDetailPage({ params }: { params: Promise
   if (!t) redirect('/tournaments');
 
   const svc = createServiceClient();
-  const [{ count: wodCount }, { count: participantCount }, { count: pendingCount }, { count: totalScores }] = await Promise.all([
+  const [{ count: wodCount }, { count: closedWodCount }, { count: participantCount }, { count: pendingCount }, { count: totalScores }] = await Promise.all([
     supabase.from('tournament_wods').select('*', { count: 'exact', head: true }).eq('tournament_id', id),
+    supabase.from('tournament_wods').select('*', { count: 'exact', head: true }).eq('tournament_id', id).eq('status', 'closed'),
     supabase.from('tournament_participants').select('*', { count: 'exact', head: true }).eq('tournament_id', id),
     svc.from('tournament_scores').select('*', { count: 'exact', head: true }).eq('tournament_id', id).eq('status', 'pending'),
     svc.from('tournament_scores').select('*', { count: 'exact', head: true }).eq('tournament_id', id),
   ]);
 
-  const st = tournamentStatusInfo(t.status, t.end_date);
+  const wods = { total: wodCount ?? 0, closed: closedWodCount ?? 0 };
+  const st = tournamentStatusInfo(t.status, t.end_date, wods);
 
   return (
     <div className="max-w-3xl space-y-6">
@@ -67,11 +70,17 @@ export default async function TournamentDetailPage({ params }: { params: Promise
           </div>
           <div className="flex items-center gap-2 shrink-0">
             <StartTournamentButton tournamentId={id} status={t.status} />
+            <FinishTournamentButton
+              tournamentId={id}
+              status={t.status}
+              openWodCount={wods.total - wods.closed}
+            />
             <CloseTournamentButton
               tournamentId={id}
               pendingCount={pendingCount ?? 0}
               status={t.status}
               format={t.format}
+              emphasis={st.key === 'review'}
             />
             <Link href={`/tournaments/${id}/edit`}
               className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold text-gray-400 hover:text-white border border-white/10 hover:border-white/20 transition-colors">
@@ -94,14 +103,20 @@ export default async function TournamentDetailPage({ params }: { params: Promise
               La date de début est passée ({new Date(t.start_date).toLocaleDateString('fr-FR')}) mais le tournoi est encore en inscriptions — clique sur « Démarrer le tournoi » pour le passer « En cours ».
             </p>
           )}
+          {st.key === 'review' && (
+            <Link href={`/tournaments/${id}/scores`}
+              className="inline-flex items-center gap-1.5 mt-2 text-xs font-bold text-amber-400 hover:text-white transition-colors">
+              <ClipboardCheck size={13} /> Vérifier les scores
+            </Link>
+          )}
           {st.key !== 'completed' && (pendingCount ?? 0) > 0 && (
             <p className="text-amber-400 mt-1 font-semibold">
-              {pendingCount} score(s) à valider avant de pouvoir clôturer et distribuer l’ELO.
+              {pendingCount} score(s) à valider avant de distribuer l’ELO.
             </p>
           )}
-          {st.key !== 'completed' && (pendingCount ?? 0) === 0 && (participantCount ?? 0) > 0 && (
+          {st.key === 'review' && (pendingCount ?? 0) === 0 && (participantCount ?? 0) > 0 && (
             <p className="text-gray-500 mt-1">
-              Tout est prêt : clique sur « Clôturer &amp; ELO » pour figer le classement et distribuer l’ELO.
+              Tout est prêt : clique sur « Distribuer l’ELO et clôturer » pour verrouiller le classement final.
             </p>
           )}
         </div>
