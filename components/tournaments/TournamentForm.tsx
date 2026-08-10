@@ -4,10 +4,11 @@ import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { Loader2, Upload, ImageIcon, Trash2 } from 'lucide-react';
+import { toDateInput, fromDateInput } from '@/lib/datetime';
 
 const LEVELS = ['scaled','inter','rx','rx+','gx','pro'];
+// Must stay aligned with tournaments_status_check (open | active | completed).
 const STATUSES = [
-  { value: 'draft',  label: 'Brouillon' },
   { value: 'open',   label: 'Inscriptions ouvertes' },
   { value: 'active', label: 'En cours' },
 ];
@@ -32,14 +33,21 @@ export default function TournamentForm({ boxId, initial, allowedFormats = ['simp
   const [uploading, setUploading] = useState(false);
   const [bannerUrl, setBannerUrl] = useState<string | null>(initial?.banner_url ?? null);
   const [error, setError]   = useState<string | null>(null);
+  const errorRef = useRef<HTMLDivElement>(null);
+
+  function fail(message: string) {
+    setError(message);
+    setSaving(false);
+    requestAnimationFrame(() => errorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }));
+  }
   const defaultFormat = (allowedFormats.includes(initial?.format) ? initial.format : allowedFormats[0]) ?? 'simple';
   const [form, setForm] = useState({
     name:                initial?.name                ?? '',
     description:         initial?.description         ?? '',
     level:               initial?.level               ?? 'rx',
-    status:              initial?.status              ?? 'draft',
-    start_date:          initial?.start_date          ?? '',
-    end_date:            initial?.end_date            ?? '',
+    status:              initial?.status              ?? 'open',
+    start_date:          toDateInput(initial?.start_date),
+    end_date:            toDateInput(initial?.end_date),
     max_participants:    initial?.max_participants    ?? 32,
     prize:               initial?.prize               ?? '',
     format:              defaultFormat,
@@ -57,6 +65,12 @@ export default function TournamentForm({ boxId, initial, allowedFormats = ['simp
   );
 
   const set = (k: string, v: any) => setForm(f => ({ ...f, [k]: v }));
+
+  // A closed tournament keeps its own option so the select isn't blank; it is
+  // reopened via the lifecycle buttons, not here.
+  const statusOptions = form.status === 'completed'
+    ? [...STATUSES, { value: 'completed', label: 'Clôturé' }]
+    : STATUSES;
 
   async function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -98,15 +112,24 @@ export default function TournamentForm({ boxId, initial, allowedFormats = ['simp
     setSaving(true);
     setError(null);
     const supabase = createClient();
-    const payload  = { ...form, box_id: boxId, status: publish ? 'open' : form.status, banner_url: bannerUrl };
+    const payload  = {
+      ...form,
+      box_id:     boxId,
+      status:     publish ? 'open' : form.status,
+      banner_url: bannerUrl,
+      // Empty date fields must be sent as null: '' is rejected by Postgres and
+      // takes the whole UPDATE down with it (status included).
+      start_date: fromDateInput(form.start_date),
+      end_date:   form.end_date || null,
+    };
     if (initial?.id) {
       const { error: err } = await supabase.from('tournaments').update(payload).eq('id', initial.id);
       setSaving(false);
-      if (err) { setError(err.message); return; }
+      if (err) { fail(err.message); return; }
       router.push(`/tournaments/${initial.id}`);
     } else {
       const { data, error: err } = await supabase.from('tournaments').insert(payload).select('id').single();
-      if (err) { setSaving(false); setError(err.message); return; }
+      if (err) { fail(err.message); return; }
       // Bootstrap divisions for league_div
       if (form.format === 'league_div' && divisions.length > 0) {
         const rows = divisions.map((d, idx) => ({
@@ -118,7 +141,7 @@ export default function TournamentForm({ boxId, initial, allowedFormats = ['simp
           relegate_count: d.relegate_count,
         }));
         const { error: dErr } = await supabase.from('tournament_divisions').insert(rows);
-        if (dErr) { setSaving(false); setError(`Tournoi créé mais divisions: ${dErr.message}`); return; }
+        if (dErr) { fail(`Tournoi créé mais divisions: ${dErr.message}`); return; }
       }
       setSaving(false);
       router.push(`/tournaments/${data.id}/wods`);
@@ -132,9 +155,13 @@ export default function TournamentForm({ boxId, initial, allowedFormats = ['simp
 
   return (
     <form onSubmit={handleSubmit} className="space-y-8">
-      {error && (
-        <div className="bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3 text-sm text-red-400">{error}</div>
-      )}
+      <div ref={errorRef}>
+        {error && (
+          <div className="bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3 text-sm text-red-400">
+            <span className="font-bold">Enregistrement refusé — </span>{error}
+          </div>
+        )}
+      </div>
 
       {/* Format */}
       {!initial && allowedFormats.length > 1 && (
@@ -214,7 +241,7 @@ export default function TournamentForm({ boxId, initial, allowedFormats = ['simp
           <div>
             <label className={lbl}>Statut</label>
             <select className={inp} value={form.status} onChange={e => set('status', e.target.value)}>
-              {STATUSES.map(s => <option key={s.value} value={s.value} className="text-black">{s.label}</option>)}
+              {statusOptions.map(s => <option key={s.value} value={s.value} className="text-black">{s.label}</option>)}
             </select>
           </div>
         </div>

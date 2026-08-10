@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { ChevronLeft, Dumbbell, Users, BarChart2, Trophy, Pencil, ClipboardCheck, GitBranch, Layers } from 'lucide-react';
 import CloseTournamentButton from '@/components/tournaments/CloseTournamentButton';
+import StartTournamentButton from '@/components/tournaments/StartTournamentButton';
 import DeleteTournamentButton from '@/components/tournaments/DeleteTournamentButton';
 import { tournamentStatusInfo } from '@/lib/utils';
 
@@ -65,6 +66,7 @@ export default async function TournamentDetailPage({ params }: { params: Promise
             </div>
           </div>
           <div className="flex items-center gap-2 shrink-0">
+            <StartTournamentButton tournamentId={id} status={t.status} />
             <CloseTournamentButton
               tournamentId={id}
               pendingCount={pendingCount ?? 0}
@@ -87,6 +89,11 @@ export default async function TournamentDetailPage({ params }: { params: Promise
         <div className="text-sm">
           <p className="font-bold" style={{ color: st.color }}>{st.label}</p>
           <p className="text-gray-400 mt-0.5">{st.description}</p>
+          {t.status === 'open' && t.start_date && new Date(t.start_date).getTime() <= Date.now() && (
+            <p className="text-amber-400 mt-1 font-semibold">
+              La date de début est passée ({new Date(t.start_date).toLocaleDateString('fr-FR')}) mais le tournoi est encore en inscriptions — clique sur « Démarrer le tournoi » pour le passer « En cours ».
+            </p>
+          )}
           {st.key !== 'completed' && (pendingCount ?? 0) > 0 && (
             <p className="text-amber-400 mt-1 font-semibold">
               {pendingCount} score(s) à valider avant de pouvoir clôturer et distribuer l’ELO.
