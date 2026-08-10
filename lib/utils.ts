@@ -24,21 +24,29 @@ export function levelColor(level: string): string {
 }
 
 export interface TournamentStatusInfo {
-  key: 'open' | 'active' | 'ended' | 'completed';
+  key: 'open' | 'active' | 'review' | 'ended' | 'completed';
   label: string;
   color: string;
   description: string;
 }
 
+export interface WodProgress {
+  total: number;
+  closed: number;
+}
+
 /**
  * Single source of truth for a tournament's lifecycle state as shown to the owner.
- * DB `status` is one of 'open' | 'active' | 'completed'. When the end date has
- * passed but the tournament hasn't been closed yet, we surface a derived
- * "à clôturer" state so the owner knows to distribute ELO.
+ * DB `status` is one of 'open' | 'active' | 'completed' — the two intermediate
+ * states below are derived, not stored :
+ *   • « En révision » : tous les WOD sont fermés, plus aucune soumission, mais
+ *     l'ELO n'est pas distribué (le classement suit encore les validations) ;
+ *   • « Date de fin passée » : la fin est dépassée et des WOD restent ouverts.
  */
 export function tournamentStatusInfo(
   status: string,
   endDate?: string | null,
+  wods?: WodProgress,
 ): TournamentStatusInfo {
   if (status === 'completed') {
     return {
@@ -48,13 +56,23 @@ export function tournamentStatusInfo(
       description: 'ELO distribué — le classement final est verrouillé.',
     };
   }
+  if (status === 'active' && wods && wods.total > 0 && wods.closed === wods.total) {
+    return {
+      key: 'review',
+      label: 'En révision',
+      color: '#F59E0B',
+      description: 'Tournoi terminé — vérifie et valide les scores, puis distribue l’ELO pour clôturer.',
+    };
+  }
   const ended = !!endDate && new Date(endDate).getTime() < Date.now();
   if (ended) {
     return {
       key: 'ended',
-      label: 'Terminé — à clôturer',
+      label: 'Date de fin passée',
       color: '#F59E0B',
-      description: 'La date de fin est passée. Valide les scores en attente, puis clôture pour distribuer l’ELO.',
+      description: status === 'active'
+        ? 'La date de fin est passée mais des WOD acceptent encore des scores — clique sur « Terminer le tournoi » pour figer le classement.'
+        : 'La date de fin est passée et le tournoi est encore en inscriptions — démarre-le, ou corrige la date de fin.',
     };
   }
   if (status === 'active') {
