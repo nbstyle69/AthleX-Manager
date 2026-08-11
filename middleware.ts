@@ -18,7 +18,7 @@ function isTokenValid(token: string): boolean {
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  if (pathname.startsWith('/api/') || pathname.startsWith('/landing') || pathname.startsWith('/signup') || pathname.startsWith('/reset-password') || pathname.startsWith('/update-password') || pathname.startsWith('/classement') || pathname.startsWith('/privacy') || pathname === '/box' || pathname.startsWith('/box/') || pathname.startsWith('/pricing') || pathname.startsWith('/.well-known')) {
+  if (pathname.startsWith('/api/') || pathname.startsWith('/landing') || pathname.startsWith('/signup') || pathname.startsWith('/reset-password') || pathname.startsWith('/update-password') || pathname.startsWith('/rejoindre/') || pathname.startsWith('/classement') || pathname.startsWith('/privacy') || pathname === '/box' || pathname.startsWith('/box/') || pathname.startsWith('/pricing') || pathname.startsWith('/.well-known')) {
     return NextResponse.next();
   }
 
