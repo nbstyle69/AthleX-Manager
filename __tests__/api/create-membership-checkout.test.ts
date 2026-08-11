@@ -22,7 +22,7 @@ function makeChain(cfg: ChainCfg = {}) {
   const awaited = cfg.awaited ?? { data: null, error: null };
   const c: any = {};
   const ret = () => c;
-  ['select', 'insert', 'update', 'upsert', 'eq'].forEach((m) => (c[m] = jest.fn(ret)));
+  ['select', 'insert', 'update', 'upsert', 'eq', 'ilike'].forEach((m) => (c[m] = jest.fn(ret)));
   c.then = (resolve: Function) => Promise.resolve(awaited).then(resolve as any);
   c.single = jest.fn().mockResolvedValue(cfg.single ?? awaited);
   c.maybeSingle = jest.fn().mockResolvedValue(cfg.single ?? awaited);
@@ -33,9 +33,10 @@ let chains: Record<string, any>;
 const fromSpy = jest.fn((table: string) => (chains[table] ??= makeChain()));
 
 const mockGetServerUser = jest.fn();
+const mockRpc = jest.fn();
 
 jest.mock('@/lib/supabase/server', () => ({
-  createServiceClient: jest.fn(() => ({ from: fromSpy })),
+  createServiceClient: jest.fn(() => ({ from: fromSpy, rpc: mockRpc })),
   getServerUser: (...args: unknown[]) => mockGetServerUser(...args),
 }));
 
@@ -66,6 +67,7 @@ beforeEach(() => {
   chains = {};
   mockSessionsCreate.mockResolvedValue({ url: 'https://checkout.test/s' });
   mockGetServerUser.mockResolvedValue(null);
+  mockRpc.mockReset();
 });
 
 describe('POST /api/create-membership-checkout', () => {
@@ -139,6 +141,55 @@ describe('POST /api/create-membership-checkout', () => {
       expect.objectContaining({ mode: 'payment', payment_method_types: ['card'] }),
       { stripeAccount: 'acct_1' },
     );
+  });
+
+  // ── Lot 4 : Checkout ouvert depuis une invitation nominative ──────────
+  //
+  // Le navigateur n'a pas de session (le compte a été créé côté serveur au
+  // lot 2) : l'identité et la formule doivent venir du jeton, pas du body.
+
+  it('prend la formule et l’identité dans l’invitation, pas dans le body', async () => {
+    mockRpc.mockResolvedValue({
+      data: { ok: true, id: 'inv-1', box_id: 'box-1', plan_id: 'plan-1', email: 'invite@b.com', status: 'accepted' },
+      error: null,
+    });
+    chains.profiles = makeChain({ single: { data: { id: 'user-42' }, error: null } });
+    chains.membership_plans = makeChain({ single: { data: plan(), error: null } });
+    chains.boxes = makeChain({ single: { data: BOX, error: null } });
+
+    const res = (await POST(makeReq({
+      invitation_token: 'jeton-brut', plan_id: 'plan-CHER', buyer_email: 'attaquant@b.com',
+    }) as any)) as any;
+
+    expect(res._status).toBe(200);
+    expect(mockRpc).toHaveBeenCalledWith('resolve_box_invitation_for_checkout', { p_token: 'jeton-brut' });
+    expect(chains.membership_plans.eq).toHaveBeenCalledWith('id', 'plan-1');
+
+    const [params] = mockSessionsCreate.mock.calls[0];
+    expect(params.customer_email).toBe('invite@b.com');
+    expect(params.metadata.user_id).toBe('user-42');
+    expect(params.metadata.invitation_id).toBe('inv-1');
+    expect(params.subscription_data.metadata.invitation_id).toBe('inv-1');
+  });
+
+  it('refuse un jeton d’invitation révoqué, expiré ou inconnu', async () => {
+    mockRpc.mockResolvedValue({ data: { ok: false, reason: 'REVOKED' }, error: null });
+
+    const res = (await POST(makeReq({ invitation_token: 'jeton-mort' }) as any)) as any;
+
+    expect(res._status).toBe(409);
+    expect(mockSessionsCreate).not.toHaveBeenCalled();
+  });
+
+  it('n’attache aucune invitation à un achat ordinaire', async () => {
+    chains.membership_plans = makeChain({ single: { data: plan(), error: null } });
+    chains.boxes = makeChain({ single: { data: BOX, error: null } });
+
+    await POST(makeReq({ plan_id: 'plan-1' }) as any);
+
+    const [params] = mockSessionsCreate.mock.calls[0];
+    expect(params.metadata.invitation_id).toBeUndefined();
+    expect(mockRpc).not.toHaveBeenCalled();
   });
 
   it('returns 409 when the box has no Stripe account', async () => {

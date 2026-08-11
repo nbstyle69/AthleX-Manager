@@ -36,8 +36,10 @@ function makeChain(cfg: ChainCfg = {}) {
 let chains: Record<string, any>;
 const fromSpy = jest.fn((table: string) => (chains[table] ??= makeChain()));
 
+const mockRpc = jest.fn();
+
 jest.mock('@/lib/supabase/server', () => ({
-  createServiceClient: jest.fn(() => ({ from: fromSpy })),
+  createServiceClient: jest.fn(() => ({ from: fromSpy, rpc: mockRpc })),
 }));
 
 import { POST } from '../../app/api/stripe-connect-webhook/route';
@@ -55,6 +57,7 @@ const profileFound = () => makeChain({ maybeSingle: { data: { id: 'user-1' } } }
 beforeEach(() => {
   jest.clearAllMocks();
   chains = {};
+  mockRpc.mockResolvedValue({ data: { ok: true }, error: null });
 });
 
 describe('POST /api/stripe-connect-webhook', () => {
@@ -79,6 +82,72 @@ describe('POST /api/stripe-connect-webhook', () => {
       expect.objectContaining({ plan_id: 'plan-1', subscription_status: 'active', status: 'active' }),
     );
     expect(chains.box_members.eq).toHaveBeenCalledWith('id', 'bm-1');
+  });
+
+  // ── Lot 4 : invitation nominative payée par Stripe ──────────────────
+
+  it('ferme l’invitation au paiement, au nom du membre activé', async () => {
+    chains.profiles = profileFound();
+    chains.box_members = makeChain({ maybeSingle: { data: { id: 'bm-1' } }, awaited: { error: null } });
+    mockConstructEvent.mockReturnValue({
+      type: 'checkout.session.completed',
+      data: { object: { id: 'cs_1', customer_details: { email: 'a@b.com' }, subscription: 'sub_1', metadata: { kind: 'membership', plan_id: 'plan-1', box_id: 'box-1', invitation_id: 'inv-1' } } },
+    });
+
+    const res = (await POST(makeReq() as any)) as any;
+
+    expect(res._status).toBe(200);
+    expect(mockRpc).toHaveBeenCalledWith('accept_box_invitation_after_payment', {
+      p_invitation_id: 'inv-1',
+      p_user_id: 'user-1',
+    });
+  });
+
+  it('n’appelle rien quand le paiement ne porte pas d’invitation', async () => {
+    chains.profiles = profileFound();
+    chains.box_members = makeChain({ maybeSingle: { data: { id: 'bm-1' } }, awaited: { error: null } });
+    mockConstructEvent.mockReturnValue({
+      type: 'checkout.session.completed',
+      data: { object: { id: 'cs_1', customer_details: { email: 'a@b.com' }, subscription: 'sub_1', metadata: { kind: 'membership', plan_id: 'plan-1', box_id: 'box-1' } } },
+    });
+
+    await POST(makeReq() as any);
+
+    expect(mockRpc).not.toHaveBeenCalled();
+  });
+
+  // Le membre a payé : son accès ne dépend pas de la fermeture de l'invitation.
+  it('active quand même le membre si la fermeture d’invitation échoue', async () => {
+    chains.profiles = profileFound();
+    chains.box_members = makeChain({ maybeSingle: { data: { id: 'bm-1' } }, awaited: { error: null } });
+    mockRpc.mockResolvedValue({ data: { ok: false, reason: 'EMAIL_MISMATCH' }, error: null });
+    mockConstructEvent.mockReturnValue({
+      type: 'checkout.session.completed',
+      data: { object: { id: 'cs_1', customer_details: { email: 'a@b.com' }, subscription: 'sub_1', metadata: { kind: 'membership', plan_id: 'plan-1', box_id: 'box-1', invitation_id: 'inv-1' } } },
+    });
+
+    const res = (await POST(makeReq() as any)) as any;
+
+    expect(res._status).toBe(200);
+    expect(chains.box_members.update).toHaveBeenCalledWith(
+      expect.objectContaining({ status: 'active' }),
+    );
+  });
+
+  // Le parking en pending_entitlements n'a pas de membre à nommer : fermer
+  // l'invitation à ce moment reviendrait à l'attribuer à personne.
+  it('ne ferme pas l’invitation quand l’acheteur n’a pas encore de compte', async () => {
+    chains.profiles = makeChain({ maybeSingle: { data: null } });
+    chains.box_members = makeChain();
+    chains.pending_entitlements = makeChain({ awaited: { error: null } });
+    mockConstructEvent.mockReturnValue({
+      type: 'checkout.session.completed',
+      data: { object: { id: 'cs_1', customer_details: { email: 'ghost@b.com' }, metadata: { kind: 'membership', plan_id: 'plan-1', box_id: 'box-1', invitation_id: 'inv-1' } } },
+    });
+
+    await POST(makeReq() as any);
+
+    expect(mockRpc).not.toHaveBeenCalled();
   });
 
   it('inserts a new box_members row when none exists', async () => {
