@@ -78,6 +78,15 @@ html.light .scrollbar-track           { background: transparent; }
 html.light .logo-mark-dark { display: none; }
 html.light .logo-mark-light { display: block; }
 
+/* Le menu natif d'un <select> est peint par l'OS sur fond clair, mais les
+   <option> héritent de la couleur du <select> (text-white ici) : les lignes
+   non survolées deviennent blanc sur blanc. On fixe les deux côtés. */
+select option,
+select optgroup {
+  background-color: #FFFFFF;
+  color: #111111;
+}
+
 * { box-sizing: border-box; }
 
 body {
