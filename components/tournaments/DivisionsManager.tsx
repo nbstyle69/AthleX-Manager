@@ -335,7 +335,7 @@ export default function DivisionsManager({
                               className="bg-white/5 border border-white/10 rounded-lg px-2 py-1 text-[11px] text-white hover:bg-white/10 cursor-pointer disabled:opacity-50"
                             >
                               {divisions.map(dd => (
-                                <option key={dd.id} value={dd.id} className="bg-[#111111]">{dd.name}</option>
+                                <option key={dd.id} value={dd.id}>{dd.name}</option>
                               ))}
                             </select>
                             <button onClick={() => removeMember(row.id, p)} disabled={busy === `del-${row.id}`}
