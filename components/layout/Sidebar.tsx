@@ -1,31 +1,77 @@
-﻿'use client';
+'use client';
 
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { Users, FolderOpen, MessageSquare, LayoutDashboard, LogOut, Dumbbell, Sun, Moon, CalendarClock, Newspaper, BarChart3, Trophy, Settings, BookOpen, CreditCard, LifeBuoy, Inbox, Store, UserPlus, MailPlus } from 'lucide-react';
+import { Users, FolderOpen, MessageSquare, LayoutDashboard, LogOut, Dumbbell, Sun, Moon, CalendarClock, Newspaper, BarChart3, Trophy, Settings, BookOpen, CreditCard, LifeBuoy, Inbox, Store, UserPlus, MailPlus, ChevronDown } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { cn } from '@/lib/utils';
 import { useTheme } from '@/components/ThemeProvider';
 import BoxSwitcher, { type SwitcherBox } from '@/components/layout/BoxSwitcher';
 
-const NAV = [
-  { href: '/',             label: 'Dashboard',   icon: LayoutDashboard },
-  { href: '/articles',     label: 'Actualités',  icon: Newspaper },
-  { href: '/schedules',    label: 'Horaires',    icon: CalendarClock },
-  { href: '/wods',         label: 'Whiteboard',  icon: Dumbbell },
-  { href: '/programming',  label: 'Programmation', icon: Store },
-  { href: '/tournaments',  label: 'Tournois',    icon: Trophy },
-  { href: '/groups',       label: 'Groupes',     icon: FolderOpen },
-  { href: '/members',      label: 'Membres',     icon: Users },
-  { href: '/invitations',  label: 'Invitations', icon: MailPlus },
-  { href: '/programs',     label: 'Offres & Programmes', icon: BookOpen },
-  { href: '/subscribers',  label: 'Abonnés',     icon: CreditCard },
-  { href: '/prospects',    label: 'Prospects',   icon: UserPlus },
-  { href: '/stats',        label: 'Statistiques', icon: BarChart3 },
-  { href: '/messages',     label: 'Messages',    icon: MessageSquare },
-  { href: '/support',      label: 'Support',     icon: LifeBuoy },
-  { href: '/settings',     label: 'Réglages',    icon: Settings },
+type NavItem = { href: string; label: string; icon: typeof Users };
+type NavGroup = { key: string; label: string; items: NavItem[] };
+
+const DASHBOARD: NavItem = { href: '/', label: 'Dashboard', icon: LayoutDashboard };
+
+// Regroupement par casquette du gérant. L'ordre de « Communauté » suit le
+// parcours de vie d'un adhérent : prospect → invité → membre → abonné.
+const GROUPS: NavGroup[] = [
+  {
+    key: 'entrainement',
+    label: 'Entraînement',
+    items: [
+      { href: '/wods',        label: 'Whiteboard',    icon: Dumbbell },
+      { href: '/programming', label: 'Programmation', icon: Store },
+      { href: '/schedules',   label: 'Horaires',      icon: CalendarClock },
+    ],
+  },
+  {
+    key: 'communaute',
+    label: 'Communauté',
+    items: [
+      { href: '/prospects',   label: 'Prospects',   icon: UserPlus },
+      { href: '/invitations', label: 'Invitations', icon: MailPlus },
+      { href: '/members',     label: 'Membres',     icon: Users },
+      { href: '/subscribers', label: 'Abonnés',     icon: CreditCard },
+      { href: '/groups',      label: 'Groupes',     icon: FolderOpen },
+    ],
+  },
+  {
+    key: 'animation',
+    label: 'Animation',
+    items: [
+      { href: '/tournaments', label: 'Tournois',   icon: Trophy },
+      { href: '/articles',    label: 'Actualités', icon: Newspaper },
+      { href: '/messages',    label: 'Messages',   icon: MessageSquare },
+    ],
+  },
+  {
+    key: 'business',
+    label: 'Business',
+    items: [
+      { href: '/programs', label: 'Offres & Programmes', icon: BookOpen },
+      { href: '/stats',    label: 'Statistiques',        icon: BarChart3 },
+    ],
+  },
 ];
+
+const PINNED: NavItem[] = [
+  { href: '/support',  label: 'Support',  icon: LifeBuoy },
+  { href: '/settings', label: 'Réglages', icon: Settings },
+];
+
+function isActive(href: string, pathname: string): boolean {
+  if (href === '/') return pathname === '/';
+  // /support ne doit pas s'allumer sur la boîte de réception admin, qui a sa
+  // propre entrée.
+  if (href === '/support') return pathname.startsWith('/support') && !pathname.startsWith('/support/admin');
+  return pathname.startsWith(href);
+}
+
+function storageKey(email: string) {
+  return `athlex.sidebar.collapsed.${email}`;
+}
 
 interface SidebarProps {
   box: { name: string; plan: string } | null;
@@ -34,14 +80,64 @@ interface SidebarProps {
   supportUnread?: number;
   isSupportAdmin?: boolean;
   supportAdminUnread?: number;
+  invitationsToCollect?: number;
   boxes?: SwitcherBox[];
   activeBoxId?: string;
 }
 
-export default function Sidebar({ box, email, unreadCount = 0, supportUnread = 0, isSupportAdmin = false, supportAdminUnread = 0, boxes = [], activeBoxId }: SidebarProps) {
+export default function Sidebar({ box, email, unreadCount = 0, supportUnread = 0, isSupportAdmin = false, supportAdminUnread = 0, invitationsToCollect = 0, boxes = [], activeBoxId }: SidebarProps) {
   const pathname = usePathname();
   const router   = useRouter();
   const { theme, toggle } = useTheme();
+
+  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
+
+  const badges = useMemo<Record<string, number>>(() => ({
+    '/messages':    unreadCount,
+    '/support':     supportUnread,
+    '/invitations': invitationsToCollect,
+  }), [unreadCount, supportUnread, invitationsToCollect]);
+
+  // Restauration de l'état plié/déplié : par utilisateur, et seulement après
+  // hydratation (le serveur ne connaît pas le localStorage).
+  useEffect(() => {
+    if (!email) return;
+    try {
+      const raw = localStorage.getItem(storageKey(email));
+      if (raw) setCollapsed(JSON.parse(raw) as Record<string, boolean>);
+    } catch {
+      // état d'affichage : un stockage illisible ne doit pas casser la nav
+    }
+  }, [email]);
+
+  const persist = useCallback((next: Record<string, boolean>) => {
+    setCollapsed(next);
+    if (!email) return;
+    try {
+      localStorage.setItem(storageKey(email), JSON.stringify(next));
+    } catch {
+      // idem : le pli est un confort, pas une donnée
+    }
+  }, [email]);
+
+  // Le groupe qui contient la page courante s'ouvre de lui-même : on ne peut
+  // pas se retrouver sur un écran dont l'entrée est masquée.
+  const activeGroupKey = useMemo(
+    () => GROUPS.find(g => g.items.some(i => isActive(i.href, pathname)))?.key ?? null,
+    [pathname],
+  );
+
+  useEffect(() => {
+    if (!activeGroupKey) return;
+    setCollapsed(prev => {
+      if (!prev[activeGroupKey]) return prev;
+      const next = { ...prev, [activeGroupKey]: false };
+      if (email) {
+        try { localStorage.setItem(storageKey(email), JSON.stringify(next)); } catch { /* voir plus haut */ }
+      }
+      return next;
+    });
+  }, [activeGroupKey, email]);
 
   async function handleSignOut() {
     const supabase = createClient();
@@ -52,6 +148,30 @@ export default function Sidebar({ box, email, unreadCount = 0, supportUnread = 0
 
   const planColor = box?.plan === 'pro' ? '#8B5CF6' : box?.plan === 'elite' ? '#FFFFFF' : '#FFFFFF';
   const planLabel = box?.plan === 'pro' ? 'Pro' : box?.plan === 'elite' ? 'Elite' : 'Starter';
+
+  const linkClass = (active: boolean) => cn(
+    'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all relative',
+    active ? 'bg-white/20 text-white' : 'text-gray-400 hover:text-white hover:bg-white/5',
+  );
+
+  const badge = (count: number) => (
+    <span className="ml-auto bg-white text-[#0A0A0A] text-[10px] font-black rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1">
+      {count > 99 ? '99+' : count}
+    </span>
+  );
+
+  const navLink = (item: NavItem) => {
+    const active = isActive(item.href, pathname);
+    const count  = badges[item.href] ?? 0;
+    const Icon   = item.icon;
+    return (
+      <Link key={item.href} href={item.href} className={linkClass(active)}>
+        <Icon size={17} className={active ? 'text-white' : ''} />
+        {item.label}
+        {count > 0 && badge(count)}
+      </Link>
+    );
+  };
 
   return (
     <aside className="fixed top-0 left-0 h-full w-60 bg-[#080808] border-r border-white/[0.06] flex flex-col z-40">
@@ -80,62 +200,47 @@ export default function Sidebar({ box, email, unreadCount = 0, supportUnread = 0
       </div>
 
       {/* Nav */}
-      <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
-        {NAV.map(({ href, label, icon: Icon }) => {
-          const active = href === '/'
-            ? pathname === '/'
-            : href === '/support'
-              ? (pathname === '/support' || (pathname.startsWith('/support') && !pathname.startsWith('/support/admin')))
-              : pathname.startsWith(href);
+      <nav className="flex-1 px-3 py-4 overflow-y-auto">
+        <div className="space-y-0.5">{navLink(DASHBOARD)}</div>
+
+        {GROUPS.map(group => {
+          const open        = !collapsed[group.key];
+          const hasActive   = group.items.some(i => isActive(i.href, pathname));
+          // Un groupe replié ne doit jamais avaler une notification : les
+          // compteurs de ses entrées remontent sur son en-tête.
+          const groupCount  = group.items.reduce((sum, i) => sum + (badges[i.href] ?? 0), 0);
           return (
-            <Link
-              key={href} href={href}
-              className={cn(
-                'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all relative',
-                active
-                  ? 'bg-white/20 text-white'
-                  : 'text-gray-400 hover:text-white hover:bg-white/5'
-              )}
-            >
-              <Icon size={17} className={active ? 'text-white' : ''} />
-              {label}
-              {label === 'Messages' && unreadCount > 0 && (
-                <span className="ml-auto bg-white text-[#0A0A0A] text-[10px] font-black rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1">
-                  {unreadCount > 99 ? '99+' : unreadCount}
-                </span>
-              )}
-              {label === 'Support' && supportUnread > 0 && (
-                <span className="ml-auto bg-white text-[#0A0A0A] text-[10px] font-black rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1">
-                  {supportUnread > 99 ? '99+' : supportUnread}
-                </span>
-              )}
-            </Link>
+            <div key={group.key} className="mt-4">
+              <button
+                type="button"
+                onClick={() => persist({ ...collapsed, [group.key]: open })}
+                aria-expanded={open}
+                className="w-full flex items-center gap-2 px-3 py-1.5 rounded-lg text-[11px] font-black uppercase tracking-widest text-gray-500 hover:text-gray-300 hover:bg-white/5 transition-all"
+              >
+                <ChevronDown size={13} className={cn('transition-transform', open ? '' : '-rotate-90')} />
+                {group.label}
+                {!open && hasActive && <span className="w-1.5 h-1.5 rounded-full bg-white shrink-0" />}
+                {!open && groupCount > 0 && badge(groupCount)}
+              </button>
+              {open && <div className="mt-0.5 space-y-0.5">{group.items.map(navLink)}</div>}
+            </div>
           );
         })}
-        {isSupportAdmin && (() => {
-          const active = pathname.startsWith('/support/admin');
-          return (
-            <Link
-              href="/support/admin"
-              className={cn(
-                'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all relative',
-                active ? 'bg-white/20 text-white' : 'text-gray-400 hover:text-white hover:bg-white/5'
-              )}
-            >
-              <Inbox size={17} className={active ? 'text-white' : ''} />
-              Support (Admin)
-              {supportAdminUnread > 0 && (
-                <span className="ml-auto bg-white text-[#0A0A0A] text-[10px] font-black rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1">
-                  {supportAdminUnread > 99 ? '99+' : supportAdminUnread}
-                </span>
-              )}
-            </Link>
-          );
-        })()}
       </nav>
 
-      {/* Footer */}
-      <div className="px-4 py-4 border-t border-white/[0.06]">
+      {/* Épinglés + footer */}
+      <div className="px-3 pt-3 border-t border-white/[0.06] space-y-0.5">
+        {PINNED.map(navLink)}
+        {isSupportAdmin && (
+          <Link href="/support/admin" className={linkClass(pathname.startsWith('/support/admin'))}>
+            <Inbox size={17} className={pathname.startsWith('/support/admin') ? 'text-white' : ''} />
+            Support (Admin)
+            {supportAdminUnread > 0 && badge(supportAdminUnread)}
+          </Link>
+        )}
+      </div>
+
+      <div className="px-4 py-4">
         <div className="flex items-center gap-3 mb-3">
           <div className="w-8 h-8 rounded-full bg-white/30 flex items-center justify-center text-white text-xs font-black">
             {email[0]?.toUpperCase()}
