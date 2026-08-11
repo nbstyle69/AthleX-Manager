@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { Users, FolderOpen, MessageSquare, LayoutDashboard, LogOut, Dumbbell, Sun, Moon, CalendarClock, Newspaper, BarChart3, Trophy, Settings, BookOpen, CreditCard, LifeBuoy, Inbox, Store, UserPlus } from 'lucide-react';
+import { Users, FolderOpen, MessageSquare, LayoutDashboard, LogOut, Dumbbell, Sun, Moon, CalendarClock, Newspaper, BarChart3, Trophy, Settings, BookOpen, CreditCard, LifeBuoy, Inbox, Store, UserPlus, MailPlus } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { cn } from '@/lib/utils';
 import { useTheme } from '@/components/ThemeProvider';
@@ -17,6 +17,7 @@ const NAV = [
   { href: '/tournaments',  label: 'Tournois',    icon: Trophy },
   { href: '/groups',       label: 'Groupes',     icon: FolderOpen },
   { href: '/members',      label: 'Membres',     icon: Users },
+  { href: '/invitations',  label: 'Invitations', icon: MailPlus },
   { href: '/programs',     label: 'Offres & Programmes', icon: BookOpen },
   { href: '/subscribers',  label: 'Abonnés',     icon: CreditCard },
   { href: '/prospects',    label: 'Prospects',   icon: UserPlus },
