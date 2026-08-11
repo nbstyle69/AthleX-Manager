@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Loader2, AlertCircle, CheckCircle2, Apple, Smartphone, Mail, Building2 } from 'lucide-react';
+import { Loader2, AlertCircle, CheckCircle2, Apple, Smartphone, Mail, Building2, CreditCard } from 'lucide-react';
 import { APP_STORE_URL, PLAY_STORE_URL } from '@/lib/store-links';
 
 export type InvitationPeek = {
@@ -51,6 +51,8 @@ export default function JoinInvitationClient({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState<{ finalUsername: string; pseudoChanged: boolean } | null>(null);
+  const [payLoading, setPayLoading] = useState(false);
+  const [payError, setPayError] = useState<string | null>(null);
 
   const { box, plan } = invitation;
   const price = plan ? formatPrice(plan.price_cents, plan.currency) : null;
@@ -81,6 +83,31 @@ export default function JoinInvitationClient({
     }
   }
 
+  // Mode Stripe : le compte existe, l'accès non. Le Checkout est ouvert sur le
+  // compte connecté de la box, et c'est le webhook — jamais ce retour de
+  // navigateur — qui activera l'adhésion.
+  async function pay() {
+    setPayLoading(true);
+    setPayError(null);
+    try {
+      const res = await fetch('/api/create-membership-checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ invitation_token: token }),
+      });
+      const json = await res.json();
+      if (!res.ok || !json.url) {
+        setPayError(json.error ?? 'Paiement indisponible — contacte ta box.');
+        setPayLoading(false);
+        return;
+      }
+      window.location.href = json.url;
+    } catch (err: unknown) {
+      setPayError(err instanceof Error ? err.message : 'Erreur réseau.');
+      setPayLoading(false);
+    }
+  }
+
   if (done) {
     return (
       <Shell box={box}>
@@ -98,6 +125,21 @@ export default function JoinInvitationClient({
               changer dans l’app.
             </p>
           )}
+          {invitation.payment_mode === 'stripe' && (
+            <div className="mt-5">
+              <button type="button" disabled={payLoading} onClick={pay}
+                className="w-full bg-white hover:bg-gray-200 disabled:opacity-60 text-[#0A0A0A] font-bold py-3 rounded-xl transition-colors flex items-center justify-center gap-2">
+                {payLoading ? <Loader2 size={16} className="animate-spin" /> : <CreditCard size={16} />}
+                {payLoading ? 'Ouverture du paiement…' : 'Régler mon abonnement'}
+              </button>
+              <p className="text-xs text-gray-500 mt-2">
+                Carte ou prélèvement SEPA. Ton accès s’ouvre dès que la banque confirme le paiement —
+                inutile de rester sur la page.
+              </p>
+              {payError && <p className="text-xs text-red-400 mt-2">{payError}</p>}
+            </div>
+          )}
+
           <div className="mt-6 flex flex-col gap-2">
             <a href={APP_STORE_URL} target="_blank" rel="noopener noreferrer"
               className="flex items-center justify-center gap-2 bg-white text-[#0A0A0A] font-bold py-3 rounded-xl text-sm">

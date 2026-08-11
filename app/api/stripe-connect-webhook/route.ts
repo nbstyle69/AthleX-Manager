@@ -90,6 +90,27 @@ export async function POST(req: NextRequest) {
   }
 
   /**
+   * Lot 4 — l'invitation nominative se ferme au PAIEMENT, jamais au retour
+   * navigateur. La RPC est réservée au service_role et revérifie que le compte
+   * porte bien l'adresse invitée : un identifiant venu d'une metadata ne suffit
+   * pas à rattacher quelqu'un. Un échec n'annule pas l'activation — le membre a
+   * payé, il entre ; l'invitation restée ouverte se voit dans l'écran de gestion.
+   */
+  async function closeInvitation(invitationId: string | undefined, userId: string | null) {
+    if (!invitationId || !userId) return;
+    const { data, error } = await supabase.rpc('accept_box_invitation_after_payment', {
+      p_invitation_id: invitationId,
+      p_user_id: userId,
+    });
+    const result = data as { ok?: boolean; reason?: string } | null;
+    if (error || !result?.ok) {
+      console.error(
+        `Invitation ${invitationId} not closed for user ${userId}: ${error?.message ?? result?.reason}`,
+      );
+    }
+  }
+
+  /**
    * Paiement encaissé pour un e-mail sans compte : l'achat est déposé en attente
    * et réclamé automatiquement à la création du profil (trigger
    * trg_profiles_claim_pending_entitlements). Avant, il était simplement perdu.
@@ -212,6 +233,8 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: writeErr.message }, { status: 500 });
           }
 
+          await closeInvitation(session.metadata.invitation_id, userId);
+
           console.log(`Membership plan ${planId} activated for user ${userId} on box ${boxId}`);
           break;
         }
@@ -261,6 +284,8 @@ export async function POST(req: NextRequest) {
             console.error(`member_class_credits insert failed for user ${userId} on box ${boxId}:`, creditErr.message);
             return NextResponse.json({ error: creditErr.message }, { status: 500 });
           }
+
+          await closeInvitation(session.metadata.invitation_id, userId);
 
           console.log(`Credit pack (${credits} séances) activated for user ${userId} on box ${boxId}`);
           break;
