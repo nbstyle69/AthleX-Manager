@@ -44,24 +44,63 @@ function firstOfNextMonthUnix(now: Date = new Date()): number {
 export async function POST(req: NextRequest) {
   const stripe = getStripe();
   try {
-    const { plan_id, buyer_email } = await req.json();
+    const { plan_id, buyer_email, invitation_token } = await req.json();
 
-    if (!plan_id) {
-      return NextResponse.json({ error: 'plan_id required' }, { status: 400 });
-    }
+    const supabase = createServiceClient();
 
     // Tunnel PUBLIC : aucune auth exigée. Mais l'e-mail du body n'attribue plus
     // rien — soit l'acheteur est connecté (on impose son e-mail de session et on
     // pose user_id), soit Stripe collecte et vérifie l'e-mail au paiement.
     const sessionUser = await getServerUser();
-    const identity = buyerIdentity(sessionUser, buyer_email);
+    let identity = buyerIdentity(sessionUser, buyer_email);
 
-    const supabase = createServiceClient();
+    // Invitation nominative (lot 4) : le compte vient d'être créé côté serveur,
+    // le navigateur n'a donc pas forcément de session. L'identité et la formule
+    // ne se prennent alors PAS dans le body — elles se relisent à partir du
+    // jeton, seule chose que la page publique détienne.
+    let invitationId: string | null = null;
+    let planIdToUse: string | null = typeof plan_id === 'string' ? plan_id : null;
+
+    if (typeof invitation_token === 'string' && invitation_token.trim() !== '') {
+      const { data: resolved, error: resolveErr } = await supabase.rpc(
+        'resolve_box_invitation_for_checkout',
+        { p_token: invitation_token.trim() },
+      );
+      const inv = resolved as {
+        ok: boolean; reason?: string; id?: string; plan_id?: string; email?: string;
+      } | null;
+
+      if (resolveErr || !inv?.ok || !inv.id || !inv.plan_id || !inv.email) {
+        return NextResponse.json(
+          { error: 'Cette invitation n\'est plus payable.', reason: inv?.reason ?? resolveErr?.message },
+          { status: 409 },
+        );
+      }
+
+      invitationId = inv.id;
+      planIdToUse = inv.plan_id;
+
+      const { data: invitedProfile } = await supabase
+        .from('profiles')
+        .select('id')
+        .ilike('email', inv.email)
+        .maybeSingle();
+
+      identity = {
+        userId: (invitedProfile as { id?: string } | null)?.id ?? null,
+        customerEmail: inv.email,
+        submittedEmail: identity.submittedEmail,
+      };
+    }
+
+    if (!planIdToUse) {
+      return NextResponse.json({ error: 'plan_id required' }, { status: 400 });
+    }
 
     const { data: plan, error: planErr } = await supabase
       .from('membership_plans')
       .select('id, box_id, name, description, price_cents, currency, is_active, stripe_product_id, stripe_price_id, plan_type, credits, validity_days, commitment_months')
-      .eq('id', plan_id)
+      .eq('id', planIdToUse)
       .single();
 
     if (planErr || !plan) {
@@ -146,6 +185,7 @@ export async function POST(req: NextRequest) {
             plan_id: p.id,
             box_id: p.box_id,
             ...identityMetadata(identity),
+            ...(invitationId ? { invitation_id: invitationId } : {}),
             credits: String(credits),
             validity_days: String(validityDays),
             amount_cents: String(p.price_cents),
@@ -204,7 +244,10 @@ export async function POST(req: NextRequest) {
           ...(MEMBERSHIP_FEE_PERCENT > 0
             ? { application_fee_percent: MEMBERSHIP_FEE_PERCENT }
             : {}),
-          metadata: { plan_id: p.id, box_id: p.box_id, ...identityMetadata(identity) },
+          metadata: {
+            plan_id: p.id, box_id: p.box_id, ...identityMetadata(identity),
+            ...(invitationId ? { invitation_id: invitationId } : {}),
+          },
         },
         success_url: `${baseUrl}${successBase}?subscription=success`,
         cancel_url: `${baseUrl}${successBase}?subscription=cancel`,
@@ -213,6 +256,7 @@ export async function POST(req: NextRequest) {
           plan_id: p.id,
           box_id: p.box_id,
           ...identityMetadata(identity),
+          ...(invitationId ? { invitation_id: invitationId } : {}),
           amount_cents: String(p.price_cents),
           platform_fee_cents: String(feeAmount),
           commitment_months: String(p.commitment_months ?? 0),
