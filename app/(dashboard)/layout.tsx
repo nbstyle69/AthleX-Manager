@@ -1,4 +1,5 @@
 ﻿import { redirect } from 'next/navigation';
+import { cookies } from 'next/headers';
 import { createClient, getActiveBox, getOwnerBoxes, getBoxBillingState, getServerProfile, getServerUser } from '@/lib/supabase/server';
 import Sidebar from '@/components/layout/Sidebar';
 import TrialBanner from '@/components/TrialBanner';
@@ -76,6 +77,37 @@ export default async function DashboardLayout({ children }: { children: React.Re
     .eq('box_id', box.id)
     .eq('requester_unread', true);
 
+  // Messages non lus : mêmes règles que la tuile du dashboard (messages des
+  // autres dans les groupes de la box depuis la dernière ouverture de
+  // /messages, horodatée dans un cookie).
+  const { data: messageGroups } = await supabase
+    .from('message_groups')
+    .select('id')
+    .eq('box_id', box.id);
+  const groupIds = (messageGroups ?? []).map((g) => g.id);
+  const messagesSeenAt = (await cookies()).get(`msg_seen_${box.id}`)?.value;
+
+  let unreadMessages = 0;
+  if (groupIds.length) {
+    let q = supabase
+      .from('group_messages')
+      .select('id', { count: 'exact', head: true })
+      .in('group_id', groupIds)
+      .neq('sender_id', user.id);
+    if (messagesSeenAt) q = q.gt('created_at', messagesSeenAt);
+    const { count } = await q;
+    unreadMessages = count ?? 0;
+  }
+
+  // Invitations « à encaisser » : mode comptoir, paiement pas encore encaissé.
+  const { count: invitationsToCollect } = await supabase
+    .from('box_invitations')
+    .select('id', { count: 'exact', head: true })
+    .eq('box_id', box.id)
+    .eq('status', 'pending')
+    .eq('payment_mode', 'box')
+    .eq('cash_collected', false);
+
   const { data: isSupportAdmin } = await supabase.rpc('is_support_admin');
   let supportAdminUnread = 0;
   if (isSupportAdmin) {
@@ -96,8 +128,9 @@ export default async function DashboardLayout({ children }: { children: React.Re
       <Sidebar
         box={{ name: box.name, plan: (sub?.plan_tier as string) ?? 'starter' }}
         email={user.email ?? ''}
-        unreadCount={0}
+        unreadCount={unreadMessages}
         supportUnread={supportUnread ?? 0}
+        invitationsToCollect={invitationsToCollect ?? 0}
         isSupportAdmin={!!isSupportAdmin}
         supportAdminUnread={supportAdminUnread}
         boxes={boxes.map((b) => ({ id: b.id, name: b.name }))}
