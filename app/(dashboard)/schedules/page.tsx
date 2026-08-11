@@ -7,7 +7,7 @@ import TemplatesDrawer from '@/components/TemplatesDrawer';
 import {
   Plus, ChevronLeft, ChevronRight, Pencil, Trash2,
   Users, X, Loader2, Clock, Timer, CalendarCheck, LayoutTemplate, UserMinus,
-  Check, Download, UserPlus, Search, AlertTriangle, AlertCircle,
+  Check, Download, UserPlus, Search, AlertTriangle, AlertCircle, ClipboardCheck, CalendarDays,
 } from 'lucide-react';
 import { getMyBox } from '@/lib/getMyBox';
 import { writeFailure } from '@/lib/writeGuard';
@@ -16,6 +16,7 @@ interface Participant {
   reservation_id: string;
   member_id: string;
   username: string;
+  avatar_url: string | null;
   email: string;
   status: 'confirmed' | 'waiting';
   attended: boolean | null;
@@ -35,6 +36,7 @@ interface ClassSchedule {
   created_at: string;
   confirmed_count: number;
   waiting_count: number;
+  pointed_count: number;
 }
 
 const CLASS_TYPES = [
@@ -55,6 +57,24 @@ function getWeekDates(offset = 0): Date[] {
     d.setDate(monday.getDate() + i);
     return d;
   });
+}
+
+function addDaysISO(iso: string, days: number): string {
+  const d = new Date(iso + 'T00:00:00');
+  d.setDate(d.getDate() + days);
+  return toISO(d);
+}
+
+function Avatar({ url, name }: { url: string | null; name: string }) {
+  if (url) {
+    // eslint-disable-next-line @next/next/no-img-element
+    return <img src={url} alt={name} className="w-8 h-8 rounded-full object-cover shrink-0" />;
+  }
+  return (
+    <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-[11px] font-black text-white shrink-0">
+      {name.slice(0, 1).toUpperCase()}
+    </div>
+  );
 }
 
 function toISO(d: Date): string {
@@ -82,6 +102,13 @@ export default function SchedulesPage() {
   const [loading,    setLoading]    = useState(true);
   const [weekOffset, setWeek]       = useState(0);
   const [boxId,      setBoxId]      = useState<string | null>(null);
+
+  // Feuille de présence : sa propre vue, sur un jour, indépendante de la grille.
+  const [tab,        setTab]        = useState<'presences' | 'grille'>('presences');
+  const [dayISO,     setDayISO]     = useState<string>(() => toISO(new Date()));
+  const [dayItems,   setDayItems]   = useState<ClassSchedule[]>([]);
+  const [dayLoading, setDayLoading] = useState(true);
+  const [nextSlotId, setNextSlotId] = useState<string | null>(null);
 
   const [modal,     setModal]     = useState(false);
   const [editItem,  setEditItem]  = useState<ClassSchedule | null>(null);
@@ -152,45 +179,71 @@ export default function SchedulesPage() {
 
   useEffect(() => { loadCoverage(); }, [loadCoverage]);
 
-  const load = useCallback(async () => {
-    if (!boxId) return;
-    setLoading(true);
-    const start = toISO(weekDates[0]);
-    const end   = toISO(weekDates[6]);
-
+  // Créneaux d'une période + compteurs (inscrits, attente, déjà pointés).
+  const fetchRange = useCallback(async (startISO: string, endISO: string): Promise<ClassSchedule[]> => {
+    if (!boxId) return [];
     const { data } = await supabase
       .from('class_schedules')
       .select('*')
       .eq('box_id', boxId)
-      .gte('scheduled_date', start)
-      .lte('scheduled_date', end)
+      .gte('scheduled_date', startISO)
+      .lte('scheduled_date', endISO)
       .order('scheduled_date')
       .order('start_time');
 
-    const rawItems = (data ?? []) as Omit<ClassSchedule, 'confirmed_count' | 'waiting_count'>[];
-    let items: ClassSchedule[] = rawItems.map(s => ({ ...s, confirmed_count: 0, waiting_count: 0 }));
+    const rawItems = (data ?? []) as Omit<ClassSchedule, 'confirmed_count' | 'waiting_count' | 'pointed_count'>[];
+    let items: ClassSchedule[] = rawItems.map(s => ({ ...s, confirmed_count: 0, waiting_count: 0, pointed_count: 0 }));
+    if (rawItems.length === 0) return items;
 
-    if (rawItems.length > 0) {
-      const ids = rawItems.map(s => s.id);
-      const { data: resCounts } = await supabase
-        .from('class_reservations')
-        .select('schedule_id, status')
-        .in('schedule_id', ids);
-      const confirmedMap: Record<string, number> = {};
-      const waitingMap:   Record<string, number> = {};
-      ids.forEach(id => { confirmedMap[id] = 0; waitingMap[id] = 0; });
-      (resCounts ?? []).forEach((r: any) => {
-        if (r.status === 'waiting') { if (waitingMap[r.schedule_id]   !== undefined) waitingMap[r.schedule_id]++;   }
-        else                        { if (confirmedMap[r.schedule_id] !== undefined) confirmedMap[r.schedule_id]++; }
-      });
-      items = items.map(s => ({ ...s, confirmed_count: confirmedMap[s.id] ?? 0, waiting_count: waitingMap[s.id] ?? 0 }));
-    }
+    const ids = rawItems.map(s => s.id);
+    const { data: resCounts } = await supabase
+      .from('class_reservations')
+      .select('schedule_id, status, attended')
+      .in('schedule_id', ids);
+    const confirmedMap: Record<string, number> = {};
+    const waitingMap:   Record<string, number> = {};
+    const pointedMap:   Record<string, number> = {};
+    ids.forEach(id => { confirmedMap[id] = 0; waitingMap[id] = 0; pointedMap[id] = 0; });
+    (resCounts ?? []).forEach((r: { schedule_id: string; status: string; attended: boolean | null }) => {
+      if (confirmedMap[r.schedule_id] === undefined) return;
+      if (r.status === 'waiting') waitingMap[r.schedule_id]++;
+      else                        confirmedMap[r.schedule_id]++;
+      if (r.attended !== null) pointedMap[r.schedule_id]++;
+    });
+    return items.map(s => ({
+      ...s,
+      confirmed_count: confirmedMap[s.id] ?? 0,
+      waiting_count:   waitingMap[s.id] ?? 0,
+      pointed_count:   pointedMap[s.id] ?? 0,
+    }));
+  }, [boxId]);
 
-    setSchedules(items);
+  const load = useCallback(async () => {
+    if (!boxId) return;
+    setLoading(true);
+    setSchedules(await fetchRange(toISO(weekDates[0]), toISO(weekDates[6])));
     setLoading(false);
-  }, [boxId, weekOffset]);
+  }, [boxId, weekOffset, fetchRange]);
 
   useEffect(() => { load(); }, [load]);
+
+  const loadDay = useCallback(async () => {
+    if (!boxId) return;
+    setDayLoading(true);
+    const items = await fetchRange(dayISO, dayISO);
+    setDayItems(items);
+    // « Prochain cours » n'a de sens qu'aujourd'hui : c'est le premier créneau
+    // qui n'est pas encore terminé. L'heure est lue au chargement, côté client.
+    const now = new Date().toTimeString().slice(0, 5);
+    setNextSlotId(
+      dayISO === toISO(new Date())
+        ? items.find(s => s.end_time.slice(0, 5) >= now)?.id ?? null
+        : null,
+    );
+    setDayLoading(false);
+  }, [boxId, dayISO, fetchRange]);
+
+  useEffect(() => { loadDay(); }, [loadDay]);
 
   function openCreate(selectedDate: string) {
     setEditItem(null);
@@ -295,7 +348,7 @@ export default function SchedulesPage() {
     setMemberSearch('');
     const { data } = await supabase
       .from('class_reservations')
-      .select('id, member_id, status, attended, created_at, profile:profiles(username)')
+      .select('id, member_id, status, attended, created_at, profile:profiles(username, avatar_url)')
       .eq('schedule_id', item.id)
       .order('created_at', { ascending: true });
     const emails = boxId ? await getMemberEmails(supabase, boxId) : new Map<string, string>();
@@ -305,6 +358,7 @@ export default function SchedulesPage() {
         reservation_id: r.id,
         member_id: r.member_id,
         username: p?.username ?? '?',
+        avatar_url: p?.avatar_url ?? null,
         email: emails.get(r.member_id) ?? '',
         status: r.status,
         attended: r.attended ?? null,
@@ -328,6 +382,10 @@ export default function SchedulesPage() {
     if (fail) {
       alert('Erreur : ' + fail);
       setParticipants(prev => prev.map(p => p.reservation_id === reservationId ? { ...p, attended: current } : p));
+    } else if (current === null) {
+      // Le compteur « n pointés » de la vue du jour suit le pointage sans
+      // relire tout le créneau.
+      setDayItems(prev => prev.map(s => s.id === detailItem?.id ? { ...s, pointed_count: s.pointed_count + 1 } : s));
     }
     setTogglingAtt(null);
   }
@@ -396,11 +454,12 @@ export default function SchedulesPage() {
     }
     setParticipants(prev => [
       ...prev,
-      { reservation_id: inserted?.id ?? `tmp-${memberId}`, member_id: memberId, username, email, status: savedStatus, attended: savedStatus === 'confirmed', created_at: new Date().toISOString() },
+      { reservation_id: inserted?.id ?? `tmp-${memberId}`, member_id: memberId, username, avatar_url: null, email, status: savedStatus, attended: savedStatus === 'confirmed', created_at: new Date().toISOString() },
     ]);
     setAddMemberOpen(false);
     setMemberSearch('');
     load();
+    loadDay();
   }
 
   async function kickMember(reservationId: string) {
@@ -540,6 +599,99 @@ export default function SchedulesPage() {
         );
       })()}
 
+      {/* Onglets — la feuille de présence a sa propre vue, la grille ne bouge pas */}
+      <div className="flex items-center gap-2">
+        {([['presences', 'Présences', ClipboardCheck], ['grille', 'Grille hebdo', CalendarDays]] as const).map(([key, label, Icon]) => (
+          <button
+            key={key}
+            onClick={() => setTab(key)}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold border transition-colors ${
+              tab === key
+                ? 'bg-white border-white text-[#0A0A0A]'
+                : 'bg-transparent border-white/10 text-gray-400 hover:text-white hover:border-white/20'
+            }`}
+          >
+            <Icon size={15} />
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {tab === 'presences' ? (
+        <>
+          {/* Day nav */}
+          <div className="flex items-center gap-4 bg-[#111111] border border-white/8 rounded-2xl px-5 py-3">
+            <button onClick={() => setDayISO(d => addDaysISO(d, -1))} className="p-1.5 rounded-lg hover:bg-white/5 text-gray-400 hover:text-white transition-colors" title="Hier">
+              <ChevronLeft size={18} />
+            </button>
+            <span className="flex-1 text-center text-sm font-bold text-white capitalize">
+              {new Date(dayISO + 'T00:00:00').toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}
+              {dayISO === todayISO && <span className="ml-2 text-[10px] font-black uppercase tracking-wider text-emerald-400">aujourd&apos;hui</span>}
+            </span>
+            <button onClick={() => setDayISO(d => addDaysISO(d, 1))} className="p-1.5 rounded-lg hover:bg-white/5 text-gray-400 hover:text-white transition-colors" title="Demain">
+              <ChevronRight size={18} />
+            </button>
+            <button onClick={() => setDayISO(todayISO)} className="text-xs font-semibold text-white hover:underline px-2">
+              Aujourd&apos;hui
+            </button>
+          </div>
+
+          {dayLoading ? (
+            <div className="flex justify-center py-16"><Loader2 size={28} className="animate-spin text-white" /></div>
+          ) : dayItems.length === 0 ? (
+            <div className="text-center py-16 bg-[#111111] border border-white/8 rounded-2xl">
+              <ClipboardCheck size={32} className="text-gray-600 mx-auto mb-3" />
+              <p className="text-sm text-gray-500">Aucun cours ce jour-là.</p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {dayItems.map(item => {
+                const isNext = item.id === nextSlotId;
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => openDetail(item)}
+                    className={`w-full text-left flex items-center gap-4 rounded-2xl px-5 py-4 border transition-colors ${
+                      isNext
+                        ? 'bg-white/[0.06] border-white/40'
+                        : 'bg-[#111111] border-white/8 hover:border-white/20'
+                    }`}
+                  >
+                    <div className="w-20 shrink-0">
+                      <p className="text-base font-black text-white">{item.start_time.slice(0, 5)}</p>
+                      <p className="text-[11px] text-gray-500">{item.end_time.slice(0, 5)}</p>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-bold text-white truncate">{item.title}</p>
+                        {isNext && (
+                          <span className="text-[9px] font-black uppercase tracking-wider bg-white text-[#0A0A0A] rounded-full px-2 py-0.5">
+                            Prochain cours
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs text-gray-500 mt-0.5 truncate">
+                        {item.confirmed_count}/{item.max_capacity}
+                        {item.waiting_count > 0 && ` · ${item.waiting_count} en attente`}
+                        {item.coach && ` · ${item.coach}`}
+                      </p>
+                    </div>
+                    <div className="shrink-0 text-right">
+                      <p className={`text-xs font-bold ${
+                        item.confirmed_count > 0 && item.pointed_count >= item.confirmed_count ? 'text-emerald-400' : 'text-gray-400'
+                      }`}>
+                        {item.pointed_count > 0 ? `${item.pointed_count} pointé${item.pointed_count > 1 ? 's' : ''}` : 'Appel à faire'}
+                      </p>
+                      <p className="text-[11px] text-gray-600">Faire l&apos;appel →</p>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </>
+      ) : (
+      <>
       {/* Week nav */}
       <div className="flex items-center gap-4 bg-[#111111] border border-white/8 rounded-2xl px-5 py-3">
         <button onClick={() => setWeek(w => w - 1)} className="p-1.5 rounded-lg hover:bg-white/5 text-gray-400 hover:text-white transition-colors">
@@ -648,6 +800,8 @@ export default function SchedulesPage() {
             );
           })}
         </div>
+      )}
+      </>
       )}
 
       {/* Modal */}
@@ -785,6 +939,13 @@ export default function SchedulesPage() {
                   {' · '}{detailItem.start_time} – {detailItem.end_time}
                   {detailItem.coach && ` · ${detailItem.coach}`}
                 </p>
+                {!detailLoading && (
+                  <p className="text-sm font-bold text-white mt-1">
+                    {participants.filter(p => p.status === 'confirmed').length}/{detailItem.max_capacity}
+                    {participants.filter(p => p.status === 'waiting').length > 0 &&
+                      ` · ${participants.filter(p => p.status === 'waiting').length} en attente`}
+                  </p>
+                )}
               </div>
               <button onClick={() => { setDetailItem(null); setAddMemberOpen(false); }} className="text-gray-500 hover:text-white transition-colors">
                 <X size={20} />
@@ -838,6 +999,7 @@ export default function SchedulesPage() {
                                   ? <X size={14} className="text-red-400" strokeWidth={3} />
                                   : null}
                               </button>
+                              <Avatar url={p.avatar_url} name={p.username} />
                               <div className="flex-1 min-w-0">
                                 <p className="text-sm font-semibold text-white truncate">{p.username}</p>
                                 <p className="text-xs text-gray-500 truncate">{p.email}</p>
@@ -893,6 +1055,7 @@ export default function SchedulesPage() {
                                   ? <X size={14} className="text-red-400" strokeWidth={3} />
                                   : null}
                               </button>
+                              <Avatar url={p.avatar_url} name={p.username} />
                               <div className="flex-1 min-w-0">
                                 <p className="text-sm font-semibold text-white truncate">{p.username}</p>
                                 <p className="text-xs text-gray-500 truncate">{p.email}</p>
