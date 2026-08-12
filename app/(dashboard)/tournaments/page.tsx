@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { Plus, Trophy, Users, Clock, ChevronRight, Archive } from 'lucide-react';
 import { formatDate, tournamentStatusInfo } from '@/lib/utils';
+import TopEloCard from '@/components/stats/TopEloCard';
 
 export default async function TournamentsPage() {
   const supabase = await createClient();
@@ -137,6 +138,8 @@ export default async function TournamentsPage() {
           )}
         </div>
       )}
+
+      <TopEloCard boxId={box.id} />
     </div>
   );
 }

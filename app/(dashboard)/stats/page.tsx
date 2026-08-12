@@ -1,15 +1,14 @@
 'use client';
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
-import { Users, Trophy, Dumbbell, TrendingUp, Loader2, CalendarCheck, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Users, Trophy, Dumbbell, TrendingUp, Loader2, CalendarCheck } from 'lucide-react';
 import { getMyBox } from '@/lib/getMyBox';
+import MoneyBlock from '@/components/stats/MoneyBlock';
 
 const LEVEL_LABEL: Record<string, string> = { 'rx+': 'RX+', rx: 'RX', scaled: 'SCALED', foundations: 'FOUNDATIONS', inter: 'INTER', gx: 'GX', pro: 'PRO' };
 const LEVEL_COLOR: Record<string, string> = { 'rx+': '#FFFFFF', rx: '#3B82F6', scaled: '#10B981', foundations: '#8B5CF6', inter: '#F59E0B', gx: '#EC4899', pro: '#EF4444' };
-
-const PAGE_SIZE = 10;
 
 interface KPI { label: string; value: number | string; icon: any; color: string }
 interface MemberRow { username: string; elo: number; level: string; gender: string | null }
@@ -19,12 +18,12 @@ export default function BoxStatsPage() {
   const supabase = createClient();
 
   const [loading, setLoading] = useState(true);
+  const [boxId, setBoxId] = useState<string | null>(null);
   const [kpis, setKpis] = useState<KPI[]>([]);
   const [levelBreakdown, setLevelBreakdown] = useState<{ level: string; count: number }[]>([]);
   const [roleBreakdown, setRoleBreakdown] = useState<{ role: string; count: number }[]>([]);
   const [joinChart, setJoinChart] = useState<{ date: string; count: number }[]>([]);
   const [chartPeriod, setChartPeriod] = useState<7 | 30 | 90>(30);
-  const [allMembers, setAllMembers] = useState<MemberRow[]>([]);
   const [resaChart, setResaChart] = useState<{ date: string; count: number }[]>([]);
   const [resaChartPeriod, setResaChartPeriod] = useState<7 | 30 | 90>(30);
   const [avgResaPerMember, setAvgResaPerMember] = useState(0);
@@ -32,8 +31,6 @@ export default function BoxStatsPage() {
   const [totalResaToday, setTotalResaToday] = useState(0);
   const [activeWeek, setActiveWeek] = useState(0);
   const [activeMonth, setActiveMonth] = useState(0);
-  const [topPage, setTopPage] = useState(0);
-  const [genderFilter, setGenderFilter] = useState<'all' | 'male' | 'female'>('all');
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -41,6 +38,7 @@ export default function BoxStatsPage() {
     if (!user) { router.push('/login'); return; }
     const box = await getMyBox(supabase, user.id);
     if (!box) { router.push('/login'); return; }
+    setBoxId(box.id);
 
     const [
       { count: totalMembers },
@@ -115,9 +113,6 @@ export default function BoxStatsPage() {
     }
     setJoinChart(Object.entries(joinsByDate).map(([date, count]) => ({ date, count })).sort((a, b) => a.date.localeCompare(b.date)));
 
-    // All members for Top ELO (pagination + filter handled via useMemo)
-    setAllMembers(members);
-
     // Reservation stats
     const resas = (resaData ?? []) as { created_at: string; member_id: string }[];
     const todayStr = new Date().toISOString().slice(0, 10);
@@ -149,18 +144,6 @@ export default function BoxStatsPage() {
   }, []);
 
   useEffect(() => { load(); }, [load]);
-
-  // Filtered + paginated top ELO (must be before early return — rules of hooks)
-  const filteredMembers = useMemo(() => {
-    if (genderFilter === 'all') return allMembers;
-    return allMembers.filter(m => m.gender === genderFilter);
-  }, [allMembers, genderFilter]);
-
-  const totalPages = Math.max(1, Math.ceil(filteredMembers.length / PAGE_SIZE));
-  const sortedByElo = useMemo(() => {
-    const sorted = [...filteredMembers].sort((a, b) => b.elo - a.elo);
-    return sorted.slice(topPage * PAGE_SIZE, (topPage + 1) * PAGE_SIZE);
-  }, [filteredMembers, topPage]);
 
   if (loading) return (
     <div className="flex items-center justify-center min-h-[400px]">
@@ -198,6 +181,8 @@ export default function BoxStatsPage() {
         <h1 className="text-2xl font-black text-white">Statistiques</h1>
         <p className="text-sm text-gray-400 mt-1">Vue d&apos;ensemble de votre box</p>
       </div>
+
+      {boxId && <MoneyBlock boxId={boxId} />}
 
       {/* KPIs */}
       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
@@ -265,44 +250,44 @@ export default function BoxStatsPage() {
           </p>
         </div>
 
-        {/* Level breakdown */}
+        {/* Composition — une ligne suffit : le niveau et le rôle ne déclenchent
+            aucune action du gérant, ils situent seulement la salle. */}
         <div className="bg-[#111111] border border-white/8 rounded-2xl p-6">
-          <h2 className="text-sm font-bold text-white mb-5 flex items-center gap-2">
+          <h2 className="text-sm font-bold text-white mb-4 flex items-center gap-2">
             <Dumbbell size={16} className="text-white" />
-            Répartition par niveau
+            Composition
           </h2>
-          <div className="space-y-3">
-            {levelBreakdown.map(({ level, count }) => {
-              const pct = Math.round((count / totalLevel) * 100);
-              const color = LEVEL_COLOR[level] ?? '#6B7280';
-              return (
-                <div key={level}>
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-xs font-bold" style={{ color }}>{LEVEL_LABEL[level] ?? level.toUpperCase()}</span>
-                    <span className="text-xs text-gray-400">{count} ({pct}%)</span>
-                  </div>
-                  <div className="h-2 bg-white/5 rounded-full overflow-hidden">
-                    <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, backgroundColor: color }} />
-                  </div>
-                </div>
-              );
-            })}
-            {levelBreakdown.length === 0 && <p className="text-xs text-gray-600 text-center py-4">Aucun membre</p>}
-          </div>
-
-          {/* Role breakdown */}
-          <div className="mt-6 pt-5 border-t border-white/8">
-            <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Rôles</h3>
-            <div className="flex gap-4">
-              {roleBreakdown.map(({ role, count }) => (
-                <div key={role} className="flex items-center gap-2">
-                  <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: role === 'coach' ? '#8B5CF6' : '#3B82F6' }} />
-                  <span className="text-xs text-gray-300 font-semibold">{role === 'coach' ? 'Coachs' : 'Membres'}</span>
-                  <span className="text-xs text-gray-500 font-bold">{count}</span>
-                </div>
-              ))}
-            </div>
-          </div>
+          {levelBreakdown.length === 0 ? (
+            <p className="text-xs text-gray-600 py-4">Aucun membre</p>
+          ) : (
+            <>
+              <div className="flex h-2 rounded-full overflow-hidden bg-white/5">
+                {levelBreakdown.map(({ level, count }) => (
+                  <div
+                    key={level}
+                    title={`${LEVEL_LABEL[level] ?? level.toUpperCase()} · ${count}`}
+                    style={{ width: `${(count / totalLevel) * 100}%`, backgroundColor: LEVEL_COLOR[level] ?? '#6B7280' }}
+                  />
+                ))}
+              </div>
+              <div className="flex flex-wrap gap-x-4 gap-y-2 mt-4">
+                {levelBreakdown.map(({ level, count }) => (
+                  <span key={level} className="inline-flex items-center gap-1.5 text-[11px] text-gray-400">
+                    <span className="w-2 h-2 rounded-full" style={{ backgroundColor: LEVEL_COLOR[level] ?? '#6B7280' }} />
+                    {LEVEL_LABEL[level] ?? level.toUpperCase()}
+                    <span className="font-bold text-gray-300">{count}</span>
+                  </span>
+                ))}
+                {roleBreakdown.map(({ role, count }) => (
+                  <span key={role} className="inline-flex items-center gap-1.5 text-[11px] text-gray-400">
+                    <span className="w-2 h-2 rounded-full" style={{ backgroundColor: role === 'coach' ? '#8B5CF6' : '#3B82F6' }} />
+                    {role === 'coach' ? 'Coachs' : 'Membres'}
+                    <span className="font-bold text-gray-300">{count}</span>
+                  </span>
+                ))}
+              </div>
+            </>
+          )}
         </div>
       </div>
 
@@ -367,66 +352,6 @@ export default function BoxStatsPage() {
         </div>
       </div>
 
-      {/* Top ELO — paginated + gender filter */}
-      <div className="bg-[#111111] border border-white/8 rounded-2xl p-6">
-        <div className="flex items-center justify-between mb-5 flex-wrap gap-3">
-          <h2 className="text-sm font-bold text-white flex items-center gap-2">
-            <Trophy size={16} className="text-white" />
-            Top {topPage * PAGE_SIZE + 1}–{Math.min((topPage + 1) * PAGE_SIZE, filteredMembers.length)} membres (ELO)
-          </h2>
-          <div className="flex items-center gap-3">
-            {/* Gender filter */}
-            <div className="flex gap-1">
-              {([['all', 'Tous'], ['male', '♂ Hommes'], ['female', '♀ Femmes']] as const).map(([key, label]) => (
-                <button key={key} onClick={() => { setGenderFilter(key); setTopPage(0); }}
-                  className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-colors ${genderFilter === key ? 'bg-white/20 text-white' : 'text-gray-500 hover:text-gray-300'}`}>
-                  {label}
-                </button>
-              ))}
-            </div>
-            {/* Pagination */}
-            <div className="flex items-center gap-1">
-              <button onClick={() => setTopPage(p => Math.max(0, p - 1))} disabled={topPage === 0}
-                className="p-1 rounded-lg text-gray-500 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
-                <ChevronLeft size={18} />
-              </button>
-              <span className="text-xs text-gray-400 font-bold min-w-[40px] text-center">{topPage + 1}/{totalPages}</span>
-              <button onClick={() => setTopPage(p => Math.min(totalPages - 1, p + 1))} disabled={topPage >= totalPages - 1}
-                className="p-1 rounded-lg text-gray-500 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
-                <ChevronRight size={18} />
-              </button>
-            </div>
-          </div>
-        </div>
-        {sortedByElo.length === 0 ? (
-          <p className="text-xs text-gray-600 text-center py-4">Aucun membre</p>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-            {sortedByElo.map((m: MemberRow, i: number) => {
-              const rank = topPage * PAGE_SIZE + i + 1;
-              const lvlColor = LEVEL_COLOR[m.level] ?? '#6B7280';
-              return (
-                <div key={m.username + rank} className="flex items-center gap-3 bg-[#0A0A0A] rounded-xl px-4 py-3">
-                  <span className="text-sm font-black text-gray-500 w-6 text-right">{rank}</span>
-                  <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center text-white text-xs font-black shrink-0">
-                    {m.username[0]?.toUpperCase()}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-1.5">
-                      <p className="text-sm font-semibold text-white truncate">{m.username}</p>
-                      {m.gender && <span className="text-[10px]">{m.gender === 'male' ? '♂' : '♀'}</span>}
-                    </div>
-                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded" style={{ color: lvlColor, backgroundColor: `${lvlColor}20` }}>
-                      {LEVEL_LABEL[m.level] ?? m.level.toUpperCase()}
-                    </span>
-                  </div>
-                  <span className="text-sm font-mono font-bold text-white">{m.elo}</span>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
     </div>
   );
 }
