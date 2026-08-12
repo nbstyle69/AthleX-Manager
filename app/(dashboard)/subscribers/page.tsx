@@ -152,7 +152,7 @@ export default function SubscribersPage() {
     // seconde requête sur profiles.
     const { data: programRows, error: programError } = await supabase
       .from('program_members')
-      .select('user_id, created_at, amount_cents, status, program:programs!inner(title, box_id)')
+      .select('user_id, purchased_at, amount_cents, status, program:programs!inner(title, box_id)')
       .eq('program.box_id', box.id);
     if (programError) setActionError(`Achats de programmes indisponibles : ${programError.message}`);
 
@@ -209,7 +209,7 @@ export default function SubscribersPage() {
         paused: false,
         pauseResumesAt: null,
         commitmentEndDate: null,
-        joinedAt: r.created_at ?? null,
+        joinedAt: r.purchased_at ?? null,
       };
     });
 

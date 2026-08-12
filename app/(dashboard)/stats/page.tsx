@@ -54,10 +54,13 @@ export default function BoxStatsPage() {
       { data: joinData },
       { data: resaData },
     ] = await Promise.all([
-      supabase.from('box_members').select('*', { count: 'exact', head: true }).eq('box_id', box.id),
-      supabase.from('box_members').select('*', { count: 'exact', head: true }).eq('box_id', box.id).eq('status', 'active'),
-      supabase.from('box_members').select('*', { count: 'exact', head: true }).eq('box_id', box.id).eq('status', 'banned'),
-      supabase.from('box_members').select('*', { count: 'exact', head: true }).eq('box_id', box.id).eq('role', 'coach'),
+      // `box_members` n'a plus de SELECT au niveau table pour `authenticated` : les
+      // colonnes de facturation sont exclues. Compter sur `*` demande donc une
+      // colonne interdite et renvoie 42501 — on compte sur une colonne autorisée.
+      supabase.from('box_members').select('id', { count: 'exact', head: true }).eq('box_id', box.id),
+      supabase.from('box_members').select('id', { count: 'exact', head: true }).eq('box_id', box.id).eq('status', 'active'),
+      supabase.from('box_members').select('id', { count: 'exact', head: true }).eq('box_id', box.id).eq('status', 'banned'),
+      supabase.from('box_members').select('id', { count: 'exact', head: true }).eq('box_id', box.id).eq('role', 'coach'),
       supabase.from('tournaments').select('*', { count: 'exact', head: true }).eq('box_id', box.id),
       supabase.from('tournaments').select('*', { count: 'exact', head: true }).eq('box_id', box.id).in('status', ['open', 'active']),
       supabase.from('box_wods').select('*', { count: 'exact', head: true }).eq('box_id', box.id),
