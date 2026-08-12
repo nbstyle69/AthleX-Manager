@@ -40,7 +40,9 @@ export default async function DashboardPage() {
   ] = await Promise.all([
     supabase.from('tournaments').select('*', { count: 'exact', head: true })
       .eq('box_id', box.id).in('status', ['open', 'active']),
-    supabase.from('box_members').select('*', { count: 'exact', head: true }).eq('box_id', box.id).eq('status', 'active'),
+    // Colonne autorisée obligatoire : `authenticated` n'a pas de SELECT table sur
+    // box_members (colonnes de facturation exclues), donc `*` renvoie 42501.
+    supabase.from('box_members').select('id', { count: 'exact', head: true }).eq('box_id', box.id).eq('status', 'active'),
     tournamentIds.length
       ? supabase.from('tournament_scores').select('id', { count: 'exact', head: true })
           .eq('status', 'pending').in('tournament_id', tournamentIds)
