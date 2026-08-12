@@ -240,7 +240,13 @@ export default function MembersPage() {
   const [planSaving, setPlanSaving]  = useState<string | null>(null);
   const [showPlans,  setShowPlans]   = useState(false);
 
-  const [search,      setSearch]      = useState('');
+  // Les listes nominatives des Statistiques pointent ici avec `?q=<pseudo>` :
+  // sans pré-remplissage, un « voir la fiche » retomberait sur la liste entière.
+  const [search,      setSearch]      = useState(
+    () => (typeof window === 'undefined'
+      ? ''
+      : new URLSearchParams(window.location.search).get('q') ?? ''),
+  );
   const [filterLevel, setFilterLevel] = useState('');
   const [filterGroup, setFilterGroup] = useState('');
   const [eloSort,     setEloSort]     = useState<'asc' | 'desc' | ''>('');
