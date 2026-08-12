@@ -21,6 +21,8 @@ interface MoneySummary {
   new_subs_period: number;
   program_revenue_cents: number;
   program_sales_period: number;
+  cash_collected_cents: number;
+  cash_collected_count: number;
 }
 
 interface PlanRow {
@@ -47,6 +49,7 @@ interface MonthRow {
   month: string;
   membership_cents: number;
   program_cents: number;
+  cash_cents: number;
 }
 
 const EUR = (cents: number) =>
@@ -159,7 +162,8 @@ export default function MoneyBlock({ boxId }: { boxId: string }) {
 
   const mrrTotal = current.mrr_stripe_cents + current.mrr_cash_cents;
   const prevMrrTotal = previous.mrr_stripe_cents + previous.mrr_cash_cents;
-  const maxMonth = Math.max(...history.map(h => h.membership_cents + h.program_cents), 1);
+  const monthTotal = (h: MonthRow) => h.membership_cents + h.program_cents + h.cash_cents;
+  const maxMonth = Math.max(...history.map(monthTotal), 1);
   const pastDuePeople = people.filter(p => p.kind === 'past_due');
   const cashPeople = people.filter(p => p.kind === 'cash');
 
@@ -171,6 +175,14 @@ export default function MoneyBlock({ boxId }: { boxId: string }) {
       sub: `${current.mrr_stripe_subs + current.mrr_cash_subs} abonné(s)`,
       icon: Euro,
       delta: <Delta current={mrrTotal} previous={prevMrrTotal} suffix=" €" />,
+    },
+    {
+      key: 'cash',
+      label: 'Encaissé au comptoir',
+      value: EUR(current.cash_collected_cents),
+      sub: `${current.cash_collected_count} encaissement(s) ce mois`,
+      icon: Banknote,
+      delta: <Delta current={current.cash_collected_cents} previous={previous.cash_collected_cents} suffix=" €" />,
     },
     {
       key: 'programs',
@@ -208,7 +220,7 @@ export default function MoneyBlock({ boxId }: { boxId: string }) {
         <span className="text-[11px] text-gray-500">comparaisons vs mois précédent</span>
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
         {cards.map(({ key, label, value, sub, icon: Icon, delta }) => (
           <div key={key} className="bg-[#111111] border border-white/8 rounded-2xl p-4">
             <div className="flex items-start justify-between">
@@ -294,15 +306,15 @@ export default function MoneyBlock({ boxId }: { boxId: string }) {
           <h3 className="text-sm font-bold text-white mb-1">Encaissé sur 6 mois</h3>
           <p className="text-[11px] text-gray-500 mb-5">
             {hasStripeAccount
-              ? 'Factures Stripe de la box + achats de programmes.'
-              : 'Aucun compte Stripe connecté : seuls les programmes apparaissent.'}
+              ? 'Factures Stripe, achats de programmes et encaissements comptoir journalisés.'
+              : 'Aucun compte Stripe connecté : seuls les programmes et le comptoir apparaissent.'}
           </p>
           {history.length === 0 ? (
             <p className="text-xs text-gray-600 py-6 text-center">Aucun encaissement sur la période.</p>
           ) : (
             <div className="flex items-end gap-2 h-36">
               {history.map(h => {
-                const total = h.membership_cents + h.program_cents;
+                const total = monthTotal(h);
                 return (
                   <div key={h.month} className="flex-1 h-full flex flex-col items-center justify-end gap-1 group relative">
                     <div className="absolute -top-7 bg-[#1a1a1a] border border-white/10 rounded-lg px-2 py-1 text-[10px] text-white font-bold opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">
@@ -312,6 +324,9 @@ export default function MoneyBlock({ boxId }: { boxId: string }) {
                       {h.program_cents > 0 && (
                         <div className="w-full rounded-t-sm bg-white/40" style={{ height: `${(h.program_cents / Math.max(total, 1)) * 100}%` }} />
                       )}
+                      {h.cash_cents > 0 && (
+                        <div className="w-full bg-amber-400/70" style={{ height: `${(h.cash_cents / Math.max(total, 1)) * 100}%` }} />
+                      )}
                       <div className="w-full flex-1 bg-white" />
                     </div>
                     <span className="text-[10px] text-gray-600">{MONTH_LABEL(h.month)}</span>
@@ -320,12 +335,10 @@ export default function MoneyBlock({ boxId }: { boxId: string }) {
               })}
             </div>
           )}
-          {current.mrr_cash_cents > 0 && (
-            <p className="text-[10px] text-gray-600 mt-3">
-              {EUR(current.mrr_cash_cents)} d&apos;abonnements comptoir ne figurent pas ici : un encaissement en
-              espèces ne laisse aucune trace de paiement.
-            </p>
-          )}
+          <p className="text-[10px] text-gray-600 mt-3">
+            Le comptoir n&apos;y figure que depuis la pose du journal : les encaissements en espèces
+            antérieurs n&apos;ont laissé ni montant ni date, ils sont perdus pour toujours.
+          </p>
         </div>
 
         {/* Répartition par formule */}
@@ -360,7 +373,8 @@ export default function MoneyBlock({ boxId }: { boxId: string }) {
           )}
           {current.mrr_cash_subs > 0 && (
             <p className="text-[10px] text-gray-600 mt-4">
-              dont {current.mrr_cash_subs} abonnement(s) au comptoir — montant théorique, non encaissé par Stripe.
+              dont {current.mrr_cash_subs} abonnement(s) au comptoir : {EUR(current.mrr_cash_cents)} attendus au prix
+              de la formule, à rapprocher des {EUR(current.cash_collected_cents)} réellement encaissés ce mois.
             </p>
           )}
         </div>

@@ -3,7 +3,7 @@
 import { Fragment, useState, useEffect, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
-import { CreditCard, Loader2, Search, Users, BookOpen, Pause, Play, FileText, Check, X, ChevronDown, ChevronRight, ExternalLink } from 'lucide-react';
+import { CreditCard, Loader2, Search, Users, BookOpen, Pause, Play, FileText, Check, X, ChevronDown, ChevronRight, ExternalLink, Banknote } from 'lucide-react';
 import { getMyBox } from '@/lib/getMyBox';
 import { getMemberEmails } from '@/lib/memberEmails';
 import UnpaidPanel from '@/components/UnpaidPanel';
@@ -23,6 +23,7 @@ interface Row {
   status: string;       // active | past_due | cancelled | ...
   periodEnd: string | null;
   cancelAtPeriodEnd: boolean;
+  memberId: string | null;
   boxMemberId: string | null;
   hasStripeSub: boolean;
   paused: boolean;
@@ -62,6 +63,16 @@ function fmtPrice(cents: number | null) {
 function fmtDate(iso: string | null) {
   if (!iso) return '—';
   return new Date(iso).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' });
+}
+
+/** Une ligne du journal comptoir : montant réellement encaissé en espèces. */
+interface CashPaymentRow {
+  id: string;
+  member_id: string | null;
+  amount_cents: number;
+  collected_at: string;
+  plan_name: string | null;
+  source: string;
 }
 
 interface InvoiceRow {
@@ -105,6 +116,8 @@ export default function SubscribersPage() {
   const [boxId, setBoxId] = useState<string | null>(null);
   // Factures Stripe par box_member : montant réellement prélevé (prorata inclus).
   const [invoices, setInvoices] = useState<Record<string, InvoiceRow[]>>({});
+  // Journal comptoir par membre : l'équivalent des factures pour les espèces.
+  const [cashPayments, setCashPayments] = useState<Record<string, CashPaymentRow[]>>({});
   const [openHistory, setOpenHistory] = useState<string | null>(null);
 
   const load = useCallback(async ({ silent }: { silent?: boolean } = {}) => {
@@ -133,6 +146,19 @@ export default function SubscribersPage() {
     (billingRows ?? []).forEach((b: any) => {
       billingById[b.id] = { amount_cents: b.amount_cents, has_stripe_sub: b.has_stripe_sub };
     });
+
+    const { data: cashRows, error: cashError } = await supabase
+      .from('box_cash_payments')
+      .select('id, member_id, amount_cents, collected_at, plan_name, source')
+      .eq('box_id', box.id)
+      .order('collected_at', { ascending: false });
+    if (cashError) setActionError(`Encaissements comptoir indisponibles : ${cashError.message}`);
+    const cashByMember: Record<string, CashPaymentRow[]> = {};
+    for (const c of (cashRows ?? []) as CashPaymentRow[]) {
+      if (!c.member_id) continue;
+      (cashByMember[c.member_id] ??= []).push(c);
+    }
+    setCashPayments(cashByMember);
 
     // Demandes de résiliation en attente
     const { data: reqRows } = await supabase
@@ -181,6 +207,7 @@ export default function SubscribersPage() {
         status: r.subscription_status ?? 'active',
         periodEnd: r.subscription_current_period_end ?? null,
         cancelAtPeriodEnd: !!r.subscription_cancel_at_period_end,
+        memberId: r.member_id ?? null,
         boxMemberId: r.id ?? null,
         hasStripeSub: !!billing?.has_stripe_sub,
         paused: !!r.subscription_paused,
@@ -204,6 +231,7 @@ export default function SubscribersPage() {
         status: r.status ?? 'active',
         periodEnd: null,
         cancelAtPeriodEnd: false,
+        memberId: r.user_id ?? null,
         boxMemberId: null,
         hasStripeSub: false,
         paused: false,
@@ -242,6 +270,18 @@ export default function SubscribersPage() {
     } finally {
       setActionBusy(null);
     }
+  }
+
+  // Échéance comptoir : le montant n'est pas envoyé, la RPC le lit sur la
+  // formule du membre et écrit une ligne au journal (en ajout seul).
+  async function recordCashPayment(r: Row) {
+    if (!r.boxMemberId) return;
+    if (!window.confirm(`Enregistrer un encaissement comptoir pour ${r.username} ? Cette écriture est définitive.`)) return;
+    setActionBusy(r.key); setActionError(null);
+    const { error } = await supabase.rpc('record_member_cash_payment', { p_box_member_id: r.boxMemberId });
+    if (error) setActionError(error.message);
+    else await load({ silent: true });
+    setActionBusy(null);
   }
 
   async function reviewRequest(id: string, action: 'approve' | 'reject') {
@@ -290,6 +330,7 @@ export default function SubscribersPage() {
   const former = filtered.filter(isFormer);
 
   const memberInvoices = (r: Row) => (r.boxMemberId ? invoices[r.boxMemberId] ?? [] : []);
+  const memberCash = (r: Row) => (r.memberId ? cashPayments[r.memberId] ?? [] : []);
 
   const activeCount = rows.filter(r => r.status === 'active').length;
   const mrrCents = rows
@@ -401,7 +442,9 @@ export default function SubscribersPage() {
             {current.map(r => {
               const st = STATUS_STYLE[r.status] ?? { label: r.status, color: '#9CA3AF' };
               const history = memberInvoices(r);
+              const cash = memberCash(r);
               const historyOpen = openHistory === r.key;
+              const isCashMember = r.kind === 'membership' && !r.hasStripeSub;
               return (
                 <Fragment key={r.key}>
                 <tr className="border-b border-white/[0.04] hover:bg-white/[0.02]">
@@ -459,10 +502,17 @@ export default function SubscribersPage() {
                     )}
                   </td>
                   <td className="px-4 py-3 text-right space-x-2 whitespace-nowrap">
-                    {history.length > 0 && (
+                    {(history.length > 0 || cash.length > 0) && (
                       <button onClick={() => setOpenHistory(historyOpen ? null : r.key)}
                         className="inline-flex items-center gap-1 text-xs font-bold text-gray-300 bg-white/5 hover:bg-white/10 rounded-lg px-2.5 py-1.5">
-                        {historyOpen ? <ChevronDown size={13} /> : <ChevronRight size={13} />} Factures
+                        {historyOpen ? <ChevronDown size={13} /> : <ChevronRight size={13} />} {history.length > 0 ? 'Factures' : 'Encaissements'}
+                      </button>
+                    )}
+                    {isCashMember && r.status !== 'cancelled' && (
+                      <button onClick={() => recordCashPayment(r)} disabled={actionBusy === r.key}
+                        className="inline-flex items-center gap-1 text-xs font-bold text-amber-400 bg-amber-500/10 hover:bg-amber-500/20 rounded-lg px-2.5 py-1.5 disabled:opacity-50">
+                        {actionBusy === r.key ? <Loader2 size={13} className="animate-spin" /> : <Banknote size={13} />}
+                        Encaissement reçu
                       </button>
                     )}
                     {r.kind === 'membership' && r.hasStripeSub && r.status !== 'cancelled' && (
@@ -477,8 +527,23 @@ export default function SubscribersPage() {
                 {historyOpen && (
                   <tr className="border-b border-white/[0.04] bg-black/30">
                     <td colSpan={8} className="px-4 py-3">
-                      <p className="text-xs font-bold text-gray-400 mb-2">Historique de facturation (montants réellement prélevés)</p>
+                      <p className="text-xs font-bold text-gray-400 mb-2">
+                        {history.length > 0
+                          ? 'Historique de facturation (montants réellement prélevés)'
+                          : 'Encaissements au comptoir (journal, non modifiable)'}
+                      </p>
                       <div className="space-y-1">
+                        {cash.map(c => (
+                          <div key={c.id} className="flex items-center gap-3 text-xs">
+                            <span className="w-32 text-gray-400 capitalize">{fmtMonth(c.collected_at.slice(0, 7))}</span>
+                            <span className="w-24 font-bold text-white">{fmtPrice(c.amount_cents)}</span>
+                            <span className="text-amber-400">
+                              {c.source === 'invitation' ? 'Comptoir · 1re échéance' : 'Comptoir'}
+                            </span>
+                            <span className="text-gray-600">{fmtDate(c.collected_at)}</span>
+                            {c.plan_name && <span className="text-gray-600">{c.plan_name}</span>}
+                          </div>
+                        ))}
                         {history.map(inv => (
                           <div key={inv.id} className="flex items-center gap-3 text-xs">
                             <span className="w-32 text-gray-400 capitalize">{fmtMonth(inv.month)}</span>
