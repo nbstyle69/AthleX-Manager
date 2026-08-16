@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { Users, Trophy, Dumbbell, TrendingUp, Loader2, CalendarCheck } from 'lucide-react';
 import { getMyBox } from '@/lib/getMyBox';
 import MoneyBlock from '@/components/stats/MoneyBlock';
+import AttendanceBlock from '@/components/stats/AttendanceBlock';
 
 const LEVEL_LABEL: Record<string, string> = { 'rx+': 'RX+', rx: 'RX', scaled: 'SCALED', foundations: 'FOUNDATIONS', inter: 'INTER', gx: 'GX', pro: 'PRO' };
 const LEVEL_COLOR: Record<string, string> = { 'rx+': '#FFFFFF', rx: '#3B82F6', scaled: '#10B981', foundations: '#8B5CF6', inter: '#F59E0B', gx: '#EC4899', pro: '#EF4444' };
@@ -26,9 +27,6 @@ export default function BoxStatsPage() {
   const [chartPeriod, setChartPeriod] = useState<7 | 30 | 90>(30);
   const [resaChart, setResaChart] = useState<{ date: string; count: number }[]>([]);
   const [resaChartPeriod, setResaChartPeriod] = useState<7 | 30 | 90>(30);
-  const [avgResaPerMember, setAvgResaPerMember] = useState(0);
-  const [totalResaWeek, setTotalResaWeek] = useState(0);
-  const [totalResaToday, setTotalResaToday] = useState(0);
   const [activeWeek, setActiveWeek] = useState(0);
   const [activeMonth, setActiveMonth] = useState(0);
 
@@ -115,30 +113,21 @@ export default function BoxStatsPage() {
 
     // Reservation stats
     const resas = (resaData ?? []) as { created_at: string; member_id: string }[];
-    const todayStr = new Date().toISOString().slice(0, 10);
     const weekAgo = new Date(Date.now() - 7 * 86400000).toISOString().slice(0, 10);
     const monthAgo = new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10);
     const resaByDate: Record<string, number> = {};
-    let resaToday = 0;
-    let resaWeek = 0;
-    const uniqueMembers = new Set<string>();
     const activeWeekSet = new Set<string>();
     const activeMonthSet = new Set<string>();
     for (const r of resas) {
       const d = r.created_at?.slice(0, 10);
       if (!d) continue;
       resaByDate[d] = (resaByDate[d] ?? 0) + 1;
-      if (d === todayStr) resaToday++;
-      if (d >= weekAgo) { resaWeek++; activeWeekSet.add(r.member_id); }
+      if (d >= weekAgo) activeWeekSet.add(r.member_id);
       if (d >= monthAgo) activeMonthSet.add(r.member_id);
-      uniqueMembers.add(r.member_id);
     }
     setActiveWeek(activeWeekSet.size);
     setActiveMonth(activeMonthSet.size);
     setResaChart(Object.entries(resaByDate).map(([date, count]) => ({ date, count })).sort((a, b) => a.date.localeCompare(b.date)));
-    setTotalResaToday(resaToday);
-    setTotalResaWeek(resaWeek);
-    setAvgResaPerMember(uniqueMembers.size > 0 ? Math.round((resas.length / uniqueMembers.size) * 10) / 10 : 0);
 
     setLoading(false);
   }, []);
@@ -183,6 +172,7 @@ export default function BoxStatsPage() {
       </div>
 
       {boxId && <MoneyBlock boxId={boxId} />}
+      {boxId && <AttendanceBlock boxId={boxId} />}
 
       {/* KPIs */}
       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
@@ -291,8 +281,9 @@ export default function BoxStatsPage() {
         </div>
       </div>
 
-      {/* Reservation chart + KPIs */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {/* Volume de réservations dans le temps — le « quand » est traité par la
+          heatmap du bloc Assiduité, celui-ci ne montre que la tendance. */}
+      <div>
         <div className="bg-[#111111] border border-white/8 rounded-2xl p-6">
           <div className="flex items-center justify-between mb-5">
             <div className="flex items-center gap-2">
@@ -327,28 +318,6 @@ export default function BoxStatsPage() {
           <p className="text-[10px] text-gray-600 text-center mt-2">
             {filteredResaChart.reduce((s, d) => s + d.count, 0)} réservation(s) sur {resaChartPeriod} jours
           </p>
-        </div>
-
-        {/* Reservation KPIs */}
-        <div className="bg-[#111111] border border-white/8 rounded-2xl p-6 flex flex-col justify-center">
-          <h2 className="text-sm font-bold text-white mb-5 flex items-center gap-2">
-            <CalendarCheck size={16} className="text-[#10B981]" />
-            Réservations — KPIs
-          </h2>
-          <div className="grid grid-cols-3 gap-4">
-            <div className="bg-[#0A0A0A] rounded-xl p-4 text-center">
-              <p className="text-2xl font-black text-[#10B981]">{totalResaToday}</p>
-              <p className="text-[11px] text-gray-400 font-medium mt-1">Aujourd&apos;hui</p>
-            </div>
-            <div className="bg-[#0A0A0A] rounded-xl p-4 text-center">
-              <p className="text-2xl font-black text-[#10B981]">{totalResaWeek}</p>
-              <p className="text-[11px] text-gray-400 font-medium mt-1">Cette semaine</p>
-            </div>
-            <div className="bg-[#0A0A0A] rounded-xl p-4 text-center">
-              <p className="text-2xl font-black text-[#10B981]">{avgResaPerMember}</p>
-              <p className="text-[11px] text-gray-400 font-medium mt-1">Moy. / athlète</p>
-            </div>
-          </div>
         </div>
       </div>
 
