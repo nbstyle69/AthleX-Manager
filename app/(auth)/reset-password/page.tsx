@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { Loader2, AlertCircle, ArrowLeft, MailCheck } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
+import { SITE_URL } from '@/lib/site-url';
 
 export default function ResetPasswordPage() {
   const [email, setEmail] = useState('');
@@ -18,7 +19,7 @@ export default function ResetPasswordPage() {
     try {
       const supabase = createClient();
       const { error: authError } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/update-password`,
+        redirectTo: `${SITE_URL}/update-password`,
       });
       if (authError) { setError(authError.message); setLoading(false); return; }
       setSent(true);

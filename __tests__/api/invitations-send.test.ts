@@ -25,7 +25,7 @@ const makeChain = (maybeSingleValue: any) => {
 
 const tableRows: Record<string, any> = {
   box_invitations: invitationRow,
-  boxes: { name: 'CrossFit Test' },
+  boxes: { name: 'CrossFit Test', contact_email: 'contact@crossfit-test.fr' },
   membership_plans: { name: 'Illimité', price_cents: 5900 },
 };
 
@@ -57,7 +57,7 @@ describe('POST /api/invitations/send', () => {
     jest.clearAllMocks();
     tableRows.box_invitations = { ...invitationRow };
     process.env.RESEND_API_KEY = 'test-key';
-    process.env.RESEND_FROM = 'AthleX <no-reply@athlex.app>';
+
     global.fetch = jest.fn().mockResolvedValue({ ok: true, status: 200, text: async () => '' }) as any;
   });
 
@@ -100,7 +100,13 @@ describe('POST /api/invitations/send', () => {
     expect(res.status).toBe(200);
     const body = JSON.parse((global.fetch as jest.Mock).mock.calls[0][1].body);
     expect(body.to).toBe('invite@example.com');
-    expect(body.html).toContain('https://athlex.test/rejoindre/jeton-brut');
+    // Le lien porte le domaine public, pas l'origine de la requête : une
+    // invitation envoyée depuis une preview doit rester ouvrable dans six mois.
+    expect(body.html).toContain('https://athlexapp.eu/rejoindre/jeton-brut');
+    expect(body.html).not.toContain('athlex.test');
+    // Resend n'accepte que le domaine vérifié ; la réponse, elle, va à la box.
+    expect(body.from).toContain('@athlexapp.eu');
+    expect(body.reply_to).toBe('contact@crossfit-test.fr');
   });
 
   it('remonte l’échec Resend au lieu de le taire', async () => {

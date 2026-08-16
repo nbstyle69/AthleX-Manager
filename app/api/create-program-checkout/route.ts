@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { createServiceClient, getServerUser } from '@/lib/supabase/server';
 import { buyerIdentity, customerEmailField, identityMetadata } from '@/lib/buyerIdentity';
+import { SITE_URL } from '@/lib/site-url';
 
 function getStripe() {
   return new Stripe(process.env.STRIPE_SECRET_KEY!, {
@@ -115,7 +116,7 @@ export async function POST(req: NextRequest) {
     }
 
     const feeAmount = Math.round((p.price_cents * PLATFORM_FEE_PERCENT) / 100);
-    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://the-hub-rho.vercel.app';
+    const baseUrl = SITE_URL;
     const successBase = b.slug ? `/box/${b.slug}` : '/landing';
 
     const session = await stripe.checkout.sessions.create(

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { createClient, createServiceClient } from '@/lib/supabase/server';
+import { SITE_URL } from '@/lib/site-url';
 
 function getStripe() {
   return new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2023-10-16' as any });
@@ -77,7 +78,7 @@ export async function POST(req: NextRequest) {
       lineItems.push({ price: PRICE_EXTRA, quantity: extraBoxes });
     }
 
-    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://the-hub-rho.vercel.app';
+    const baseUrl = SITE_URL;
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       mode: 'subscription',

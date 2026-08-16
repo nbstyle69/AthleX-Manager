@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { requireBoxOwner } from '@/lib/requireBoxOwner';
+import { SITE_URL } from '@/lib/site-url';
 
 function getStripe() {
   return new Stripe(process.env.STRIPE_SECRET_KEY!, {
@@ -67,7 +68,7 @@ export async function POST(req: NextRequest) {
         .eq('id', b.id);
     }
 
-    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://the-hub-rho.vercel.app';
+    const baseUrl = SITE_URL;
 
     const accountLink = await stripe.accountLinks.create({
       account: accountId,

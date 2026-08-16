@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { createServiceClient, getServerUser } from '@/lib/supabase/server';
 import { isBoxStaff } from '@/lib/isBoxStaff';
+import { MAIL_FROM } from '@/lib/site-url';
 
 function getStripe() {
   return new Stripe(process.env.STRIPE_SECRET_KEY!, {
@@ -9,11 +10,13 @@ function getStripe() {
   });
 }
 
-async function sendReminderEmail(to: string, boxName: string, amountCents: number | null) {
+async function sendReminderEmail(
+  to: string, boxName: string, amountCents: number | null, replyTo: string | null,
+) {
   const apiKey = process.env.RESEND_API_KEY;
   if (!apiKey) return false;
 
-  const from = process.env.RESEND_FROM ?? 'AthleX <no-reply@athlex.app>';
+  const from = MAIL_FROM;
   const amount = amountCents ? `${(amountCents / 100).toFixed(2)} €` : null;
   const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   const html = `<!DOCTYPE html><html><body style="margin:0;background:#000;font-family:Arial,Helvetica,sans-serif;color:#fff">
@@ -32,7 +35,10 @@ async function sendReminderEmail(to: string, boxName: string, amountCents: numbe
   const res = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ from, to, subject: 'Ton abonnement est impayé', html }),
+    body: JSON.stringify({
+      from, to, subject: 'Ton abonnement est impayé', html,
+      ...(replyTo ? { reply_to: replyTo } : {}),
+    }),
   });
   if (!res.ok) {
     console.error('dunning resend error', res.status, await res.text());
@@ -90,10 +96,12 @@ export async function POST(req: NextRequest) {
 
     const { data: box } = await supabase
       .from('boxes')
-      .select('name, stripe_account_id')
+      .select('name, stripe_account_id, contact_email')
       .eq('id', member.box_id)
       .single();
-    const b = box as { name: string; stripe_account_id: string | null } | null;
+    const b = box as {
+      name: string; stripe_account_id: string | null; contact_email: string | null;
+    } | null;
 
     if (action === 'remind') {
       const { data: profile } = await supabase
@@ -106,7 +114,9 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: 'Ce membre n\'a pas d\'email.' }, { status: 409 });
       }
 
-      const sent = await sendReminderEmail(email, b?.name ?? 'ta box', member.amount_cents);
+      const sent = await sendReminderEmail(
+        email, b?.name ?? 'ta box', member.amount_cents, b?.contact_email ?? null,
+      );
       if (!sent) {
         return NextResponse.json({ error: 'Envoi de la relance impossible.' }, { status: 502 });
       }
