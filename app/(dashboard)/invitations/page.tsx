@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { getMyBox } from '@/lib/getMyBox';
+import CsvImport from '@/components/invitations/CsvImport';
 
 const supabase = createClient();
 
@@ -58,6 +59,8 @@ function rpcMessage(error: { message: string } | null): string | null {
   if (m.includes('INVITATION_EXISTS')) return 'Une invitation est déjà en attente pour cette adresse.';
   if (m.includes('PLAN_NOT_IN_BOX')) return 'Cette formule n’appartient pas à la box.';
   if (m.includes('INVALID_EMAIL')) return 'Adresse e-mail invalide.';
+  if (m.includes('MEMBER_EXISTS')) return 'Cette personne est déjà membre de ta box.';
+  if (m.includes('MEMBER_BANNED')) return 'Cette personne est exclue de la box.';
   if (m.includes('NOT_PENDING')) return 'Cette invitation n’est plus en attente : recrée-la.';
   if (m.includes('ALREADY_ACCEPTED')) return 'Cette invitation a déjà été utilisée.';
   if (m.includes('FORBIDDEN')) return 'Vous n’administrez pas cette box.';
@@ -290,6 +293,10 @@ export default function InvitationsPage() {
           {creating ? <Loader2 size={15} className="animate-spin" /> : <UserPlus size={15} />} Créer l’invitation
         </button>
       </form>
+
+      {boxId && (
+        <CsvImport boxId={boxId} plans={plans} onImported={load} />
+      )}
 
       <div className="flex items-center gap-3">
         <button onClick={() => setOnlyToCollect(v => !v)}

@@ -4,7 +4,7 @@ import { useEffect, useState, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { getMyBox } from '@/lib/getMyBox';
 import { writeFailure } from '@/lib/writeGuard';
-import { Upload, ImageIcon, Trash2, CheckCircle, Phone, MapPin, Calendar, User, Users, FileText, Mail } from 'lucide-react';
+import { Upload, ImageIcon, Trash2, CheckCircle, Phone, MapPin, Calendar, User, Users, FileText, Mail, Download, Loader2 } from 'lucide-react';
 
 type GeoResult = {
   latitude: number;
@@ -101,6 +101,8 @@ export default function SettingsPage() {
   const [userId, setUserId] = useState<string | null>(null);
   const [weeklyDigest, setWeeklyDigest] = useState(true);
   const [digestError, setDigestError] = useState<string | null>(null);
+  const [exporting, setExporting] = useState(false);
+  const [exportError, setExportError] = useState<string | null>(null);
 
   useEffect(() => {
     async function load() {
@@ -856,6 +858,52 @@ export default function SettingsPage() {
             className="mt-1 w-4 h-4 accent-white shrink-0"
           />
         </label>
+      </div>
+
+      {/* Portabilité des données */}
+      <div className="bg-[#111111] border border-white/[0.06] rounded-2xl p-6 space-y-5">
+        <div>
+          <h2 className="text-sm font-bold text-white mb-1">Mes données</h2>
+          <p className="text-xs text-gray-500">
+            Un fichier ZIP avec tes adhérents, abonnements, encaissements comptoir,
+            réservations et présences, WOD et invitations — en CSV lisibles par n’importe quel tableur.
+            Seules les données de cette box en font partie.
+          </p>
+        </div>
+
+        <button
+          type="button"
+          disabled={exporting || !box}
+          onClick={async () => {
+            if (!box) return;
+            setExporting(true);
+            setExportError(null);
+            try {
+              const res = await fetch(`/api/box-export?box_id=${box.id}`);
+              if (!res.ok) {
+                const payload = await res.json().catch(() => ({}));
+                throw new Error(payload?.error ?? `Erreur ${res.status}`);
+              }
+              const blob = await res.blob();
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.href = url;
+              a.download = `athlex-${box.slug}-${new Date().toISOString().slice(0, 10)}.zip`;
+              a.click();
+              URL.revokeObjectURL(url);
+            } catch (err) {
+              setExportError(err instanceof Error ? err.message : 'Export impossible');
+            } finally {
+              setExporting(false);
+            }
+          }}
+          className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white text-black text-sm font-bold disabled:opacity-40"
+        >
+          {exporting ? <Loader2 size={15} className="animate-spin" /> : <Download size={15} />}
+          Exporter mes données
+        </button>
+
+        {exportError && <p className="text-xs text-red-400">{exportError}</p>}
       </div>
 
       {/* Read-only info section */}
