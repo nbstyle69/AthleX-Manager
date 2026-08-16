@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient, getServerUser } from '@/lib/supabase/server';
 import { isBoxStaff } from '@/lib/isBoxStaff';
+import { SITE_URL, MAIL_FROM } from '@/lib/site-url';
 
 /**
  * Envoi du lien d'invitation par e-mail, au nom de la box.
@@ -52,7 +53,7 @@ export async function POST(req: NextRequest) {
   }
 
   const [{ data: box }, { data: plan }] = await Promise.all([
-    service.from('boxes').select('name').eq('id', invitation.box_id).maybeSingle(),
+    service.from('boxes').select('name, contact_email').eq('id', invitation.box_id).maybeSingle(),
     invitation.plan_id
       ? service.from('membership_plans').select('name, price_cents').eq('id', invitation.plan_id).maybeSingle()
       : Promise.resolve({ data: null }),
@@ -66,7 +67,7 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const origin = process.env.NEXT_PUBLIC_SITE_URL ?? req.nextUrl.origin;
+  const origin = SITE_URL;
   const link = `${origin}/rejoindre/${encodeURIComponent(token)}`;
   const boxName = box?.name ?? 'ta box';
   const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -94,7 +95,10 @@ export async function POST(req: NextRequest) {
     method: 'POST',
     headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      from: process.env.RESEND_FROM ?? 'AthleX <no-reply@athlex.app>',
+      from: MAIL_FROM,
+      // L'invitation part au nom de la box : une réponse doit lui arriver,
+      // pas à une boîte technique que personne ne relève.
+      ...(box?.contact_email ? { reply_to: box.contact_email } : {}),
       to: invitation.email,
       subject: `${boxName} t'invite à rejoindre AthleX`,
       html,

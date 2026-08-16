@@ -10,6 +10,7 @@ import {
 import { createClient } from '@/lib/supabase/client';
 import { getMyBox } from '@/lib/getMyBox';
 import CsvImport from '@/components/invitations/CsvImport';
+import { SITE_URL } from '@/lib/site-url';
 
 const supabase = createClient();
 
@@ -115,7 +116,9 @@ export default function InvitationsPage() {
   useEffect(() => { load(); }, [load]);
 
   const openLink = useCallback(async (invitationId: string, to: string, token: string) => {
-    const url = `${window.location.origin}/rejoindre/${token}`;
+    // Le lien et le QR partent chez un adhérent : ils portent le domaine public,
+    // pas l'origine du navigateur du gérant (preview Vercel, localhost).
+    const url = `${SITE_URL}/rejoindre/${token}`;
     const qr = await QRCode.toDataURL(url, { width: 320, margin: 1 }).catch(() => null);
     setCopied(false);
     setLink({ invitationId, email: to, url, qr, emailState: 'idle', emailError: null });

@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { getMyBox } from '@/lib/getMyBox';
 import { writeFailure } from '@/lib/writeGuard';
+import { SITE_URL } from '@/lib/site-url';
 import {
   BookOpen, Plus, Pencil, Trash2, X, Globe, Eye, Copy, Check,
   Users, Calendar, Clock, Hash, ChevronLeft, ChevronRight, FileText,
@@ -130,7 +131,7 @@ function genCode(): string {
   return code;
 }
 
-const SITE_BASE_URL = 'https://the-hub-rho.vercel.app';
+const SITE_BASE_URL = SITE_URL;
 
 export default function BoxOwnerProgramsPage() {
   const supabase = createClient();
