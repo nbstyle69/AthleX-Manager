@@ -146,8 +146,16 @@ export default function Sidebar({ box, email, unreadCount = 0, supportUnread = 0
     router.refresh();
   }
 
-  const planColor = box?.plan === 'pro' ? '#8B5CF6' : box?.plan === 'elite' ? '#FFFFFF' : '#FFFFFF';
-  const planLabel = box?.plan === 'pro' ? 'Pro' : box?.plan === 'elite' ? 'Elite' : 'Starter';
+  // Les paliers réellement écrits par la facturation : `trial`, `complete`,
+  // `multi`. Le badge affichait « Starter » pour tout le reste, donc pour un
+  // plan complet actif.
+  const PLAN_LABELS: Record<string, string> = {
+    trial:    'Essai',
+    complete: 'Complet',
+    multi:    'Multi-box',
+  };
+  const planColor = box?.plan === 'multi' ? '#8B5CF6' : '#FFFFFF';
+  const planLabel = PLAN_LABELS[box?.plan ?? ''] ?? 'Aucun plan';
 
   const linkClass = (active: boolean) => cn(
     'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all relative',

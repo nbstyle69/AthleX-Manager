@@ -51,6 +51,7 @@ type BoxRow = {
   id: string; name: string; slug: string; owner_id: string;
   city: string | null; logo_url: string | null;
   is_active: boolean; created_at: string;
+  allowed_tournament_formats: string[] | null;
 };
 
 /**
@@ -59,7 +60,7 @@ type BoxRow = {
  * `authenticated`, et une étoile tomberait alors en 42501 pour tout le tableau.
  * Le code d'invitation passe par `get_my_box_invite_code`.
  */
-const BOX_ROW_COLUMNS = 'id, name, slug, owner_id, city, logo_url, is_active, created_at';
+const BOX_ROW_COLUMNS = 'id, name, slug, owner_id, city, logo_url, is_active, created_at, allowed_tournament_formats';
 
 export const ACTIVE_BOX_COOKIE = 'active_box_id';
 

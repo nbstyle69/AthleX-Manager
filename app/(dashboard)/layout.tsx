@@ -126,7 +126,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
   return (
     <div className="min-h-screen bg-[#0A0A0A] flex">
       <Sidebar
-        box={{ name: box.name, plan: (sub?.plan_tier as string) ?? 'starter' }}
+        box={{ name: box.name, plan: (sub?.plan_tier as string) ?? 'none' }}
         email={user.email ?? ''}
         unreadCount={unreadMessages}
         supportUnread={supportUnread ?? 0}
