@@ -3,7 +3,7 @@
 import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
-import { Loader2, Upload, ImageIcon, Trash2 } from 'lucide-react';
+import { Loader2, Upload, ImageIcon, Trash2, Lock } from 'lucide-react';
 import { toDateInput, fromDateInput } from '@/lib/datetime';
 
 const LEVELS = ['scaled','inter','rx','rx+','gx','pro'];
@@ -12,6 +12,10 @@ const STATUSES = [
   { value: 'open',   label: 'Inscriptions ouvertes' },
   { value: 'active', label: 'En cours' },
 ];
+
+// Ordre d'affichage : tous les formats existent toujours à l'écran, seuls les
+// formats non inclus dans le plan sont désactivés.
+const ALL_FORMATS = ['simple', 'bracket', 'swiss', 'league_div'];
 
 const FORMAT_META: Record<string, { label: string; desc: string }> = {
   simple:     { label: 'Classique',           desc: 'Classement par points cumulés sur les WODs.' },
@@ -164,26 +168,36 @@ export default function TournamentForm({ boxId, initial, allowedFormats = ['simp
       </div>
 
       {/* Format */}
-      {!initial && allowedFormats.length > 1 && (
+      {!initial && (
         <div className="bg-[#111111] border border-white/8 rounded-2xl p-6 space-y-4">
           <h2 className="text-sm font-bold text-white uppercase tracking-wider">Format du tournoi</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {allowedFormats.map(fmt => {
+            {ALL_FORMATS.map(fmt => {
               const meta = FORMAT_META[fmt] ?? { label: fmt, desc: '' };
+              const locked = !allowedFormats.includes(fmt);
               const active = form.format === fmt;
               return (
-                <button key={fmt} type="button" onClick={() => set('format', fmt)}
-                  className={`text-left rounded-xl border p-4 transition-colors ${active ? 'border-white bg-white/10' : 'border-white/10 hover:border-white/20 bg-white/[0.02]'}`}>
-                  <div className="text-sm font-bold text-white">{meta.label}</div>
+                <button key={fmt} type="button" disabled={locked}
+                  onClick={() => set('format', fmt)}
+                  title={locked ? 'Disponible dans le plan supérieur' : undefined}
+                  className={`text-left rounded-xl border p-4 transition-colors ${
+                    locked  ? 'border-white/5 bg-white/[0.01] opacity-50 cursor-not-allowed'
+                    : active ? 'border-white bg-white/10'
+                             : 'border-white/10 hover:border-white/20 bg-white/[0.02]'
+                  }`}>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-bold text-white">{meta.label}</span>
+                    {locked && <Lock size={13} className="text-gray-500 shrink-0" />}
+                  </div>
                   <div className="text-xs text-gray-400 mt-1">{meta.desc}</div>
+                  {locked && (
+                    <div className="text-[11px] font-semibold text-gray-500 mt-2">Disponible dans le plan supérieur</div>
+                  )}
                 </button>
               );
             })}
           </div>
         </div>
-      )}
-      {!initial && allowedFormats.length === 1 && (
-        <input type="hidden" value={form.format} />
       )}
 
       {/* Section générale */}
