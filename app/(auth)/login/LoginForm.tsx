@@ -16,7 +16,7 @@ const COPY: Record<Audience, { subtitle: string; signupPrompt: string; signupCta
     signupHref: '/signup',
   },
   box: {
-    subtitle: 'Back Office Box Owner / Coach',
+    subtitle: 'AthleX Manager · Gérant / Coach',
     signupPrompt: 'Pas encore de box ?',
     signupCta: 'Créez votre compte',
     signupHref: '/pricing/onboarding',

@@ -61,7 +61,7 @@ export default function PaywallOverlay({ boxId, trialEndsAt }: Props) {
             : 'Ton essai gratuit est arrivé à échéance.'}
         </p>
         <p className="text-sm text-gray-400 mb-6">
-          Souscris au Plan Complet pour retrouver l&apos;accès à ton back-office. Tes données sont conservées.
+          Souscris au Plan Complet pour retrouver l&apos;accès à AthleX Manager. Tes données sont conservées.
         </p>
 
         <Link

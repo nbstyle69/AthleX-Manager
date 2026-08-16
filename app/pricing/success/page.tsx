@@ -39,7 +39,7 @@ export default function SubscriptionSuccessPage() {
 
         <h1 className="text-3xl font-black mb-3">Souscription réussie !</h1>
         <p className="text-gray-400 text-base mb-8">
-          Ton abonnement AthleX est maintenant actif. Tu peux retourner sur l&apos;app pour accéder à tout ton back-office.
+          Ton abonnement AthleX est maintenant actif. Tu peux retourner sur l&apos;app pour accéder à tout AthleX Manager.
         </p>
 
         {/* Steps */}

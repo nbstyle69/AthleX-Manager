@@ -235,7 +235,7 @@ function PricingContent() {
           <h3 className="text-xl font-black text-center mb-6">Questions fréquentes</h3>
           {[
             { q: 'Ai-je besoin d\'une carte bancaire pour l\'essai ?', a: 'Non. L\'essai gratuit commence immédiatement à la création de votre box, sans carte requise.' },
-            { q: 'Que se passe-t-il à la fin de l\'essai ?', a: 'Votre back-office est verrouillé mais vos données sont conservées 30 jours. Souscrivez pour retrouver l\'accès.' },
+            { q: 'Que se passe-t-il à la fin de l\'essai ?', a: 'AthleX Manager est verrouillé mais vos données sont conservées 30 jours. Souscrivez pour retrouver l\'accès.' },
             { q: 'Puis-je annuler à tout moment ?', a: 'Oui, sans engagement. Vous pouvez résilier depuis votre espace de facturation en un clic.' },
             { q: 'Y a-t-il des frais cachés ?', a: 'Non. Un seul plan, un seul prix. Pas de frais d\'installation, pas de coût par membre.' },
           ].map(({ q, a }) => (

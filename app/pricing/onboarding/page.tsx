@@ -495,7 +495,7 @@ export default function OnboardingPage() {
                   href="/login"
                   className="w-full flex items-center justify-center gap-2 bg-white text-[#0A0A0A] font-bold py-3.5 rounded-xl hover:bg-gray-200 transition-colors text-sm"
                 >
-                  Accéder à mon back office
+                  Accéder à AthleX Manager
                   <ChevronRight size={16} />
                 </Link>
                 <p className="text-[10px] text-gray-600 mt-3">
