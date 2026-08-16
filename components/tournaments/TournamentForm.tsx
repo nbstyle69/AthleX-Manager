@@ -179,7 +179,7 @@ export default function TournamentForm({ boxId, initial, allowedFormats = ['simp
               return (
                 <button key={fmt} type="button" disabled={locked}
                   onClick={() => set('format', fmt)}
-                  title={locked ? 'Disponible dans le plan supérieur' : undefined}
+                  title={locked ? 'Contacte-nous pour l’activer' : undefined}
                   className={`text-left rounded-xl border p-4 transition-colors ${
                     locked  ? 'border-white/5 bg-white/[0.01] opacity-50 cursor-not-allowed'
                     : active ? 'border-white bg-white/10'
@@ -191,7 +191,7 @@ export default function TournamentForm({ boxId, initial, allowedFormats = ['simp
                   </div>
                   <div className="text-xs text-gray-400 mt-1">{meta.desc}</div>
                   {locked && (
-                    <div className="text-[11px] font-semibold text-gray-500 mt-2">Disponible dans le plan supérieur</div>
+                    <div className="text-[11px] font-semibold text-gray-500 mt-2">Contacte-nous pour l’activer</div>
                   )}
                 </button>
               );
