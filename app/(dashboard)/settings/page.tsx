@@ -4,7 +4,7 @@ import { useEffect, useState, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { getMyBox } from '@/lib/getMyBox';
 import { writeFailure } from '@/lib/writeGuard';
-import { Upload, ImageIcon, Trash2, CheckCircle, Phone, MapPin, Calendar, User, Users, FileText } from 'lucide-react';
+import { Upload, ImageIcon, Trash2, CheckCircle, Phone, MapPin, Calendar, User, Users, FileText, Mail } from 'lucide-react';
 
 type GeoResult = {
   latitude: number;
@@ -98,14 +98,29 @@ export default function SettingsPage() {
   const [dunningGraceDays, setDunningGraceDays] = useState('7');
   const [ownerName, setOwnerName] = useState('');
   const [coaches, setCoaches] = useState<{id:string; username:string; avatar_url:string|null}[]>([]);
+  const [userId, setUserId] = useState<string | null>(null);
+  const [weeklyDigest, setWeeklyDigest] = useState(true);
+  const [digestError, setDigestError] = useState<string | null>(null);
 
   useEffect(() => {
     async function load() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
+      setUserId(user.id);
+
       const active = await getMyBox(supabase, user.id);
       if (!active) return;
+
+      // Préférence absente = abonné : le récapitulatif part par défaut, une
+      // ligne n'est écrite que si le gérant change d'avis.
+      const { data: pref } = await supabase
+        .from('box_owner_email_prefs')
+        .select('weekly_digest')
+        .eq('box_id', active.id)
+        .eq('user_id', user.id)
+        .maybeSingle();
+      setWeeklyDigest((pref as { weekly_digest: boolean } | null)?.weekly_digest ?? true);
 
       const { data: boxData } = await supabase
         .from('boxes').select(BOX_SETTINGS_COLUMNS).eq('id', active.id).maybeSingle();
@@ -792,6 +807,55 @@ export default function SettingsPage() {
             </div>
           )}
         </div>
+      </div>
+
+      {/* Notifications du gérant */}
+      <div className="bg-[#111111] border border-white/[0.06] rounded-2xl p-6 space-y-5">
+        <div>
+          <h2 className="text-sm font-bold text-white mb-1">Notifications</h2>
+          <p className="text-xs text-gray-500">
+            E-mails que tu reçois en tant que gérant de cette box.
+          </p>
+        </div>
+
+        <label className="flex items-start gap-3 cursor-pointer">
+          <div className="w-9 h-9 rounded-xl bg-white/[0.06] flex items-center justify-center shrink-0">
+            <Mail size={16} className="text-gray-300" />
+          </div>
+          <div className="flex-1">
+            <p className="text-sm text-white font-semibold">Récapitulatif hebdomadaire</p>
+            <p className="text-xs text-gray-500 mt-0.5">
+              Chaque lundi : nouveaux membres, présences pointées, membres à relancer et impayés
+              de la semaine écoulée. Le réglage vaut pour cette box uniquement.
+            </p>
+            {digestError && (
+              <p className="text-xs text-red-400 mt-1">{digestError}</p>
+            )}
+          </div>
+          <input
+            type="checkbox"
+            checked={weeklyDigest}
+            onChange={async (e) => {
+              const next = e.target.checked;
+              if (!box || !userId) return;
+              setWeeklyDigest(next);
+              setDigestError(null);
+              const { error } = await supabase
+                .from('box_owner_email_prefs')
+                .upsert({
+                  box_id: box.id,
+                  user_id: userId,
+                  weekly_digest: next,
+                  updated_at: new Date().toISOString(),
+                });
+              if (error) {
+                setWeeklyDigest(!next);
+                setDigestError(error.message);
+              }
+            }}
+            className="mt-1 w-4 h-4 accent-white shrink-0"
+          />
+        </label>
       </div>
 
       {/* Read-only info section */}

@@ -7,6 +7,7 @@ import { Users, Trophy, Dumbbell, TrendingUp, Loader2, CalendarCheck } from 'luc
 import { getMyBox } from '@/lib/getMyBox';
 import MoneyBlock from '@/components/stats/MoneyBlock';
 import AttendanceBlock from '@/components/stats/AttendanceBlock';
+import GrowthBlock from '@/components/stats/GrowthBlock';
 
 const LEVEL_LABEL: Record<string, string> = { 'rx+': 'RX+', rx: 'RX', scaled: 'SCALED', foundations: 'FOUNDATIONS', inter: 'INTER', gx: 'GX', pro: 'PRO' };
 const LEVEL_COLOR: Record<string, string> = { 'rx+': '#FFFFFF', rx: '#3B82F6', scaled: '#10B981', foundations: '#8B5CF6', inter: '#F59E0B', gx: '#EC4899', pro: '#EF4444' };
@@ -173,6 +174,7 @@ export default function BoxStatsPage() {
 
       {boxId && <MoneyBlock boxId={boxId} />}
       {boxId && <AttendanceBlock boxId={boxId} />}
+      {boxId && <GrowthBlock boxId={boxId} />}
 
       {/* KPIs */}
       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
