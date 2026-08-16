@@ -13,6 +13,7 @@ interface MonthRow {
   month: string;              // 'YYYY-MM'
   membership_cents: number;   // abonnements de salle réellement encaissés
   program_cents: number;      // achats de programmes
+  cash_cents: number;         // encaissements comptoir journalisés
 }
 
 function monthKey(epochSeconds: number) {
@@ -24,16 +25,16 @@ function monthKey(epochSeconds: number) {
  * Historique de chiffre d'affaires d'une box, par mois.
  *
  * Pourquoi une route serveur plutôt qu'une requête SQL : la base ne porte que
- * l'état COURANT des abonnements (`box_members`). Il n'existe aucun journal de
- * paiement, donc aucun historique reconstructible en SQL. Le seul relevé réel
- * des abonnements de salle vit sur le compte Stripe connecté de la box.
+ * l'état COURANT des abonnements Stripe (`box_members`), sans aucune écriture
+ * mensuelle. Leur seul relevé réel vit sur le compte Stripe connecté de la box.
  *
  * Les programmes, eux, sont horodatés en base (`program_members.purchased_at`)
  * et n'ont pas besoin de Stripe.
  *
- * Angle mort assumé : un abonnement encaissé au comptoir ne laisse aucune trace
- * de paiement — ni montant réglé, ni date. Il ne peut donc pas figurer dans cet
- * historique ; l'écran l'annonce plutôt que de le passer sous silence.
+ * Le comptoir a longtemps été l'angle mort de cet historique : un encaissement
+ * en espèces ne laissait ni montant ni date. Depuis le journal `20261026`, il en
+ * laisse — mais seulement à partir de sa pose : rien ne sera jamais reconstruit
+ * en amont.
  *
  * GET /api/box-revenue?box_id=<uuid>&months=6
  * → { months: MonthRow[], has_stripe_account: boolean }
@@ -68,9 +69,9 @@ export async function GET(req: NextRequest) {
       const d = new Date(start);
       d.setUTCMonth(d.getUTCMonth() + i);
       const key = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`;
-      buckets.set(key, { month: key, membership_cents: 0, program_cents: 0 });
+      buckets.set(key, { month: key, membership_cents: 0, program_cents: 0, cash_cents: 0 });
     }
-    const add = (key: string, field: 'membership_cents' | 'program_cents', cents: number) => {
+    const add = (key: string, field: 'membership_cents' | 'program_cents' | 'cash_cents', cents: number) => {
       const row = buckets.get(key);
       if (row) row[field] += cents;
     };
@@ -116,6 +117,17 @@ export async function GET(req: NextRequest) {
         if (!p.purchased_at || p.status === 'refunded') continue;
         add(p.purchased_at.slice(0, 7), 'program_cents', p.amount_cents ?? 0);
       }
+    }
+
+    // ── Comptoir : journalisé en base depuis 20261026 ────────────────────
+    const { data: cash } = await supabase
+      .from('box_cash_payments')
+      .select('amount_cents, collected_at')
+      .eq('box_id', boxId)
+      .gte('collected_at', start.toISOString());
+
+    for (const c of (cash ?? []) as { amount_cents: number; collected_at: string }[]) {
+      add(c.collected_at.slice(0, 7), 'cash_cents', c.amount_cents);
     }
 
     return NextResponse.json({
