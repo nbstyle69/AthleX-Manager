@@ -53,7 +53,7 @@ export default function AdminSidebar({ username, email, supportUnread = 0 }: Adm
             <Shield size={20} className="text-emerald-400" />
           </div>
           <div className="min-w-0">
-            <p className="text-xs font-black text-white/30 tracking-widest uppercase">TheHub</p>
+            <p className="text-xs font-black text-white/30 tracking-widest uppercase">AthleX Manager</p>
             <p className="text-sm font-bold text-white truncate leading-tight">Super Admin</p>
           </div>
         </div>

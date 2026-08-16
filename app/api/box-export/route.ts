@@ -191,7 +191,8 @@ export async function GET(req: NextRequest) {
     const day = new Date().toISOString().slice(0, 10);
     const slug = box.data?.slug ?? 'box';
     zip.file('LISEZ-MOI.txt',
-      `Export des données de ${box.data?.name ?? 'la box'} — ${day}\n\n` +
+      `Export des données de ${box.data?.name ?? 'la box'} — ${day}\n` +
+      'Généré par AthleX Manager — athlexapp.eu\n\n' +
       'Fichiers CSV séparés par des points-virgules, encodés en UTF-8 (BOM).\n' +
       'Montants en euros.\n\n' +
       'L’historique des paiements Stripe n’est pas inclus : il appartient au compte\n' +

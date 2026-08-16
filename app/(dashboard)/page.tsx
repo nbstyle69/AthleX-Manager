@@ -82,7 +82,7 @@ export default async function DashboardPage() {
     <div className="space-y-8">
       <div>
         <h1 className="text-2xl font-black text-white">Dashboard</h1>
-        <p className="text-sm text-gray-400 mt-1">Bienvenue dans votre back office — {box.name}</p>
+        <p className="text-sm text-gray-400 mt-1">Bienvenue dans AthleX Manager — {box.name}</p>
       </div>
 
       {/* KPIs */}

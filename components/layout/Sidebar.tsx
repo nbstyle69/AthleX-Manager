@@ -190,7 +190,7 @@ export default function Sidebar({ box, email, unreadCount = 0, supportUnread = 0
             <img src="/logo.png" alt="AthleX" width={36} height={36} className="object-contain w-full h-full" />
           </div>
           <div className="min-w-0">
-            <p className="text-xs font-black text-white/30 tracking-widest uppercase">Back-office</p>
+            <p className="text-xs font-black text-white/30 tracking-widest uppercase">AthleX Manager</p>
             <p className="text-sm font-bold text-white truncate leading-tight">
               {box?.name ?? 'Ma Box'}
             </p>

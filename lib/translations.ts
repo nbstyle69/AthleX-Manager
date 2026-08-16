@@ -32,7 +32,7 @@ export const translations = {
     features: {
       tag: 'Fonctionnalités',
       title: 'Tout ce dont ta box a besoin. Rien de superflu.',
-      subtitle: 'Un back office complet, pensé pour les gérants et les coachs.',
+      subtitle: 'AthleX Manager : une console complète, pensée pour les gérants et les coachs.',
       items: [
         { title: 'Gestion des membres', desc: 'Adhérents, rôles, statuts et historique en un coup d’œil.' },
         { title: 'Actualités & annonces', desc: 'Diffuse tes infos à toute la communauté instantanément.' },
@@ -68,7 +68,7 @@ export const translations = {
         },
         {
           role: 'Gérant',
-          desc: "Le back office web pour piloter toute l'activité de ta box.",
+          desc: "AthleX Manager, la console web pour piloter toute l'activité de ta box.",
           benefits: [
             'Membres & coachs illimités',
             'Abonnements de salle & paiements',
@@ -289,7 +289,7 @@ export const translations = {
     features: {
       tag: 'Features',
       title: 'Everything your box needs. Nothing you don’t.',
-      subtitle: 'A complete back office, built for owners and coaches.',
+      subtitle: 'AthleX Manager: a complete console, built for owners and coaches.',
       items: [
         { title: 'Member management', desc: 'Members, roles, statuses and history at a glance.' },
         { title: 'News & announcements', desc: 'Broadcast updates to your whole community instantly.' },
@@ -325,7 +325,7 @@ export const translations = {
         },
         {
           role: 'Owner',
-          desc: 'The web back office to run your entire box.',
+          desc: 'AthleX Manager, the web console to run your entire box.',
           benefits: [
             'Unlimited members & coaches',
             'Gym memberships & payments',

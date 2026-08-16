@@ -195,7 +195,7 @@ export default function OwnerSupport({ boxId, userId }: { boxId: string; userId:
           <h1 className="text-2xl font-black text-white flex items-center gap-3">
             <LifeBuoy size={24} /> Support
           </h1>
-          <p className="text-sm text-gray-400 mt-1">Une question, un bug ou une idée pour le back-office ? Contactez l&apos;équipe AthleX.</p>
+          <p className="text-sm text-gray-400 mt-1">Une question, un bug ou une idée pour AthleX Manager ? Contactez l&apos;équipe AthleX.</p>
         </div>
         {!creating && (
           <button onClick={() => setCreating(true)}

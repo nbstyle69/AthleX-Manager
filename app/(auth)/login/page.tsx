@@ -13,7 +13,7 @@ export default function LoginChooserPage() {
       href: '/login/box',
       icon: Building2,
       title: 'Gérant · Coach',
-      desc: 'Ouvre le back-office de ta box : membres, tournois, abonnements.',
+      desc: 'Ouvre AthleX Manager : membres, tournois, abonnements.',
     },
   ];
 

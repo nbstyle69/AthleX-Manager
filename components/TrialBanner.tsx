@@ -113,7 +113,7 @@ export default function TrialBanner({ status: initialStatus, daysLeft, trialEnds
         <AlertTriangle size={18} className="text-red-400 shrink-0" />
         <div className="flex-1">
           <p className="text-sm font-bold text-red-400">Essai terminé</p>
-          <p className="text-xs text-gray-400">Souscris pour continuer à utiliser le back-office</p>
+          <p className="text-xs text-gray-400">Souscris pour continuer à utiliser AthleX Manager</p>
         </div>
         <button
           onClick={handleSync}

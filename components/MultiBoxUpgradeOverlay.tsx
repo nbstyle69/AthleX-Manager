@@ -59,7 +59,7 @@ export default function MultiBoxUpgradeOverlay({ boxName, boxCount, primaryBoxId
         </p>
         <p className="text-sm text-gray-400 mb-5">
           Passe au plan <span className="text-white font-semibold">Multi-box</span> pour gérer toutes tes box
-          depuis un seul back-office.
+          depuis le même AthleX Manager.
         </p>
 
         <div className="rounded-xl bg-white/5 border border-white/10 p-4 mb-5 text-left">
