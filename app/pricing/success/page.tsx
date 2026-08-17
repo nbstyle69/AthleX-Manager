@@ -1,9 +1,11 @@
 'use client';
 
-import { Suspense, useEffect, useState } from 'react';
+import { Suspense, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { CheckCircle2, Zap, Smartphone, ChevronRight, Loader2 } from 'lucide-react';
+import { CheckCircle2, Zap, Smartphone, ChevronRight } from 'lucide-react';
+import { LandingHeader } from '@/components/landing/header';
+import { useLanguage } from '@/components/language-provider';
 
 function SubscriptionVerifier() {
   const searchParams = useSearchParams();
@@ -25,32 +27,33 @@ function SubscriptionVerifier() {
 }
 
 export default function SubscriptionSuccessPage() {
+  const { t } = useLanguage();
+  const s = t.funnel.success;
   return (
-    <>
+    <div className="min-h-screen bg-background text-foreground font-sans antialiased">
       <Suspense fallback={null}>
         <SubscriptionVerifier />
       </Suspense>
-    <div className="min-h-screen bg-[#0A0A0A] text-white font-sans antialiased flex items-center justify-center p-6">
+      <LandingHeader variant="funnel" />
+      <div className="flex items-center justify-center p-6">
       <div className="max-w-md w-full text-center">
         {/* Success icon */}
         <div className="w-20 h-20 rounded-3xl bg-green-500/15 flex items-center justify-center mx-auto mb-6">
           <CheckCircle2 size={40} className="text-green-400" />
         </div>
 
-        <h1 className="text-3xl font-black mb-3">Souscription réussie !</h1>
-        <p className="text-gray-400 text-base mb-8">
-          Ton abonnement AthleX est maintenant actif. Tu peux retourner sur l&apos;app pour accéder à tout AthleX Manager.
-        </p>
+        <h1 className="text-3xl font-black mb-3">{s.title}</h1>
+        <p className="text-muted-foreground text-base mb-8">{s.subtitle}</p>
 
         {/* Steps */}
-        <div className="bg-[#111111] border border-white/8 rounded-2xl p-6 text-left space-y-4 mb-8">
+        <div className="bg-card border border-border rounded-2xl p-6 text-left space-y-4 mb-8">
           <div className="flex items-start gap-3">
             <div className="w-8 h-8 rounded-xl bg-white/15 flex items-center justify-center shrink-0 mt-0.5">
-              <Smartphone size={16} className="text-white" />
+              <Smartphone size={16} className="text-foreground" />
             </div>
             <div>
-              <p className="text-sm font-bold">Retourne sur l&apos;app AthleX</p>
-              <p className="text-xs text-gray-500 mt-1">Ton abonnement sera automatiquement détecté</p>
+              <p className="text-sm font-bold">{s.step1Title}</p>
+              <p className="text-xs text-gray-500 mt-1">{s.step1Desc}</p>
             </div>
           </div>
           <div className="flex items-start gap-3">
@@ -58,8 +61,8 @@ export default function SubscriptionSuccessPage() {
               <Zap size={16} className="text-green-400" />
             </div>
             <div>
-              <p className="text-sm font-bold">Toutes les fonctionnalités sont débloquées</p>
-              <p className="text-xs text-gray-500 mt-1">Membres, WODs, réservations, analytics, et plus</p>
+              <p className="text-sm font-bold">{s.step2Title}</p>
+              <p className="text-xs text-gray-500 mt-1">{s.step2Desc}</p>
             </div>
           </div>
         </div>
@@ -69,24 +72,24 @@ export default function SubscriptionSuccessPage() {
           href="athlex://subscription-success"
           className="w-full flex items-center justify-center gap-2 bg-white hover:bg-[#B8911F] text-[#0A0A0A] font-bold py-4 rounded-xl text-base transition-colors shadow-lg shadow-white/20 mb-4"
         >
-          Ouvrir l&apos;app AthleX <ChevronRight size={16} />
+          {s.openApp} <ChevronRight size={16} />
         </a>
 
         <Link
           href="/"
-          className="w-full flex items-center justify-center gap-2 bg-white/5 border border-white/10 text-white font-bold py-3.5 rounded-xl text-sm hover:bg-white/10 transition-colors mb-4"
+          className="w-full flex items-center justify-center gap-2 bg-white/5 border border-border text-foreground font-bold py-3.5 rounded-xl text-sm hover:bg-white/10 transition-colors mb-4"
         >
-          Retour au dashboard
+          {s.dashboard}
         </Link>
 
         <Link
           href="/landing"
-          className="text-sm text-gray-500 hover:text-white transition-colors"
+          className="text-sm text-gray-500 hover:text-foreground transition-colors"
         >
-          Retour à l&apos;accueil
+          {t.funnel.common.backHome}
         </Link>
       </div>
+      </div>
     </div>
-    </>
   );
 }

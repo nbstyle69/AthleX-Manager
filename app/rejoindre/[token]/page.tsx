@@ -1,17 +1,9 @@
-import Link from 'next/link';
 import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 import JoinInvitationClient, { type InvitationPeek } from './JoinInvitationClient';
+import InvitationUnavailable from './InvitationUnavailable';
 import { getServerUser } from '@/lib/supabase/server';
 
 export const dynamic = 'force-dynamic';
-
-const REFUS: Record<string, string> = {
-  token_absent: 'Ce lien est incomplet.',
-  invitation_introuvable: 'Ce lien d’invitation n’existe pas.',
-  invitation_revoquee: 'Cette invitation a été annulée par la box.',
-  invitation_deja_utilisee: 'Cette invitation a déjà été utilisée.',
-  invitation_expiree: 'Cette invitation a expiré.',
-};
 
 /**
  * Page publique d'inscription par invitation.
@@ -39,22 +31,7 @@ export default async function RejoindrePage({
 
   if (error || !peek?.ok) {
     const reason = peek && 'reason' in peek ? (peek.reason as string) : '';
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-[#0A0A0A] px-4">
-        <div className="w-full max-w-sm bg-[#111111] rounded-2xl border border-white/8 p-8 text-center">
-          <h1 className="text-lg font-bold text-white">Invitation indisponible</h1>
-          <p className="text-sm text-gray-400 mt-2">
-            {REFUS[reason] ?? 'Ce lien d’invitation n’est plus valide.'}
-          </p>
-          <p className="text-xs text-gray-500 mt-4">
-            Demande un nouveau lien à ta box, ou trouve-la dans l’annuaire.
-          </p>
-          <Link href="/box" className="inline-block mt-5 text-sm text-white font-semibold hover:underline">
-            Voir les boxs →
-          </Link>
-        </div>
-      </div>
-    );
+    return <InvitationUnavailable reason={reason} />;
   }
 
   // Un visiteur déjà connecté ne repasse pas par la création de compte : il lui
