@@ -8,6 +8,7 @@ import { LanguageToggle } from '@/components/landing/language-toggle';
 const CONTACT = 'contact@athlexapp.eu';
 const EDITOR = 'NBS INNOVATION';
 const RCS = '932 035 819';
+const CAPITAL = '3 000';
 const HEADQUARTERS = "66 Allée d'Italie, 69007 Lyon, France";
 const PUBLICATION_DIRECTOR = 'Nabil Selmane';
 
@@ -193,7 +194,7 @@ function LegalFr() {
       <H2 id="mentions-legales">Mentions légales</H2>
       <P>
         <strong className="font-semibold text-foreground">Éditeur :</strong> {EDITOR}, société par actions simplifiée
-        unipersonnelle (SASU), immatriculée au RCS de Lyon sous le numéro {RCS}.
+        unipersonnelle (SASU) au capital de {CAPITAL} €, immatriculée au RCS de Lyon sous le numéro {RCS}.
       </P>
       <P>
         <strong className="font-semibold text-foreground">Siège social :</strong> {HEADQUARTERS}.
@@ -338,7 +339,8 @@ function LegalEn() {
       <H2 id="mentions-legales">Legal notice</H2>
       <P>
         <strong className="font-semibold text-foreground">Publisher:</strong> {EDITOR}, a French single-shareholder
-        simplified joint-stock company (SASU), registered with the Lyon Trade and Companies Register under number {RCS}.
+        simplified joint-stock company (SASU) with a share capital of €{CAPITAL}, registered with the Lyon Trade and
+        Companies Register under number {RCS}.
       </P>
       <P>
         <strong className="font-semibold text-foreground">Registered office:</strong> {HEADQUARTERS}.
