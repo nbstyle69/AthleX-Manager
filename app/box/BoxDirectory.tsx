@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { Search, MapPin, Users, Dumbbell, ChevronRight } from 'lucide-react';
+import { useLanguage } from '@/components/language-provider';
 
 export interface DirectoryBox {
   name: string;
@@ -15,8 +16,6 @@ export interface DirectoryBox {
   member_count: number;
 }
 
-const GOLD = '#FFFFFF';
-
 function normalize(s: string) {
   return s
     .toLowerCase()
@@ -25,6 +24,7 @@ function normalize(s: string) {
 }
 
 export default function BoxDirectory({ boxes }: { boxes: DirectoryBox[] }) {
+  const { t } = useLanguage();
   const [query, setQuery] = useState('');
   const [city, setCity] = useState('');
 
@@ -48,25 +48,33 @@ export default function BoxDirectory({ boxes }: { boxes: DirectoryBox[] }) {
 
   return (
     <div className="max-w-5xl mx-auto px-6">
+      <section className="pb-8 pt-12 md:pt-16">
+        <h1 className="font-display text-3xl font-semibold tracking-tight text-foreground md:text-4xl">
+          {t.directory.title}
+        </h1>
+        <p className="mt-3 max-w-xl text-sm text-muted-foreground">{t.directory.subtitle}</p>
+      </section>
+
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-3 mb-8">
         <div className="relative flex-1">
-          <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-600" />
+          <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
           <input
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Rechercher une box, une ville, un sport…"
-            className="w-full bg-[#111] border border-white/[0.08] rounded-xl pl-10 pr-4 py-3 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-white/25 transition-colors"
+            placeholder={t.directory.searchPlaceholder}
+            className="w-full rounded-xl border border-border bg-card py-3 pl-10 pr-4 text-sm text-foreground outline-none transition-colors placeholder:text-muted-foreground focus:border-foreground/30"
           />
         </div>
         {cities.length > 0 && (
           <select
             value={city}
             onChange={(e) => setCity(e.target.value)}
-            className="bg-[#111] border border-white/[0.08] rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-white/25 transition-colors sm:w-52"
+            aria-label={t.directory.allCities}
+            className="rounded-xl border border-border bg-card px-4 py-3 text-sm text-foreground outline-none transition-colors focus:border-foreground/30 sm:w-52"
           >
-            <option value="">Toutes les villes</option>
+            <option value="">{t.directory.allCities}</option>
             {cities.map((c) => (
               <option key={c} value={c}>
                 {c}
@@ -79,7 +87,7 @@ export default function BoxDirectory({ boxes }: { boxes: DirectoryBox[] }) {
       {/* Grid */}
       {filtered.length === 0 ? (
         <div className="text-center py-20">
-          <p className="text-sm text-gray-500">Aucune box ne correspond à ta recherche.</p>
+          <p className="text-sm text-muted-foreground">{t.directory.noResults}</p>
         </div>
       ) : (
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 pb-4">
@@ -87,14 +95,14 @@ export default function BoxDirectory({ boxes }: { boxes: DirectoryBox[] }) {
             <Link
               key={b.slug}
               href={`/box/${b.slug}`}
-              className="group bg-[#111] border border-white/[0.06] rounded-2xl overflow-hidden hover:border-white/20 transition-colors flex flex-col"
+              className="group flex flex-col overflow-hidden rounded-2xl border border-border bg-card transition-colors hover:border-foreground/30"
             >
-              <div className="h-28 bg-[#161616] relative">
+              <div className="relative h-28 bg-secondary/40">
                 {b.cover_url ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={b.cover_url} alt="" className="w-full h-full object-cover" />
                 ) : (
-                  <div className="w-full h-full bg-gradient-to-br from-[#161616] to-[#1f1f1f]" />
+                  <div className="h-full w-full bg-gradient-to-br from-secondary/30 to-secondary/60" />
                 )}
                 {/* Logo overlaps the banner, in front */}
                 <div className="absolute left-5 -bottom-7 z-10">
@@ -103,23 +111,21 @@ export default function BoxDirectory({ boxes }: { boxes: DirectoryBox[] }) {
                     <img
                       src={b.logo_url}
                       alt={b.name}
-                      className="w-14 h-14 rounded-xl border-2 border-[#111] object-cover shadow-lg bg-[#111]"
+                      className="h-14 w-14 rounded-xl border-2 border-card bg-card object-cover shadow-lg"
                     />
                   ) : (
-                    <div className="w-14 h-14 rounded-xl border-2 border-[#111] bg-[#1a1a1a] flex items-center justify-center shadow-lg">
-                      <span className="text-xl font-black" style={{ color: GOLD }}>
-                        {b.name.charAt(0)}
-                      </span>
+                    <div className="flex h-14 w-14 items-center justify-center rounded-xl border-2 border-card bg-secondary shadow-lg">
+                      <span className="text-xl font-bold text-foreground">{b.name.charAt(0)}</span>
                     </div>
                   )}
                 </div>
               </div>
               <div className="p-5 pt-10 flex-1 flex flex-col">
-                <h2 className="font-black text-white leading-tight">{b.name}</h2>
+                <h2 className="font-display font-semibold leading-tight text-foreground">{b.name}</h2>
                 {b.tagline && (
-                  <p className="text-xs text-gray-500 mt-1 line-clamp-2">{b.tagline}</p>
+                  <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{b.tagline}</p>
                 )}
-                <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 mt-3 text-xs text-gray-500">
+                <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs text-muted-foreground">
                   {b.city && (
                     <span className="flex items-center gap-1">
                       <MapPin size={12} /> {b.city}
@@ -136,8 +142,8 @@ export default function BoxDirectory({ boxes }: { boxes: DirectoryBox[] }) {
                     </span>
                   ))}
                 </div>
-                <div className="flex items-center gap-1 mt-4 pt-4 border-t border-white/[0.06] text-xs font-semibold text-gray-400 group-hover:text-white transition-colors">
-                  Voir la box <ChevronRight size={14} />
+                <div className="mt-4 flex items-center gap-1 border-t border-border pt-4 text-xs font-semibold text-muted-foreground transition-colors group-hover:text-foreground">
+                  {t.directory.viewBox} <ChevronRight size={14} />
                 </div>
               </div>
             </Link>

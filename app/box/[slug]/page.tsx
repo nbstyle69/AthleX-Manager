@@ -1,69 +1,24 @@
 import { createClient } from '@supabase/supabase-js';
 import { notFound } from 'next/navigation';
-import Link from 'next/link';
 import {
-  MapPin, Phone, Mail, Globe, Instagram, Calendar,
-  Clock, Dumbbell, ExternalLink, ShoppingCart, Users,
-  ChevronRight, ArrowLeft,
-} from 'lucide-react';
-import ProgramBuyButton from './ProgramBuyButton';
-import MembershipSubscribeButton from './MembershipSubscribeButton';
-import MembershipManageButton from './MembershipManageButton';
+  BoxPublicView,
+  type PublicBox,
+  type PublicPlan,
+  type PublicProgram,
+} from './BoxPublicView';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
 );
 
-interface Box {
-  id: string;
-  name: string;
-  slug: string;
-  description?: string;
-  tagline?: string;
-  logo_url?: string;
-  cover_url?: string;
-  address?: string;
-  city?: string;
-  phone?: string;
-  contact_email?: string;
-  website_url?: string;
-  instagram_url?: string;
-  google_maps_url?: string;
-  latitude?: number;
-  longitude?: number;
-  sport_type?: string[];
-  services?: string[];
-  opening_hours?: Record<string, string>;
-  founded_at?: string;
-  member_count?: number;
-  terms_pdf_url?: string | null;
-}
-
-interface MembershipPlan {
-  id: string;
-  name: string;
-  description?: string;
-  price_cents: number;
-  max_sessions_per_week: number | null;
-  color: string;
-  plan_type: 'subscription' | 'drop_in' | 'pack';
-  credits: number | null;
-  validity_days: number | null;
-  commitment_months: number | null;
-  terms: string | null;
-}
-
-interface Program {
-  id: string;
-  title: string;
-  description?: string;
-  price_cents: number;
-  type: 'fixed' | 'ongoing';
-  duration_weeks?: number;
-  days_per_week: number;
-  image_url?: string;
-  invite_code: string;
+interface BoxRow extends Omit<PublicBox, 'sport_type' | 'services' | 'member_count'> {
+  sport_type: string[] | null;
+  services: string[] | null;
+  member_count: number | null;
+  latitude: number | null;
+  longitude: number | null;
+  founded_at: string | null;
 }
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
@@ -88,12 +43,6 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   };
 }
 
-const GOLD = '#FFFFFF';
-const DAY_LABELS: Record<string, string> = {
-  monday: 'Lundi', tuesday: 'Mardi', wednesday: 'Mercredi',
-  thursday: 'Jeudi', friday: 'Vendredi', saturday: 'Samedi', sunday: 'Dimanche',
-};
-
 export default async function BoxPublicPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
 
@@ -108,444 +57,75 @@ export default async function BoxPublicPage({ params }: { params: Promise<{ slug
 
   if (!box) notFound();
 
-  const b = box as unknown as Box;
+  const row = box as unknown as BoxRow;
 
-  // Fetch member count
   const { count: memberCount } = await supabase
     .from('box_members')
     .select('id', { count: 'exact', head: true })
-    .eq('box_id', b.id)
+    .eq('box_id', row.id)
     .eq('status', 'active');
 
-  // Fetch programs
-  const { data: programs } = await supabase
+  const { data: programsRaw } = await supabase
     .from('programs')
-    .select('id, title, description, price_cents, type, duration_weeks, days_per_week, image_url, invite_code')
-    .eq('box_id', b.id)
+    .select('id, title, description, price_cents, type, duration_weeks, days_per_week, image_url')
+    .eq('box_id', row.id)
     .eq('is_active', true)
     .order('created_at', { ascending: false });
 
-  const progs = (programs ?? []) as Program[];
-
-  // Fetch membership plans (paid formulas only shown to the public)
+  // Only paid formulas are shown publicly.
   const { data: plansRaw } = await supabase
     .from('membership_plans')
     .select('id, name, description, price_cents, max_sessions_per_week, color, plan_type, credits, validity_days, commitment_months, terms')
-    .eq('box_id', b.id)
+    .eq('box_id', row.id)
     .eq('is_active', true)
     .gt('price_cents', 0)
     .order('price_cents', { ascending: true });
 
-  const allPlans = (plansRaw ?? []) as MembershipPlan[];
-  const plans = allPlans.filter(pl => (pl.plan_type ?? 'subscription') === 'subscription');
-  const creditOffers = allPlans.filter(pl => pl.plan_type === 'drop_in' || pl.plan_type === 'pack');
-  const foundedYear = b.founded_at ? new Date(b.founded_at).getFullYear() : null;
-
-  const formatPrice = (cents: number) => {
-    if (cents === 0) return 'Gratuit';
-    return `${(cents / 100).toFixed(2)} €`;
-  };
+  const allPlans = (plansRaw ?? []) as unknown as PublicPlan[];
+  const plans = allPlans.filter((pl) => (pl.plan_type ?? 'subscription') === 'subscription');
+  const creditOffers = allPlans.filter((pl) => pl.plan_type === 'drop_in' || pl.plan_type === 'pack');
 
   // Keyless Google Maps embed: prefer exact coordinates, else fall back to the address.
   const mapQuery =
-    b.latitude != null && b.longitude != null
-      ? `${b.latitude},${b.longitude}`
-      : [b.address, b.city].filter(Boolean).join(', ') || null;
+    row.latitude != null && row.longitude != null
+      ? `${row.latitude},${row.longitude}`
+      : [row.address, row.city].filter(Boolean).join(', ') || null;
   const mapsLink =
-    b.google_maps_url ??
+    row.google_maps_url ??
     (mapQuery ? `https://maps.google.com/?q=${encodeURIComponent(mapQuery)}` : null);
 
+  const publicBox: PublicBox = {
+    id: row.id,
+    name: row.name,
+    slug: row.slug,
+    description: row.description,
+    tagline: row.tagline,
+    logo_url: row.logo_url,
+    cover_url: row.cover_url,
+    address: row.address,
+    city: row.city,
+    phone: row.phone,
+    contact_email: row.contact_email,
+    website_url: row.website_url,
+    instagram_url: row.instagram_url,
+    google_maps_url: row.google_maps_url,
+    sport_type: row.sport_type ?? [],
+    services: row.services ?? [],
+    opening_hours: row.opening_hours,
+    member_count: row.member_count ?? 0,
+    terms_pdf_url: row.terms_pdf_url,
+  };
+
   return (
-    <div className="min-h-screen bg-[#0A0A0A] text-white font-sans antialiased">
-      {/* Navbar */}
-      <nav className="fixed top-0 inset-x-0 z-50 bg-[#0A0A0A]/80 backdrop-blur-xl border-b border-white/[0.06]">
-        <div className="max-w-5xl mx-auto px-6 h-14 flex items-center justify-between">
-          <Link href="/landing" className="flex items-center gap-2 text-gray-500 hover:text-white transition-colors text-sm">
-            <ArrowLeft size={16} />
-            <span className="font-black tracking-tight">
-              Athle<span style={{ color: GOLD }}>X</span>
-            </span>
-          </Link>
-          <Link
-            href="/login"
-            className="text-xs font-semibold border border-white/15 hover:bg-white/5 px-4 py-2 rounded-lg transition-colors"
-          >
-            Espace gérant
-          </Link>
-        </div>
-      </nav>
-
-      {/* Hero */}
-      <section className="relative pt-14">
-        {/* Cover */}
-        <div className="h-56 md:h-72 bg-[#111]">
-          {b.cover_url ? (
-            <img src={b.cover_url} alt="" className="w-full h-full object-cover" />
-          ) : (
-            <div className="w-full h-full bg-gradient-to-br from-[#111] to-[#1a1a1a]" />
-          )}
-          <div className="absolute inset-0 top-14 bg-gradient-to-t from-[#0A0A0A] via-[#0A0A0A]/60 to-transparent" />
-        </div>
-
-        {/* Box info overlay */}
-        <div className="relative max-w-5xl mx-auto px-6 -mt-20">
-          <div className="flex items-end gap-5">
-            {b.logo_url ? (
-              <img
-                src={b.logo_url} alt={b.name}
-                className="w-24 h-24 md:w-28 md:h-28 rounded-2xl border-4 border-[#0A0A0A] object-cover shadow-xl"
-              />
-            ) : (
-              <div className="w-24 h-24 md:w-28 md:h-28 rounded-2xl border-4 border-[#0A0A0A] bg-[#111] flex items-center justify-center">
-                <span className="text-4xl font-black" style={{ color: GOLD }}>{b.name.charAt(0)}</span>
-              </div>
-            )}
-            <div className="pb-1">
-              <h1 className="text-3xl md:text-4xl font-black tracking-tight">{b.name}</h1>
-              {b.tagline && <p className="text-sm text-gray-400 mt-1">{b.tagline}</p>}
-            </div>
-          </div>
-
-          {/* Quick stats */}
-          <div className="flex flex-wrap gap-4 mt-6">
-            {(memberCount ?? 0) > 0 && (
-              <div className="flex items-center gap-2 bg-white/5 rounded-xl px-4 py-2.5">
-                <Users size={15} style={{ color: GOLD }} />
-                <span className="text-sm font-bold">{memberCount}</span>
-                <span className="text-xs text-gray-500">membres</span>
-              </div>
-            )}
-            {foundedYear && (
-              <div className="flex items-center gap-2 bg-white/5 rounded-xl px-4 py-2.5">
-                <Calendar size={15} style={{ color: GOLD }} />
-                <span className="text-sm font-bold">{foundedYear}</span>
-                <span className="text-xs text-gray-500">fondée</span>
-              </div>
-            )}
-            {b.city && (
-              <div className="flex items-center gap-2 bg-white/5 rounded-xl px-4 py-2.5">
-                <MapPin size={15} style={{ color: GOLD }} />
-                <span className="text-sm font-semibold">{b.city}</span>
-              </div>
-            )}
-            {(b.sport_type ?? []).map(s => (
-              <div key={s} className="flex items-center gap-2 bg-white/5 rounded-xl px-4 py-2.5">
-                <Dumbbell size={15} style={{ color: GOLD }} />
-                <span className="text-sm font-semibold">{s}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Content */}
-      <div className="max-w-5xl mx-auto px-6 py-12 grid grid-cols-1 lg:grid-cols-3 gap-10">
-        {/* Left — Main */}
-        <div className="lg:col-span-2 space-y-10">
-          {/* Description */}
-          {b.description && (
-            <section>
-              <h2 className="text-lg font-black mb-3">À propos</h2>
-              <p className="text-gray-400 leading-relaxed whitespace-pre-line">{b.description}</p>
-            </section>
-          )}
-
-          {/* Services */}
-          {(b.services ?? []).length > 0 && (
-            <section>
-              <h2 className="text-lg font-black mb-3">Services</h2>
-              <div className="flex flex-wrap gap-2">
-                {(b.services ?? []).map(s => (
-                  <span key={s} className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-white/5 text-gray-300">
-                    {s}
-                  </span>
-                ))}
-              </div>
-            </section>
-          )}
-
-          {/* Opening hours */}
-          {b.opening_hours && Object.keys(b.opening_hours).length > 0 && (
-            <section>
-              <h2 className="text-lg font-black mb-3 flex items-center gap-2">
-                <Clock size={18} style={{ color: GOLD }} /> Horaires
-              </h2>
-              <div className="bg-[#111] border border-white/[0.06] rounded-2xl divide-y divide-white/[0.06]">
-                {Object.entries(DAY_LABELS).map(([key, label]) => {
-                  const val = b.opening_hours?.[key];
-                  if (!val) return null;
-                  return (
-                    <div key={key} className="flex items-center justify-between px-5 py-3">
-                      <span className="text-sm font-semibold text-gray-300">{label}</span>
-                      <span className="text-sm text-gray-500">{val}</span>
-                    </div>
-                  );
-                })}
-              </div>
-            </section>
-          )}
-
-          {/* Membership plans */}
-          {plans.length > 0 && (
-            <section>
-              <h2 className="text-lg font-black mb-1 flex items-center gap-2">
-                <Users size={18} style={{ color: GOLD }} /> Abonnements
-              </h2>
-              <div className="flex items-center justify-between gap-3 mb-4">
-                <p className="text-xs text-gray-500">Rejoins {b.name} — choisis ta formule mensuelle</p>
-                {plans.length > 1 && (
-                  <MembershipManageButton
-                    plans={plans.map(pl => ({
-                      id: pl.id,
-                      name: pl.name,
-                      priceLabel: `${formatPrice(pl.price_cents)}/mois`,
-                    }))}
-                  />
-                )}
-              </div>
-              <div className="grid gap-4 sm:grid-cols-2">
-                {plans.map(pl => (
-                  <div key={pl.id} className="bg-[#111] border border-white/[0.06] rounded-2xl p-5 flex flex-col">
-                    <div className="flex items-center gap-2">
-                      <div className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: pl.color }} />
-                      <h3 className="font-bold text-white">{pl.name}</h3>
-                    </div>
-                    {pl.description && (
-                      <p className="text-xs text-gray-500 mt-1 line-clamp-2">{pl.description}</p>
-                    )}
-                    <div className="flex items-center gap-1.5 mt-2 text-xs text-gray-500">
-                      <Calendar size={12} />
-                      {pl.max_sessions_per_week
-                        ? `${pl.max_sessions_per_week} séance${pl.max_sessions_per_week > 1 ? 's' : ''}/semaine`
-                        : 'Séances illimitées'}
-                    </div>
-                    <div className="flex items-center justify-between mt-4 pt-4 border-t border-white/[0.06]">
-                      <span className="text-sm font-black" style={{ color: GOLD }}>
-                        {formatPrice(pl.price_cents)}
-                        <span className="text-[10px] text-gray-500 font-semibold"> /mois</span>
-                      </span>
-                      <MembershipSubscribeButton
-                        planId={pl.id}
-                        planName={pl.name}
-                        priceLabel={`${formatPrice(pl.price_cents)}/mois`}
-                        commitmentMonths={pl.commitment_months ?? 0}
-                        description={pl.description ?? null}
-                        maxSessionsPerWeek={pl.max_sessions_per_week}
-                        terms={pl.terms ?? null}
-                        termsPdfUrl={b.terms_pdf_url ?? null}
-                      />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </section>
-          )}
-
-          {/* Offres à la carte : Drop-in & Carnet (paiement unique) */}
-          {creditOffers.length > 0 && (
-            <section>
-              <h2 className="text-lg font-black mb-1 flex items-center gap-2">
-                <Users size={18} style={{ color: GOLD }} /> À la carte
-              </h2>
-              <p className="text-xs text-gray-500 mb-4">Sans engagement — paie à la séance ou par carnet</p>
-              <div className="grid gap-4 sm:grid-cols-2">
-                {creditOffers.map(pl => (
-                  <div key={pl.id} className="bg-[#111] border border-white/[0.06] rounded-2xl p-5 flex flex-col">
-                    <div className="flex items-center gap-2">
-                      <div className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: pl.color }} />
-                      <h3 className="font-bold text-white">{pl.name}</h3>
-                      <span className={`text-[10px] px-2 py-0.5 rounded-md font-bold ${pl.plan_type === 'drop_in' ? 'bg-blue-500/10 text-blue-400' : 'bg-purple-500/10 text-purple-400'}`}>
-                        {pl.plan_type === 'drop_in' ? 'Drop-in' : 'Carnet'}
-                      </span>
-                    </div>
-                    {pl.description && (
-                      <p className="text-xs text-gray-500 mt-1 line-clamp-2">{pl.description}</p>
-                    )}
-                    <div className="flex items-center gap-1.5 mt-2 text-xs text-gray-500">
-                      <Calendar size={12} />
-                      {pl.plan_type === 'drop_in'
-                        ? `1 séance · valable ${pl.validity_days ?? 14} jours`
-                        : `${pl.credits ?? 0} séances · valable ${Math.round((pl.validity_days ?? 0) / 30)} mois`}
-                    </div>
-                    <div className="flex items-center justify-between mt-4 pt-4 border-t border-white/[0.06]">
-                      <span className="text-sm font-black" style={{ color: GOLD }}>
-                        {formatPrice(pl.price_cents)}
-                      </span>
-                      <MembershipSubscribeButton
-                        planId={pl.id}
-                        planName={pl.name}
-                        priceLabel={formatPrice(pl.price_cents)}
-                        mode="oneshot"
-                      />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </section>
-          )}
-
-          {/* Programs */}
-          {progs.length > 0 && (
-            <section>
-              <h2 className="text-lg font-black mb-1 flex items-center gap-2">
-                <ShoppingCart size={18} style={{ color: GOLD }} /> Programmation
-              </h2>
-              <p className="text-xs text-gray-500 mb-4">Programmes d'entraînement proposés par {b.name}</p>
-              <div className="grid gap-4 sm:grid-cols-2">
-                {progs.map(p => (
-                  <div key={p.id} className="bg-[#111] border border-white/[0.06] rounded-2xl overflow-hidden">
-                    {p.image_url && (
-                      <img src={p.image_url} alt="" className="w-full h-36 object-cover" />
-                    )}
-                    <div className="p-4">
-                      <div className="flex items-center gap-2">
-                        <h3 className="font-bold text-white">{p.title}</h3>
-                        <span className={`text-[10px] px-2 py-0.5 rounded-md font-bold ${
-                          p.type === 'fixed'
-                            ? 'bg-blue-500/15 text-blue-400'
-                            : 'bg-purple-500/15 text-purple-400'
-                        }`}>
-                          {p.type === 'fixed' ? `${p.duration_weeks} sem.` : 'Ongoing'}
-                        </span>
-                      </div>
-                      {p.description && (
-                        <p className="text-xs text-gray-500 mt-1 line-clamp-2">{p.description}</p>
-                      )}
-                      <div className="flex items-center gap-2 mt-2 text-xs text-gray-500">
-                        <Calendar size={12} /> {p.days_per_week} jours/semaine
-                      </div>
-                      <div className="flex items-center justify-between mt-4">
-                        <span
-                          className="text-sm font-black px-3 py-1 rounded-lg"
-                          style={{ color: GOLD, backgroundColor: `${GOLD}15` }}
-                        >
-                          {formatPrice(p.price_cents)}
-                          {p.type === 'ongoing' && p.price_cents > 0 && (
-                            <span className="text-[10px] text-gray-500 font-semibold"> /mois</span>
-                          )}
-                        </span>
-                        {p.price_cents > 0 ? (
-                          <ProgramBuyButton
-                            programId={p.id}
-                            priceLabel={formatPrice(p.price_cents)}
-                            recurring={p.type === 'ongoing'}
-                          />
-                        ) : (
-                          <span className="text-xs font-bold text-gray-400 px-4 py-2">
-                            Gratuit — dans l'app
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </section>
-          )}
-        </div>
-
-        {/* Right — Sidebar */}
-        <div className="space-y-6">
-          {/* Contact card */}
-          <div className="bg-[#111] border border-white/[0.06] rounded-2xl p-5 space-y-4">
-            <h3 className="text-sm font-black uppercase tracking-widest text-gray-500">Contact</h3>
-            {b.address && (
-              <a
-                href={b.google_maps_url ?? `https://maps.google.com/?q=${encodeURIComponent(b.address)}`}
-                target="_blank" rel="noopener noreferrer"
-                className="flex items-start gap-3 group"
-              >
-                <MapPin size={16} className="mt-0.5 text-gray-600 group-hover:text-white transition-colors" />
-                <span className="text-sm text-gray-400 group-hover:text-white transition-colors">{b.address}</span>
-              </a>
-            )}
-            {b.phone && (
-              <a href={`tel:${b.phone}`} className="flex items-center gap-3 group">
-                <Phone size={16} className="text-gray-600 group-hover:text-white transition-colors" />
-                <span className="text-sm text-gray-400 group-hover:text-white transition-colors">{b.phone}</span>
-              </a>
-            )}
-            {b.contact_email && (
-              <a href={`mailto:${b.contact_email}`} className="flex items-center gap-3 group">
-                <Mail size={16} className="text-gray-600 group-hover:text-white transition-colors" />
-                <span className="text-sm text-gray-400 group-hover:text-white transition-colors">{b.contact_email}</span>
-              </a>
-            )}
-            {b.website_url && (
-              <a href={b.website_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 group">
-                <Globe size={16} className="text-gray-600 group-hover:text-white transition-colors" />
-                <span className="text-sm text-gray-400 group-hover:text-white transition-colors truncate">{b.website_url}</span>
-              </a>
-            )}
-            {b.instagram_url && (
-              <a href={b.instagram_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 group">
-                <Instagram size={16} className="text-gray-600 group-hover:text-white transition-colors" />
-                <span className="text-sm text-gray-400 group-hover:text-white transition-colors">Instagram</span>
-              </a>
-            )}
-          </div>
-
-          {/* Map (keyless Google embed) */}
-          {mapQuery && (
-            <div className="bg-[#111] border border-white/[0.06] rounded-2xl overflow-hidden">
-              <iframe
-                title={`Carte — ${b.name}`}
-                src={`https://www.google.com/maps?q=${encodeURIComponent(mapQuery)}&z=15&output=embed`}
-                className="w-full h-44 border-0"
-                loading="lazy"
-                referrerPolicy="no-referrer-when-downgrade"
-              />
-              {mapsLink && (
-                <div className="p-3 text-center">
-                  <a
-                    href={mapsLink}
-                    target="_blank" rel="noopener noreferrer"
-                    className="text-xs font-semibold text-gray-500 hover:text-white transition-colors flex items-center justify-center gap-1"
-                  >
-                    Ouvrir dans Google Maps <ChevronRight size={13} />
-                  </a>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* CTA */}
-          <div className="bg-[#111] border border-white/[0.06] rounded-2xl p-5 text-center">
-            <p className="text-sm font-bold mb-2">Rejoindre {b.name}</p>
-            <p className="text-xs text-gray-500 mb-4">
-              Téléchargez l'app AthleX et rejoignez la communauté
-            </p>
-            <div className="flex flex-col gap-2">
-              <a
-                href="https://apps.apple.com"
-                target="_blank" rel="noopener noreferrer"
-                className="text-xs font-bold py-2.5 rounded-lg bg-white text-[#0A0A0A] hover:bg-gray-200 transition-colors"
-              >
-                App Store
-              </a>
-              <a
-                href="https://play.google.com"
-                target="_blank" rel="noopener noreferrer"
-                className="text-xs font-bold py-2.5 rounded-lg bg-white/5 hover:bg-white/10 transition-colors text-white"
-              >
-                Google Play
-              </a>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Footer */}
-      <footer className="border-t border-white/[0.06] py-8">
-        <div className="max-w-5xl mx-auto px-6 flex items-center justify-between">
-          <span className="text-xs text-gray-600">
-            © {new Date().getFullYear()} Athle<span style={{ color: GOLD }}>X</span> — Tous droits réservés
-          </span>
-          <Link href="/landing" className="text-xs text-gray-600 hover:text-white transition-colors">
-            Découvrir AthleX
-          </Link>
-        </div>
-      </footer>
-    </div>
+    <BoxPublicView
+      box={publicBox}
+      memberCount={memberCount ?? 0}
+      foundedYear={row.founded_at ? new Date(row.founded_at).getFullYear() : null}
+      plans={plans}
+      creditOffers={creditOffers}
+      programs={(programsRaw ?? []) as unknown as PublicProgram[]}
+      mapQuery={mapQuery}
+      mapsLink={mapsLink}
+    />
   );
 }
