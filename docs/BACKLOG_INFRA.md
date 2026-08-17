@@ -31,6 +31,22 @@ aucun effet sur les déploiements, et ne vaut pas déclenchement de celui du pro
 
 ---
 
+## Traduction anglaise des CGU
+
+`/privacy` est bilingue pour la politique de confidentialité et les mentions légales, mais la
+section CGU reste en français dans les deux langues, avec en mode EN la mention
+« The terms of use below are the binding French version. »
+
+C'est un choix, pas un oubli : les CGU sont un contrat soumis au droit français, le marché de
+lancement est français, et la pièce que la review Apple consulte est la politique de
+confidentialité — elle, bilingue.
+
+**Condition de déclenchement** : arrivée de box non francophones (ou d'un marché de lancement
+hors France). Traduire avant cela produirait deux versions contractuelles à maintenir, dont
+une non opposable, pour zéro lecteur.
+
+---
+
 ## Liens universels Android sur `athlexapp.eu`
 
 `app.json` déclare l'`intentFilter` sur le nouveau domaine, mais c'est de la configuration
