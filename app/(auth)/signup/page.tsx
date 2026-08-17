@@ -1,8 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { Loader2, AlertCircle, CheckCircle2, Apple, Smartphone } from 'lucide-react';
-import { APP_STORE_URL, PLAY_STORE_URL } from '@/lib/store-links';
+import { Loader2, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { StoreBadges } from '@/components/store-badges';
 
 type Gender = 'male' | 'female';
 
@@ -58,16 +58,7 @@ export default function SignupPage() {
               Le pseudo demandé était pris, le tien est devenu « {done.finalUsername} ». Tu pourras le changer dans l&apos;app.
             </p>
           )}
-          <div className="mt-6 flex flex-col gap-2">
-            <a href={APP_STORE_URL} target="_blank" rel="noopener noreferrer"
-              className="flex items-center justify-center gap-2 bg-white text-[#0A0A0A] font-bold py-3 rounded-xl text-sm">
-              <Apple size={16} /> Télécharger sur l&apos;App Store
-            </a>
-            <a href={PLAY_STORE_URL} target="_blank" rel="noopener noreferrer"
-              className="flex items-center justify-center gap-2 bg-white/10 border border-white/15 text-white font-bold py-3 rounded-xl text-sm">
-              <Smartphone size={16} /> Disponible sur Google Play
-            </a>
-          </div>
+          <StoreBadges layout="stacked" className="mt-6" />
           <a href="/landing" className="block text-xs text-gray-500 hover:text-white mt-5">Retour à l&apos;accueil</a>
         </div>
       </div>

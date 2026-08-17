@@ -1,9 +1,9 @@
 'use client';
 
-import { Apple, Check, Smartphone } from 'lucide-react';
+import { Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useLanguage } from '@/components/language-provider';
-import { APP_STORE_URL, PLAY_STORE_URL } from '@/lib/store-links';
+import { StoreBadges } from '@/components/store-badges';
 
 export function AthleteCta() {
   const { t } = useLanguage();
@@ -28,24 +28,7 @@ export function AthleteCta() {
             </div>
             <p className="mt-4 text-xs text-muted-foreground">{t.athleteCta.note}</p>
 
-            <div className="mt-4 flex flex-wrap gap-3">
-              <a
-                href={APP_STORE_URL}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 rounded-xl border border-border bg-background px-4 py-2.5 text-sm font-semibold text-foreground transition-colors hover:border-foreground/30"
-              >
-                <Apple className="h-4 w-4" /> App Store
-              </a>
-              <a
-                href={PLAY_STORE_URL}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 rounded-xl border border-border bg-background px-4 py-2.5 text-sm font-semibold text-foreground transition-colors hover:border-foreground/30"
-              >
-                <Smartphone className="h-4 w-4" /> Google Play
-              </a>
-            </div>
+            <StoreBadges className="mt-4" />
           </div>
 
           <ul className="flex flex-col justify-center gap-4">

@@ -1,6 +1,6 @@
-import Link from 'next/link';
-import { ArrowLeft } from 'lucide-react';
 import { createServiceClient } from '@/lib/supabase/server';
+import { LandingHeader } from '@/components/landing/header';
+import { LandingFooter } from '@/components/landing/footer';
 import BoxDirectory, { type DirectoryBox } from './BoxDirectory';
 
 export const revalidate = 300;
@@ -10,8 +10,6 @@ export const metadata = {
   description:
     'Découvre les boxs de functional fitness, hybrid et cross training qui utilisent AthleX. Trouve la salle proche de chez toi et rejoins la communauté.',
 };
-
-const GOLD = '#FFFFFF';
 
 const ACTIVE_SUB_STATUSES = ['active', 'trialing', 'past_due'];
 
@@ -64,52 +62,12 @@ export default async function BoxDirectoryPage() {
     }));
 
   return (
-    <div className="min-h-screen bg-[#0A0A0A] text-white font-sans antialiased">
-      {/* Navbar */}
-      <nav className="fixed top-0 inset-x-0 z-50 bg-[#0A0A0A]/80 backdrop-blur-xl border-b border-white/[0.06]">
-        <div className="max-w-5xl mx-auto px-6 h-14 flex items-center justify-between">
-          <Link
-            href="/landing"
-            className="flex items-center gap-2 text-gray-500 hover:text-white transition-colors text-sm"
-          >
-            <ArrowLeft size={16} />
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/logo.png" alt="AthleX" width={24} height={24} className="w-6 h-6 object-contain" />
-            <span className="font-black tracking-tight text-white">
-              Athle<span style={{ color: GOLD }}>X</span>
-            </span>
-          </Link>
-          <Link
-            href="/login"
-            className="text-xs font-semibold border border-white/15 hover:bg-white/5 px-4 py-2 rounded-lg transition-colors"
-          >
-            Espace gérant
-          </Link>
-        </div>
-      </nav>
-
-      {/* Header */}
-      <section className="pt-24 pb-8 max-w-5xl mx-auto px-6">
-        <h1 className="text-3xl md:text-4xl font-black tracking-tight">Trouver une box</h1>
-        <p className="text-sm text-gray-400 mt-2 max-w-xl">
-          Découvre les salles qui utilisent AthleX — functional fitness, hybrid, cross training. Trouve
-          celle proche de chez toi et rejoins sa communauté.
-        </p>
-      </section>
-
-      <BoxDirectory boxes={eligible} />
-
-      {/* Footer */}
-      <footer className="border-t border-white/[0.06] py-8 mt-8">
-        <div className="max-w-5xl mx-auto px-6 flex items-center justify-between">
-          <span className="text-xs text-gray-600">
-            © {new Date().getFullYear()} Athle<span style={{ color: GOLD }}>X</span> — Tous droits réservés
-          </span>
-          <Link href="/landing" className="text-xs text-gray-600 hover:text-white transition-colors">
-            Découvrir AthleX
-          </Link>
-        </div>
-      </footer>
+    <div className="min-h-screen bg-background font-sans text-foreground antialiased">
+      <LandingHeader />
+      <main className="pb-16">
+        <BoxDirectory boxes={eligible} />
+      </main>
+      <LandingFooter />
     </div>
   );
 }
