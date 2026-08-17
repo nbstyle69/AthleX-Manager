@@ -110,9 +110,9 @@ export const translations = {
     leaderboard: {
       tag: 'Communauté',
       title: 'Le classement AthleX',
-      subtitle: 'Les meilleurs athlètes et les box les plus performantes, classés par ELO.',
+      subtitle: 'Les meilleurs athlètes et les boxs les plus performantes, classés par ELO.',
       athletes: 'Athlètes',
-      boxes: 'Box',
+      boxes: 'Boxs',
       elo: 'ELO',
       avgElo: 'ELO moyen',
       membersLabel: 'membres',
@@ -140,7 +140,7 @@ export const translations = {
     pricing: {
       tag: 'Tarifs',
       title: 'Un tarif simple, sans surprise',
-      subtitle: 'Un plan pour les coachs indépendants, un plan tout compris pour les box.',
+      subtitle: 'Un plan pour les coachs indépendants, un plan tout compris pour les boxs.',
       popular: 'Populaire',
       perMonth: '/mois',
       plans: [
@@ -163,7 +163,7 @@ export const translations = {
           name: 'Box',
           price: '79€',
           priceNote: 'ou 62€/mois en annuel · essai 14 jours',
-          desc: 'Pour les box de functional fitness / hybrid. Tout compris.',
+          desc: 'Pour les boxs de functional fitness / hybrid. Tout compris.',
           features: [
             'Tout le plan Coach, plus :',
             'Membres illimités',
@@ -180,11 +180,11 @@ export const translations = {
     },
     finalCta: {
       title: 'Prêt à passer au niveau supérieur ?',
-      subtitle: 'Rejoins les box qui pilotent tout depuis AthleX.',
+      subtitle: 'Rejoins les boxs qui pilotent tout depuis AthleX.',
       cta: 'Créer ma box',
     },
     footer: {
-      tagline: 'La plateforme tout-en-un pour les box de functional training.',
+      tagline: 'La plateforme tout-en-un pour les boxs de functional training.',
       product: 'Produit',
       resources: 'Ressources',
       legal: 'Légal',
@@ -196,7 +196,7 @@ export const translations = {
       rights: 'Tous droits réservés.',
     },
     proof: {
-      tag: 'Pensé pour les box',
+      tag: 'Pensé pour les boxs',
       title: 'Tout ce qu\'il faut pour gérer, sans usine à gaz',
       subtitle:
         'Une plateforme complète, des paiements sécurisés et une app mobile pour tes athlètes — sans coût caché.',
@@ -244,8 +244,8 @@ export const translations = {
           a: 'Via Stripe. Les paiements de tes membres arrivent directement sur ton compte Stripe connecté ; AthleX ne fait qu\'orchestrer les abonnements et les accès.',
         },
         {
-          q: 'Puis-je gérer plusieurs box avec un seul compte ?',
-          a: 'Oui. Le plan Multi permet de gérer plusieurs box depuis un seul compte owner, avec un tarif de base + 29 €/box supplémentaire.',
+          q: 'Puis-je gérer plusieurs boxs avec un seul compte ?',
+          a: 'Oui. Le plan Multi permet de gérer plusieurs boxs depuis un seul compte owner, avec un tarif de base + 29 €/box supplémentaire.',
         },
         {
           q: 'Puis-je changer de formule ou annuler à tout moment ?',

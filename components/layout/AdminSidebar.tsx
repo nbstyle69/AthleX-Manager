@@ -13,7 +13,7 @@ const NAV = [
   { href: '/admin/tournaments',    label: 'Tournois',       icon: Trophy },
   { href: '/admin/users',          label: 'Utilisateurs',   icon: Users },
   { href: '/admin/reports',        label: 'Signalements',   icon: Flag },
-  { href: '/admin/boxes',            label: 'Boxes',            icon: Building2 },
+  { href: '/admin/boxes',            label: 'Boxs',            icon: Building2 },
   { href: '/admin/inter-competitions', label: 'Compet. Inter-box', icon: Globe2 },
   { href: '/admin/physical-competitions', label: 'Compet. Physiques', icon: MapPin },
   { href: '/admin/badges',              label: 'Badges',            icon: Award },

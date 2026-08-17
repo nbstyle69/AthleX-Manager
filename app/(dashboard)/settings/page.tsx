@@ -535,7 +535,7 @@ export default function SettingsPage() {
         <div>
           <h2 className="text-sm font-bold text-white mb-1">Bannière de la box</h2>
           <p className="text-xs text-gray-500">
-            Image d&apos;en-tête affichée sur votre page publique et dans l&apos;annuaire des box.
+            Image d&apos;en-tête affichée sur votre page publique et dans l&apos;annuaire des boxs.
             Format recommandé : paysage, 1200×400px, PNG ou JPG, max 4 Mo.
           </p>
         </div>

@@ -10,7 +10,7 @@ export const revalidate = 300;
 export const metadata: Metadata = {
   title: 'Classement AthleX — athlètes & box par ELO',
   description:
-    'Le classement complet des athlètes AthleX par ELO, avec recherche par pseudo, et le classement des box par ELO moyen.',
+    'Le classement complet des athlètes AthleX par ELO, avec recherche par pseudo, et le classement des boxs par ELO moyen.',
 };
 
 export default async function ClassementPage() {

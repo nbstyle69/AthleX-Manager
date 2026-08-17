@@ -93,7 +93,7 @@ function PricingContent() {
       {/* Hero */}
       <section className="pt-32 pb-8 px-6 text-center">
         <div className="inline-flex items-center gap-2 bg-white/10 border border-white/20 rounded-full px-4 py-1.5 text-[11px] font-extrabold uppercase tracking-widest text-white mb-6">
-          <Crown size={11} /> Tarifs pour les box
+          <Crown size={11} /> Tarifs pour les boxs
         </div>
         <h1 className="text-4xl md:text-6xl font-black leading-tight tracking-tight mb-4">
           Un seul plan.<br /><span className="text-white">Tout inclus.</span>
@@ -220,7 +220,7 @@ function PricingContent() {
           <span className="text-2xl">🏅</span>
           <h3 className="text-lg font-black mt-2">Offre Fondateur</h3>
           <p className="text-sm text-gray-400 mt-1">
-            Les <strong className="text-white">5 premières boxes</strong> bénéficient de{' '}
+            Les <strong className="text-white">5 premières boxs</strong> bénéficient de{' '}
             <strong className="text-white">30 jours d&apos;essai gratuit</strong> au lieu de 14.
           </p>
           <p className="text-xs text-gray-600 mt-3">

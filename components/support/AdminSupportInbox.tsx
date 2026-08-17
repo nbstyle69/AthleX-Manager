@@ -188,7 +188,7 @@ export default function AdminSupportInbox({ userId, accent = 'emerald' }: { user
   return (
     <div className="max-w-3xl space-y-6">
       <div>
-        <h1 className="text-2xl font-black text-white flex items-center gap-3"><LifeBuoy size={24} /> Support — demandes des box</h1>
+        <h1 className="text-2xl font-black text-white flex items-center gap-3"><LifeBuoy size={24} /> Support — demandes des boxs</h1>
         <p className="text-sm text-gray-400 mt-1">Toutes les demandes des owners/coachs. Répondez dans le fil et mettez à jour le statut.</p>
       </div>
 

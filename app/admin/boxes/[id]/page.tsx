@@ -122,7 +122,7 @@ export default function BoxDetailPage() {
       {/* Back + Header */}
       <div>
         <button onClick={() => router.push('/admin/boxes')} className="flex items-center gap-1.5 text-sm text-gray-400 hover:text-white transition-colors mb-4">
-          <ArrowLeft size={14} /> Retour aux boxes
+          <ArrowLeft size={14} /> Retour aux boxs
         </button>
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-4">
