@@ -50,7 +50,7 @@ export default async function RejoindrePage({
             Demande un nouveau lien à ta box, ou trouve-la dans l’annuaire.
           </p>
           <Link href="/box" className="inline-block mt-5 text-sm text-white font-semibold hover:underline">
-            Voir les box →
+            Voir les boxs →
           </Link>
         </div>
       </div>

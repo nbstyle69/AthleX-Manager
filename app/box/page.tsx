@@ -8,7 +8,7 @@ export const revalidate = 300;
 export const metadata = {
   title: 'Trouver une box — AthleX',
   description:
-    'Découvre les box de functional fitness, hybrid et cross training qui utilisent AthleX. Trouve la salle proche de chez toi et rejoins la communauté.',
+    'Découvre les boxs de functional fitness, hybrid et cross training qui utilisent AthleX. Trouve la salle proche de chez toi et rejoins la communauté.',
 };
 
 const GOLD = '#FFFFFF';

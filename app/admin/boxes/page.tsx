@@ -134,7 +134,7 @@ export default function AdminBoxesPage() {
       if (!res.ok) {
         alert(`Erreur: ${json.error ?? 'géocodage échoué'}`);
       } else {
-        alert(`Géocodage terminé : ${json.updated}/${json.total} box mises à jour` + (json.failed ? `, ${json.failed} adresse(s) introuvable(s)` : ''));
+        alert(`Géocodage terminé : ${json.updated}/${json.total} boxs mises à jour` + (json.failed ? `, ${json.failed} adresse(s) introuvable(s)` : ''));
         load();
       }
     } catch (e: any) {
@@ -157,15 +157,15 @@ export default function AdminBoxesPage() {
             <Building2 size={22} className="text-orange-400" />
           </div>
           <div>
-            <h1 className="text-xl font-black text-white">Boxes</h1>
-            <p className="text-sm text-gray-400">{boxes.length} box{boxes.length !== 1 ? 'es' : ''} enregistrée{boxes.length !== 1 ? 's' : ''}</p>
+            <h1 className="text-xl font-black text-white">Boxs</h1>
+            <p className="text-sm text-gray-400">{boxes.length} box{boxes.length !== 1 ? 's' : ''} enregistrée{boxes.length !== 1 ? 's' : ''}</p>
           </div>
         </div>
         <div className="flex items-center gap-3">
           <button
             onClick={handleGeocode}
             disabled={geocoding}
-            title="Géocode les adresses des box sans coordonnées pour les afficher sur la carte"
+            title="Géocode les adresses des boxs sans coordonnées pour les afficher sur la carte"
             className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 disabled:opacity-50 text-white text-sm font-bold transition-colors"
           >
             <MapPin size={16} /> {geocoding ? 'Géocodage...' : 'Géocoder les adresses'}

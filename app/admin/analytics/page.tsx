@@ -72,7 +72,7 @@ function exportCSV(stats: Stats, period: number) {
     ['Réservations total', stats.totalReservations],
     [`Réservations (${period}j)`, stats.reservationsPeriod],
     ['--- BOXES ---', ''],
-    ['Boxes total', stats.totalBoxes],
+    ['Boxs total', stats.totalBoxes],
     ...stats.topBoxes.map(b => [`Box: ${b.name}`, b.members]),
   ];
   Object.entries(stats.usersByRole).forEach(([role, count]) => {
@@ -347,7 +347,7 @@ export default function AnalyticsPage() {
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <KpiCard icon={Activity} label="Inter-box" value={stats.totalInterComps} sub="compétitions" color="blue" />
-        <KpiCard icon={Target} label="Boxes" value={stats.totalBoxes} sub="créées" color="pink" />
+        <KpiCard icon={Target} label="Boxs" value={stats.totalBoxes} sub="créées" color="pink" />
         <KpiCard icon={TrendingUp} label="Inscrits (7j)" value={stats.recentUsers7d} sub="nouveaux" color="emerald" />
         <KpiCard icon={TrendingUp} label="Inscrits (30j)" value={stats.recentUsers30d} sub="nouveaux" color="emerald" />
       </div>
@@ -472,7 +472,7 @@ export default function AnalyticsPage() {
         <div className="bg-[#111111] border border-white/8 rounded-2xl p-5">
           <div className="flex items-center gap-2 mb-4">
             <Building2 size={15} className="text-purple-400" />
-            <h2 className="text-sm font-black text-white">Top Boxes par membres</h2>
+            <h2 className="text-sm font-black text-white">Top Boxs par membres</h2>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {stats.topBoxes.map((box, i) => {

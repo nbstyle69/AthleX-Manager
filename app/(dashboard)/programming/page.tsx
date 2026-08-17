@@ -149,7 +149,7 @@ export default function ProgrammingPage() {
         <h1 className="text-2xl font-black text-white">Programmation</h1>
       </div>
       <p className="text-sm text-gray-400 mb-6">
-        Recevez la programmation d&apos;autres box dans votre Whiteboard, ou vendez la vôtre. Réservé aux owners/coaches.
+        Recevez la programmation d&apos;autres boxs dans votre Whiteboard, ou vendez la vôtre. Réservé aux owners/coaches.
       </p>
 
       <div className="flex gap-1 mb-6 border-b border-white/10">
@@ -358,7 +358,7 @@ function SubscribeModal({
             Offre payante ({(programming.price_cents / 100).toFixed(0)}€{programming.billing === 'monthly' ? '/mois' : ''}) — paiement sécurisé Stripe, une box à la fois.
           </p>
         )}
-        <p className="text-xs text-gray-500 mb-2">Diffuser à mes box (décochez celles à exclure) :</p>
+        <p className="text-xs text-gray-500 mb-2">Diffuser à mes boxs (décochez celles à exclure) :</p>
         <div className="space-y-1.5 mb-4 max-h-60 overflow-y-auto">
           {myBoxes.map((b) => {
             const already = alreadyIds.has(b.id);
@@ -403,7 +403,7 @@ function MyOffers({ offers, activeBoxId, onChanged }: {
     onChanged();
   }
   async function remove(o: Programming) {
-    if (!confirm(`Supprimer « ${o.title} » ? Les box abonnées ne recevront plus de nouvelles semaines.`)) return;
+    if (!confirm(`Supprimer « ${o.title} » ? Les boxs abonnées ne recevront plus de nouvelles semaines.`)) return;
     await supabase.from('box_programming').delete().eq('id', o.id);
     onChanged();
   }
@@ -411,7 +411,7 @@ function MyOffers({ offers, activeBoxId, onChanged }: {
   return (
     <div>
       <div className="flex justify-between items-center mb-5">
-        <p className="text-sm text-gray-400">Vos programmations publiées pour d&apos;autres box.</p>
+        <p className="text-sm text-gray-400">Vos programmations publiées pour d&apos;autres boxs.</p>
         <button onClick={() => setEditing('new')}
           className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-white text-black text-sm font-bold hover:bg-gray-200">
           <Plus size={15} /> Nouvelle programmation

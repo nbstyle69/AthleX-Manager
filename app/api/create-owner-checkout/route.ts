@@ -30,7 +30,7 @@ export async function POST(req: NextRequest) {
       .from('boxes').select('id').eq('owner_id', user.id);
     const boxCount = (owned ?? []).length;
     if (boxCount < 2) {
-      return NextResponse.json({ error: 'Le plan Multi-box nécessite au moins 2 box.' }, { status: 400 });
+      return NextResponse.json({ error: 'Le plan Multi-box nécessite au moins 2 boxs.' }, { status: 400 });
     }
     const extraBoxes = boxCount - 1;
 
