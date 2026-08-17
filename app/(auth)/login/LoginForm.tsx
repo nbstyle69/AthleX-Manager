@@ -5,22 +5,13 @@ import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { Loader2, AlertCircle, ArrowLeft } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
+import { useLanguage } from '@/components/language-provider';
 
 type Audience = 'athlete' | 'box';
 
-const COPY: Record<Audience, { subtitle: string; signupPrompt: string; signupCta: string; signupHref: string }> = {
-  athlete: {
-    subtitle: 'Connexion au compte athlète',
-    signupPrompt: 'Pas encore de compte ?',
-    signupCta: 'Créez votre compte athlète',
-    signupHref: '/signup',
-  },
-  box: {
-    subtitle: 'AthleX Manager · Gérant / Coach',
-    signupPrompt: 'Pas encore de box ?',
-    signupCta: 'Créez votre compte',
-    signupHref: '/pricing/onboarding',
-  },
+const SIGNUP_HREF: Record<Audience, string> = {
+  athlete: '/signup',
+  box: '/pricing/onboarding',
 };
 
 /** Only same-origin relative paths are honoured, so `next` can't be an open redirect. */
@@ -30,6 +21,8 @@ function safeNext(raw: string | null): string | null {
 }
 
 export default function LoginForm({ audience }: { audience: Audience }) {
+  const { t } = useLanguage();
+  const l = t.funnel.login;
   const params = useSearchParams();
   const next = safeNext(params.get('next'));
   const [email, setEmail]       = useState('');
@@ -37,7 +30,11 @@ export default function LoginForm({ audience }: { audience: Audience }) {
   const [loading, setLoading]   = useState(false);
   const [error, setError]       = useState<string | null>(null);
 
-  const copy = COPY[audience];
+  const copy =
+    audience === 'box'
+      ? { subtitle: l.ownerSubtitle, signupPrompt: l.ownerPrompt, signupCta: l.ownerCta }
+      : { subtitle: l.athleteSubtitle, signupPrompt: l.athletePrompt, signupCta: l.athleteCta };
+  const signupHref = SIGNUP_HREF[audience];
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -47,7 +44,7 @@ export default function LoginForm({ audience }: { audience: Audience }) {
       const supabase = createClient();
       const { data, error: authError } = await supabase.auth.signInWithPassword({ email, password });
       if (authError) { setError(authError.message); setLoading(false); return; }
-      if (!data.session) { setError('Session non créée — vérifiez vos identifiants.'); setLoading(false); return; }
+      if (!data.session) { setError(l.sessionMissing); setLoading(false); return; }
 
       const res = await fetch('/api/auth/set-session', {
         method: 'POST',
@@ -58,7 +55,7 @@ export default function LoginForm({ audience }: { audience: Audience }) {
         }),
       });
       const json = await res.json();
-      if (!json.ok) { setError('Erreur serveur: ' + json.error); setLoading(false); return; }
+      if (!json.ok) { setError(l.serverError + json.error); setLoading(false); return; }
 
       if (next) { window.location.href = next; return; }
 
@@ -85,7 +82,7 @@ export default function LoginForm({ audience }: { audience: Audience }) {
       }
       window.location.href = isOwner ? '/' : '/compte';
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Erreur réseau.');
+      setError(err instanceof Error ? err.message : t.funnel.common.networkError);
       setLoading(false);
     }
   }
@@ -94,21 +91,21 @@ export default function LoginForm({ audience }: { audience: Audience }) {
     <div className="w-full max-w-sm mx-auto px-4">
       <Link
         href="/login"
-        className="inline-flex items-center gap-2 text-sm text-gray-400 hover:text-white transition-colors mb-6"
+        className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors mb-6"
       >
         <ArrowLeft size={16} />
-        Changer de profil
+        {l.switchProfile}
       </Link>
       <div className="flex flex-col items-center mb-10 gap-3">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/logo.png" alt="AthleX" width={96} height={96} className="w-24 h-24 object-contain" />
         <div className="text-center">
-          <p className="text-sm text-gray-400 font-medium">{copy.subtitle}</p>
+          <p className="text-sm text-muted-foreground font-medium">{copy.subtitle}</p>
         </div>
       </div>
 
-      <div className="bg-[#111111] rounded-2xl border border-white/8 p-8">
-        <h2 className="text-lg font-bold text-white mb-6">Connexion</h2>
+      <div className="bg-card rounded-2xl border border-border p-8">
+        <h2 className="text-lg font-bold text-foreground mb-6">{l.title}</h2>
 
         {error && (
           <div className="flex items-center gap-2 bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3 mb-5">
@@ -119,33 +116,33 @@ export default function LoginForm({ audience }: { audience: Audience }) {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-xs font-semibold text-gray-400 mb-1.5 uppercase tracking-wider">Email</label>
+            <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wider">{t.funnel.common.email}</label>
             <input type="email" required value={email} onChange={e => setEmail(e.target.value)}
-              placeholder={audience === 'box' ? 'owner@mabox.com' : 'ton@email.com'}
-              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-white transition-colors" />
+              placeholder={audience === 'box' ? t.funnel.common.ownerEmailPlaceholder : t.funnel.common.emailPlaceholder}
+              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-gray-600 focus:outline-none focus:border-white transition-colors" />
           </div>
           <div>
-            <label className="block text-xs font-semibold text-gray-400 mb-1.5 uppercase tracking-wider">Mot de passe</label>
+            <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wider">{t.funnel.common.password}</label>
             <input type="password" required value={password} onChange={e => setPassword(e.target.value)}
               placeholder="••••••••"
-              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-white transition-colors" />
+              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-gray-600 focus:outline-none focus:border-white transition-colors" />
           </div>
           <button type="submit" disabled={loading}
             className="w-full bg-white hover:bg-white disabled:opacity-60 text-[#0A0A0A] font-bold py-3 rounded-xl transition-colors flex items-center justify-center gap-2 mt-2">
             {loading && <Loader2 size={16} className="animate-spin" />}
-            {loading ? 'Connexion…' : 'Se connecter'}
+            {loading ? l.submitting : l.submit}
           </button>
         </form>
 
-        <p className="text-sm text-gray-400 text-center mt-5">
+        <p className="text-sm text-muted-foreground text-center mt-5">
           <Link href="/reset-password" className="text-white/70 hover:text-white hover:underline">
-            Mot de passe oublié ?
+            {l.forgot}
           </Link>
         </p>
 
-        <p className="text-sm text-gray-400 text-center mt-4">
+        <p className="text-sm text-muted-foreground text-center mt-4">
           {copy.signupPrompt}{' '}
-          <a href={copy.signupHref} className="text-white font-semibold hover:underline">
+          <a href={signupHref} className="text-foreground font-semibold hover:underline">
             {copy.signupCta}
           </a>
         </p>

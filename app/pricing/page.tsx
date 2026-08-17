@@ -1,34 +1,26 @@
 'use client';
 
 import { Suspense, useState } from 'react';
-import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import {
   Zap, Check, ChevronRight, CreditCard, Shield, Crown,
   Users, Dumbbell, CalendarClock, MessageSquare, Trophy,
   BarChart3, Bell, Award, Newspaper, FileText, Globe,
 } from 'lucide-react';
+import { LandingHeader } from '@/components/landing/header';
+import { useLanguage } from '@/components/language-provider';
 
-const FEATURES = [
-  { icon: Users,         text: 'Membres illimités' },
-  { icon: Users,         text: 'Coachs illimités' },
-  { icon: Dumbbell,      text: 'WODs publishing illimité' },
-  { icon: CalendarClock, text: 'Horaires & Réservations' },
-  { icon: MessageSquare, text: 'Groupes de messages illimités' },
-  { icon: BarChart3,     text: 'Analytics box avancés' },
-  { icon: FileText,      text: 'Export CSV' },
-  { icon: Bell,          text: 'Push notifications custom' },
-  { icon: Trophy,        text: 'Tournois & Compétitions' },
-  { icon: Globe,         text: 'Référencement annuaire AthleX' },
-  { icon: Award,         text: 'Gamification (badges, ELO)' },
-  { icon: Newspaper,     text: 'Rapport mensuel auto' },
-  { icon: Shield,        text: 'Support prioritaire' },
+// Ordre aligné sur t.funnel.pricing.features : l'icône suit la position, le
+// libellé vient de la traduction.
+const FEATURE_ICONS = [
+  Users, Users, Dumbbell, CalendarClock, MessageSquare, BarChart3, FileText,
+  Bell, Trophy, Globe, Award, Newspaper, Shield,
 ];
 
 export default function PricingPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen bg-[#0A0A0A] text-white flex items-center justify-center">
+      <div className="min-h-screen bg-background text-foreground flex items-center justify-center">
         <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />
       </div>
     }>
@@ -38,6 +30,8 @@ export default function PricingPage() {
 }
 
 function PricingContent() {
+  const { t } = useLanguage();
+  const p = t.funnel.pricing;
   const params = useSearchParams();
   const boxId = params.get('box_id');
   const [loading, setLoading] = useState(false);
@@ -65,62 +59,47 @@ function PricingContent() {
       if (data.url) {
         window.location.href = data.url;
       } else {
-        alert(data.error ?? 'Erreur lors de la création de la session');
+        alert(data.error ?? p.checkoutError);
       }
-    } catch (err: any) {
-      alert('Erreur réseau: ' + (err?.message ?? 'inconnue'));
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : t.funnel.common.networkError);
     }
     setLoading(false);
   }
 
   return (
-    <div className="min-h-screen bg-[#0A0A0A] text-white font-sans antialiased">
-      {/* Navbar */}
-      <nav className="fixed top-0 inset-x-0 z-50 border-b border-white/[0.06] bg-[#080808]/90 backdrop-blur-xl">
-        <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
-          <Link href="/landing" className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-xl bg-white/20 flex items-center justify-center">
-              <Zap size={15} className="text-white" />
-            </div>
-            <span className="text-base font-black tracking-tight">Athle<span className="text-white">X</span></span>
-          </Link>
-          <Link href="/login" className="flex items-center gap-1.5 bg-white/5 border border-white/10 hover:border-white/20 text-gray-300 hover:text-white text-sm font-bold px-4 py-2 rounded-xl transition-colors">
-            Se connecter
-          </Link>
-        </div>
-      </nav>
+    <div className="min-h-screen bg-background text-foreground font-sans antialiased">
+      <LandingHeader />
 
       {/* Hero */}
-      <section className="pt-32 pb-8 px-6 text-center">
-        <div className="inline-flex items-center gap-2 bg-white/10 border border-white/20 rounded-full px-4 py-1.5 text-[11px] font-extrabold uppercase tracking-widest text-white mb-6">
-          <Crown size={11} /> Tarifs pour les boxs
+      <section className="pt-16 pb-8 px-6 text-center">
+        <div className="inline-flex items-center gap-2 bg-white/10 border border-white/20 rounded-full px-4 py-1.5 text-[11px] font-extrabold uppercase tracking-widest text-foreground mb-6">
+          <Crown size={11} /> {p.badge}
         </div>
         <h1 className="text-4xl md:text-6xl font-black leading-tight tracking-tight mb-4">
-          Un seul plan.<br /><span className="text-white">Tout inclus.</span>
+          {p.titleLine1}<br />{p.titleLine2}
         </h1>
-        <p className="text-lg text-gray-400 max-w-xl mx-auto">
-          Pas de tiers, pas de surprises. Toutes les fonctionnalités pour gérer votre box, à un prix simple.
-        </p>
+        <p className="text-lg text-muted-foreground max-w-xl mx-auto">{p.subtitle}</p>
       </section>
 
       {/* Billing toggle */}
       <div className="flex justify-center mb-10">
-        <div className="bg-[#111111] border border-white/8 rounded-2xl p-1.5 flex gap-1">
+        <div className="bg-card border border-border rounded-2xl p-1.5 flex gap-1">
           <button
             onClick={() => setBilling('monthly')}
             className={`px-5 py-2.5 rounded-xl text-sm font-bold transition-all ${
-              billing === 'monthly' ? 'bg-white text-[#0A0A0A]' : 'text-gray-500 hover:text-white'
+              billing === 'monthly' ? 'bg-white text-[#0A0A0A]' : 'text-gray-500 hover:text-foreground'
             }`}
           >
-            Mensuel
+            {p.monthly}
           </button>
           <button
             onClick={() => setBilling('annual')}
             className={`px-5 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center gap-2 ${
-              billing === 'annual' ? 'bg-white text-[#0A0A0A]' : 'text-gray-500 hover:text-white'
+              billing === 'annual' ? 'bg-white text-[#0A0A0A]' : 'text-gray-500 hover:text-foreground'
             }`}
           >
-            Annuel
+            {p.annual}
             <span className="text-[10px] font-extrabold bg-green-500/20 text-green-400 border border-green-500/30 rounded px-1.5 py-0.5">
               -20%
             </span>
@@ -131,57 +110,61 @@ function PricingContent() {
       {/* Plan card */}
       <section className="px-6 pb-20">
         <div className="max-w-lg mx-auto">
-          <div className="bg-[#111111] border-2 border-white/40 rounded-3xl overflow-hidden relative">
+          <div className="bg-card border-2 border-white/40 rounded-3xl overflow-hidden relative">
             {/* Glow */}
             <div className="absolute -top-20 left-1/2 -translate-x-1/2 w-80 h-40 bg-white/8 rounded-full blur-3xl pointer-events-none" />
 
             <div className="relative p-8">
-              {/* Header */}
               <div className="flex items-center gap-3 mb-2">
                 <div className="w-11 h-11 rounded-2xl bg-white/15 flex items-center justify-center">
-                  <Crown size={22} className="text-white" />
+                  <Crown size={22} className="text-foreground" />
                 </div>
                 <div>
-                  <h2 className="text-xl font-black">Plan Complet</h2>
-                  <p className="text-xs text-gray-500">Toutes les fonctionnalités</p>
+                  <h2 className="text-xl font-black">{p.planName}</h2>
+                  <p className="text-xs text-gray-500">{p.planDesc}</p>
                 </div>
               </div>
 
               {/* Price */}
               <div className="flex items-baseline gap-1 mt-6 mb-1">
-                <span className="text-5xl font-black text-white">
-                  {billing === 'monthly' ? '79€' : '62€'}
+                <span className="text-5xl font-black text-foreground">
+                  {billing === 'monthly' ? p.priceMonthly : p.priceAnnual}
                 </span>
-                <span className="text-lg font-bold text-gray-500">/mois</span>
+                <span className="text-lg font-bold text-gray-500">{p.perMonth}</span>
               </div>
               {billing === 'annual' && (
                 <p className="text-sm text-gray-500">
-                  Facturé <span className="text-white font-bold">749€/an</span> au lieu de 948€
+                  {p.annualBilledBefore}
+                  <span className="text-foreground font-bold">{p.annualBilledAmount}</span>
+                  {p.annualBilledAfter}
                 </p>
               )}
               {billing === 'monthly' && (
-                <p className="text-sm text-gray-500">Sans engagement, résiliable à tout moment</p>
+                <p className="text-sm text-gray-500">{p.noCommitment}</p>
               )}
 
               {/* Trial badge */}
               <div className="mt-5 bg-green-500/10 border border-green-500/20 rounded-xl px-4 py-3 flex items-center gap-3">
                 <Zap size={16} className="text-green-400 shrink-0" />
                 <div>
-                  <p className="text-sm font-bold text-green-400">Essai gratuit inclus</p>
-                  <p className="text-xs text-gray-500">14 jours pour tester, aucune carte requise au départ</p>
+                  <p className="text-sm font-bold text-green-400">{p.trialTitle}</p>
+                  <p className="text-xs text-gray-500">{p.trialDesc}</p>
                 </div>
               </div>
 
               {/* Features */}
               <div className="mt-8 space-y-3">
-                {FEATURES.map(({ icon: Icon, text }) => (
-                  <div key={text} className="flex items-center gap-3">
-                    <div className="w-7 h-7 rounded-lg bg-white/10 flex items-center justify-center shrink-0">
-                      <Icon size={14} className="text-white" />
+                {p.features.map((text, i) => {
+                  const Icon = FEATURE_ICONS[i] ?? Check;
+                  return (
+                    <div key={text} className="flex items-center gap-3">
+                      <div className="w-7 h-7 rounded-lg bg-white/10 flex items-center justify-center shrink-0">
+                        <Icon size={14} className="text-foreground" />
+                      </div>
+                      <span className="text-sm font-semibold text-gray-300">{text}</span>
                     </div>
-                    <span className="text-sm font-semibold text-gray-300">{text}</span>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
 
               {/* CTA */}
@@ -195,7 +178,7 @@ function PricingContent() {
                 ) : (
                   <>
                     <CreditCard size={18} />
-                    {boxId ? 'Souscrire maintenant' : 'Créer ma box — Essai gratuit'}
+                    {boxId ? p.subscribeCta : p.createCta}
                     <ChevronRight size={16} />
                   </>
                 )}
@@ -205,9 +188,9 @@ function PricingContent() {
 
           {/* Trust */}
           <div className="flex flex-wrap justify-center gap-5 mt-8">
-            {['Paiement sécurisé Stripe', 'Résiliable à tout moment', 'Données protégées', 'Support réactif'].map(p => (
-              <div key={p} className="flex items-center gap-2 text-xs text-gray-600">
-                <Check size={12} className="text-white" />{p}
+            {p.trust.map((label) => (
+              <div key={label} className="flex items-center gap-2 text-xs text-gray-600">
+                <Check size={12} className="text-foreground" />{label}
               </div>
             ))}
           </div>
@@ -216,31 +199,27 @@ function PricingContent() {
 
       {/* Early adopter banner */}
       <section className="px-6 pb-20">
-        <div className="max-w-lg mx-auto bg-[#111111] border border-white/20 rounded-2xl p-6 text-center">
+        <div className="max-w-lg mx-auto bg-card border border-white/20 rounded-2xl p-6 text-center">
           <span className="text-2xl">🏅</span>
-          <h3 className="text-lg font-black mt-2">Offre Fondateur</h3>
-          <p className="text-sm text-gray-400 mt-1">
-            Les <strong className="text-white">5 premières boxs</strong> bénéficient de{' '}
-            <strong className="text-white">30 jours d&apos;essai gratuit</strong> au lieu de 14.
+          <h3 className="text-lg font-black mt-2">{p.founderTitle}</h3>
+          <p className="text-sm text-muted-foreground mt-1">
+            {p.founderBefore}
+            <strong className="text-foreground">{p.founderBoxes}</strong>
+            {p.founderMiddle}
+            <strong className="text-foreground">{p.founderTrial}</strong>
+            {p.founderAfter}
           </p>
-          <p className="text-xs text-gray-600 mt-3">
-            + Badge &quot;Fondateur&quot; permanent dans l&apos;app
-          </p>
+          <p className="text-xs text-gray-600 mt-3">{p.founderBadge}</p>
         </div>
       </section>
 
       {/* FAQ mini */}
       <section className="px-6 pb-20">
         <div className="max-w-lg mx-auto space-y-4">
-          <h3 className="text-xl font-black text-center mb-6">Questions fréquentes</h3>
-          {[
-            { q: 'Ai-je besoin d\'une carte bancaire pour l\'essai ?', a: 'Non. L\'essai gratuit commence immédiatement à la création de votre box, sans carte requise.' },
-            { q: 'Que se passe-t-il à la fin de l\'essai ?', a: 'AthleX Manager est verrouillé mais vos données sont conservées 30 jours. Souscrivez pour retrouver l\'accès.' },
-            { q: 'Puis-je annuler à tout moment ?', a: 'Oui, sans engagement. Vous pouvez résilier depuis votre espace de facturation en un clic.' },
-            { q: 'Y a-t-il des frais cachés ?', a: 'Non. Un seul plan, un seul prix. Pas de frais d\'installation, pas de coût par membre.' },
-          ].map(({ q, a }) => (
-            <div key={q} className="bg-[#111111] border border-white/8 rounded-xl p-5">
-              <p className="text-sm font-bold text-white">{q}</p>
+          <h3 className="text-xl font-black text-center mb-6">{p.faqTitle}</h3>
+          {p.faq.map(({ q, a }) => (
+            <div key={q} className="bg-card border border-border rounded-xl p-5">
+              <p className="text-sm font-bold text-foreground">{q}</p>
               <p className="text-sm text-gray-500 mt-2">{a}</p>
             </div>
           ))}
@@ -248,15 +227,15 @@ function PricingContent() {
       </section>
 
       {/* Footer */}
-      <footer className="border-t border-white/[0.06] bg-[#080808] py-8 px-6">
+      <footer className="border-t border-border bg-background py-8 px-6">
         <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
             <div className="w-7 h-7 rounded-lg bg-white/20 flex items-center justify-center">
-              <Zap size={13} className="text-white" />
+              <Zap size={13} className="text-foreground" />
             </div>
-            <span className="text-sm font-black">Athle<span className="text-white">X</span></span>
+            <span className="text-sm font-black">AthleX</span>
           </div>
-          <p className="text-[11px] text-gray-700">© 2026 AthleX. Tous droits réservés.</p>
+          <p className="text-[11px] text-gray-700">{p.rights}</p>
         </div>
       </footer>
     </div>

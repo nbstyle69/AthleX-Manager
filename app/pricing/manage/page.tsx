@@ -3,11 +3,13 @@
 import { Suspense, useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Zap } from 'lucide-react';
+import { LandingHeader } from '@/components/landing/header';
+import { useLanguage } from '@/components/language-provider';
 
 export default function ManageSubscriptionPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen bg-[#0A0A0A] text-white flex items-center justify-center">
+      <div className="min-h-screen bg-background text-foreground flex items-center justify-center">
         <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />
       </div>
     }>
@@ -17,13 +19,15 @@ export default function ManageSubscriptionPage() {
 }
 
 function ManageContent() {
+  const { t } = useLanguage();
+  const m = t.funnel.manage;
   const params = useSearchParams();
   const boxId = params.get('box_id');
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!boxId) {
-      setError('Paramètre box_id manquant. Retourne sur l\'app et réessaie.');
+      setError(m.missingBox);
       return;
     }
     (async () => {
@@ -43,33 +47,37 @@ function ManageContent() {
         if (data.url) {
           window.location.href = data.url;
         } else {
-          setError(data.error ?? 'Erreur lors de l\'ouverture du portail');
+          setError(data.error ?? m.portalError);
         }
       } catch {
-        setError('Erreur réseau');
+        setError(t.funnel.common.networkError);
       }
     })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [boxId]);
 
   return (
-    <div className="min-h-screen bg-[#0A0A0A] text-white font-sans antialiased flex items-center justify-center p-6">
-      <div className="text-center">
+    <div className="min-h-screen bg-background text-foreground font-sans antialiased">
+      <LandingHeader variant="funnel" />
+      <div className="flex items-center justify-center p-6 text-center">
+      <div>
         {error ? (
           <>
             <p className="text-red-400 text-sm font-bold">{error}</p>
-            <a href="athlex://subscription" className="text-white text-sm mt-4 inline-block">
-              Retour à l&apos;app
+            <a href="athlex://subscription" className="text-foreground text-sm mt-4 inline-block">
+              {t.funnel.common.backApp}
             </a>
           </>
         ) : (
           <div className="flex flex-col items-center gap-4">
             <div className="w-12 h-12 rounded-2xl bg-white/15 flex items-center justify-center">
-              <Zap size={22} className="text-white" />
+              <Zap size={22} className="text-foreground" />
             </div>
-            <p className="text-gray-400 text-sm">Redirection vers le portail de facturation...</p>
+            <p className="text-muted-foreground text-sm">{m.redirecting}</p>
             <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />
           </div>
         )}
+      </div>
       </div>
     </div>
   );
