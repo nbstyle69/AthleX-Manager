@@ -4,9 +4,10 @@ import { useEffect, useState, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import {
   Store, Plus, Pencil, Trash2, X, Check, Loader2, Search, Package,
-  Globe, Lock, Video,
+  Globe, Lock, Video, Upload,
 } from 'lucide-react';
 import WodEditor from '@/components/wods/WodEditor';
+import ProgWodImportModal from '@/components/wods/ProgWodImportModal';
 import {
   BLOCK_COLOR, BLOCK_LABEL, DAY_LABELS, EMPTY_WOD_FORM, TYPE_COLOR,
   WodFormState, formatCap, movementLines, sharedWodColumns,
@@ -563,6 +564,8 @@ function OfferEditor({ offer, publisherBoxId, onClose, onSaved }: {
   const [movements, setMovements] = useState<string[]>([]);
   const [wodSaving, setWodSaving] = useState(false);
   const [wodError, setWodError] = useState<string | null>(null);
+  const [importModal, setImportModal] = useState(false);
+  const [importDone, setImportDone] = useState<number | null>(null);
 
   const loadWods = useCallback(async (id: string) => {
     const { data } = await supabase.from('box_programming_wods').select('*').eq('programming_id', id).order('sort_order');
@@ -778,13 +781,20 @@ function OfferEditor({ offer, publisherBoxId, onClose, onSaved }: {
                 </button>
               ))}
             </div>
-            <div className="flex items-center gap-1.5 flex-wrap">
+            <div className="flex items-center gap-1.5 flex-wrap mb-2">
               <span className="text-xs text-gray-500 mr-1">Ajouter :</span>
               {DAY_LABELS.map((d, i) => (
                 <button key={d} onClick={() => openCreateWod(i + 1)}
                   className="px-2.5 py-1 rounded-lg bg-white/5 border border-white/10 text-xs font-semibold text-gray-300 hover:text-white">{d}</button>
               ))}
             </div>
+            <button onClick={() => { setImportDone(null); setImportModal(true); }}
+              className="px-2.5 py-1.5 rounded-lg bg-white/5 border border-white/10 text-xs font-semibold text-gray-300 hover:text-white flex items-center gap-1.5">
+              <Upload size={12} /> Importer (CSV, JSON, PDF)
+            </button>
+            {importDone !== null && (
+              <p className="text-xs text-emerald-400 mt-2">{importDone} WOD importé{importDone > 1 ? 's' : ''}.</p>
+            )}
           </div>
         )}
       </div>
@@ -806,6 +816,23 @@ function OfferEditor({ offer, publisherBoxId, onClose, onSaved }: {
           onSubmit={saveWod}
           weeksCount={weeksCount}
         />
+        </div>
+      )}
+
+      {importModal && offerId && publisherBoxId && (
+        <div onClick={(e) => e.stopPropagation()}>
+          <ProgWodImportModal
+            programmingId={offerId}
+            boxId={publisherBoxId}
+            weeksCount={weeksCount}
+            sortOffset={wods.length}
+            onClose={() => setImportModal(false)}
+            onImported={(count) => {
+              setImportModal(false);
+              setImportDone(count);
+              void loadWods(offerId);
+            }}
+          />
         </div>
       )}
     </div>

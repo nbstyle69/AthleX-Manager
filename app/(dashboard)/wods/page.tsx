@@ -14,6 +14,7 @@ import {
   BLOCK_COLOR, BLOCK_LABEL, DAY_LABELS, EMPTY_WOD_FORM, TYPE_COLOR,
   WodFormState, WodType, formatCap, movementLines, parseCap, sharedWodColumns,
 } from '@/lib/wodFields';
+import { downloadWodCsvTemplate, parseWodImportFile, VALID_WOD_TYPES } from '@/lib/wodImport';
 import { useRef } from 'react';
 
 interface BoxWOD {
@@ -361,20 +362,7 @@ export default function WODsPage() {
   //   rank      = true/false  (défaut true) → leaderboard_enabled
   //   groups    = noms séparés par | (ex: Compétiteurs|Niveau Avancé) — vide = visible par tous
   function downloadTemplate() {
-    const headers = 'date,title,type,description,timecap,rounds,notes,block,published,rank,groups';
-    const examples = [
-      `2026-03-10,Fran,for-time,"21-15-9 Thrusters (43kg) + Pull-ups",20,,"Objectif sub 5min",wod,true,true,Compétiteurs|Niveau Avancé`,
-      `2026-03-10,Front Squat,strength,"5x3 Front Squat @80-85%",,5,"Repos 3min entre séries",skill-haltero,true,false,`,
-      `2026-03-11,Cindy,amrap,"5 Pull-ups / 10 Push-ups / 15 Air Squats",20,,"Comptez vos rounds complets",wod,true,true,`,
-      `2026-03-12,Karen,for-time,"150 Wall Balls (9kg / cible 3m)",20,,,wod,false,true,Groupe du Matin`,
-      `2026-03-13,EMOM 12,emom,"Min 1: 12 Box Jumps | Min 2: 8 Dips | Min 3: 200m Row",12,4,,wod,true,true,`,
-    ].join('\n');
-    const csv = `${headers}\n${examples}`;
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url; a.download = 'template_wods.csv';
-    a.click(); URL.revokeObjectURL(url);
+    downloadWodCsvTemplate('whiteboard');
   }
 
   // ── PDF AI Import (Claude) ──────────────────────────────────────────────────────────────────
@@ -475,65 +463,7 @@ export default function WODsPage() {
     setImportResult(null);
     const text = await file.text();
 
-    const parseBool = (v: string | undefined | null, fb = true): boolean => {
-      if (!v || !v.trim()) return fb;
-      const s = v.trim().toLowerCase();
-      return !(s === 'false' || s === '0' || s === 'non');
-    };
-
-    // --- Parse rows ---
-    interface ImportRow {
-      date: string; title: string; type: string; description: string;
-      timeCap: string; rounds: string; notes: string; block: string;
-      published: boolean; rank: boolean; groupNames: string[];
-    }
-    const rows: ImportRow[] = [];
-    const parseErrors: string[] = [];
-
-    if (file.name.endsWith('.json')) {
-      try {
-        const parsed = JSON.parse(text);
-        const arr = Array.isArray(parsed) ? parsed : [parsed];
-        arr.forEach((r: any, i: number) => {
-          if (!r.date || !r.title) { parseErrors.push(`Entrée ${i + 1} ignorée : date ou titre manquant`); return; }
-          rows.push({
-            date: r.date, title: r.title, type: r.type || 'custom',
-            description: r.description || '', timeCap: r.timecap != null ? String(r.timecap) : '',
-            rounds: r.rounds != null ? String(r.rounds) : '', notes: r.notes || '',
-            block: r.block || '', published: r.published !== false,
-            rank: r.rank !== false, groupNames: Array.isArray(r.groups) ? r.groups : [],
-          });
-        });
-      } catch { parseErrors.push('Fichier JSON invalide'); }
-    } else {
-      const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
-      if (lines.length < 2) { setImporting(false); return; }
-      const dataLines = lines.slice(1);
-      for (let i = 0; i < dataLines.length; i++) {
-        const line = dataLines[i];
-        const fields: string[] = [];
-        let current = ''; let inQuote = false;
-        for (let c = 0; c < line.length; c++) {
-          const ch = line[c];
-          if (ch === '"') { if (inQuote && line[c+1] === '"') { current += '"'; c++; } else { inQuote = !inQuote; } }
-          else if ((ch === ',' || ch === ';') && !inQuote) { fields.push(current); current = ''; }
-          else { current += ch; }
-        }
-        fields.push(current);
-        const [date, title, type, description, timeCap, rounds, notes, block, published, rank, groups] = fields;
-        if (!date?.match(/^\d{4}-\d{2}-\d{2}$/) || !title?.trim()) {
-          parseErrors.push(`Ligne ${i + 2} ignorée : date ou titre invalide`);
-          continue;
-        }
-        rows.push({
-          date: date.trim(), title: title.trim(), type: type?.trim() || 'custom',
-          description: description?.trim() || '', timeCap: timeCap?.trim() || '',
-          rounds: rounds?.trim() || '', notes: notes?.trim() || '',
-          block: block?.trim() || '', published: parseBool(published),
-          rank: parseBool(rank), groupNames: groups ? groups.split('|').map(g => g.trim()).filter(Boolean) : [],
-        });
-      }
-    }
+    const { rows, errors: parseErrors } = parseWodImportFile(text, file.name, 'whiteboard');
 
     if (rows.length === 0) {
       setImportResult({ ok: 0, errors: parseErrors.length ? parseErrors : ['Aucun WOD trouvé dans le fichier'] });
@@ -554,13 +484,12 @@ export default function WODsPage() {
     }
 
     // --- Insert WODs ---
-    const validTypes = ['for-time','amrap','emom','tabata','strength','custom'];
     let ok = 0;
     const errors = [...parseErrors];
 
     for (let i = 0; i < rows.length; i++) {
       const r = rows[i];
-      const wodType = validTypes.includes(r.type) ? r.type : 'custom';
+      const wodType = (VALID_WOD_TYPES as string[]).includes(r.type) ? r.type : 'custom';
       const { data: inserted, error } = await supabase.from('box_wods').insert({
         box_id: boxId, created_by: userId,
         title: r.title, description: r.description || null,
