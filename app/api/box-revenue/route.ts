@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { createServiceClient, getServerUser } from '@/lib/supabase/server';
-import { isBoxStaff } from '@/lib/isBoxStaff';
+import { isBoxOwnerAdmin } from '@/lib/isBoxOwnerAdmin';
 
 function getStripe() {
   return new Stripe(process.env.STRIPE_SECRET_KEY!, {
@@ -53,7 +53,7 @@ export async function GET(req: NextRequest) {
     const months = Math.min(Math.max(Number(req.nextUrl.searchParams.get('months') ?? 6), 1), 12);
 
     const supabase = createServiceClient();
-    if (!(await isBoxStaff(supabase, user.id, boxId))) {
+    if (!(await isBoxOwnerAdmin(supabase, user.id, boxId))) {
       return NextResponse.json({ error: 'Non autorisé pour cette box.' }, { status: 403 });
     }
 

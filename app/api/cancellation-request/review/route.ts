@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { createServiceClient, getServerUser } from '@/lib/supabase/server';
-import { isBoxStaff } from '@/lib/isBoxStaff';
+import { isBoxOwnerAdmin } from '@/lib/isBoxOwnerAdmin';
 
 function getStripe() {
   return new Stripe(process.env.STRIPE_SECRET_KEY!, {
@@ -12,7 +12,7 @@ function getStripe() {
 const ACTIVE_STATUSES = ['active', 'trialing', 'past_due'];
 
 /**
- * Le staff de la box approuve ou refuse une demande de résiliation anticipée.
+ * Le gérant de la box approuve ou refuse une demande de résiliation anticipée.
  * Approuver → résilie l'abonnement à la fin de la période et lève l'engagement.
  * Body: { request_id: string, action: 'approve' | 'reject', note?: string }
  */
@@ -46,7 +46,7 @@ export async function POST(req: NextRequest) {
     if (request.status !== 'pending') {
       return NextResponse.json({ error: 'Cette demande a déjà été traitée.' }, { status: 409 });
     }
-    if (!(await isBoxStaff(supabase, user.id, request.box_id))) {
+    if (!(await isBoxOwnerAdmin(supabase, user.id, request.box_id))) {
       return NextResponse.json({ error: 'Non autorisé pour cette box.' }, { status: 403 });
     }
 

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { createServiceClient, getServerUser } from '@/lib/supabase/server';
-import { isBoxStaff } from '@/lib/isBoxStaff';
+import { isBoxOwnerAdmin } from '@/lib/isBoxOwnerAdmin';
 
 function getStripe() {
   return new Stripe(process.env.STRIPE_SECRET_KEY!, {
@@ -31,7 +31,7 @@ function invoiceMonth(inv: any): string {
  * Historique de facturation des abonnements d'une box, lu sur le compte
  * connecté Stripe : c'est le montant *réellement* facturé (donc proraté le
  * premier mois), là où `box_members.amount_cents` ne porte que le plein tarif.
- * Staff de la box uniquement.
+ * Gérant de la box uniquement.
  *
  * GET /api/subscriber-invoices?box_id=<uuid>
  * → { invoices: { [box_member_id]: InvoiceRow[] } }  (12 derniers mois)
@@ -50,7 +50,7 @@ export async function GET(req: NextRequest) {
     }
 
     const supabase = createServiceClient();
-    if (!(await isBoxStaff(supabase, user.id, boxId))) {
+    if (!(await isBoxOwnerAdmin(supabase, user.id, boxId))) {
       return NextResponse.json({ error: 'Non autorisé pour cette box.' }, { status: 403 });
     }
 
