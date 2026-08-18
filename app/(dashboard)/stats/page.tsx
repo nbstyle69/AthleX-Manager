@@ -21,6 +21,7 @@ export default function BoxStatsPage() {
 
   const [loading, setLoading] = useState(true);
   const [boxId, setBoxId] = useState<string | null>(null);
+  const [isOwnerAdmin, setIsOwnerAdmin] = useState(false);
   const [kpis, setKpis] = useState<KPI[]>([]);
   const [levelBreakdown, setLevelBreakdown] = useState<{ level: string; count: number }[]>([]);
   const [roleBreakdown, setRoleBreakdown] = useState<{ role: string; count: number }[]>([]);
@@ -38,6 +39,10 @@ export default function BoxStatsPage() {
     const box = await getMyBox(supabase, user.id);
     if (!box) { router.push('/login'); return; }
     setBoxId(box.id);
+    // L'argent et la croissance sont réservés au gérant/co-gérant : les RPC
+    // refusent le coach, autant ne pas lui afficher des blocs qui échoueront.
+    const { data: ownerAdmin } = await supabase.rpc('is_box_owner_admin', { p_box_id: box.id });
+    setIsOwnerAdmin(ownerAdmin === true);
 
     const [
       { count: totalMembers },
@@ -172,9 +177,9 @@ export default function BoxStatsPage() {
         <p className="text-sm text-gray-400 mt-1">Vue d&apos;ensemble de votre box</p>
       </div>
 
-      {boxId && <MoneyBlock boxId={boxId} />}
+      {boxId && isOwnerAdmin && <MoneyBlock boxId={boxId} />}
       {boxId && <AttendanceBlock boxId={boxId} />}
-      {boxId && <GrowthBlock boxId={boxId} />}
+      {boxId && isOwnerAdmin && <GrowthBlock boxId={boxId} />}
 
       {/* KPIs */}
       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">

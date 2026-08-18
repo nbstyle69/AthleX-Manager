@@ -108,6 +108,11 @@ export default async function DashboardLayout({ children }: { children: React.Re
     .eq('payment_mode', 'box')
     .eq('cash_collected', false);
 
+  // Frontière coach : l'argent, la facturation et les invitations sont réservés
+  // au gérant et au co-gérant côté serveur — la nav suit la même frontière.
+  const { data: ownerAdmin } = await supabase.rpc('is_box_owner_admin', { p_box_id: box.id });
+  const isOwnerAdmin = ownerAdmin === true;
+
   const { data: isSupportAdmin } = await supabase.rpc('is_support_admin');
   let supportAdminUnread = 0;
   if (isSupportAdmin) {
@@ -135,6 +140,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
         supportAdminUnread={supportAdminUnread}
         boxes={boxes.map((b) => ({ id: b.id, name: b.name }))}
         activeBoxId={box.id}
+        isOwnerAdmin={isOwnerAdmin}
       />
       <main className="flex-1 ml-60 min-h-screen p-8 overflow-y-auto">
         <TrialBanner

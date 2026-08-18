@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { createServiceClient, getServerUser } from '@/lib/supabase/server';
-import { isBoxStaff } from '@/lib/isBoxStaff';
+import { isBoxOwnerAdmin } from '@/lib/isBoxOwnerAdmin';
 import { MAIL_FROM } from '@/lib/site-url';
 
 function getStripe() {
@@ -48,7 +48,7 @@ async function sendReminderEmail(
 }
 
 /**
- * Actions d'impayé du back-office box (staff uniquement).
+ * Actions d'impayé du back-office box (gérant uniquement).
  *  - action='remind' : relance manuelle par email (en plus des relances
  *    automatiques J0/J3/J7 de la fonction planifiée `dunning-cron`).
  *  - action='retry'  : nouvelle tentative de paiement immédiate sur la
@@ -87,7 +87,7 @@ export async function POST(req: NextRequest) {
     if (!member) {
       return NextResponse.json({ error: 'Membre introuvable.' }, { status: 404 });
     }
-    if (!(await isBoxStaff(supabase, user.id, member.box_id))) {
+    if (!(await isBoxOwnerAdmin(supabase, user.id, member.box_id))) {
       return NextResponse.json({ error: 'Non autorisé pour cette box.' }, { status: 403 });
     }
     if (member.subscription_status !== 'past_due') {
