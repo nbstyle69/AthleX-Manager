@@ -7,10 +7,12 @@ import {
   Eye, EyeOff, X, Loader2, Dumbbell, Upload, Download, FileText, Calendar, LayoutGrid, List, Video,
 } from 'lucide-react';
 import { getMyBox } from '@/lib/getMyBox';
-import { MOVEMENT_CATALOG, isWeightedMovement, serializeMovement, parseMovementRow } from '@/lib/movements';
+import WodEditor from '@/components/wods/WodEditor';
+import {
+  BLOCK_COLOR, BLOCK_LABEL, DAY_LABELS, EMPTY_WOD_FORM, TYPE_COLOR,
+  WodFormState, WodType, formatCap, movementLines, parseCap, sharedWodColumns,
+} from '@/lib/wodFields';
 import { useRef } from 'react';
-
-type WodType = 'for-time' | 'amrap' | 'emom' | 'tabata' | 'strength' | 'custom';
 
 interface BoxWOD {
   id: string; box_id: string; created_by: string;
@@ -26,30 +28,6 @@ interface BoxWOD {
   tabata_work_seconds: number | null;
   tabata_rest_seconds: number | null;
 }
-
-const WOD_TYPES: { value: WodType; label: string; color: string }[] = [
-  { value: 'for-time', label: 'For Time',  color: '#EF4444' },
-  { value: 'amrap',    label: 'AMRAP',     color: '#3B82F6' },
-  { value: 'emom',     label: 'EMOM',      color: '#8B5CF6' },
-  { value: 'tabata',   label: 'Tabata',    color: '#F59E0B' },
-  { value: 'strength', label: 'Force',     color: '#16A34A' },
-  { value: 'custom',   label: 'Custom',    color: '#6B7280' },
-];
-
-const TYPE_COLOR: Record<string, string> = Object.fromEntries(WOD_TYPES.map(t => [t.value, t.color]));
-
-type BlockType = 'skill-gym' | 'skill-haltero' | 'wod' | 'pre-wod' | 'post-wod' | '';
-const BLOCKS: { value: string; label: string; color: string }[] = [
-  { value: 'skill-gym',     label: 'Skill GYM',     color: '#06B6D4' },
-  { value: 'skill-haltero', label: 'Skill Halt\u00e9ro',  color: '#F97316' },
-  { value: 'wod',           label: 'WOD',            color: '#EF4444' },
-  { value: 'pre-wod',       label: 'Pr\u00e9-WOD',       color: '#22C55E' },
-  { value: 'post-wod',      label: 'Post-WOD',      color: '#A855F7' },
-];
-const BLOCK_COLOR: Record<string, string> = Object.fromEntries(BLOCKS.map(b => [b.value, b.color]));
-const BLOCK_LABEL: Record<string, string> = Object.fromEntries(BLOCKS.map(b => [b.value, b.label]));
-
-const DAY_LABELS = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
 
 function getWeekDates(offset = 0): Date[] {
   const today = new Date();
@@ -71,8 +49,6 @@ function toISO(d: Date): string {
   return `${y}-${m}-${day}`;
 }
 
-const EMPTY = { title: '', description: '', wod_type: '' as string, block: '' as string, date: '', timeCap: '', rounds: '', notes: '', videoUrl: '', published: true, leaderboard: true, groupIds: [] as string[], programIds: [] as string[], publishMode: 'now' as 'now' | 'scheduled', publishHour: '06', publishMin: '00', emomInterval: '1', tabataWork: '20', tabataRest: '10' };
-
 export default function WODsPage() {
   const supabase = createClient();
 
@@ -84,7 +60,7 @@ export default function WODsPage() {
 
   const [modal,       setModal]       = useState(false);
   const [editWOD,     setEditWOD]     = useState<BoxWOD | null>(null);
-  const [form,        setForm]        = useState(EMPTY);
+  const [form,        setForm]        = useState<WodFormState>(EMPTY_WOD_FORM);
   const [movements,   setMovements]   = useState<string[]>([]);
   const [saving,      setSaving]      = useState(false);
   const [formError,   setFormError]   = useState<string | null>(null);
@@ -198,15 +174,11 @@ export default function WODsPage() {
 
   function openCreate(date: string) {
     setEditWOD(null);
-    setForm({ ...EMPTY, date });
+    setForm({ ...EMPTY_WOD_FORM, date });
     setMovements([]);
     setFormError(null);
     setModal(true);
   }
-
-  function addMovement()                     { setMovements(m => [...m, '']); }
-  function removeMovement(i: number)         { setMovements(m => m.filter((_, idx) => idx !== i)); }
-  function setMovement(i: number, v: string) { setMovements(m => m.map((x, idx) => idx === i ? v : x)); }
 
   async function loadWodGroups(wodId: string): Promise<string[]> {
     const { data } = await supabase.from('wod_group_access').select('group_id').eq('wod_id', wodId);
@@ -219,10 +191,11 @@ export default function WODsPage() {
     const { data: pRows } = await supabase.from('wod_program_access').select('program_id').eq('wod_id', wod.id);
     const pIds = (pRows ?? []).map((r: any) => r.program_id);
     setForm({
+      ...EMPTY_WOD_FORM,
       title: wod.title, description: wod.description ?? '',
       wod_type: wod.wod_type ?? '', block: wod.block_name ?? '',
       date: wod.scheduled_date,
-      timeCap: wod.time_cap_seconds ? String(Math.floor(wod.time_cap_seconds / 60)) : '',
+      timeCap: formatCap(wod.time_cap_seconds),
       rounds: wod.rounds ? String(wod.rounds) : '',
       notes: wod.notes ?? '', videoUrl: wod.video_url ?? '', published: wod.is_published,
       leaderboard: (wod as any).leaderboard_enabled ?? true,
@@ -235,7 +208,7 @@ export default function WODsPage() {
       tabataWork: wod.tabata_work_seconds ? String(wod.tabata_work_seconds) : '20',
       tabataRest: wod.tabata_rest_seconds != null ? String(wod.tabata_rest_seconds) : '10',
     });
-    setMovements(wod.description ? wod.description.split('\n').map(l => l.trim()).filter(Boolean) : []);
+    setMovements(movementLines(wod.description));
     setFormError(null);
     setModal(true);
   }
@@ -244,29 +217,12 @@ export default function WODsPage() {
     if (!form.title.trim() || !form.date || !boxId || !userId) return;
     setSaving(true); setFormError(null);
     const payload = {
+      ...sharedWodColumns(form, movements),
       box_id: boxId, created_by: userId,
-      title: form.title.trim(),
-      description: movements.map(l => l.trim()).filter(Boolean).join('\n') || null,
-      wod_type: form.wod_type || null,
-      block_name: form.block || null,
       scheduled_date: form.date,
-      time_cap_seconds: form.timeCap ? parseInt(form.timeCap) * 60 : null,
-      rounds: form.rounds ? parseInt(form.rounds) : null,
-      notes: form.notes.trim() || null,
-      video_url: form.videoUrl.trim() || null,
       is_published: form.published,
-      leaderboard_enabled: form.leaderboard,
       publish_at: form.published && form.publishMode === 'scheduled'
         ? `${form.date}T${form.publishHour.padStart(2,'0')}:${form.publishMin.padStart(2,'0')}:00`
-        : null,
-      emom_interval_minutes: form.wod_type === 'emom'
-        ? Math.min(5, Math.max(1, parseInt(form.emomInterval) || 1))
-        : null,
-      tabata_work_seconds: form.wod_type === 'tabata'
-        ? Math.max(5, parseInt(form.tabataWork) || 20)
-        : null,
-      tabata_rest_seconds: form.wod_type === 'tabata'
-        ? Math.max(0, parseInt(form.tabataRest) || 10)
         : null,
     };
     let wodId = editWOD?.id;
@@ -374,13 +330,13 @@ export default function WODsPage() {
   // ── CSV Export ────────────────────────────────────────────────────────────
   function exportCSV() {
     if (!wods.length) return;
-    const headers = ['date','title','type','description','time_cap_min','rounds','notes','published'];
+    const headers = ['date','title','type','description','timecap','rounds','notes','published'];
     const rows = wods.map(w => [
       w.scheduled_date,
       `"${(w.title ?? '').replace(/"/g, '""')}"`,
       w.wod_type,
       `"${(w.description ?? '').replace(/"/g, '""')}"`,
-      w.time_cap_seconds ? String(Math.floor(w.time_cap_seconds / 60)) : '',
+      formatCap(w.time_cap_seconds),
       w.rounds ?? '',
       `"${(w.notes ?? '').replace(/"/g, '""')}"`,
       w.is_published ? 'true' : 'false',
@@ -396,6 +352,7 @@ export default function WODsPage() {
   // ── CSV Template ─────────────────────────────────────────────────────────
   // Colonnes : date,title,type,description,timecap,rounds,notes,block,published,rank,groups
   //   type      = for-time | amrap | emom | tabata | strength | custom
+  //   timecap   = minutes (20) ou mm:ss (12:30)
   //   block     = skill-gym | skill-haltero | wod | pre-wod | post-wod  (optionnel)
   //   published = true/false  (défaut true)
   //   rank      = true/false  (défaut true) → leaderboard_enabled
@@ -605,7 +562,7 @@ export default function WODsPage() {
         box_id: boxId, created_by: userId,
         title: r.title, description: r.description || null,
         wod_type: wodType, scheduled_date: r.date,
-        time_cap_seconds: r.timeCap ? parseInt(r.timeCap) * 60 : null,
+        time_cap_seconds: parseCap(r.timeCap),
         rounds: r.rounds ? parseInt(r.rounds) : null,
         notes: r.notes || null, block_name: r.block || null,
         is_published: r.published, leaderboard_enabled: r.rank,
@@ -645,8 +602,6 @@ export default function WODsPage() {
     setWeek(diffWeeks);
     setShowDateNav(false);
   }
-
-  const inp = 'w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-white transition-colors';
 
   return (
     <div className="space-y-6">
@@ -798,7 +753,7 @@ export default function WODsPage() {
                       )}
                       <div className="flex gap-3 mt-2">
                         {wod.time_cap_seconds != null && (
-                          <span className="text-[11px] text-gray-500 font-bold">⏱ {Math.floor(wod.time_cap_seconds / 60)} min</span>
+                          <span className="text-[11px] text-gray-500 font-bold">⏱ {formatCap(wod.time_cap_seconds)}</span>
                         )}
                         {wod.rounds != null && (
                           <span className="text-[11px] text-gray-500 font-bold">🔁 {wod.rounds} rounds</span>
@@ -1126,7 +1081,7 @@ export default function WODsPage() {
                           </div>
                           <div className="flex items-center gap-1 shrink-0">
                             {wod.time_cap_seconds && (
-                              <span className="text-xs text-gray-600 mr-2">{Math.floor(wod.time_cap_seconds / 60)} min</span>
+                              <span className="text-xs text-gray-600 mr-2">{formatCap(wod.time_cap_seconds)}</span>
                             )}
                             <button
                               onClick={() => togglePublish(wod)}
@@ -1155,336 +1110,22 @@ export default function WODsPage() {
         </div>
       )}
 
-      {/* Modal */}
       {modal && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="bg-[#111111] border border-white/10 rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between px-6 py-5 border-b border-white/8">
-              <h2 className="text-lg font-black text-white">{editWOD ? 'Modifier le WOD' : 'Créer un WOD'}</h2>
-              <button onClick={() => setModal(false)} className="p-1.5 rounded-xl hover:bg-white/5 text-gray-400 hover:text-white transition-colors">
-                <X size={18} />
-              </button>
-            </div>
-
-            <div className="p-6 space-y-5">
-              {formError && (
-                <div className="bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3 text-sm text-red-400">{formError}</div>
-              )}
-
-              {/* Group access */}
-              {groups.length > 0 && (
-                <div>
-                  <label className="block text-xs font-semibold text-gray-400 mb-2 uppercase tracking-wider">Groupes autorisés <span className="text-gray-600 normal-case tracking-normal">(vide = tous les membres)</span></label>
-                  <div className="flex flex-wrap gap-2">
-                    {groups.map(g => {
-                      const selected = form.groupIds.includes(g.id);
-                      return (
-                        <button key={g.id} type="button"
-                          onClick={() => setForm(f => ({
-                            ...f,
-                            groupIds: selected ? f.groupIds.filter(id => id !== g.id) : [...f.groupIds, g.id],
-                          }))}
-                          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all border ${
-                            selected
-                              ? 'border-transparent scale-105'
-                              : 'border-white/10 text-gray-400 hover:text-white hover:border-white/20'
-                          }`}
-                          style={selected ? { backgroundColor: `${g.color}25`, color: g.color, borderColor: `${g.color}50` } : {}}
-                        >
-                          <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: g.color }} />
-                          {g.name}
-                        </button>
-                      );
-                    })}
-                  </div>
-                  {form.groupIds.length > 0 && (
-                    <p className="text-[11px] text-gray-500 mt-1.5">Seuls les membres de ces groupes verront ce WOD.</p>
-                  )}
-                </div>
-              )}
-
-              {/* Program access */}
-              {boxPrograms.length > 0 && (
-                <div>
-                  <label className="block text-xs font-semibold text-gray-400 mb-2 uppercase tracking-wider">Programmes assignés <span className="text-gray-600 normal-case tracking-normal">(vide = aucun programme)</span></label>
-                  <div className="flex flex-wrap gap-2">
-                    {boxPrograms.map(p => {
-                      const selected = form.programIds.includes(p.id);
-                      const pColor = p.type === 'fixed' ? '#3B82F6' : '#8B5CF6';
-                      return (
-                        <button key={p.id} type="button"
-                          onClick={() => setForm(f => ({
-                            ...f,
-                            programIds: selected ? f.programIds.filter(id => id !== p.id) : [...f.programIds, p.id],
-                          }))}
-                          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all border ${
-                            selected
-                              ? 'border-transparent scale-105'
-                              : 'border-white/10 text-gray-400 hover:text-white hover:border-white/20'
-                          }`}
-                          style={selected ? { backgroundColor: `${pColor}25`, color: pColor, borderColor: `${pColor}50` } : {}}
-                        >
-                          <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: pColor }} />
-                          {p.title}
-                        </button>
-                      );
-                    })}
-                  </div>
-                  {form.programIds.length > 0 && (
-                    <p className="text-[11px] text-gray-500 mt-1.5">Ce WOD apparaîtra dans le whiteboard des membres de ces programmes.</p>
-                  )}
-                </div>
-              )}
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-semibold text-gray-400 mb-1.5 uppercase tracking-wider">Date *</label>
-                  <input type="date" className={inp} value={form.date}
-                    onChange={e => setForm(f => ({ ...f, date: e.target.value }))} required />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-gray-400 mb-1.5 uppercase tracking-wider">Block</label>
-                  <select className={inp} value={form.block}
-                    onChange={e => setForm(f => ({ ...f, block: e.target.value }))}>
-                    <option value="" className="text-black">— Aucun —</option>
-                    {BLOCKS.map(b => <option key={b.value} value={b.value} className="text-black">{b.label}</option>)}
-                  </select>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-semibold text-gray-400 mb-1.5 uppercase tracking-wider">Type <span className="text-gray-600 normal-case tracking-normal">(optionnel)</span></label>
-                  <select className={inp} value={form.wod_type}
-                    onChange={e => setForm(f => ({ ...f, wod_type: e.target.value }))}>
-                    <option value="" className="text-black">— Aucun —</option>
-                    {WOD_TYPES.map(t => <option key={t.value} value={t.value} className="text-black">{t.label}</option>)}
-                  </select>
-                </div>
-              </div>
-
-              {form.wod_type === 'emom' && (
-                <div>
-                  <label className="block text-xs font-semibold text-gray-400 mb-1.5 uppercase tracking-wider">Intervalle EMOM</label>
-                  <div className="grid grid-cols-5 gap-2">
-                    {[1, 2, 3, 4, 5].map(v => {
-                      const selected = parseInt(form.emomInterval) === v;
-                      return (
-                        <button
-                          key={v}
-                          type="button"
-                          onClick={() => setForm(f => ({ ...f, emomInterval: String(v) }))}
-                          className={`py-2 rounded-lg text-xs font-bold border transition-colors ${
-                            selected
-                              ? 'bg-[#8B5CF6]/25 text-[#C4B5FD] border-[#8B5CF6]/60'
-                              : 'bg-white/5 text-gray-400 border-white/10 hover:text-white hover:border-white/20'
-                          }`}
-                        >
-                          {v === 1 ? 'EMOM' : `E${v}MOM`}
-                        </button>
-                      );
-                    })}
-                  </div>
-                  <p className="text-[11px] text-gray-500 mt-1.5">Un intervalle = {form.emomInterval} min entre chaque départ.</p>
-                </div>
-              )}
-
-              {form.wod_type === 'tabata' && (
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-400 mb-1.5 uppercase tracking-wider">Travail (sec)</label>
-                    <input type="number" min={5} max={300} className={inp} value={form.tabataWork}
-                      onChange={e => setForm(f => ({ ...f, tabataWork: e.target.value }))}
-                      placeholder="20" />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-400 mb-1.5 uppercase tracking-wider">Repos (sec)</label>
-                    <input type="number" min={0} max={300} className={inp} value={form.tabataRest}
-                      onChange={e => setForm(f => ({ ...f, tabataRest: e.target.value }))}
-                      placeholder="10" />
-                  </div>
-                </div>
-              )}
-
-              <div>
-                <label className="block text-xs font-semibold text-gray-400 mb-1.5 uppercase tracking-wider">Titre *</label>
-                <input className={inp} value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
-                  placeholder="Fran, Cindy, Helen…" />
-              </div>
-
-              <div>
-                <div className="flex items-center justify-between mb-1.5">
-                  <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider">Programme / Mouvements</label>
-                  <button type="button" onClick={addMovement} className="text-xs text-white font-semibold flex items-center gap-1 hover:opacity-80">
-                    <Plus size={12} /> Ajouter
-                  </button>
-                </div>
-                <datalist id="box-movement-catalog">
-                  {MOVEMENT_CATALOG.map(mv => <option key={mv.name} value={mv.name} />)}
-                </datalist>
-                <div className="space-y-2">
-                  {movements.map((line, i) => {
-                    const parsed = parseMovementRow(line);
-                    const showWeight = parsed.weightKg != null || parsed.weightKgWomen != null || isWeightedMovement(parsed.name);
-                    const update = (reps: number | null, name: string, weightKg: number | null, weightKgWomen: number | null) => {
-                      const w  = showWeight ? weightKg : null;
-                      const wW = showWeight ? weightKgWomen : null;
-                      if (reps == null) setMovement(i, serializeMovement(0, name, w, wW).replace(/^0\s*/, '').trim());
-                      else              setMovement(i, serializeMovement(reps, name, w, wW));
-                    };
-                    return (
-                      <div key={i} className="flex gap-2 items-center">
-                        <input type="number" min={0} inputMode="numeric"
-                          className={`${inp} !w-16 shrink-0 text-center px-2`}
-                          value={parsed.reps ?? ''}
-                          onChange={e => update(e.target.value === '' ? null : parseInt(e.target.value, 10), parsed.name, parsed.weightKg, parsed.weightKgWomen)}
-                          placeholder="Reps" aria-label="Répétitions" />
-                        <input list="box-movement-catalog"
-                          className={`${inp} flex-1 min-w-0`}
-                          value={parsed.name}
-                          onChange={e => update(parsed.reps, e.target.value, parsed.weightKg, parsed.weightKgWomen)}
-                          placeholder="Exercice (rechercher…)" aria-label="Exercice" />
-                        {showWeight && (
-                          <>
-                            <div className="relative w-24 shrink-0">
-                              <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-semibold text-gray-400 pointer-events-none">♂</span>
-                              <input type="number" min={0} step={0.5} inputMode="decimal"
-                                className={`${inp} !px-0 !pl-7 !pr-6 text-center`}
-                                value={parsed.weightKg ?? ''}
-                                onChange={e => update(parsed.reps, parsed.name, e.target.value === '' ? null : parseFloat(e.target.value), parsed.weightKgWomen)}
-                                placeholder="H" aria-label="Charge hommes en kilos" />
-                              <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-gray-500 pointer-events-none">kg</span>
-                            </div>
-                            <div className="relative w-24 shrink-0">
-                              <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-semibold text-gray-400 pointer-events-none">♀</span>
-                              <input type="number" min={0} step={0.5} inputMode="decimal"
-                                className={`${inp} !px-0 !pl-7 !pr-6 text-center`}
-                                value={parsed.weightKgWomen ?? ''}
-                                onChange={e => update(parsed.reps, parsed.name, parsed.weightKg, e.target.value === '' ? null : parseFloat(e.target.value))}
-                                placeholder="F" aria-label="Charge femmes en kilos" />
-                              <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-gray-500 pointer-events-none">kg</span>
-                            </div>
-                          </>
-                        )}
-                        <button type="button" onClick={() => removeMovement(i)} className="p-3 rounded-xl bg-white/5 border border-white/10 text-gray-500 hover:text-red-400 transition-colors">
-                          <Trash2 size={14} />
-                        </button>
-                      </div>
-                    );
-                  })}
-                  {movements.length === 0 && (
-                    <button type="button" onClick={addMovement}
-                      className="w-full py-3 rounded-xl border border-dashed border-white/10 text-xs text-gray-600 hover:border-white/30 hover:text-white/60 transition-colors">
-                      + Ajouter un mouvement
-                    </button>
-                  )}
-                  <p className="text-[11px] text-gray-600 pt-1">
-                    Reps + exercice (liste officielle) + charges ♂ hommes / ♀ femmes : garantit le comptage des badges de mouvement des athlètes.
-                  </p>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-semibold text-gray-400 mb-1.5 uppercase tracking-wider">Time Cap (min)</label>
-                  <input type="number" className={inp} value={form.timeCap}
-                    onChange={e => setForm(f => ({ ...f, timeCap: e.target.value }))} placeholder="20" min="0" />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-gray-400 mb-1.5 uppercase tracking-wider">Rounds <span className="text-gray-600 normal-case tracking-normal">(optionnel)</span></label>
-                  <input type="number" className={inp} value={form.rounds}
-                    onChange={e => setForm(f => ({ ...f, rounds: e.target.value }))} placeholder="—" min="0" />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-gray-400 mb-1.5 uppercase tracking-wider">Notes Coach</label>
-                <textarea rows={2} className={`${inp} resize-none`} value={form.notes}
-                  onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
-                  placeholder="Conseils, scaling options…" />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-gray-400 mb-1.5 uppercase tracking-wider flex items-center gap-1.5"><Video size={13} className="text-red-400" /> Vidéo YouTube <span className="text-gray-600 normal-case tracking-normal">(optionnel)</span></label>
-                <input className={inp} value={form.videoUrl}
-                  onChange={e => setForm(f => ({ ...f, videoUrl: e.target.value }))}
-                  placeholder="https://www.youtube.com/watch?v=..." />
-              </div>
-
-              <div className="space-y-3">
-                <div className="flex items-center justify-between bg-white/5 rounded-xl px-4 py-3">
-                  <div>
-                    <p className="text-sm font-semibold text-white">Publier</p>
-                    <p className="text-xs text-gray-500">Visible par les athlètes de la box</p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setForm(f => ({ ...f, published: !f.published }))}
-                    className={`relative w-11 h-6 rounded-full transition-colors ${form.published ? 'bg-emerald-500' : 'bg-white/10'}`}
-                  >
-                    <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${form.published ? 'translate-x-5' : 'translate-x-0.5'}`} />
-                  </button>
-                </div>
-
-                {form.published && (
-                  <div className="bg-white/5 rounded-xl px-4 py-3 space-y-3">
-                    <div className="flex gap-2">
-                      {(['now', 'scheduled'] as const).map(mode => (
-                        <button key={mode} type="button"
-                          onClick={() => setForm(f => ({ ...f, publishMode: mode }))}
-                          className={`flex-1 py-2 rounded-lg text-xs font-bold transition-colors ${form.publishMode === mode ? 'bg-white/20 text-white border border-white/40' : 'bg-white/5 text-gray-400 border border-white/10 hover:text-white'}`}>
-                          {mode === 'now' ? 'Maintenant' : 'Programmer'}
-                        </button>
-                      ))}
-                    </div>
-                    {form.publishMode === 'scheduled' && (
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs text-gray-500">Heure :</span>
-                        <input type="number" min={0} max={23} value={form.publishHour}
-                          onChange={e => setForm(f => ({ ...f, publishHour: e.target.value }))}
-                          className="w-14 bg-[#0A0A0A] border border-white/10 rounded-lg px-2 py-1.5 text-xs text-white text-center focus:outline-none focus:border-white/50" />
-                        <span className="text-gray-500 font-bold">:</span>
-                        <input type="number" min={0} max={59} value={form.publishMin}
-                          onChange={e => setForm(f => ({ ...f, publishMin: e.target.value }))}
-                          className="w-14 bg-[#0A0A0A] border border-white/10 rounded-lg px-2 py-1.5 text-xs text-white text-center focus:outline-none focus:border-white/50" />
-                        <span className="text-[10px] text-gray-600 ml-1">Le WOD sera visible à cette heure le jour programmé</span>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-
-              <div className="flex items-center justify-between bg-white/5 rounded-xl px-4 py-3">
-                <div>
-                  <p className="text-sm font-semibold text-white">Classement</p>
-                  <p className="text-xs text-gray-500">{form.leaderboard ? 'Les scores sont classés entre membres' : 'Scores enregistrés en historique uniquement'}</p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setForm(f => ({ ...f, leaderboard: !f.leaderboard }))}
-                  className={`relative w-11 h-6 rounded-full transition-colors ${form.leaderboard ? 'bg-white' : 'bg-white/10'}`}
-                >
-                  <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${form.leaderboard ? 'translate-x-5' : 'translate-x-0.5'}`} />
-                </button>
-              </div>
-
-              <div className="flex gap-3 pt-2">
-                <button onClick={() => setModal(false)}
-                  className="flex-1 py-3 rounded-xl border border-white/10 text-sm text-gray-400 hover:text-white transition-colors">
-                  Annuler
-                </button>
-                <button
-                  onClick={saveWOD}
-                  disabled={!form.title.trim() || !form.date || saving}
-                  className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-white hover:bg-white disabled:opacity-50 text-[#0A0A0A] text-sm font-bold transition-colors"
-                >
-                  {saving && <Loader2 size={15} className="animate-spin" />}
-                  {editWOD ? 'Enregistrer' : 'Créer le WOD'}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
+        <WodEditor
+          mode="whiteboard"
+          heading={editWOD ? 'Modifier le WOD' : 'Créer un WOD'}
+          submitLabel={editWOD ? 'Enregistrer' : 'Créer le WOD'}
+          form={form}
+          setForm={setForm}
+          movements={movements}
+          setMovements={setMovements}
+          saving={saving}
+          error={formError}
+          onClose={() => setModal(false)}
+          onSubmit={saveWOD}
+          groups={groups}
+          programs={boxPrograms}
+        />
       )}
     </div>
   );

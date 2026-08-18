@@ -4,15 +4,19 @@ import { useEffect, useState, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import {
   Store, Plus, Pencil, Trash2, X, Check, Loader2, Search, Package,
-  CalendarDays, Users, Globe, Lock, ChevronDown, ChevronUp,
+  Globe, Lock, Video,
 } from 'lucide-react';
+import WodEditor from '@/components/wods/WodEditor';
+import {
+  BLOCK_COLOR, BLOCK_LABEL, DAY_LABELS, EMPTY_WOD_FORM, TYPE_COLOR,
+  WodFormState, formatCap, movementLines, sharedWodColumns,
+} from '@/lib/wodFields';
 
 const DISCIPLINES = ['crossfit', 'hyrox', 'hybrid', 'haltero', 'endurance'];
 const LEVELS = ['all', 'beginner', 'intermediate', 'advanced'];
 const LEVEL_LABEL: Record<string, string> = {
   all: 'Tous niveaux', beginner: 'Débutant', intermediate: 'Intermédiaire', advanced: 'Avancé',
 };
-const DAY_LABELS = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
 const ACTIVE_BOX_COOKIE = 'active_box_id';
 const INPUT_CLS = 'w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-white/30';
 
@@ -49,6 +53,14 @@ interface ProgWod {
   description: string | null;
   wod_type: string | null;
   time_cap_seconds: number | null;
+  rounds: number | null;
+  notes: string | null;
+  block_name: string | null;
+  video_url: string | null;
+  leaderboard_enabled: boolean;
+  emom_interval_minutes: number | null;
+  tabata_work_seconds: number | null;
+  tabata_rest_seconds: number | null;
   sort_order: number;
 }
 
@@ -482,6 +494,12 @@ function OfferEditor({ offer, publisherBoxId, onClose, onSaved }: {
   const [wods, setWods] = useState<ProgWod[]>([]);
   const [week, setWeek] = useState(1);
   const [wodsLoaded, setWodsLoaded] = useState(false);
+  const [wodModal, setWodModal] = useState(false);
+  const [editWod, setEditWod] = useState<ProgWod | null>(null);
+  const [wodForm, setWodForm] = useState<WodFormState>(EMPTY_WOD_FORM);
+  const [movements, setMovements] = useState<string[]>([]);
+  const [wodSaving, setWodSaving] = useState(false);
+  const [wodError, setWodError] = useState<string | null>(null);
 
   const loadWods = useCallback(async (id: string) => {
     const { data } = await supabase.from('box_programming_wods').select('*').eq('programming_id', id).order('sort_order');
@@ -521,18 +539,67 @@ function OfferEditor({ offer, publisherBoxId, onClose, onSaved }: {
     }
   }
 
-  async function addWod(dow: number) {
-    if (!offerId) return;
-    const { data, error: err } = await supabase.from('box_programming_wods').insert({
-      programming_id: offerId, week_number: week, day_of_week: dow,
-      title: 'Nouveau WOD', description: '', sort_order: wods.length,
-    }).select('*').single();
-    if (!err && data) setWods((w) => [...w, data as ProgWod]);
+  // Éditeur de WOD partagé avec le Whiteboard, en contexte « programmation » :
+  // semaine × jour au lieu d'une date, et aucun accès à décider ici — la box
+  // abonnée choisira ses groupes en appliquant la semaine sur son calendrier.
+  function openCreateWod(dow: number) {
+    setEditWod(null);
+    setWodForm({ ...EMPTY_WOD_FORM, week, dayOfWeek: dow });
+    setMovements([]);
+    setWodError(null);
+    setWodModal(true);
   }
-  async function updateWod(id: string, patch: Partial<ProgWod>) {
-    setWods((w) => w.map((x) => (x.id === id ? { ...x, ...patch } : x)));
-    await supabase.from('box_programming_wods').update(patch).eq('id', id);
+
+  function openEditWod(w: ProgWod) {
+    setEditWod(w);
+    setWodForm({
+      ...EMPTY_WOD_FORM,
+      title: w.title,
+      description: w.description ?? '',
+      wod_type: w.wod_type ?? '',
+      block: w.block_name ?? '',
+      timeCap: formatCap(w.time_cap_seconds),
+      rounds: w.rounds ? String(w.rounds) : '',
+      notes: w.notes ?? '',
+      videoUrl: w.video_url ?? '',
+      leaderboard: w.leaderboard_enabled ?? true,
+      emomInterval: w.emom_interval_minutes ? String(w.emom_interval_minutes) : '1',
+      tabataWork: w.tabata_work_seconds ? String(w.tabata_work_seconds) : '20',
+      tabataRest: w.tabata_rest_seconds != null ? String(w.tabata_rest_seconds) : '10',
+      week: w.week_number,
+      dayOfWeek: w.day_of_week,
+    });
+    setMovements(movementLines(w.description));
+    setWodError(null);
+    setWodModal(true);
   }
+
+  async function saveWod() {
+    if (!offerId || !wodForm.title.trim()) return;
+    setWodSaving(true);
+    setWodError(null);
+    const payload = {
+      ...sharedWodColumns(wodForm, movements),
+      week_number: wodForm.week,
+      day_of_week: wodForm.dayOfWeek,
+    };
+    if (editWod) {
+      const { error: err } = await supabase.from('box_programming_wods').update(payload).eq('id', editWod.id);
+      setWodSaving(false);
+      if (err) { setWodError(err.message); return; }
+      setWods((w) => w.map((x) => (x.id === editWod.id ? { ...x, ...payload } : x)));
+    } else {
+      const { data, error: err } = await supabase.from('box_programming_wods')
+        .insert({ ...payload, programming_id: offerId, sort_order: wods.length })
+        .select('*').single();
+      setWodSaving(false);
+      if (err || !data) { setWodError(err?.message ?? 'Erreur'); return; }
+      setWods((w) => [...w, data as ProgWod]);
+    }
+    setWeek(wodForm.week);
+    setWodModal(false);
+  }
+
   async function delWod(id: string) {
     setWods((w) => w.filter((x) => x.id !== id));
     await supabase.from('box_programming_wods').delete().eq('id', id);
@@ -611,29 +678,73 @@ function OfferEditor({ offer, publisherBoxId, onClose, onSaved }: {
             <div className="space-y-2 mb-3">
               {weekWods.length === 0 && <p className="text-xs text-gray-500">Aucun WOD pour la semaine {week}. Ajoutez-en un jour ci-dessous.</p>}
               {weekWods.map((w) => (
-                <div key={w.id} className="rounded-xl bg-white/[0.03] border border-white/10 p-3">
-                  <div className="flex items-center gap-2 mb-2">
+                <button key={w.id} onClick={() => openEditWod(w)}
+                  className="w-full text-left rounded-xl bg-white/[0.03] border border-white/10 p-3 hover:border-white/25 transition-colors">
+                  <div className="flex items-center gap-2 mb-1.5">
                     <span className="text-[11px] font-black uppercase px-2 py-0.5 rounded bg-white/10 text-white">{DAY_LABELS[w.day_of_week - 1]}</span>
-                    <input value={w.title} onChange={(e) => updateWod(w.id, { title: e.target.value })}
-                      className="flex-1 bg-transparent text-sm font-semibold text-white focus:outline-none border-b border-transparent focus:border-white/20" />
-                    <button onClick={() => delWod(w.id)} className="text-gray-500 hover:text-red-400"><Trash2 size={13} /></button>
+                    {w.block_name && (
+                      <span className="text-[10px] font-black tracking-wider px-1.5 py-0.5 rounded"
+                        style={{ backgroundColor: `${BLOCK_COLOR[w.block_name]}20`, color: BLOCK_COLOR[w.block_name] }}>
+                        {BLOCK_LABEL[w.block_name]}
+                      </span>
+                    )}
+                    {w.wod_type && (
+                      <span className="text-[10px] font-black uppercase px-1.5 py-0.5 rounded"
+                        style={{ backgroundColor: `${TYPE_COLOR[w.wod_type]}20`, color: TYPE_COLOR[w.wod_type] }}>
+                        {w.wod_type}
+                      </span>
+                    )}
+                    <span className="flex-1 text-sm font-semibold text-white truncate">{w.title}</span>
+                    {w.video_url && <Video size={12} className="text-red-400 shrink-0" />}
+                    <Pencil size={13} className="text-gray-500 shrink-0" />
+                    <span role="button" tabIndex={0}
+                      onClick={(e) => { e.stopPropagation(); delWod(w.id); }}
+                      onKeyDown={(e) => { if (e.key === 'Enter') { e.stopPropagation(); delWod(w.id); } }}
+                      className="text-gray-500 hover:text-red-400 shrink-0"><Trash2 size={13} /></span>
                   </div>
-                  <textarea value={w.description ?? ''} onChange={(e) => updateWod(w.id, { description: e.target.value })}
-                    rows={3} placeholder={'Une ligne par mouvement : "21 Thruster (43/30 kg)"'}
-                    className="w-full bg-black/30 rounded-lg px-3 py-2 text-xs text-gray-200 placeholder-gray-600 focus:outline-none border border-white/5 focus:border-white/20" />
-                </div>
+                  {w.description && (
+                    <p className="text-xs text-gray-400 whitespace-pre-line line-clamp-4">{w.description}</p>
+                  )}
+                  <p className="text-[11px] text-gray-600 mt-1">
+                    {[
+                      w.time_cap_seconds ? `Cap ${formatCap(w.time_cap_seconds)}` : null,
+                      w.rounds ? `${w.rounds} rounds` : null,
+                      w.notes ? 'notes' : null,
+                    ].filter(Boolean).join(' · ')}
+                  </p>
+                </button>
               ))}
             </div>
             <div className="flex items-center gap-1.5 flex-wrap">
               <span className="text-xs text-gray-500 mr-1">Ajouter :</span>
               {DAY_LABELS.map((d, i) => (
-                <button key={d} onClick={() => addWod(i + 1)}
+                <button key={d} onClick={() => openCreateWod(i + 1)}
                   className="px-2.5 py-1 rounded-lg bg-white/5 border border-white/10 text-xs font-semibold text-gray-300 hover:text-white">{d}</button>
               ))}
             </div>
           </div>
         )}
       </div>
+
+      {/* Le fond du modal d'offre ferme au clic : on isole l'éditeur de WOD. */}
+      {wodModal && (
+        <div onClick={(e) => e.stopPropagation()}>
+        <WodEditor
+          mode="programming"
+          heading={editWod ? 'Modifier le WOD' : 'Nouveau WOD de programmation'}
+          submitLabel={editWod ? 'Enregistrer' : 'Ajouter le WOD'}
+          form={wodForm}
+          setForm={setWodForm}
+          movements={movements}
+          setMovements={setMovements}
+          saving={wodSaving}
+          error={wodError}
+          onClose={() => setWodModal(false)}
+          onSubmit={saveWod}
+          weeksCount={weeksCount}
+        />
+        </div>
+      )}
     </div>
   );
 }
