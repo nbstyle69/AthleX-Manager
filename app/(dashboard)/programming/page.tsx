@@ -793,7 +793,7 @@ function OfferEditor({ offer, publisherBoxId, onClose, onSaved }: {
               <Upload size={12} /> Importer (CSV, JSON, PDF)
             </button>
             {importDone !== null && (
-              <p className="text-xs text-emerald-400 mt-2">{importDone} WOD importés.</p>
+              <p className="text-xs text-emerald-400 mt-2">{importDone} WOD importé{importDone > 1 ? 's' : ''}.</p>
             )}
           </div>
         )}
