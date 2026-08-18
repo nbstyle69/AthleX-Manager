@@ -36,14 +36,14 @@ jest.mock('@/lib/supabase/server', () => ({
   getServerUser: jest.fn(),
 }));
 
-jest.mock('@/lib/isBoxStaff', () => ({ isBoxStaff: jest.fn() }));
+jest.mock('@/lib/isBoxOwnerAdmin', () => ({ isBoxOwnerAdmin: jest.fn() }));
 
 import { POST } from '../../app/api/invitations/send/route';
 import { getServerUser } from '@/lib/supabase/server';
-import { isBoxStaff } from '@/lib/isBoxStaff';
+import { isBoxOwnerAdmin } from '@/lib/isBoxOwnerAdmin';
 
 const mockGetServerUser = getServerUser as jest.Mock;
-const mockIsBoxStaff = isBoxStaff as jest.Mock;
+const mockIsBoxOwnerAdmin = isBoxOwnerAdmin as jest.Mock;
 
 function makeReq(body: unknown): any {
   return {
@@ -75,7 +75,7 @@ describe('POST /api/invitations/send', () => {
 
   it('refuse un gérant qui n’administre pas la box de l’invitation', async () => {
     mockGetServerUser.mockResolvedValueOnce({ id: 'user-1' });
-    mockIsBoxStaff.mockResolvedValueOnce(false);
+    mockIsBoxOwnerAdmin.mockResolvedValueOnce(false);
     const res: any = await POST(makeReq({ invitation_id: 'inv-1', token: 'abc' }));
     expect(res.status).toBe(403);
     expect(global.fetch).not.toHaveBeenCalled();
@@ -84,7 +84,7 @@ describe('POST /api/invitations/send', () => {
   it('refuse une invitation qui n’est plus en attente', async () => {
     tableRows.box_invitations = { ...invitationRow, status: 'accepted' };
     mockGetServerUser.mockResolvedValueOnce({ id: 'user-1' });
-    mockIsBoxStaff.mockResolvedValueOnce(true);
+    mockIsBoxOwnerAdmin.mockResolvedValueOnce(true);
     const res: any = await POST(makeReq({ invitation_id: 'inv-1', token: 'abc' }));
     expect(res.status).toBe(409);
     expect(global.fetch).not.toHaveBeenCalled();
@@ -92,7 +92,7 @@ describe('POST /api/invitations/send', () => {
 
   it('envoie à l’adresse de l’invitation, jamais à celle du corps de requête', async () => {
     mockGetServerUser.mockResolvedValueOnce({ id: 'user-1' });
-    mockIsBoxStaff.mockResolvedValueOnce(true);
+    mockIsBoxOwnerAdmin.mockResolvedValueOnce(true);
     const res: any = await POST(makeReq({
       invitation_id: 'inv-1', token: 'jeton-brut', to: 'attaquant@example.com',
     }));
@@ -114,7 +114,7 @@ describe('POST /api/invitations/send', () => {
       ok: false, status: 403, text: async () => 'The athlex.app domain is not verified',
     });
     mockGetServerUser.mockResolvedValueOnce({ id: 'user-1' });
-    mockIsBoxStaff.mockResolvedValueOnce(true);
+    mockIsBoxOwnerAdmin.mockResolvedValueOnce(true);
     const res: any = await POST(makeReq({ invitation_id: 'inv-1', token: 'jeton-brut' }));
 
     expect(res.status).toBe(200);
@@ -126,7 +126,7 @@ describe('POST /api/invitations/send', () => {
   it('signale l’absence de clé Resend sans prétendre avoir envoyé', async () => {
     delete process.env.RESEND_API_KEY;
     mockGetServerUser.mockResolvedValueOnce({ id: 'user-1' });
-    mockIsBoxStaff.mockResolvedValueOnce(true);
+    mockIsBoxOwnerAdmin.mockResolvedValueOnce(true);
     const res: any = await POST(makeReq({ invitation_id: 'inv-1', token: 'jeton-brut' }));
     const payload = await res.json();
     expect(payload.sent).toBe(false);

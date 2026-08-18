@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient, getServerUser } from '@/lib/supabase/server';
-import { isBoxStaff } from '@/lib/isBoxStaff';
+import { isBoxOwnerAdmin } from '@/lib/isBoxOwnerAdmin';
 
 const BUCKET = 'cancellation-docs';
 
 /**
  * Renvoie une URL signée (60 s) vers le justificatif d'une demande de
- * résiliation. Réservé à l'auteur de la demande ou au staff de la box.
+ * résiliation. Réservé à l'auteur de la demande ou au gérant de la box.
  * GET ?request_id=...
  */
 export async function GET(req: NextRequest) {
@@ -36,7 +36,7 @@ export async function GET(req: NextRequest) {
     }
 
     const allowed = request.member_id === user.id
-      || (await isBoxStaff(supabase, user.id, request.box_id));
+      || (await isBoxOwnerAdmin(supabase, user.id, request.box_id));
     if (!allowed) {
       return NextResponse.json({ error: 'Non autorisé.' }, { status: 403 });
     }

@@ -61,6 +61,10 @@ const PINNED: NavItem[] = [
   { href: '/settings', label: 'Réglages', icon: Settings },
 ];
 
+// Entrées dont le serveur refuse désormais les données au coach (argent,
+// facturation, invitations nominatives) : les masquer évite un écran vide.
+const OWNER_ONLY_HREFS = ['/invitations', '/subscribers'];
+
 function isActive(href: string, pathname: string): boolean {
   if (href === '/') return pathname === '/';
   // /support ne doit pas s'allumer sur la boîte de réception admin, qui a sa
@@ -83,14 +87,24 @@ interface SidebarProps {
   invitationsToCollect?: number;
   boxes?: SwitcherBox[];
   activeBoxId?: string;
+  isOwnerAdmin?: boolean;
 }
 
-export default function Sidebar({ box, email, unreadCount = 0, supportUnread = 0, isSupportAdmin = false, supportAdminUnread = 0, invitationsToCollect = 0, boxes = [], activeBoxId }: SidebarProps) {
+export default function Sidebar({ box, email, unreadCount = 0, supportUnread = 0, isSupportAdmin = false, supportAdminUnread = 0, invitationsToCollect = 0, boxes = [], activeBoxId, isOwnerAdmin = false }: SidebarProps) {
   const pathname = usePathname();
   const router   = useRouter();
   const { theme, toggle } = useTheme();
 
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
+
+  const groups = useMemo<NavGroup[]>(
+    () => (isOwnerAdmin
+      ? GROUPS
+      : GROUPS
+        .map(g => ({ ...g, items: g.items.filter(i => !OWNER_ONLY_HREFS.includes(i.href)) }))
+        .filter(g => g.items.length > 0)),
+    [isOwnerAdmin],
+  );
 
   const badges = useMemo<Record<string, number>>(() => ({
     '/messages':    unreadCount,
@@ -123,8 +137,8 @@ export default function Sidebar({ box, email, unreadCount = 0, supportUnread = 0
   // Le groupe qui contient la page courante s'ouvre de lui-même : on ne peut
   // pas se retrouver sur un écran dont l'entrée est masquée.
   const activeGroupKey = useMemo(
-    () => GROUPS.find(g => g.items.some(i => isActive(i.href, pathname)))?.key ?? null,
-    [pathname],
+    () => groups.find(g => g.items.some(i => isActive(i.href, pathname)))?.key ?? null,
+    [groups, pathname],
   );
 
   useEffect(() => {
@@ -211,7 +225,7 @@ export default function Sidebar({ box, email, unreadCount = 0, supportUnread = 0
       <nav className="flex-1 px-3 py-4 overflow-y-auto">
         <div className="space-y-0.5">{navLink(DASHBOARD)}</div>
 
-        {GROUPS.map(group => {
+        {groups.map(group => {
           const open        = !collapsed[group.key];
           const hasActive   = group.items.some(i => isActive(i.href, pathname));
           // Un groupe replié ne doit jamais avaler une notification : les
