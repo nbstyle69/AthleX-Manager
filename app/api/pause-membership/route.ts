@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { createServiceClient, getServerUser } from '@/lib/supabase/server';
-import { isBoxStaff } from '@/lib/isBoxStaff';
+import { isBoxOwnerAdmin } from '@/lib/isBoxOwnerAdmin';
 
 function getStripe() {
   return new Stripe(process.env.STRIPE_SECRET_KEY!, {
@@ -11,7 +11,7 @@ function getStripe() {
 
 /**
  * Gèle (pause) ou réactive l'abonnement de salle d'un membre.
- * Action réservée au staff de la box (owner/coach). Le prélèvement Stripe est
+ * Action réservée au gérant de la box. Le prélèvement Stripe est
  * suspendu via `pause_collection` puis repris (`pause_collection: ''`).
  * Body: { box_member_id: string, action: 'pause' | 'resume', resumes_at?: string }
  */
@@ -45,7 +45,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Membre introuvable.' }, { status: 404 });
     }
 
-    if (!(await isBoxStaff(supabase, user.id, member.box_id))) {
+    if (!(await isBoxOwnerAdmin(supabase, user.id, member.box_id))) {
       return NextResponse.json({ error: 'Non autorisé pour cette box.' }, { status: 403 });
     }
 

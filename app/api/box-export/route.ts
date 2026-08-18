@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import JSZip from 'jszip';
 import { createServiceClient, getServerUser } from '@/lib/supabase/server';
-import { isBoxStaff } from '@/lib/isBoxStaff';
+import { isBoxOwnerAdmin } from '@/lib/isBoxOwnerAdmin';
 
 /**
  * Portabilité : un gérant qui part emporte les données de SA box, en un fichier.
@@ -44,7 +44,7 @@ export async function GET(req: NextRequest) {
     if (!boxId) return NextResponse.json({ error: 'box_id requis.' }, { status: 400 });
 
     const supabase = createServiceClient();
-    if (!(await isBoxStaff(supabase, user.id, boxId))) {
+    if (!(await isBoxOwnerAdmin(supabase, user.id, boxId))) {
       return NextResponse.json({ error: 'Non autorisé pour cette box.' }, { status: 403 });
     }
 

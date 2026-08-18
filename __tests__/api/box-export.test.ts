@@ -61,15 +61,15 @@ jest.mock('@/lib/supabase/server', () => ({
   createServiceClient: jest.fn(() => ({ from: jest.fn((t: string) => makeChain(t)) })),
   getServerUser: jest.fn(),
 }));
-jest.mock('@/lib/isBoxStaff', () => ({ isBoxStaff: jest.fn() }));
+jest.mock('@/lib/isBoxOwnerAdmin', () => ({ isBoxOwnerAdmin: jest.fn() }));
 
 import JSZip from 'jszip';
 import { GET } from '../../app/api/box-export/route';
 import { getServerUser } from '@/lib/supabase/server';
-import { isBoxStaff } from '@/lib/isBoxStaff';
+import { isBoxOwnerAdmin } from '@/lib/isBoxOwnerAdmin';
 
 const mockGetServerUser = getServerUser as jest.Mock;
-const mockIsBoxStaff = isBoxStaff as jest.Mock;
+const mockIsBoxOwnerAdmin = isBoxOwnerAdmin as jest.Mock;
 
 const makeReq = (boxId: string | null): any => ({
   nextUrl: { searchParams: new URLSearchParams(boxId ? { box_id: boxId } : {}) },
@@ -80,7 +80,7 @@ describe('GET /api/box-export', () => {
     jest.clearAllMocks();
     selected.length = 0;
     mockGetServerUser.mockResolvedValue({ id: 'u-owner' });
-    mockIsBoxStaff.mockResolvedValue(true);
+    mockIsBoxOwnerAdmin.mockResolvedValue(true);
   });
 
   it('refuse un visiteur non authentifié', async () => {
@@ -89,7 +89,7 @@ describe('GET /api/box-export', () => {
   });
 
   it('refuse le gérant d’une autre box', async () => {
-    mockIsBoxStaff.mockResolvedValue(false);
+    mockIsBoxOwnerAdmin.mockResolvedValue(false);
     const res = await GET(makeReq('box-2'));
     expect(res.status).toBe(403);
     expect(selected).toHaveLength(0);

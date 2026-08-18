@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient, getServerUser } from '@/lib/supabase/server';
-import { isBoxStaff } from '@/lib/isBoxStaff';
+import { isBoxOwnerAdmin } from '@/lib/isBoxOwnerAdmin';
 import { SITE_URL, MAIL_FROM } from '@/lib/site-url';
 
 /**
@@ -41,7 +41,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Invitation introuvable.' }, { status: 404 });
   }
 
-  if (!(await isBoxStaff(service, user.id, invitation.box_id))) {
+  if (!(await isBoxOwnerAdmin(service, user.id, invitation.box_id))) {
     return NextResponse.json({ error: 'Cette invitation n’est pas la vôtre.' }, { status: 403 });
   }
 

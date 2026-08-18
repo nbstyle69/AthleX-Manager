@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { createServiceClient, getServerUser } from '@/lib/supabase/server';
-import { isBoxStaff } from '@/lib/isBoxStaff';
+import { isBoxOwnerAdmin } from '@/lib/isBoxOwnerAdmin';
 
 function getStripe() {
   return new Stripe(process.env.STRIPE_SECRET_KEY!, {
@@ -27,7 +27,7 @@ interface PromoRow {
   created_at: string;
 }
 
-/** Liste les codes promo d'une box (staff uniquement). */
+/** Liste les codes promo d'une box (gérant uniquement). */
 export async function GET(req: NextRequest) {
   try {
     const user = await getServerUser();
@@ -41,7 +41,7 @@ export async function GET(req: NextRequest) {
     }
 
     const supabase = createServiceClient();
-    if (!(await isBoxStaff(supabase, user.id, boxId))) {
+    if (!(await isBoxOwnerAdmin(supabase, user.id, boxId))) {
       return NextResponse.json({ error: 'Non autorisé pour cette box.' }, { status: 403 });
     }
 
@@ -114,7 +114,7 @@ export async function POST(req: NextRequest) {
     }
 
     const supabase = createServiceClient();
-    if (!(await isBoxStaff(supabase, user.id, boxId))) {
+    if (!(await isBoxOwnerAdmin(supabase, user.id, boxId))) {
       return NextResponse.json({ error: 'Non autorisé pour cette box.' }, { status: 403 });
     }
 

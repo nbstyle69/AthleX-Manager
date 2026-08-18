@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { createServiceClient, getServerUser } from '@/lib/supabase/server';
-import { isBoxStaff } from '@/lib/isBoxStaff';
+import { isBoxOwnerAdmin } from '@/lib/isBoxOwnerAdmin';
 
 function getStripe() {
   return new Stripe(process.env.STRIPE_SECRET_KEY!, {
@@ -30,7 +30,7 @@ async function loadAuthorized(id: string) {
   const promo = data as PromoRow | null;
   if (!promo) return { error: NextResponse.json({ error: 'Code introuvable.' }, { status: 404 }) } as const;
 
-  if (!(await isBoxStaff(supabase, user.id, promo.box_id))) {
+  if (!(await isBoxOwnerAdmin(supabase, user.id, promo.box_id))) {
     return { error: NextResponse.json({ error: 'Non autorisé pour cette box.' }, { status: 403 }) } as const;
   }
 
