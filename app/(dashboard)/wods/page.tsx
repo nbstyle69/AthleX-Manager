@@ -5,9 +5,11 @@ import { createClient } from '@/lib/supabase/client';
 import {
   Plus, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, ArrowLeft, ArrowRight, Pencil, Trash2,
   Eye, EyeOff, X, Loader2, Dumbbell, Upload, Download, FileText, Calendar, LayoutGrid, List, Video,
+  CalendarPlus,
 } from 'lucide-react';
 import { getMyBox } from '@/lib/getMyBox';
 import WodEditor from '@/components/wods/WodEditor';
+import ApplyProgramWeekModal from '@/components/wods/ApplyProgramWeekModal';
 import {
   BLOCK_COLOR, BLOCK_LABEL, DAY_LABELS, EMPTY_WOD_FORM, TYPE_COLOR,
   WodFormState, WodType, formatCap, movementLines, parseCap, sharedWodColumns,
@@ -65,7 +67,7 @@ export default function WODsPage() {
   const [saving,      setSaving]      = useState(false);
   const [formError,   setFormError]   = useState<string | null>(null);
   const [importing,   setImporting]   = useState(false);
-  const [importResult, setImportResult] = useState<{ ok: number; errors: string[] } | null>(null);
+  const [importResult, setImportResult] = useState<{ ok: number; errors: string[]; notes?: string[] } | null>(null);
 
   // PDF AI import
   interface ParsedPdfWOD {
@@ -108,6 +110,7 @@ export default function WODsPage() {
   } | null>(null);
   const [groups, setGroups] = useState<{ id: string; name: string; color: string }[]>([]);
   const [wodGroupMap, setWodGroupMap] = useState<Record<string, string[]>>({});
+  const [applyModal, setApplyModal] = useState(false);
   const [boxPrograms, setBoxPrograms] = useState<{ id: string; title: string; type: string }[]>([]);
   const [wodProgramMap, setWodProgramMap] = useState<Record<string, string[]>>({});
 
@@ -642,6 +645,13 @@ export default function WODsPage() {
             <Trash2 size={13} /> Tout supprimer
           </button>
           <button
+            onClick={() => setApplyModal(true)}
+            title="Poser une semaine d'une programmation souscrite sur le calendrier"
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold border border-white/10 text-gray-400 hover:text-white hover:border-white/20 transition-colors"
+          >
+            <CalendarPlus size={13} /> Appliquer une programmation
+          </button>
+          <button
             onClick={() => openCreate(todayISO)}
             className="flex items-center gap-2 px-4 py-2.5 bg-white hover:bg-white/90 text-[#0A0A0A] text-sm font-bold rounded-xl transition-colors"
           >
@@ -649,6 +659,25 @@ export default function WODsPage() {
           </button>
         </div>
       </div>
+
+      {/* Appliquer une programmation souscrite sur la semaine affichée */}
+      {applyModal && boxId && (
+        <ApplyProgramWeekModal
+          boxId={boxId}
+          defaultMonday={toISO(weekDates[0])}
+          groups={groups}
+          onClose={() => setApplyModal(false)}
+          onApplied={({ inserted, replaced }) => {
+            setApplyModal(false);
+            setImportResult({
+              ok: inserted,
+              errors: [],
+              notes: replaced > 0 ? [`${replaced} WOD de cette programmation remplacés.`] : [],
+            });
+            void load();
+          }}
+        />
+      )}
 
       {/* PDF AI loading overlay */}
       {pdfAnalyzing && (
@@ -809,6 +838,9 @@ export default function WODsPage() {
           </div>
           {importResult.errors.map((e, i) => (
             <p key={i} className="text-xs text-amber-400/80 mt-1">{e}</p>
+          ))}
+          {(importResult.notes ?? []).map((n, i) => (
+            <p key={`n${i}`} className="text-xs text-emerald-400/80 mt-1">{n}</p>
           ))}
         </div>
       )}
