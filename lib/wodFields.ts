@@ -29,6 +29,31 @@ export const BLOCK_LABEL: Record<string, string> = Object.fromEntries(BLOCKS.map
 
 export const DAY_LABELS = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
 
+/**
+ * Le time cap se saisit et s'affiche en `mm:ss` — le coach pense en
+ * minutes:secondes, et la colonne est en secondes. `formatCap` puis `parseCap`
+ * doivent redonner la valeur d'origine à la seconde, sinon un simple
+ * « Enregistrer » réécrit la donnée.
+ */
+export function formatCap(seconds: number | null | undefined): string {
+  if (seconds == null) return '';
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  return `${m}:${String(s).padStart(2, '0')}`;
+}
+
+/** `mm:ss` → secondes. Un nombre nu est lu comme des minutes (`12` → 720). */
+export function parseCap(text: string): number | null {
+  const raw = text.trim();
+  if (!raw) return null;
+  const [minPart, secPart] = raw.split(':');
+  const minutes = parseInt(minPart, 10);
+  if (Number.isNaN(minutes)) return null;
+  if (secPart === undefined) return minutes * 60;
+  const seconds = parseInt(secPart, 10);
+  return minutes * 60 + (Number.isNaN(seconds) ? 0 : seconds);
+}
+
 export interface WodFormState {
   title: string;
   description: string;
@@ -91,7 +116,7 @@ export function sharedWodColumns(form: WodFormState, movements: string[]): Share
     description: movements.map(l => l.trim()).filter(Boolean).join('\n') || null,
     wod_type: form.wod_type || null,
     block_name: form.block || null,
-    time_cap_seconds: form.timeCap ? parseInt(form.timeCap) * 60 : null,
+    time_cap_seconds: parseCap(form.timeCap),
     rounds: form.rounds ? parseInt(form.rounds) : null,
     notes: form.notes.trim() || null,
     video_url: form.videoUrl.trim() || null,

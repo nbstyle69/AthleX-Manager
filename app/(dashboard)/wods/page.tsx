@@ -10,7 +10,7 @@ import { getMyBox } from '@/lib/getMyBox';
 import WodEditor from '@/components/wods/WodEditor';
 import {
   BLOCK_COLOR, BLOCK_LABEL, DAY_LABELS, EMPTY_WOD_FORM, TYPE_COLOR,
-  WodFormState, WodType, movementLines, sharedWodColumns,
+  WodFormState, WodType, formatCap, movementLines, parseCap, sharedWodColumns,
 } from '@/lib/wodFields';
 import { useRef } from 'react';
 
@@ -195,7 +195,7 @@ export default function WODsPage() {
       title: wod.title, description: wod.description ?? '',
       wod_type: wod.wod_type ?? '', block: wod.block_name ?? '',
       date: wod.scheduled_date,
-      timeCap: wod.time_cap_seconds ? String(Math.floor(wod.time_cap_seconds / 60)) : '',
+      timeCap: formatCap(wod.time_cap_seconds),
       rounds: wod.rounds ? String(wod.rounds) : '',
       notes: wod.notes ?? '', videoUrl: wod.video_url ?? '', published: wod.is_published,
       leaderboard: (wod as any).leaderboard_enabled ?? true,
@@ -330,13 +330,13 @@ export default function WODsPage() {
   // ── CSV Export ────────────────────────────────────────────────────────────
   function exportCSV() {
     if (!wods.length) return;
-    const headers = ['date','title','type','description','time_cap_min','rounds','notes','published'];
+    const headers = ['date','title','type','description','timecap','rounds','notes','published'];
     const rows = wods.map(w => [
       w.scheduled_date,
       `"${(w.title ?? '').replace(/"/g, '""')}"`,
       w.wod_type,
       `"${(w.description ?? '').replace(/"/g, '""')}"`,
-      w.time_cap_seconds ? String(Math.floor(w.time_cap_seconds / 60)) : '',
+      formatCap(w.time_cap_seconds),
       w.rounds ?? '',
       `"${(w.notes ?? '').replace(/"/g, '""')}"`,
       w.is_published ? 'true' : 'false',
@@ -352,6 +352,7 @@ export default function WODsPage() {
   // ── CSV Template ─────────────────────────────────────────────────────────
   // Colonnes : date,title,type,description,timecap,rounds,notes,block,published,rank,groups
   //   type      = for-time | amrap | emom | tabata | strength | custom
+  //   timecap   = minutes (20) ou mm:ss (12:30)
   //   block     = skill-gym | skill-haltero | wod | pre-wod | post-wod  (optionnel)
   //   published = true/false  (défaut true)
   //   rank      = true/false  (défaut true) → leaderboard_enabled
@@ -561,7 +562,7 @@ export default function WODsPage() {
         box_id: boxId, created_by: userId,
         title: r.title, description: r.description || null,
         wod_type: wodType, scheduled_date: r.date,
-        time_cap_seconds: r.timeCap ? parseInt(r.timeCap) * 60 : null,
+        time_cap_seconds: parseCap(r.timeCap),
         rounds: r.rounds ? parseInt(r.rounds) : null,
         notes: r.notes || null, block_name: r.block || null,
         is_published: r.published, leaderboard_enabled: r.rank,
@@ -752,7 +753,7 @@ export default function WODsPage() {
                       )}
                       <div className="flex gap-3 mt-2">
                         {wod.time_cap_seconds != null && (
-                          <span className="text-[11px] text-gray-500 font-bold">⏱ {Math.floor(wod.time_cap_seconds / 60)} min</span>
+                          <span className="text-[11px] text-gray-500 font-bold">⏱ {formatCap(wod.time_cap_seconds)}</span>
                         )}
                         {wod.rounds != null && (
                           <span className="text-[11px] text-gray-500 font-bold">🔁 {wod.rounds} rounds</span>
@@ -1080,7 +1081,7 @@ export default function WODsPage() {
                           </div>
                           <div className="flex items-center gap-1 shrink-0">
                             {wod.time_cap_seconds && (
-                              <span className="text-xs text-gray-600 mr-2">{Math.floor(wod.time_cap_seconds / 60)} min</span>
+                              <span className="text-xs text-gray-600 mr-2">{formatCap(wod.time_cap_seconds)}</span>
                             )}
                             <button
                               onClick={() => togglePublish(wod)}

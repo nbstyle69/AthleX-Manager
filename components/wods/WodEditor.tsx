@@ -323,9 +323,9 @@ export default function WodEditor({
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-semibold text-gray-400 mb-1.5 uppercase tracking-wider">Time Cap (min)</label>
-              <input type="number" className={inp} value={form.timeCap}
-                onChange={e => setForm(f => ({ ...f, timeCap: e.target.value }))} placeholder="20" min="0" />
+              <label className="block text-xs font-semibold text-gray-400 mb-1.5 uppercase tracking-wider">Time Cap (mm:ss)</label>
+              <input type="text" inputMode="numeric" className={inp} value={form.timeCap}
+                onChange={e => setForm(f => ({ ...f, timeCap: e.target.value }))} placeholder="12:30" />
             </div>
             <div>
               <label className="block text-xs font-semibold text-gray-400 mb-1.5 uppercase tracking-wider">Rounds <span className="text-gray-600 normal-case tracking-normal">(optionnel)</span></label>

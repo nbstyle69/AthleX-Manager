@@ -9,7 +9,7 @@ import {
 import WodEditor from '@/components/wods/WodEditor';
 import {
   BLOCK_COLOR, BLOCK_LABEL, DAY_LABELS, EMPTY_WOD_FORM, TYPE_COLOR,
-  WodFormState, movementLines, sharedWodColumns,
+  WodFormState, formatCap, movementLines, sharedWodColumns,
 } from '@/lib/wodFields';
 
 const DISCIPLINES = ['crossfit', 'hyrox', 'hybrid', 'haltero', 'endurance'];
@@ -558,7 +558,7 @@ function OfferEditor({ offer, publisherBoxId, onClose, onSaved }: {
       description: w.description ?? '',
       wod_type: w.wod_type ?? '',
       block: w.block_name ?? '',
-      timeCap: w.time_cap_seconds ? String(Math.floor(w.time_cap_seconds / 60)) : '',
+      timeCap: formatCap(w.time_cap_seconds),
       rounds: w.rounds ? String(w.rounds) : '',
       notes: w.notes ?? '',
       videoUrl: w.video_url ?? '',
@@ -707,7 +707,7 @@ function OfferEditor({ offer, publisherBoxId, onClose, onSaved }: {
                   )}
                   <p className="text-[11px] text-gray-600 mt-1">
                     {[
-                      w.time_cap_seconds ? `Cap ${Math.floor(w.time_cap_seconds / 60)} min` : null,
+                      w.time_cap_seconds ? `Cap ${formatCap(w.time_cap_seconds)}` : null,
                       w.rounds ? `${w.rounds} rounds` : null,
                       w.notes ? 'notes' : null,
                     ].filter(Boolean).join(' · ')}
