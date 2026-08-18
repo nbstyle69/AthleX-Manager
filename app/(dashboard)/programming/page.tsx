@@ -70,6 +70,13 @@ interface Subscription {
   subscriber_box_id: string;
   status: string;
   auto_apply_weekly: boolean;
+  current_period_end: string | null;
+}
+
+/** Même condition que list_applicable_programmings / apply_program_week côté serveur. */
+function isLiveSub(s: Subscription): boolean {
+  if (s.status !== 'active') return false;
+  return !s.current_period_end || new Date(s.current_period_end).getTime() > Date.now();
 }
 
 const EMPTY_OFFER = {
@@ -210,7 +217,7 @@ function Catalogue({
     return true;
   });
 
-  const subscribedProgIds = new Set(subs.filter((s) => s.status === 'active').map((s) => s.programming_id));
+  const subscribedProgIds = new Set(subs.filter(isLiveSub).map((s) => s.programming_id));
 
   return (
     <div>
@@ -265,7 +272,7 @@ function Catalogue({
                       <Check size={15} /> Abonné
                     </div>
                     <AutoApplyOption
-                      subscriptions={subs.filter((s) => s.programming_id === p.id && s.status === 'active')}
+                      subscriptions={subs.filter((s) => s.programming_id === p.id && isLiveSub(s))}
                       onChanged={onChanged}
                     />
                   </div>
@@ -352,7 +359,7 @@ function SubscribeModal({
   onClose: () => void; onDone: () => void;
 }) {
   const supabase = createClient();
-  const alreadyIds = new Set(subs.filter((s) => s.programming_id === programming.id && s.status === 'active').map((s) => s.subscriber_box_id));
+  const alreadyIds = new Set(subs.filter((s) => s.programming_id === programming.id && isLiveSub(s)).map((s) => s.subscriber_box_id));
   // Opt-out default: all boxes selected (except those already subscribed).
   const [selected, setSelected] = useState<Set<string>>(
     new Set(myBoxes.filter((b) => !alreadyIds.has(b.id)).map((b) => b.id)),

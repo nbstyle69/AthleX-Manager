@@ -67,7 +67,7 @@ export default function WODsPage() {
   const [saving,      setSaving]      = useState(false);
   const [formError,   setFormError]   = useState<string | null>(null);
   const [importing,   setImporting]   = useState(false);
-  const [importResult, setImportResult] = useState<{ ok: number; errors: string[] } | null>(null);
+  const [importResult, setImportResult] = useState<{ ok: number; errors: string[]; notes?: string[] } | null>(null);
 
   // PDF AI import
   interface ParsedPdfWOD {
@@ -671,7 +671,8 @@ export default function WODsPage() {
             setApplyModal(false);
             setImportResult({
               ok: inserted,
-              errors: replaced > 0 ? [`${replaced} WOD de cette programmation remplacés.`] : [],
+              errors: [],
+              notes: replaced > 0 ? [`${replaced} WOD de cette programmation remplacés.`] : [],
             });
             void load();
           }}
@@ -837,6 +838,9 @@ export default function WODsPage() {
           </div>
           {importResult.errors.map((e, i) => (
             <p key={i} className="text-xs text-amber-400/80 mt-1">{e}</p>
+          ))}
+          {(importResult.notes ?? []).map((n, i) => (
+            <p key={`n${i}`} className="text-xs text-emerald-400/80 mt-1">{n}</p>
           ))}
         </div>
       )}
