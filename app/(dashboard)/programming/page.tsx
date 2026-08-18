@@ -69,6 +69,7 @@ interface Subscription {
   programming_id: string;
   subscriber_box_id: string;
   status: string;
+  auto_apply_weekly: boolean;
 }
 
 const EMPTY_OFFER = {
@@ -259,8 +260,14 @@ function Catalogue({
                   <Tag>{p.weeks_count} sem</Tag>
                 </div>
                 {subscribed ? (
-                  <div className="flex items-center justify-center gap-2 py-2 rounded-lg bg-emerald-500/10 text-emerald-400 text-sm font-bold">
-                    <Check size={15} /> Abonné
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-center gap-2 py-2 rounded-lg bg-emerald-500/10 text-emerald-400 text-sm font-bold">
+                      <Check size={15} /> Abonné
+                    </div>
+                    <AutoApplyOption
+                      subscriptions={subs.filter((s) => s.programming_id === p.id && s.status === 'active')}
+                      onChanged={onChanged}
+                    />
                   </div>
                 ) : (
                   <button onClick={() => setSubModal(p)}
@@ -280,6 +287,55 @@ function Catalogue({
           onClose={() => setSubModal(null)} onDone={() => { setSubModal(null); onChanged(); }}
         />
       )}
+    </div>
+  );
+}
+
+/**
+ * Option de la souscription : l'application automatique de la semaine due par le
+ * cron du dimanche 18h. Désactivée par défaut — sinon le contenu se pose seul sur
+ * le calendrier d'un gérant qui vient d'appliquer une autre semaine à la main.
+ */
+function AutoApplyOption({
+  subscriptions, onChanged,
+}: {
+  subscriptions: Subscription[]; onChanged: () => void;
+}) {
+  const supabase = createClient();
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  if (subscriptions.length === 0) return null;
+  const on = subscriptions.every((s) => s.auto_apply_weekly);
+
+  async function toggle() {
+    setSaving(true);
+    setError(null);
+    const { error: err } = await supabase
+      .from('box_programming_subscriptions')
+      .update({ auto_apply_weekly: !on })
+      .in('id', subscriptions.map((s) => s.id));
+    setSaving(false);
+    if (err) { setError(err.message); return; }
+    onChanged();
+  }
+
+  return (
+    <div>
+      <button onClick={toggle} disabled={saving}
+        className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-[11px] font-bold border transition-colors ${
+          on ? 'bg-white/10 text-white border-white/20' : 'bg-white/[0.02] text-gray-400 border-white/10 hover:text-white'}`}>
+        <span className={`w-3.5 h-3.5 rounded border flex items-center justify-center shrink-0 ${on ? 'bg-white border-white' : 'border-white/30'}`}>
+          {on && <Check size={10} className="text-black" />}
+        </span>
+        <span className="text-left leading-tight">
+          Application automatique chaque semaine
+          <span className="block text-[10px] font-semibold text-gray-500 normal-case">
+            {on ? 'La semaine due se pose seule le dimanche 18h.' : 'Tu appliques les semaines depuis le Whiteboard.'}
+          </span>
+        </span>
+      </button>
+      {error && <p className="text-[10px] text-red-400 mt-1">{error}</p>}
     </div>
   );
 }
