@@ -163,6 +163,47 @@ Corollaire : quand une migration ferme une porte que le client installé emprunt
 séquence sûre est **publier → prouver que la publication est arrivée → couper**, et la
 publication doit être automatique ou consignée, jamais laissée à la mémoire de quelqu'un.
 
+## 11. « Publié » et « reçu » ne suffisent pas : un artefact peut arriver intact et inerte
+
+La règle 10 a été appliquée côté mobile : la publication OTA est devenue automatique et
+l'identité de l'update publié figure dans le résumé du job. Les quatre updates suivantes ont
+**enfermé tous les utilisateurs dehors** — écran de connexion immédiat, soumission sans
+message, tous les comptes. La publication avait réussi ; l'artefact était vide.
+
+La cause est une propriété que ce dépôt partage mot pour mot : les variables
+`NEXT_PUBLIC_*` — comme les `EXPO_PUBLIC_*` — sont **inlinées au moment du build**, pas lues
+à l'exécution. Un artefact construit dans un environnement qui n'a pas la variable ne la
+lira jamais ensuite : il embarque une chaîne vide, se déploie sans erreur, et rend une page
+qui s'affiche sans pouvoir parler au serveur. `eas build` lisait ses variables par son
+profil ; `eas update` ne les lit que si on lui passe `--environment`. La même asymétrie
+existe entre les environnements Vercel (Production / Preview / Development) : une variable
+posée sur l'un ne vaut pas pour l'autre.
+
+Pourquoi rien ne l'a vu :
+
+- le **garde-fou** validait la seule question qu'il posait — l'artefact est-il applicable ?
+  Il l'était. Applicable et vide ;
+- les **journaux de déploiement** disaient « réussi », ce qui était vrai ;
+- le **harnais de test** construisait son propre artefact, sur une machine où `.env` était
+  chargé. Un contrôle qui fabrique son sujet ne teste pas celui qui part ;
+- **côté serveur, rien n'apparaissait** — aucune requête n'atteignait la base. Une panne sans
+  trace ressemble à un problème de compte, et on cherche du côté des données.
+
+Ce qui se vérifie :
+
+- on **retélécharge l'artefact réellement servi** et on cherche dedans la configuration
+  attendue — l'URL Supabase, la clé publique, l'origine du domaine. Sur une preview Vercel,
+  c'est le bundle servi par l'URL de preview, pas celui du build local ;
+- la **configuration absente lève tôt et se nomme**, plutôt que « supabaseUrl is required. »
+  cinq niveaux plus bas, ou une page blanche sans message ;
+- l'artefact **expose l'identité du code qu'il exécute** (commit, numéro d'update) là où un
+  utilisateur peut la lire : sans elle, l'enquête repose sur des déductions, et un cache ou
+  un téléchargement échoué en silence est indistinguable d'un code fautif.
+
+Corollaire général : un artefact de déploiement se vérifie **par son contenu**, pas par le
+succès de l'ordre qui l'a produit. « L'ordre a réussi » et « l'artefact est bon » sont deux
+états distincts, exactement comme « mergé » et « chez l'utilisateur ».
+
 ---
 
 ## Check-list avant de dire « ça marche »
@@ -182,3 +223,5 @@ publication doit être automatique ou consignée, jamais laissée à la mémoire
 - [ ] Rejeu sur les données réelles après application de la migration, pas seulement en local.
 - [ ] Un déploiement OTA est prouvé par l'**identité de l'update reçu** sur l'appareil, jamais
       par « l'écran s'affiche » : avant la coupe, l'ancien code s'affiche aussi.
+- [ ] L'artefact **réellement servi** contient sa configuration (`NEXT_PUBLIC_*` sont inlinées
+      au build) : un déploiement réussi peut livrer un artefact vide, applicable et inerte.
