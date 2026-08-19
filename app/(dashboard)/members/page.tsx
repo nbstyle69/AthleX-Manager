@@ -310,7 +310,10 @@ export default function MembersPage() {
       if (!p) return null;
       return {
         id: p.id, username: p.username ?? '?', level: p.level ?? 'rx',
-        elo: p.eo ?? 1000, email: emails.get(p.id) ?? '', joined_at: m.joined_at,
+        // Pas de repli `?? 1000` : `profiles.elo` est NOT NULL DEFAULT 1000, donc
+        // un repli ne pouvait masquer qu'une faute de lecture — et c'est ce qu'il
+        // a fait pendant des mois (`p.eo`), en affichant 1000 à tout le monde.
+        elo: p.elo, email: emails.get(p.id) ?? '', joined_at: m.joined_at,
         is_banned: m.status === 'banned',
         plan_id: m.plan_id ?? null,
         role: m.role ?? 'member',
