@@ -8,6 +8,7 @@ import {
   Pencil, Save, X as XIcon, Image as ImageIcon,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { formatCap } from '@/lib/wodFields';
 
 const TABS = ['Infos', 'Membres', 'Whiteboard', 'Tournois'];
 
@@ -405,7 +406,7 @@ export default function BoxDetailPage() {
                       {wod.time_cap_seconds && (
                         <div className="flex items-center gap-1">
                           <Clock size={11} />
-                          {Math.floor(wod.time_cap_seconds / 60)} min
+                          {formatCap(wod.time_cap_seconds)}
                         </div>
                       )}
                       {wod.rounds && (
