@@ -10,6 +10,7 @@ import {
   Users, Calendar, Clock, Hash, ChevronLeft, ChevronRight, FileText,
   CreditCard, AlertTriangle, Loader2, Ticket, Percent,
 } from 'lucide-react';
+import { formatCap, parseCap } from '@/lib/wodFields';
 
 interface Program {
   id: string;
@@ -640,7 +641,7 @@ export default function BoxOwnerProgramsPage() {
       title: w.title,
       description: w.description,
       wod_type: w.wod_type ?? 'custom',
-      time_cap: w.time_cap_seconds ? String(Math.floor(w.time_cap_seconds / 60)) : '',
+      time_cap: formatCap(w.time_cap_seconds),
       notes: w.notes ?? '',
     });
     setWodDayNumber(w.day_number ?? 1);
@@ -657,7 +658,7 @@ export default function BoxOwnerProgramsPage() {
       title: wodForm.title.trim(),
       description: wodForm.description.trim(),
       wod_type: wodForm.wod_type,
-      time_cap_seconds: wodForm.time_cap ? parseInt(wodForm.time_cap) * 60 : null,
+      time_cap_seconds: parseCap(wodForm.time_cap),
       notes: wodForm.notes.trim() || null,
     };
     let res;
@@ -1558,7 +1559,7 @@ export default function BoxOwnerProgramsPage() {
                             <p className="text-[11px] text-gray-500 line-clamp-3 whitespace-pre-line mb-2">{w.description}</p>
                             {w.time_cap_seconds && (
                               <div className="flex items-center gap-1 text-[10px] text-gray-600 mb-2">
-                                <Clock size={10} /> {Math.floor(w.time_cap_seconds / 60)} min
+                                <Clock size={10} /> {formatCap(w.time_cap_seconds)}
                               </div>
                             )}
                             <div className="flex items-center gap-1">
@@ -1638,12 +1639,13 @@ export default function BoxOwnerProgramsPage() {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs font-bold text-gray-400 mb-1 block">Time Cap (min)</label>
+                  <label className="text-xs font-bold text-gray-400 mb-1 block">Time Cap (mm:ss)</label>
                   <input
-                    type="number"
+                    type="text"
+                    inputMode="numeric"
                     className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white outline-none focus:border-emerald-500/50"
                     value={wodForm.time_cap} onChange={e => setWodForm({ ...wodForm, time_cap: e.target.value })}
-                    placeholder="12"
+                    placeholder="12:30"
                   />
                 </div>
                 <div>

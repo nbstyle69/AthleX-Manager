@@ -6,6 +6,7 @@ import { Plus, Trash2, Loader2, X, Sparkles, ChevronDown, ChevronUp, Timer } fro
 import { boGenerateFunctional, boGenerateHybrid } from '@/lib/wod/boAdapter';
 import { MOVEMENT_CATALOG, isWeightedMovement, serializeMovement, parseMovementRow, repsPerRoundFromMovements, isRepsScoredType } from '@/lib/movements';
 import { toDatetimeLocal, fromDatetimeLocal, isScheduledAhead } from '@/lib/datetime';
+import { formatCap, parseCap } from '@/lib/wodFields';
 
 const WOD_TYPES = ['AMRAP', 'For Time', 'EMOM', 'Tabata', 'Max Reps', 'Strength'];
 const LEVELS    = ['scaled', 'inter', 'rx', 'rx+', 'gx', 'pro'];
@@ -27,11 +28,11 @@ const WOD_STATUSES = [
 
 function timerInfoForType(type: string, form: any) {
   switch (type) {
-    case 'For Time':  return `⏱ Countdown ${form.time_cap ?? 20} min → 0 (score = temps)`;
+    case 'For Time':  return `⏱ Countdown ${form.time_cap ?? '20:00'} → 0 (score = temps)`;
     case 'AMRAP':     return `⏱ Stopwatch 0 → ${form.duration_minutes} min (score = rounds+reps)`;
     case 'EMOM':      return `⏱ EMOM ${form.rounds ?? form.duration_minutes} rounds × 1 min`;
     case 'Tabata':    return `⚡ ${form.work_seconds ?? 20}s travail / ${form.rest_seconds ?? 10}s repos × ${form.rounds ?? 8} rounds`;
-    case 'Max Reps':  return `⏱ Countdown ${form.time_cap ?? 10} min (score = reps totaux)`;
+    case 'Max Reps':  return `⏱ Countdown ${form.time_cap ?? '10:00'} (score = reps totaux)`;
     case 'Strength':  return `💪 Pas de timer — score = charge max`;
     default: return '';
   }
@@ -78,7 +79,9 @@ export default function WODForm({ tournamentId, divisions = [], isLeague = false
     opens_at:         toDatetimeLocal(initial?.opens_at),
     closes_at:        toDatetimeLocal(initial?.closes_at),
     timer_type:       initial?.timer_type       ?? 'stopwatch',
-    time_cap:         initial?.time_cap_seconds ? Math.floor(initial.time_cap_seconds / 60) : 20,
+    // Le cap se saisit en `mm:ss` : un aller-retour en minutes entières
+    // réécrivait un cap de 12:30 en 12:00 au premier « Enregistrer ».
+    time_cap:         initial?.time_cap_seconds ? formatCap(initial.time_cap_seconds) : '20:00',
     rounds:           initial?.rounds           ?? 8,
     work_seconds:     initial?.work_seconds     ?? 20,
     rest_seconds:     initial?.rest_seconds     ?? 10,
@@ -156,7 +159,7 @@ export default function WODForm({ tournamentId, divisions = [], isLeague = false
         type:            usedType,
         timer_type:      data.timer_type ?? timerMap[usedType] ?? 'stopwatch',
         duration_minutes: data.duration_minutes ?? (genSport === 'hybrid' ? genHybridDur : genDuration),
-        time_cap:        data.time_cap_seconds ? Math.floor(data.time_cap_seconds / 60) : (genSport === 'hybrid' ? genHybridDur : genDuration),
+        time_cap:        formatCap(data.time_cap_seconds ?? (genSport === 'hybrid' ? genHybridDur : genDuration) * 60),
         rounds:          data.rounds ?? f.rounds,
         work_seconds:    data.work_seconds ?? f.work_seconds,
         rest_seconds:    data.rest_seconds ?? f.rest_seconds,
@@ -177,7 +180,7 @@ export default function WODForm({ tournamentId, divisions = [], isLeague = false
     const supabase = createClient();
 
     const timeCap = (form.type === 'For Time' || form.type === 'AMRAP' || form.type === 'EMOM' || form.type === 'Max Reps')
-      ? (form.type === 'AMRAP' ? form.duration_minutes * 60 : form.time_cap * 60)
+      ? (form.type === 'AMRAP' ? form.duration_minutes * 60 : parseCap(form.time_cap))
       : null;
 
     const payload = {
@@ -185,7 +188,9 @@ export default function WODForm({ tournamentId, divisions = [], isLeague = false
       title:            form.title,
       description:      form.description,
       type:             form.type,
-      duration_minutes: form.type === 'AMRAP' || form.type === 'EMOM' ? form.duration_minutes : form.time_cap,
+      duration_minutes: form.type === 'AMRAP' || form.type === 'EMOM'
+        ? form.duration_minutes
+        : Math.round((parseCap(form.time_cap) ?? 0) / 60),
       scoring:          form.scoring,
       deadline_hours:   form.deadline_hours,
       status:           form.status,
@@ -448,9 +453,9 @@ export default function WODForm({ tournamentId, divisions = [], isLeague = false
         )}
         {(form.type === 'For Time' || form.type === 'Max Reps') && (
           <div>
-            <label className={lbl}>Time Cap (minutes)</label>
-            <input type="number" min={1} max={120} className={inp}
-              value={form.time_cap} onChange={e => set('time_cap', parseInt(e.target.value))} />
+            <label className={lbl}>Time Cap (mm:ss)</label>
+            <input type="text" inputMode="numeric" placeholder="12:30" className={inp}
+              value={form.time_cap} onChange={e => set('time_cap', e.target.value)} />
           </div>
         )}
         {form.type === 'Tabata' && (
