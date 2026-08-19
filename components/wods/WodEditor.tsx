@@ -1,13 +1,22 @@
 'use client';
 
-import { Dispatch, SetStateAction } from 'react';
-import { Plus, Trash2, X, Loader2, Video } from 'lucide-react';
+import { Dispatch, SetStateAction, useState } from 'react';
+import { Plus, Trash2, X, Loader2, Video, Dumbbell } from 'lucide-react';
 import {
   MOVEMENT_CATALOG,
   isWeightedMovement,
   serializeMovement,
   parseMovementRow,
 } from '@/lib/movements';
+import {
+  EMPTY_STRENGTH_ENTRY,
+  StrengthEntry,
+  StrengthLoadUnit,
+  isStrengthLine,
+  parseStrengthLine,
+  serializeStrength,
+  splitStrengthLines,
+} from '@/lib/strengthBlock';
 import { BLOCKS, DAY_LABELS, WOD_TYPES, WodFormState } from '@/lib/wodFields';
 
 /**
@@ -19,9 +28,14 @@ import { BLOCKS, DAY_LABELS, WOD_TYPES, WodFormState } from '@/lib/wodFields';
  *   boxs — semaine × jour, aucune notion d'accès ni de publication : l'accès se
  *   décide à l'application de la semaine par la box abonnée.
  *
- * Le contenu (mouvements du catalogue officiel, type, block, time cap, rounds,
- * notes, vidéo, EMOM/Tabata, classement) est identique dans les deux contextes.
- * C'est ici que viendra s'ajouter le bloc Musculation.
+ * Le contenu (mouvements du catalogue officiel, bloc Musculation, type, block,
+ * time cap, rounds, notes, vidéo, EMOM/Tabata, classement) est identique dans
+ * les deux contextes.
+ *
+ * Les deux blocs vivent dans la même `description` mais dans deux formes
+ * distinctes : « reps d'abord » pour le metcon (crédité en badges), « nom
+ * d'abord » pour la force (jamais crédité, cf. `lib/strengthBlock.ts`). Les
+ * lignes de force sont écrites en tête — la séance se lit force puis metcon.
  */
 export interface WodEditorGroup { id: string; name: string; color: string }
 export interface WodEditorProgram { id: string; title: string; type: string }
@@ -54,9 +68,33 @@ export default function WodEditor({
 }: WodEditorProps) {
   const isWhiteboard = mode === 'whiteboard';
 
-  const addMovement = () => setMovements(m => [...m, '']);
-  const removeMovement = (i: number) => setMovements(m => m.filter((_, idx) => idx !== i));
-  const setMovement = (i: number, v: string) => setMovements(m => m.map((x, idx) => (idx === i ? v : x)));
+  // Les lignes de force sont éditées structurées ; `movements` ne reçoit que
+  // leur sérialisation. Le tampon local garde une ligne vide affichable (que la
+  // sérialisation, elle, refuse d'écrire).
+  const [strengthRows, setStrengthRows] = useState<StrengthEntry[]>(
+    () => splitStrengthLines(movements)
+      .strength
+      .map(l => parseStrengthLine(l))
+      .filter((e): e is StrengthEntry => e !== null),
+  );
+
+  const wodRows = movements.filter(l => !isStrengthLine(l));
+
+  const commit = (wod: string[], strength: StrengthEntry[]) =>
+    setMovements([...strength.map(serializeStrength).filter(Boolean), ...wod]);
+
+  const addMovement = () => commit([...wodRows, ''], strengthRows);
+  const removeMovement = (i: number) => commit(wodRows.filter((_, idx) => idx !== i), strengthRows);
+  const setMovement = (i: number, v: string) => commit(wodRows.map((x, idx) => (idx === i ? v : x)), strengthRows);
+
+  const setStrength = (rows: StrengthEntry[]) => {
+    setStrengthRows(rows);
+    commit(wodRows, rows);
+  };
+  const addStrength = () => setStrength([...strengthRows, { ...EMPTY_STRENGTH_ENTRY }]);
+  const removeStrength = (i: number) => setStrength(strengthRows.filter((_, idx) => idx !== i));
+  const updateStrength = (i: number, patch: Partial<StrengthEntry>) =>
+    setStrength(strengthRows.map((e, idx) => (idx === i ? { ...e, ...patch } : e)));
 
   const canSubmit = !!form.title.trim() && !saving && (!isWhiteboard || !!form.date);
 
@@ -260,7 +298,7 @@ export default function WodEditor({
               {MOVEMENT_CATALOG.map(mv => <option key={mv.name} value={mv.name} />)}
             </datalist>
             <div className="space-y-2">
-              {movements.map((line, i) => {
+              {wodRows.map((line, i) => {
                 const parsed = parseMovementRow(line);
                 const showWeight = parsed.weightKg != null || parsed.weightKgWomen != null || isWeightedMovement(parsed.name);
                 const update = (reps: number | null, name: string, weightKg: number | null, weightKgWomen: number | null) => {
@@ -309,7 +347,7 @@ export default function WodEditor({
                   </div>
                 );
               })}
-              {movements.length === 0 && (
+              {wodRows.length === 0 && (
                 <button type="button" onClick={addMovement}
                   className="w-full py-3 rounded-xl border border-dashed border-white/10 text-xs text-gray-600 hover:border-white/30 hover:text-white/60 transition-colors">
                   + Ajouter un mouvement
@@ -317,6 +355,82 @@ export default function WodEditor({
               )}
               <p className="text-[11px] text-gray-600 pt-1">
                 Reps + exercice (liste officielle) + charges ♂ hommes / ♀ femmes : garantit le comptage des badges de mouvement des athlètes.
+              </p>
+            </div>
+          </div>
+
+          {/* Bloc Musculation — séries × reps × charge (kg ou %1RM) */}
+          <div>
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider flex items-center gap-1.5">
+                <Dumbbell size={13} /> Musculation <span className="text-gray-600 normal-case tracking-normal">(optionnel)</span>
+              </label>
+              <button type="button" onClick={addStrength} className="text-xs text-white font-semibold flex items-center gap-1 hover:opacity-80">
+                <Plus size={12} /> Ajouter une série
+              </button>
+            </div>
+            <div className="space-y-2">
+              {strengthRows.map((e, i) => (
+                <div key={i} className="bg-white/5 border border-white/10 rounded-xl p-3 space-y-2">
+                  <div className="flex gap-2 items-center">
+                    <input list="box-movement-catalog"
+                      className={`${inp} flex-1 min-w-0`}
+                      value={e.name}
+                      onChange={ev => updateStrength(i, { name: ev.target.value })}
+                      placeholder="Exercice (rechercher…)" aria-label="Exercice de musculation" />
+                    <button type="button" onClick={() => removeStrength(i)} className="p-3 rounded-xl bg-white/5 border border-white/10 text-gray-500 hover:text-red-400 transition-colors">
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                  <div className="flex gap-2 items-center">
+                    <input type="number" min={1} inputMode="numeric"
+                      className={`${inp} !w-16 shrink-0 text-center px-2`}
+                      value={e.sets}
+                      onChange={ev => updateStrength(i, { sets: parseInt(ev.target.value, 10) || 1 })}
+                      placeholder="5" aria-label="Séries" />
+                    <span className="text-gray-500 text-sm">×</span>
+                    <input type="number" min={1} inputMode="numeric"
+                      className={`${inp} !w-16 shrink-0 text-center px-2`}
+                      value={e.reps}
+                      onChange={ev => updateStrength(i, { reps: parseInt(ev.target.value, 10) || 1 })}
+                      placeholder="3" aria-label="Répétitions par série" />
+                    <span className="text-gray-500 text-sm">@</span>
+                    <input type="number" min={0} step={0.5} inputMode="decimal"
+                      className={`${inp} !w-20 shrink-0 text-center px-2`}
+                      value={e.load ?? ''}
+                      onChange={ev => updateStrength(i, { load: ev.target.value === '' ? null : parseFloat(ev.target.value) })}
+                      placeholder="Charge" aria-label="Charge par série" />
+                    <select className={`${inp} !w-24 shrink-0 px-2`} value={e.unit}
+                      onChange={ev => updateStrength(i, { unit: ev.target.value as StrengthLoadUnit })}
+                      aria-label="Unité de charge">
+                      <option value="kg" className="text-black">kg</option>
+                      <option value="%1RM" className="text-black">%1RM</option>
+                    </select>
+                  </div>
+                  <div className="flex gap-2 items-center">
+                    <input type="text"
+                      className={`${inp} flex-1 min-w-0`}
+                      value={e.restSec != null ? String(e.restSec) : ''}
+                      onChange={ev => updateStrength(i, { restSec: ev.target.value === '' ? null : parseInt(ev.target.value, 10) || null })}
+                      placeholder="Repos (sec)" aria-label="Repos entre séries en secondes" />
+                    <input type="text"
+                      className={`${inp} flex-1 min-w-0`}
+                      value={e.tempo ?? ''}
+                      onChange={ev => updateStrength(i, { tempo: ev.target.value || null })}
+                      placeholder="Tempo (30X1)" aria-label="Tempo" />
+                  </div>
+                  <p className="text-[11px] text-gray-600">{serializeStrength(e) || 'Nomme l’exercice pour enregistrer cette série.'}</p>
+                </div>
+              ))}
+              {strengthRows.length === 0 && (
+                <button type="button" onClick={addStrength}
+                  className="w-full py-3 rounded-xl border border-dashed border-white/10 text-xs text-gray-600 hover:border-white/30 hover:text-white/60 transition-colors">
+                  + Ajouter une série de musculation
+                </button>
+              )}
+              <p className="text-[11px] text-gray-600 pt-1">
+                Une charge en %1RM s’affiche en kilos chez l’athlète, calculée sur son propre 1RM.
+                Ces séries ne comptent pas de reps de badge : ce n’est pas du metcon.
               </p>
             </div>
           </div>
