@@ -1,9 +1,8 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { X, Loader2, AlertTriangle, CalendarPlus } from 'lucide-react';
+import { X, Loader2, AlertTriangle, CalendarPlus, ShieldCheck } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
-import { DAY_LABELS } from '@/lib/wodFields';
 
 /**
  * « Appliquer une programmation » : pose une semaine d'un contenu semaine × jour
@@ -14,19 +13,42 @@ import { DAY_LABELS } from '@/lib/wodFields';
  * l'appartenance des groupes à la box. Cette UI ne fait que proposer les choix :
  * elle n'est pas la frontière.
  *
- * Deux sources sont prévues par la RPC (`source_kind`) : `subscription` pour une
- * programmation souscrite, `template` pour la future semaine type interne du
- * chantier Musculation. Seule la première est proposée ici.
+ * Deux sources (`source_kind`) : `subscription` pour une programmation souscrite
+ * chez une autre box, `template` pour une semaine type interne.
+ *
+ * L'écran affiche les conflits **par jour de calendrier** avec leur provenance :
+ * ce que voit l'athlète, c'est « deux WOD le mardi ». Et il annonce ce que le
+ * remplacement fera vraiment — un WOD qui porte un score ou une complétion est
+ * conservé par le serveur, quoi qu'on clique ici.
  */
 
 export interface ApplyGroup { id: string; name: string; color: string }
 
-interface ApplicableProgramming {
-  subscriptionId: string;
+type SourceKind = 'subscription' | 'template';
+
+interface ApplicableSource {
+  kind: SourceKind;
+  /** `subscription_id` ou `template_id` selon la source. */
+  sourceId: string;
   title: string;
-  publisherBoxName: string | null;
+  subtitle: string | null;
   weeksCount: number;
-  daysPerWeek: number;
+}
+
+interface ConflictRow {
+  scheduled_date: string;
+  wod_id: string;
+  title: string;
+  origin: 'manual' | 'template' | 'subscription';
+  origin_title: string | null;
+  has_results: boolean;
+}
+
+export interface ApplySummary {
+  inserted: number;
+  replaced: number;
+  keptWithResults: number;
+  skipped: number;
 }
 
 interface Props {
@@ -36,7 +58,7 @@ interface Props {
   groups: ApplyGroup[];
   onClose: () => void;
   /** Appelé après une application réussie, pour recharger le calendrier. */
-  onApplied: (summary: { inserted: number; replaced: number }) => void;
+  onApplied: (summary: ApplySummary) => void;
 }
 
 interface RawApplicable {
@@ -45,6 +67,13 @@ interface RawApplicable {
   publisher_box_name: string | null;
   weeks_count: number | null;
   days_per_week: number | null;
+}
+
+interface RawTemplate {
+  template_id: string;
+  title: string | null;
+  wods_count: number | null;
+  days_count: number | null;
 }
 
 function mondayOf(iso: string): string {
@@ -63,65 +92,87 @@ function frDate(iso: string): string {
   });
 }
 
+function dayLabel(iso: string): string {
+  return new Date(iso + 'T00:00:00').toLocaleDateString('fr-FR', { weekday: 'long' });
+}
+
+const ORIGIN_LABEL: Record<ConflictRow['origin'], string> = {
+  manual: 'saisi à la main',
+  template: 'd’une semaine type',
+  subscription: 'd’une programmation',
+};
+
 export default function ApplyProgramWeekModal({
   boxId, defaultMonday, groups, onClose, onApplied,
 }: Props) {
   const supabase = createClient();
 
   const [loading, setLoading]   = useState(true);
-  const [items, setItems]       = useState<ApplicableProgramming[]>([]);
-  const [subId, setSubId]       = useState('');
+  const [items, setItems]       = useState<ApplicableSource[]>([]);
+  const [sourceKey, setSourceKey] = useState('');
   const [week, setWeek]         = useState(1);
   const [monday, setMonday]     = useState(mondayOf(defaultMonday));
   const [groupIds, setGroupIds] = useState<string[]>([]);
-  const [conflicts, setConflicts] = useState<number | null>(null);
+  const [conflicts, setConflicts] = useState<ConflictRow[] | null>(null);
   const [applying, setApplying] = useState(false);
   const [error, setError]       = useState<string | null>(null);
 
-  const selected = items.find(i => i.subscriptionId === subId) ?? null;
+  const selected = items.find(i => `${i.kind}:${i.sourceId}` === sourceKey) ?? null;
+  const conflictCount = conflicts?.length ?? 0;
+  const protectedCount = (conflicts ?? []).filter(c => c.has_results).length;
 
   useEffect(() => {
     (async () => {
-      const { data, error: rpcError } = await supabase
-        .rpc('list_applicable_programmings', { p_box_id: boxId });
-      if (rpcError) {
-        setError(rpcError.message);
-      } else {
-        const rows: ApplicableProgramming[] = ((data ?? []) as RawApplicable[]).map(r => ({
-          subscriptionId: r.subscription_id,
+      const [subs, tpls] = await Promise.all([
+        supabase.rpc('list_applicable_programmings', { p_box_id: boxId }),
+        supabase.rpc('list_week_templates', { p_box_id: boxId }),
+      ]);
+      if (subs.error) setError(subs.error.message);
+      if (tpls.error) setError(tpls.error.message);
+
+      const rows: ApplicableSource[] = [
+        ...((tpls.data ?? []) as RawTemplate[]).map(t => ({
+          kind: 'template' as const,
+          sourceId: t.template_id,
+          title: t.title ?? 'Semaine type',
+          subtitle: `${t.wods_count ?? 0} WOD · ${t.days_count ?? 0} jour(s)`,
+          weeksCount: 1,
+        })),
+        ...((subs.data ?? []) as RawApplicable[]).map(r => ({
+          kind: 'subscription' as const,
+          sourceId: r.subscription_id,
           title: r.title ?? 'Programmation',
-          publisherBoxName: r.publisher_box_name,
+          subtitle: r.publisher_box_name,
           weeksCount: Math.max(r.weeks_count ?? 1, 1),
-          daysPerWeek: r.days_per_week ?? 5,
-        }));
-        setItems(rows);
-        if (rows.length === 1) setSubId(rows[0].subscriptionId);
-      }
+        })),
+      ];
+      setItems(rows);
+      if (rows.length === 1) setSourceKey(`${rows[0].kind}:${rows[0].sourceId}`);
       setLoading(false);
     })();
   }, [boxId]);
 
   const checkConflicts = useCallback(async () => {
-    if (!subId) { setConflicts(null); return; }
-    const { data, error: rpcError } = await supabase.rpc('count_program_week_conflicts', {
-      p_source_kind: 'subscription',
-      p_source_id: subId,
+    if (!selected) { setConflicts(null); return; }
+    const { data, error: rpcError } = await supabase.rpc('list_program_week_conflicts', {
+      p_source_kind: selected.kind,
+      p_source_id: selected.sourceId,
       p_week: week,
       p_target_monday: monday,
     });
     if (rpcError) { setError(rpcError.message); setConflicts(null); return; }
-    setConflicts(typeof data === 'number' ? data : 0);
-  }, [subId, week, monday]);
+    setConflicts((data ?? []) as ConflictRow[]);
+  }, [selected, week, monday]);
 
   useEffect(() => { void checkConflicts(); }, [checkConflicts]);
 
   async function apply(replace: boolean) {
-    if (!subId) return;
+    if (!selected) return;
     setApplying(true);
     setError(null);
     const { data, error: rpcError } = await supabase.rpc('apply_program_week', {
-      p_source_kind: 'subscription',
-      p_source_id: subId,
+      p_source_kind: selected.kind,
+      p_source_id: selected.sourceId,
       p_week: week,
       p_target_monday: monday,
       p_group_ids: groupIds.length ? groupIds : null,
@@ -129,8 +180,15 @@ export default function ApplyProgramWeekModal({
     });
     setApplying(false);
     if (rpcError) { setError(rpcError.message); return; }
-    const summary = (data ?? {}) as { inserted?: number; replaced?: number };
-    onApplied({ inserted: summary.inserted ?? 0, replaced: summary.replaced ?? 0 });
+    const summary = (data ?? {}) as {
+      inserted?: number; replaced?: number; kept_with_results?: number; skipped?: number;
+    };
+    onApplied({
+      inserted: summary.inserted ?? 0,
+      replaced: summary.replaced ?? 0,
+      keptWithResults: summary.kept_with_results ?? 0,
+      skipped: summary.skipped ?? 0,
+    });
   }
 
   const inp = 'w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-white transition-colors';
@@ -139,7 +197,7 @@ export default function ApplyProgramWeekModal({
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm p-4">
       <div className="bg-[#111111] border border-white/10 rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between px-6 py-5 border-b border-white/8">
-          <h2 className="text-lg font-black text-white">Appliquer une programmation</h2>
+          <h2 className="text-lg font-black text-white">Appliquer une semaine</h2>
           <button onClick={onClose} className="p-1.5 rounded-xl hover:bg-white/5 text-gray-400 hover:text-white transition-colors">
             <X size={18} />
           </button>
@@ -152,23 +210,36 @@ export default function ApplyProgramWeekModal({
 
           {loading ? (
             <div className="flex items-center gap-2 text-sm text-gray-400 py-6 justify-center">
-              <Loader2 size={16} className="animate-spin" /> Chargement des programmations…
+              <Loader2 size={16} className="animate-spin" /> Chargement des sources…
             </div>
           ) : items.length === 0 ? (
             <p className="text-sm text-gray-400 leading-relaxed py-4">
-              Aucune programmation souscrite active. Rends-toi dans <span className="text-white font-semibold">Entraînement → Programmation</span> pour t&apos;abonner à une offre publiée par une autre box.
+              Aucune semaine type ni programmation souscrite. Enregistre une semaine du Whiteboard comme <span className="text-white font-semibold">semaine type</span>, ou abonne-toi à une offre dans <span className="text-white font-semibold">Entraînement → Programmation</span>.
             </p>
           ) : (
             <>
               <div>
-                <label className="block text-xs font-semibold text-gray-400 mb-1.5 uppercase tracking-wider">Programmation</label>
-                <select className={inp} value={subId} onChange={e => { setSubId(e.target.value); setWeek(1); }}>
+                <label className="block text-xs font-semibold text-gray-400 mb-1.5 uppercase tracking-wider">Source</label>
+                <select className={inp} value={sourceKey} onChange={e => { setSourceKey(e.target.value); setWeek(1); }}>
                   <option value="">— Choisir —</option>
-                  {items.map(i => (
-                    <option key={i.subscriptionId} value={i.subscriptionId}>
-                      {i.title}{i.publisherBoxName ? ` — ${i.publisherBoxName}` : ''}
-                    </option>
-                  ))}
+                  {items.some(i => i.kind === 'template') && (
+                    <optgroup label="Mes semaines types">
+                      {items.filter(i => i.kind === 'template').map(i => (
+                        <option key={i.sourceId} value={`template:${i.sourceId}`}>
+                          {i.title}{i.subtitle ? ` — ${i.subtitle}` : ''}
+                        </option>
+                      ))}
+                    </optgroup>
+                  )}
+                  {items.some(i => i.kind === 'subscription') && (
+                    <optgroup label="Programmations souscrites">
+                      {items.filter(i => i.kind === 'subscription').map(i => (
+                        <option key={i.sourceId} value={`subscription:${i.sourceId}`}>
+                          {i.title}{i.subtitle ? ` — ${i.subtitle}` : ''}
+                        </option>
+                      ))}
+                    </optgroup>
+                  )}
                 </select>
               </div>
 
@@ -176,7 +247,12 @@ export default function ApplyProgramWeekModal({
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block text-xs font-semibold text-gray-400 mb-1.5 uppercase tracking-wider">Semaine source</label>
-                    <select className={inp} value={week} onChange={e => setWeek(parseInt(e.target.value, 10))}>
+                    <select
+                      className={inp}
+                      value={week}
+                      onChange={e => setWeek(parseInt(e.target.value, 10))}
+                      disabled={selected.weeksCount === 1}
+                    >
                       {Array.from({ length: selected.weeksCount }, (_, i) => i + 1).map(w => (
                         <option key={w} value={w}>Semaine {w}</option>
                       ))}
@@ -196,7 +272,7 @@ export default function ApplyProgramWeekModal({
 
               {selected && (
                 <p className="text-xs text-gray-500">
-                  Les WOD se poseront du <span className="text-gray-300">{frDate(monday)}</span> ({DAY_LABELS[0]}) au dimanche suivant, aux jours définis dans la programmation. Ils restent éditables ensuite comme des WOD maison.
+                  Les WOD se poseront à partir du lundi <span className="text-gray-300">{frDate(monday)}</span>, aux jours définis dans la source. Ils restent éditables ensuite comme des WOD maison.
                 </p>
               )}
 
@@ -223,12 +299,36 @@ export default function ApplyProgramWeekModal({
                 </div>
               )}
 
-              {selected && conflicts !== null && conflicts > 0 && (
-                <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl px-4 py-3 text-sm text-amber-300 flex gap-2.5">
-                  <AlertTriangle size={16} className="shrink-0 mt-0.5" />
+              {/* Conflits par jour de calendrier : la provenance est nommée, le
+                  coach choisit en connaissance. Ce bloc ne promet jamais une
+                  suppression que le serveur refusera. */}
+              {selected && conflictCount > 0 && (
+                <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl px-4 py-3 text-sm text-amber-300 space-y-2">
+                  <div className="flex gap-2.5">
+                    <AlertTriangle size={16} className="shrink-0 mt-0.5" />
+                    <span>
+                      Ces jours portent déjà <span className="font-bold">{conflictCount} WOD</span>, quelle qu&apos;en soit l&apos;origine.
+                    </span>
+                  </div>
+                  <ul className="pl-6 space-y-1 text-xs">
+                    {conflicts?.map(c => (
+                      <li key={c.wod_id}>
+                        <span className="capitalize">{dayLabel(c.scheduled_date)}</span> : {c.title}{' '}
+                        <span className="text-amber-300/60">
+                          ({ORIGIN_LABEL[c.origin]}{c.origin_title ? ` « ${c.origin_title} »` : ''})
+                        </span>
+                        {c.has_results && <span className="text-white font-semibold"> — porte un résultat, conservé</span>}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {selected && protectedCount > 0 && (
+                <div className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-gray-300 flex gap-2.5">
+                  <ShieldCheck size={16} className="shrink-0 mt-0.5 text-white" />
                   <span>
-                    Cette semaine porte déjà <span className="font-bold">{conflicts} WOD</span> issus de cette programmation.
-                    Les remplacer supprimera ces WOD (et leurs scores) avant de reposer la semaine {week}.
+                    <span className="font-bold text-white">{protectedCount} WOD</span> porte{protectedCount > 1 ? 'nt' : ''} un score ou une complétion : le remplacement ne {protectedCount > 1 ? 'les' : 'le'} touchera pas. Un score alimente l&apos;ELO et l&apos;historique de l&apos;athlète — pour le supprimer, il faut supprimer ce WOD-là, délibérément.
                   </span>
                 </div>
               )}
@@ -245,13 +345,13 @@ export default function ApplyProgramWeekModal({
               Annuler
             </button>
             <button
-              onClick={() => apply(conflicts !== null && conflicts > 0)}
-              disabled={!subId || applying}
+              onClick={() => apply(conflictCount > 0)}
+              disabled={!selected || applying}
               className="flex items-center gap-2 px-4 py-2.5 bg-white hover:bg-white/90 disabled:opacity-40 text-[#0A0A0A] text-sm font-bold rounded-xl transition-colors"
             >
               {applying
                 ? <><Loader2 size={14} className="animate-spin" /> Application…</>
-                : <><CalendarPlus size={14} /> {conflicts !== null && conflicts > 0 ? 'Remplacer la semaine' : 'Appliquer'}</>}
+                : <><CalendarPlus size={14} /> {conflictCount > 0 ? 'Remplacer les WOD vierges' : 'Appliquer'}</>}
             </button>
           </div>
         )}

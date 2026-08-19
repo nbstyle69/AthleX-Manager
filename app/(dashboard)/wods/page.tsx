@@ -5,11 +5,13 @@ import { createClient } from '@/lib/supabase/client';
 import {
   Plus, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, ArrowLeft, ArrowRight, Pencil, Trash2,
   Eye, EyeOff, X, Loader2, Dumbbell, Upload, Download, FileText, Calendar, LayoutGrid, List, Video,
-  CalendarPlus,
+  CalendarPlus, BookmarkPlus,
 } from 'lucide-react';
 import { getMyBox } from '@/lib/getMyBox';
 import WodEditor from '@/components/wods/WodEditor';
 import ApplyProgramWeekModal from '@/components/wods/ApplyProgramWeekModal';
+import SaveWeekAsTemplateModal from '@/components/wods/SaveWeekAsTemplateModal';
+import { applyWeekNotes } from '@/lib/programWeek';
 import {
   BLOCK_COLOR, BLOCK_LABEL, DAY_LABELS, EMPTY_WOD_FORM, TYPE_COLOR,
   WodFormState, WodType, formatCap, movementLines, parseCap, sharedWodColumns,
@@ -112,6 +114,7 @@ export default function WODsPage() {
   const [groups, setGroups] = useState<{ id: string; name: string; color: string }[]>([]);
   const [wodGroupMap, setWodGroupMap] = useState<Record<string, string[]>>({});
   const [applyModal, setApplyModal] = useState(false);
+  const [templateModal, setTemplateModal] = useState(false);
   const [boxPrograms, setBoxPrograms] = useState<{ id: string; title: string; type: string }[]>([]);
   const [wodProgramMap, setWodProgramMap] = useState<Record<string, string[]>>({});
 
@@ -575,10 +578,18 @@ export default function WODsPage() {
           </button>
           <button
             onClick={() => setApplyModal(true)}
-            title="Poser une semaine d'une programmation souscrite sur le calendrier"
+            title="Poser une semaine type ou une programmation souscrite sur le calendrier"
             className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold border border-white/10 text-gray-400 hover:text-white hover:border-white/20 transition-colors"
           >
-            <CalendarPlus size={13} /> Appliquer une programmation
+            <CalendarPlus size={13} /> Appliquer une semaine
+          </button>
+          <button
+            onClick={() => setTemplateModal(true)}
+            disabled={!wods.length}
+            title="Recopier la semaine affichée dans une semaine type réutilisable"
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold border border-white/10 text-gray-400 hover:text-white hover:border-white/20 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          >
+            <BookmarkPlus size={13} /> Enregistrer comme semaine type
           </button>
           <button
             onClick={() => openCreate(todayISO)}
@@ -596,14 +607,27 @@ export default function WODsPage() {
           defaultMonday={toISO(weekDates[0])}
           groups={groups}
           onClose={() => setApplyModal(false)}
-          onApplied={({ inserted, replaced }) => {
+          onApplied={(summary) => {
             setApplyModal(false);
-            setImportResult({
-              ok: inserted,
-              errors: [],
-              notes: replaced > 0 ? [`${replaced} WOD de cette programmation remplacés.`] : [],
-            });
+            setImportResult({ ok: summary.inserted, errors: [], notes: applyWeekNotes(summary) });
             void load();
+          }}
+        />
+      )}
+
+      {/* Recopier la semaine affichée dans une semaine type réutilisable */}
+      {templateModal && boxId && (
+        <SaveWeekAsTemplateModal
+          boxId={boxId}
+          monday={toISO(weekDates[0])}
+          onClose={() => setTemplateModal(false)}
+          onSaved={({ title, wods: n, days, updated }) => {
+            setTemplateModal(false);
+            setImportResult({
+              ok: 0,
+              errors: [],
+              notes: [`Semaine type « ${title} » ${updated ? 'mise à jour' : 'enregistrée'} : ${n} WOD sur ${days} jour(s). Applique-la depuis « Appliquer une semaine ».`],
+            });
           }}
         />
       )}
@@ -760,7 +784,9 @@ export default function WODsPage() {
         <div className={`border rounded-xl px-4 py-3 text-sm ${importResult.errors.length > 0 ? 'bg-amber-500/10 border-amber-500/20' : 'bg-emerald-500/10 border-emerald-500/20'}`}>
           <div className="flex items-center justify-between">
             <p className={`font-bold ${importResult.errors.length > 0 ? 'text-amber-400' : 'text-emerald-400'}`}>
-              ✅ {importResult.ok} WOD{importResult.ok > 1 ? 's' : ''} importé{importResult.ok > 1 ? 's' : ''}
+              {importResult.ok > 0
+                ? `✅ ${importResult.ok} WOD${importResult.ok > 1 ? 's' : ''} posé${importResult.ok > 1 ? 's' : ''}`
+                : '✅ Enregistré'}
               {importResult.errors.length > 0 && ` — ⚠️ ${importResult.errors.length} erreur(s)`}
             </p>
             <button onClick={() => setImportResult(null)} className="text-gray-500 hover:text-white"><X size={13} /></button>

@@ -148,7 +148,10 @@ export default function ProgrammingPage() {
 
       const { data: offers } = await supabase
         .from('box_programming')
+        // Les semaines types sont des programmations internes : elles vivent sur
+        // le Whiteboard, pas dans les offres vendables de la box.
         .select('*').in('publisher_box_id', myBoxIds)
+        .eq('is_template', false)
         .order('created_at', { ascending: false });
       setMyOffers((offers ?? []) as Programming[]);
     }
