@@ -40,7 +40,8 @@ export default function AdminUsersPage() {
     const to = from + PAGE_SIZE - 1;
 
     // Server-side count (with search filter if any)
-    let countQuery = supabase.from('profiles').select('*', { count: 'exact', head: true });
+    // Colonne autorisée, pas `*` : `authenticated` n'a plus SELECT sur email.
+    let countQuery = supabase.from('profiles').select('id', { count: 'exact', head: true });
     if (currentSearch) countQuery = countQuery.ilike('username', `%${currentSearch}%`);
     const { count } = await countQuery;
     setTotalCount(count ?? 0);

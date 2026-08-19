@@ -318,7 +318,7 @@ describe('POST /api/stripe-connect-webhook', () => {
     expect(res._status).toBe(200);
   });
 
-  it('upserts program_members on a program checkout', async () => {
+  it('inscrit au programme par la porte stripe de join_program (écriture directe fermée en base)', async () => {
     chains.profiles = profileFound();
     chains.program_members = makeChain({ awaited: { error: null } });
     mockConstructEvent.mockReturnValue({
@@ -329,10 +329,28 @@ describe('POST /api/stripe-connect-webhook', () => {
     const res = (await POST(makeReq() as any)) as any;
 
     expect(res._status).toBe(200);
-    expect(chains.program_members.upsert).toHaveBeenCalledWith(
-      expect.objectContaining({ program_id: 'prog-1', user_id: 'user-1', status: 'active' }),
-      { onConflict: 'program_id,user_id' },
-    );
+    expect(mockRpc).toHaveBeenCalledWith('join_program', expect.objectContaining({
+      p_program_id: 'prog-1',
+      p_source: 'stripe',
+      p_user_id: 'user-1',
+      p_stripe_checkout_session_id: 'cs_1',
+      p_stripe_payment_intent: 'pi_1',
+    }));
+    expect(chains.program_members.upsert).not.toHaveBeenCalled();
+  });
+
+  it('remonte une erreur de join_program en 500 (Stripe réessaie)', async () => {
+    chains.profiles = profileFound();
+    chains.program_members = makeChain({ awaited: { error: null } });
+    mockRpc.mockResolvedValue({ data: null, error: { message: 'refus' } });
+    mockConstructEvent.mockReturnValue({
+      type: 'checkout.session.completed',
+      data: { object: { id: 'cs_1', customer_details: { email: 'a@b.com' }, payment_intent: 'pi_1', metadata: { kind: 'program', program_id: 'prog-1' } } },
+    });
+
+    const res = (await POST(makeReq() as any)) as any;
+
+    expect(res._status).toBe(500);
   });
 
   it('sets the renewal date on customer.subscription.created', async () => {

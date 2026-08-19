@@ -144,9 +144,11 @@ export default function AnalyticsPage() {
       { data: topBoxesRaw },
       { data: eloProfiles },
     ] = await Promise.all([
-      supabase.from('profiles').select('*', { count: 'exact', head: true }),
-      supabase.from('profiles').select('*', { count: 'exact', head: true }).gte('created_at', d7),
-      supabase.from('profiles').select('*', { count: 'exact', head: true }).gte('created_at', d30),
+      // Compter sur une colonne AUTORISÉE : `authenticated` n'a plus SELECT sur
+      // toutes les colonnes de profiles, donc un `*` tombe en 42501.
+      supabase.from('profiles').select('id', { count: 'exact', head: true }),
+      supabase.from('profiles').select('id', { count: 'exact', head: true }).gte('created_at', d7),
+      supabase.from('profiles').select('id', { count: 'exact', head: true }).gte('created_at', d30),
       supabase.from('profiles').select('role'),
       supabase.from('tournaments').select('*', { count: 'exact', head: true }),
       supabase.from('tournaments').select('*', { count: 'exact', head: true }).neq('status', 'closed'),

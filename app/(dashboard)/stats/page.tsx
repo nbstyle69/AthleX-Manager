@@ -55,6 +55,7 @@ export default function BoxStatsPage() {
       { data: membersData },
       { data: joinData },
       { data: resaData },
+      { data: privateProfiles },
     ] = await Promise.all([
       // `box_members` n'a plus de SELECT au niveau table pour `authenticated` : les
       // colonnes de facturation sont exclues. Compter sur `*` demande donc une
@@ -67,7 +68,7 @@ export default function BoxStatsPage() {
       supabase.from('tournaments').select('*', { count: 'exact', head: true }).eq('box_id', box.id).in('status', ['open', 'active']),
       supabase.from('box_wods').select('*', { count: 'exact', head: true }).eq('box_id', box.id),
       supabase.from('box_members')
-        .select('member_id, status, role, joined_at, profile:profiles!box_members_member_id_fkey(username, level, elo, gender)')
+        .select('member_id, status, role, joined_at, profile:profiles!box_members_member_id_fkey(username, level, elo)')
         .eq('box_id', box.id).eq('status', 'active'),
       supabase.from('box_members')
         .select('joined_at')
@@ -77,7 +78,15 @@ export default function BoxStatsPage() {
         .select('created_at, member_id')
         .eq('box_id', box.id)
         .order('created_at', { ascending: true }),
+      // `gender` n'est plus lisible en colonne par `authenticated` (Lot 0-bis) :
+      // le staff de la box le lit par cette RPC, seul lecteur autorisé.
+      supabase.rpc('get_box_members_private_profiles', { p_box_id: box.id }),
     ]);
+
+    const genderById = new Map<string, string | null>(
+      ((privateProfiles ?? []) as { member_id: string; gender: string | null }[])
+        .map(p => [p.member_id, p.gender]),
+    );
 
     setKpis([
       { label: 'Total membres', value: totalMembers ?? 0, icon: Users, color: '#22C55E' },
@@ -93,7 +102,7 @@ export default function BoxStatsPage() {
     const levelMap: Record<string, number> = {};
     const members: MemberRow[] = (membersData ?? []).map((m: any) => {
       const p = Array.isArray(m.profile) ? m.profile[0] : m.profile;
-      return p ? { username: p.username, level: p.level ?? 'rx', elo: p.elo ?? 1000, gender: p.gender ?? null } : null;
+      return p ? { username: p.username, level: p.level ?? 'rx', elo: p.elo ?? 1000, gender: genderById.get(m.member_id) ?? null } : null;
     }).filter(Boolean) as MemberRow[];
 
     for (const m of members) {

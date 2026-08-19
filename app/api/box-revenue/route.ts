@@ -107,10 +107,15 @@ export async function GET(req: NextRequest) {
     const programIds = ((programs ?? []) as { id: string }[]).map(p => p.id);
 
     if (programIds.length > 0) {
+      // Seule la provenance `stripe` est de l'argent encaissé. Une assignation
+      // par le staff, un programme gratuit rejoint par code, ou une ligne
+      // héritée d'avant la fermeture de l'inscription libre (legacy_unverified)
+      // n'ont jamais rien payé : les compter gonflerait le CA du gérant.
       const { data: purchases } = await supabase
         .from('program_members')
         .select('amount_cents, purchased_at, status')
         .in('program_id', programIds)
+        .eq('provenance', 'stripe')
         .gte('purchased_at', start.toISOString());
 
       for (const p of (purchases ?? []) as { amount_cents: number | null; purchased_at: string | null; status: string | null }[]) {

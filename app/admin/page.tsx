@@ -17,9 +17,10 @@ export default async function AdminDashboard() {
     .select('*', { count: 'exact', head: true })
     .eq('status', 'open');
 
+  // Colonne autorisée, pas `*` : `authenticated` n'a plus SELECT sur email.
   const { count: totalUsers } = await supabase
     .from('profiles')
-    .select('*', { count: 'exact', head: true });
+    .select('id', { count: 'exact', head: true });
 
   const { count: totalDailies } = await supabase
     .from('daily_tournaments')
