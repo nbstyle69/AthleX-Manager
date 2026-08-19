@@ -25,14 +25,11 @@ export default function TopEloCard({ boxId }: { boxId: string }) {
   const [genderFilter, setGenderFilter] = useState<'all' | 'male' | 'female'>('all');
 
   const load = useCallback(async () => {
-    const { data } = await supabase
-      .from('box_members')
-      .select('member_id, profile:profiles!box_members_member_id_fkey(username, level, elo, gender)')
-      .eq('box_id', boxId)
-      .eq('status', 'active');
+    // `gender` n'est plus lisible en colonne par `authenticated` (Lot 0-bis) :
+    // le staff de la box le lit par cette RPC, seul lecteur autorisé.
+    const { data } = await supabase.rpc('get_box_members_private_profiles', { p_box_id: boxId });
 
-    const rows = ((data ?? []) as { profile: ProfileRow | ProfileRow[] | null }[])
-      .map(m => (Array.isArray(m.profile) ? m.profile[0] : m.profile))
+    const rows = ((data ?? []) as ProfileRow[])
       .filter((p): p is ProfileRow => Boolean(p?.username))
       .map(p => ({
         username: p.username as string,

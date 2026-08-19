@@ -64,14 +64,12 @@ export default async function AccountPage() {
 
   const supabase = await createClient();
 
-  const { data: profileRaw } = await supabase
-    .from('profiles')
-    // Pas d'`email` : la Phase 3 le révoque à `authenticated`. L'e-mail du
-    // compte connecté vient de la session auth, qui le porte déjà.
-    .select('id, username, full_name, bio, avatar_url')
-    .eq('id', user.id)
-    .single();
-  const profile = profileRaw as ProfileRow | null;
+  // Lecture de SON profil par RPC : `full_name` n'est plus lisible en colonne
+  // par `authenticated` (Lot 0-bis), et un droit de colonne révoqué fait
+  // échouer toute la requête qui le mentionne. L'e-mail du compte connecté
+  // vient de la session auth, qui le porte déjà.
+  const { data: profileRows } = await supabase.rpc('get_my_profile');
+  const profile = ((profileRows ?? []) as ProfileRow[])[0] ?? null;
 
   // amount_cents n'est pas lisible par le rôle authenticated (colonne protégée) ;
   // on lit les données personnelles de l'utilisateur via le client service-role,

@@ -351,21 +351,21 @@ export async function POST(req: NextRequest) {
           break;
         }
 
-        const { error: programWriteErr } = await supabase.from('program_members')
-          .upsert(
-            {
-              program_id: programId,
-              user_id: userId,
-              start_date: new Date().toISOString().split('T')[0],
-              amount_cents: amountCents,
-              platform_fee_cents: feeCents,
-              status: 'active',
-              stripe_checkout_session_id: session.id,
-              stripe_subscription_id: (session.subscription as string) ?? null,
-              stripe_payment_intent: (session.payment_intent as string) ?? null,
-            },
-            { onConflict: 'program_id,user_id' },
-          );
+        // Point d'entrée unique de program_members : l'écriture directe est
+        // fermée en base (Lot 0-bis). Ici c'est la porte `stripe`, réservée au
+        // backend et adossée à une référence de paiement — la signature de
+        // l'évènement a déjà été vérifiée plus haut.
+        const { error: programWriteErr } = await supabase.rpc('join_program', {
+          p_program_id: programId,
+          p_source: 'stripe',
+          p_user_id: userId,
+          p_start_date: new Date().toISOString().split('T')[0],
+          p_amount_cents: amountCents,
+          p_platform_fee_cents: feeCents,
+          p_stripe_checkout_session_id: session.id,
+          p_stripe_subscription_id: (session.subscription as string) ?? null,
+          p_stripe_payment_intent: (session.payment_intent as string) ?? null,
+        });
         if (programWriteErr) {
           console.error(`Program program_members write failed for user ${userId} on program ${programId}:`, programWriteErr.message);
           return NextResponse.json({ error: programWriteErr.message }, { status: 500 });
