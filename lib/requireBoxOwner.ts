@@ -2,12 +2,13 @@ import { NextResponse } from 'next/server';
 import { createClient, createServiceClient } from '@/lib/supabase/server';
 
 /**
- * Strict owner check: is `userId` the primary owner (boxes.owner_id) or an
- * active co-owner (box_members.role = 'owner') of `boxId`? Coaches are
- * deliberately excluded — banking and billing routes must not be reachable by
- * staff who don't own the box.
+ * Primary-owner check: is `userId` `boxes.owner_id` of `boxId`?
+ *
+ * Deliberately stricter than `isBoxOwnerAdmin`: a co-owner works in the box and
+ * reads its subscription, but only the primary owner signs the contract —
+ * checkout, cancellation, Stripe billing portal and Connect banking.
  */
-export async function isBoxOwner(
+export async function isBoxPrimaryOwner(
   supabase: ReturnType<typeof createServiceClient>,
   userId: string,
   boxId: string,
@@ -18,18 +19,8 @@ export async function isBoxOwner(
     .eq('id', boxId)
     .eq('owner_id', userId)
     .maybeSingle();
-  if (box) return true;
 
-  const { data: coOwner } = await supabase
-    .from('box_members')
-    .select('id')
-    .eq('box_id', boxId)
-    .eq('member_id', userId)
-    .eq('role', 'owner')
-    .eq('status', 'active')
-    .maybeSingle();
-
-  return !!coOwner;
+  return !!box;
 }
 
 export async function isPlatformAdmin(
@@ -50,11 +41,12 @@ type Guarded =
   | { ok: false; response: NextResponse };
 
 /**
- * Guard for the money routes (Stripe Connect onboarding, billing portal,
+ * Guard for the contract routes (Stripe Connect onboarding, billing portal,
  * subscription checkout/refresh). `/api/*` is excluded from the middleware, so
  * every one of these routes must authenticate on its own.
  *
- * 401 when there is no session, 403 when the session doesn't own `boxId`.
+ * 401 when there is no session, 403 when the session isn't the primary owner of
+ * `boxId` — a co-owner reads the subscription but never changes it.
  * Never trusts a `box_id` coming from the client without that check.
  */
 export async function requireBoxOwner(boxId: unknown): Promise<Guarded> {
@@ -76,7 +68,7 @@ export async function requireBoxOwner(boxId: unknown): Promise<Guarded> {
 
   const service = createServiceClient();
   const allowed =
-    (await isBoxOwner(service, user.id, boxId)) ||
+    (await isBoxPrimaryOwner(service, user.id, boxId)) ||
     (await isPlatformAdmin(service, user.id));
 
   if (!allowed) {
