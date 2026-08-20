@@ -25,6 +25,7 @@ prescrit **ce qu'il faut aller vérifier avant de dire qu'une chose marche**.
 | Provenance d'inscription | `UPDATE` refusé, « succès » renvoyé | zéro ligne visible : PostgREST rend 200 sans rien écrire |
 | Lot 4 — RPC de lecture staff | « l'appel anonyme est refusé », `42501` | c'était le *corps* qui refusait ; le grant était ouvert — une barrière sur deux |
 | Grants de fonction | règle écrite « `REVOKE … FROM anon` », appliquée 20 fois | `anon` hérite de `PUBLIC` : la règle prescrivait la moitié sans effet |
+| Grants — filet de CI | « R1/R2 tournent en CI, la règle est tenue » | la CI rejoue les migrations sur une base neuve : elle ne voit pas la prod |
 | OTA avant révocation | « l'app se charge, OTA constaté » | l'update n'était pas publié ; l'ancien code marchait encore, la coupe n'était pas passée |
 
 ---
@@ -297,6 +298,34 @@ exprès (règle 4).
 
 ---
 
+## 15. Un contrôle prouve l'état de la base qu'il interroge — la CI n'est pas la prod
+
+La règle 14 s'était arrêtée une étape trop tôt : R1/R2 tournaient en CI, et cette CI repart
+d'une baseline pour rejouer **les migrations du dépôt**. Elle prouve donc ce que notre SQL
+produit, et rien d'autre — ni une fonction créée depuis le SQL editor, ni une extension
+installée par la plateforme, ni un grant posé à la main. C'est la règle 10 (« mergé n'est pas
+chez l'utilisateur ») appliquée aux contrôles : **vert en CI n'est pas fermé en prod**.
+
+D'où un second contrôle côté serveur, `scripts/audit-grants-prod.mjs` (workflow
+`grants-prod.yml`, nocturne), strictement en **lecture** — donc compatible avec la règle
+« prod sans création » : R1/R2 sur la prod avec la **même** liste blanche que la CI (deux
+copies divergeraient, et la plus permissive deviendrait la vraie), plus deux assertions sur
+`pg_default_acl` — ce qui naîtra ouvert demain, pour **chaque** rôle créateur, y compris ceux
+qu'on ne peut pas modifier. Une exception y est écrite avec sa raison, et **échoue quand elle
+devient inutile** : une exception qui survit à sa cause est un trou qu'on croit surveillé.
+
+Deux exigences de forme : le contrôle **échoue le job** (un `NOTICE` dans un log que personne
+n'ouvre est l'inverse d'un contrôle), et il échoue aussi quand ses **secrets sont absents** —
+un audit sans cible ne passe pas.
+
+Et le corollaire de la règle 4 : **une révocation massive sans contrôle positif est
+indistinguable d'une panne massive.** Après la fermeture de 57 fonctions à la clé anonyme,
+c'est `peek_box_invitation` qui répond et les lectures publiques de `/box` et `/classement`
+qui aboutissent — sans elles, « tout est refusé » se lirait comme un succès alors que ce
+serait la panne du site public.
+
+---
+
 ## Check-list avant de dire « ça marche »
 
 - [ ] Les erreurs Supabase sont remontées à l'écran, pas avalées en tableau vide.
@@ -322,3 +351,8 @@ exprès (règle 4).
       quand plusieurs gardes le produisent : on nomme la barrière qui a refusé.
 - [ ] Une règle qui s'est déjà oubliée une fois est devenue un **contrôle en CI**, pas une
       ligne de plus dans ce document.
+- [ ] Un contrôle structurel qui n'existe qu'en CI est doublé d'un **audit de la prod en
+      lecture seule**, nocturne, qui échoue le job — et qui échoue aussi si sa cible n'est
+      pas configurée.
+- [ ] Toute fermeture massive porte son **contre-exemple positif** : ce qui doit rester
+      atteignable l'est encore, sinon la panne ressemble au succès.
