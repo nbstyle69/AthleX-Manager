@@ -11,7 +11,7 @@ prescrit **ce qu'il faut aller vérifier avant de dire qu'une chose marche**.
 
 ---
 
-## Les neuf occurrences, en une ligne chacune
+## Les occurrences, en une ligne chacune
 
 | Chantier | Ce qui s'affichait | Ce qui était vrai |
 |---|---|---|
@@ -23,6 +23,8 @@ prescrit **ce qu'il faut aller vérifier avant de dire qu'une chose marche**.
 | Tournois — formats | « cette box n'a droit qu'au Classique » | colonne absente de la liste de `select`, repli `?? ['simple']` |
 | Profils — fermeture de colonnes | migration « REVOKE » appliquée, catalogue à jour | le grant de **table** rendait le revoke de colonne sans effet |
 | Provenance d'inscription | `UPDATE` refusé, « succès » renvoyé | zéro ligne visible : PostgREST rend 200 sans rien écrire |
+| Lot 4 — RPC de lecture staff | « l'appel anonyme est refusé », `42501` | c'était le *corps* qui refusait ; le grant était ouvert — une barrière sur deux |
+| Grants de fonction | règle écrite « `REVOKE … FROM anon` », appliquée 20 fois | `anon` hérite de `PUBLIC` : la règle prescrivait la moitié sans effet |
 | OTA avant révocation | « l'app se charge, OTA constaté » | l'update n'était pas publié ; l'ancien code marchait encore, la coupe n'était pas passée |
 
 ---
@@ -238,6 +240,63 @@ l'appel dans les deux dépôts, pas en relisant la migration. Côté web, le pre
 
 ---
 
+## 13. Un code de retour que plusieurs gardes produisent n'est pas discriminant
+
+L'assertion du lot 4 disait « l'appel non authentifié est refusé », et elle était verte. Elle
+l'était **dans les deux états** :
+
+```
+grant ouvert   → 42501  « Authentification requise »          ← le corps refuse
+grant fermé    → 42501  « permission denied for function … »  ← le grant refuse
+```
+
+Deux barrières étaient prévues, une seule était en place, et le test ne pouvait pas le voir :
+il validait **qu'on refuse**, pas **qui refuse**. Une barrière retirée était invisible.
+
+C'est la même famille que le `?? ['simple']` (règle 1) et que le « succès à zéro ligne »
+(règle 9) : **la valeur observée est correcte, la conclusion qu'on en tire ne l'est pas.**
+
+Donc, sur toute assertion d'autorisation — et la remarque vaut autant pour un code HTTP que
+pour un SQLSTATE :
+
+- si deux chemins peuvent produire le code observé, l'assertion **nomme la barrière** — par
+  le message, ou par un effet propre à une seule d'entre elles. Côté web, un `403` rendu par
+  le middleware, par la garde `owner`-strict d'une route, ou par la RLS, sont trois faits
+  différents derrière un même chiffre ;
+- le message est un contrat de test acceptable quand il est produit par le moteur
+  (`permission denied for function`), pas quand il vient de notre propre `throw` ;
+- corollaire de conception : quand deux gardes doivent tenir, **chacune se prouve seule**.
+  Une garde qui n'est vérifiée qu'à travers l'autre peut disparaître sans qu'un test bouge.
+
+---
+
+## 14. Une règle qui s'est déjà oubliée ne se réécrit pas : elle devient un contrôle
+
+`REVOKE … FROM PUBLIC` sur une fonction était **déjà** appliqué dans 20 migrations, et la
+règle écrite existait côté serveur. Elle disait « sans `REVOKE … FROM anon`, la RPC reste
+appelable par la clé anon » — soit précisément **la moitié qui ne suffit pas** : `anon`
+hérite du grant implicite de `PUBLIC`, et le revoke nominatif ne retire pas l'héritage. La
+règle 8 avait déjà dit cela des colonnes ; la transposition aux fonctions n'avait pas été
+faite.
+
+En interrogeant le catalogue au lieu de relire le SQL, la cause s'est révélée en amont de
+l'oubli : toute fonction créée dans `public` **naît** atteignable par la clé anonyme (défaut
+câblé de PostgreSQL vers `PUBLIC`, plus un `anon=X` dans `pg_default_acl`). Et les deux ne se
+ferment pas de la même façon — seule la forme **globale** de `ALTER DEFAULT PRIVILEGES`
+annule le défaut du moteur ; la forme `IN SCHEMA` ne ferme que l'entrée de `pg_default_acl`.
+
+D'où la réponse : non pas une ligne de prose de plus, mais une **assertion structurelle** qui
+interroge `pg_proc` — `scripts/test-grants.mjs` dans le dépôt serveur, suite `grants`,
+incluse dans `all` (R1 : rien à `PUBLIC` ; R2 : `anon` limité à une liste blanche annotée ;
+R3 : une fonction neuve n'est atteignable par personne sans grant explicite).
+
+Généralisation, valable dans ce dépôt aussi : **une règle qu'on relit s'oublie, une règle que
+la CI applique ne s'oublie pas.** La deuxième occurrence d'une même famille est le signal
+qu'il faut sortir de la prose — et un contrôle ne compte que si on l'a fait échouer une fois
+exprès (règle 4).
+
+---
+
 ## Check-list avant de dire « ça marche »
 
 - [ ] Les erreurs Supabase sont remontées à l'écran, pas avalées en tableau vide.
@@ -259,3 +318,7 @@ l'appel dans les deux dépôts, pas en relisant la migration. Côté web, le pre
       au build) : un déploiement réussi peut livrer un artefact vide, applicable et inerte.
 - [ ] Toute fonction serveur neuve a **un appelant nommé dans une interface**, ou l'annotation
       de la règle 12 dans son en-tête. Et l'annotation est retirée le jour où l'écran arrive.
+- [ ] Aucune assertion d'autorisation ne repose sur le seul **code** de retour (`403`, `42501`)
+      quand plusieurs gardes le produisent : on nomme la barrière qui a refusé.
+- [ ] Une règle qui s'est déjà oubliée une fois est devenue un **contrôle en CI**, pas une
+      ligne de plus dans ce document.
