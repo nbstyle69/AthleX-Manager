@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { Users, Search, SlidersHorizontal, X, Loader2, ChevronDown, ChevronUp, Check, Trash2, CreditCard, ShieldCheck, Crown } from 'lucide-react';
 import { getMyBox } from '@/lib/getMyBox';
 import { getMemberEmails } from '@/lib/memberEmails';
+import AthleteSheet from '@/components/dashboard/AthleteSheet';
 
 const LEVELS = ['rx+', 'rx', 'scaled', 'foundations'];
 const LEVEL_LABEL: Record<string, string> = { 'rx+': 'RX+', rx: 'RX', scaled: 'SCALED', foundations: 'FOUNDATIONS' };
@@ -239,6 +240,7 @@ export default function MembersPage() {
   const [planGroupSaving, setPlanGroupSaving] = useState<string | null>(null);
   const [planSaving, setPlanSaving]  = useState<string | null>(null);
   const [showPlans,  setShowPlans]   = useState(false);
+  const [sheetMemberId, setSheetMemberId] = useState<string | null>(null);
 
   // Les listes nominatives des Statistiques pointent ici avec `?q=<pseudo>` :
   // sans pré-remplissage, un « voir la fiche » retomberait sur la liste entière.
@@ -645,7 +647,11 @@ export default function MembersPage() {
                         {m.is_banned ? 'Banni' : 'Actif'}
                       </span>
                     </td>
-                    <td className="px-5 py-4 text-right">
+                    <td className="px-5 py-4 text-right whitespace-nowrap">
+                      <button onClick={() => setSheetMemberId(m.id)}
+                        className="text-xs font-semibold text-gray-400 hover:text-white transition-colors mr-3">
+                        Fiche
+                      </button>
                       <button onClick={() => toggleBan(m)} disabled={banning === m.id}
                         className={`text-xs font-semibold transition-colors ${m.is_banned ? 'text-green-400 hover:text-green-300' : 'text-red-400 hover:text-red-300'}`}>
                         {banning === m.id ? <Loader2 size={12} className="animate-spin inline" /> : m.is_banned ? 'Débannir' : 'Bannir'}
@@ -657,6 +663,10 @@ export default function MembersPage() {
             </tbody>
           </table>
         </div>
+      )}
+
+      {sheetMemberId && (
+        <AthleteSheet memberId={sheetMemberId} onClose={() => setSheetMemberId(null)} />
       )}
     </div>
   );
