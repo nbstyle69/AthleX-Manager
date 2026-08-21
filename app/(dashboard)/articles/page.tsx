@@ -36,7 +36,7 @@ export default function ArticlesPage() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
       setUserId(user.id);
-      const box = await getMyBox(supabase, user.id);
+      const box = await getMyBox(supabase);
       if (box) setBoxId(box.id);
     })();
   }, []);

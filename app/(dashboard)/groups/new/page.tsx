@@ -27,7 +27,7 @@ export default function NewGroupPage() {
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { setError('Non authentifié'); setSaving(false); return; }
-    const box = await getMyBox(supabase, user.id);
+    const box = await getMyBox(supabase);
     if (!box) { setError('Box introuvable'); setSaving(false); return; }
     const { data: created, error: err } = await supabase
       .from('message_groups')

@@ -1,4 +1,4 @@
-import { createClient, createServiceClient, getOwnerBox } from '@/lib/supabase/server';
+import { createClient, createServiceClient, getActiveBox } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { ChevronLeft, GitBranch } from 'lucide-react';
@@ -7,7 +7,7 @@ import BracketManager from '@/components/tournaments/BracketManager';
 export default async function BracketPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const supabase = await createClient();
-  const box = await getOwnerBox(supabase);
+  const box = await getActiveBox(supabase);
   if (!box) redirect('/login');
 
   const { data: t } = await supabase

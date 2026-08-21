@@ -9,7 +9,7 @@ export async function POST(req: NextRequest) {
   const supabase = await createClient();
 
   // Cible la box active du back-office, jamais « la première ».
-  const box = await getActiveBox(supabase, user.id);
+  const box = await getActiveBox(supabase);
 
   if (!box) return NextResponse.json({ error: 'Aucune box trouvée pour ce compte' }, { status: 404 });
 

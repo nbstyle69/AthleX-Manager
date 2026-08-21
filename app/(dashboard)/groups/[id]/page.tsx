@@ -57,7 +57,7 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
     setLoading(true);
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { router.push('/login'); return; }
-    const box = await getMyBox(supabase, user.id);
+    const box = await getMyBox(supabase);
     if (!box) { router.push('/login'); return; }
 
     const [{ data: grp }, { data: boxMembers }, { data: groups }] = await Promise.all([

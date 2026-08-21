@@ -26,7 +26,7 @@ export default function EditTournamentPage() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { router.replace('/login'); return; }
 
-      const active = await getMyBox(supabase, user.id);
+      const active = await getMyBox(supabase);
       if (!active) { router.replace('/login'); return; }
       const resolvedBoxId = active.id;
 

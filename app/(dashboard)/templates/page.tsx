@@ -58,7 +58,7 @@ export default function TemplatesPage() {
   const load = useCallback(async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
-    const box = await getMyBox(supabase, user.id);
+    const box = await getMyBox(supabase);
     if (!box) { setLoading(false); return; }
     setBoxId(box.id);
     const { data } = await supabase

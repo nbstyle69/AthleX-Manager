@@ -48,7 +48,7 @@ export default function MessagesPage() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { setLoading(false); return; }
       setUserId(user.id);
-      const box = await getMyBox(supabase, user.id);
+      const box = await getMyBox(supabase);
       if (!box) { setLoading(false); return; }
       setBoxId(box.id);
       const { data: grps } = await supabase

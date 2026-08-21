@@ -205,7 +205,7 @@ export default function BoxOwnerProgramsPage() {
     if (!user) return;
     setUserId(user.id);
 
-    const active = await getMyBox(supabase, user.id);
+    const active = await getMyBox(supabase);
     if (!active) { setLoading(false); return; }
 
     const { data: box } = await supabase

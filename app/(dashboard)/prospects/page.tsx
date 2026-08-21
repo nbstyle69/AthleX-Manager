@@ -127,7 +127,7 @@ export default function ProspectsPage() {
     (async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { setLoading(false); return; }
-      const box = await getMyBox(supabase, user.id);
+      const box = await getMyBox(supabase);
       if (!box) { setLoading(false); return; }
       setBoxId(box.id);
       await load(box.id);

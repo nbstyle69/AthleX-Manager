@@ -1,4 +1,4 @@
-import { createClient, createServiceClient, getOwnerBox } from '@/lib/supabase/server';
+import { createClient, createServiceClient, getActiveBox } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { ChevronLeft, Layers } from 'lucide-react';
@@ -7,7 +7,7 @@ import DivisionsManager from '@/components/tournaments/DivisionsManager';
 export default async function DivisionsPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const supabase = await createClient();
-  const box = await getOwnerBox(supabase);
+  const box = await getActiveBox(supabase);
   if (!box) redirect('/login');
 
   const { data: t } = await supabase

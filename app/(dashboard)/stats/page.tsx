@@ -36,7 +36,7 @@ export default function BoxStatsPage() {
     setLoading(true);
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { router.push('/login'); return; }
-    const box = await getMyBox(supabase, user.id);
+    const box = await getMyBox(supabase);
     if (!box) { router.push('/login'); return; }
     setBoxId(box.id);
     // L'argent et la croissance sont réservés au gérant/co-gérant : les RPC

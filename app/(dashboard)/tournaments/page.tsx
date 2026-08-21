@@ -1,4 +1,4 @@
-﻿import { createClient, getOwnerBox } from '@/lib/supabase/server';
+﻿import { createClient, getActiveBox } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { Plus, Trophy, Users, Clock, ChevronRight, Archive } from 'lucide-react';
@@ -7,7 +7,7 @@ import TopEloCard from '@/components/stats/TopEloCard';
 
 export default async function TournamentsPage() {
   const supabase = await createClient();
-  const box = await getOwnerBox(supabase);
+  const box = await getActiveBox(supabase);
   if (!box) redirect('/login');
 
   const { data: tournaments } = await supabase
