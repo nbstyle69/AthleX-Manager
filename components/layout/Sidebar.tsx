@@ -8,6 +8,7 @@ import { createClient } from '@/lib/supabase/client';
 import { cn } from '@/lib/utils';
 import { useTheme } from '@/components/ThemeProvider';
 import BoxSwitcher, { type SwitcherBox } from '@/components/layout/BoxSwitcher';
+import { COACH_HREFS } from '@/lib/authz/coach-perimeter';
 
 type NavItem = { href: string; label: string; icon: typeof Users };
 type NavGroup = { key: string; label: string; items: NavItem[] };
@@ -61,9 +62,9 @@ const PINNED: NavItem[] = [
   { href: '/settings', label: 'Réglages', icon: Settings },
 ];
 
-// Entrées dont le serveur refuse désormais les données au coach (argent,
-// facturation, invitations nominatives) : les masquer évite un écran vide.
-const OWNER_ONLY_HREFS = ['/invitations', '/subscribers'];
+// La nav du coach est dérivée du même périmètre que la garde serveur
+// (`COACH_HREFS`) : masquer un lien n'est pas refuser l'accès, mais les deux ne
+// doivent pas pouvoir diverger.
 
 function isActive(href: string, pathname: string): boolean {
   if (href === '/') return pathname === '/';
@@ -101,7 +102,7 @@ export default function Sidebar({ box, email, unreadCount = 0, supportUnread = 0
     () => (isOwnerAdmin
       ? GROUPS
       : GROUPS
-        .map(g => ({ ...g, items: g.items.filter(i => !OWNER_ONLY_HREFS.includes(i.href)) }))
+        .map(g => ({ ...g, items: g.items.filter(i => COACH_HREFS.includes(i.href)) }))
         .filter(g => g.items.length > 0)),
     [isOwnerAdmin],
   );
@@ -223,7 +224,7 @@ export default function Sidebar({ box, email, unreadCount = 0, supportUnread = 0
 
       {/* Nav */}
       <nav className="flex-1 px-3 py-4 overflow-y-auto">
-        <div className="space-y-0.5">{navLink(DASHBOARD)}</div>
+        {isOwnerAdmin && <div className="space-y-0.5">{navLink(DASHBOARD)}</div>}
 
         {groups.map(group => {
           const open        = !collapsed[group.key];
@@ -252,7 +253,7 @@ export default function Sidebar({ box, email, unreadCount = 0, supportUnread = 0
 
       {/* Épinglés + footer */}
       <div className="px-3 pt-3 border-t border-white/[0.06] space-y-0.5">
-        {PINNED.map(navLink)}
+        {isOwnerAdmin && PINNED.map(navLink)}
         {isSupportAdmin && (
           <Link href="/support/admin" className={linkClass(pathname.startsWith('/support/admin'))}>
             <Inbox size={17} className={pathname.startsWith('/support/admin') ? 'text-white' : ''} />

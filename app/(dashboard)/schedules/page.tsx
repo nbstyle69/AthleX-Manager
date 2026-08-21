@@ -141,7 +141,7 @@ export default function SchedulesPage() {
     (async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
-      const box = await getMyBox(supabase, user.id);
+      const box = await getMyBox(supabase);
       if (box?.id) setBoxId(box.id);
     })();
   }, []);

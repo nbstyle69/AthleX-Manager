@@ -1,10 +1,10 @@
-﻿import { createClient, getOwnerBox } from '@/lib/supabase/server';
+﻿import { createClient, getActiveBox } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import TournamentForm from '@/components/tournaments/TournamentForm';
 
 export default async function NewTournamentPage() {
   const supabase = await createClient();
-  const box: any = await getOwnerBox(supabase);
+  const box: any = await getActiveBox(supabase);
   if (!box) redirect('/login');
 
   const allowedFormats: string[] = Array.isArray(box.allowed_tournament_formats) && box.allowed_tournament_formats.length > 0

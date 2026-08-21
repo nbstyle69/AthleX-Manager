@@ -1,4 +1,4 @@
-﻿import { createClient, createServiceClient, getOwnerBox } from '@/lib/supabase/server';
+﻿import { createClient, createServiceClient, getActiveBox } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { ChevronLeft, Dumbbell, Users, BarChart2, Trophy, Pencil, ClipboardCheck, GitBranch, Layers } from 'lucide-react';
@@ -11,7 +11,7 @@ import { tournamentStatusInfo } from '@/lib/utils';
 export default async function TournamentDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const supabase = await createClient();
-  const box = await getOwnerBox(supabase);
+  const box = await getActiveBox(supabase);
   if (!box) redirect('/login');
 
   const { data: t } = await supabase

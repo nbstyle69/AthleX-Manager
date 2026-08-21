@@ -1,4 +1,4 @@
-﻿import { createClient, getOwnerBox } from '@/lib/supabase/server';
+﻿import { createClient, getActiveBox } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import TournamentWODManager from '@/components/tournaments/TournamentWODManager';
@@ -7,7 +7,7 @@ import { ChevronLeft, Trophy } from 'lucide-react';
 export default async function TournamentWODsPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const supabase = await createClient();
-  const box = await getOwnerBox(supabase);
+  const box = await getActiveBox(supabase);
   if (!box) redirect('/login');
 
   const { data: tournament } = await supabase

@@ -111,7 +111,7 @@ export default function SettingsPage() {
 
       setUserId(user.id);
 
-      const active = await getMyBox(supabase, user.id);
+      const active = await getMyBox(supabase);
       if (!active) return;
 
       // Préférence absente = abonné : le récapitulatif part par défaut, une

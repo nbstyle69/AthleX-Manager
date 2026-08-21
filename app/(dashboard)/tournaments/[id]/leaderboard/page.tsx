@@ -1,4 +1,4 @@
-﻿import { createServiceClient, createClient, getOwnerBox } from '@/lib/supabase/server';
+﻿import { createServiceClient, createClient, getActiveBox } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, Trophy } from 'lucide-react';
@@ -36,7 +36,7 @@ export default async function LeaderboardPage({ params }: { params: Promise<{ id
   const { id: tournamentId } = await params;
 
   const userClient = await createClient();
-  const box = await getOwnerBox(userClient);
+  const box = await getActiveBox(userClient);
   if (!box) redirect('/login');
 
   const svc = createServiceClient();

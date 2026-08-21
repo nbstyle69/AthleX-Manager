@@ -11,7 +11,7 @@ export default async function SupportPage() {
 
   // Owner / co-owner : la box active du back-office. Coach : sa box de staff,
   // en respectant la box active quand il en encadre plusieurs.
-  const active = await getActiveBox(supabase, user.id);
+  const active = await getActiveBox(supabase);
   let boxId = active?.id ?? null;
   if (!boxId) {
     const { data: memberships } = await supabase

@@ -19,7 +19,7 @@ export default function LogoUploadWidget() {
     async function load() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
-      const active = await getMyBox(supabase, user.id);
+      const active = await getMyBox(supabase);
       if (!active) return;
       const { data } = await supabase
         .from('boxes')

@@ -1,4 +1,4 @@
-﻿import { createClient, getOwnerBox } from '@/lib/supabase/server';
+﻿import { createClient, getActiveBox } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { Plus, Users2 } from 'lucide-react';
@@ -6,7 +6,7 @@ import { formatDate } from '@/lib/utils';
 
 export default async function GroupsPage() {
   const supabase = await createClient();
-  const box = await getOwnerBox(supabase);
+  const box = await getActiveBox(supabase);
   if (!box) redirect('/login');
 
   const { data: groups } = await supabase

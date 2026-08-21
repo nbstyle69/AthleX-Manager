@@ -126,7 +126,7 @@ export default function WODsPage() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
       setUserId(user.id);
-      const box = await getMyBox(supabase, user.id);
+      const box = await getMyBox(supabase);
       if (box) {
         setBoxId(box.id);
         const { data: g } = await supabase.from('message_groups').select('id, name, color').eq('box_id', box.id).order('name');

@@ -1,4 +1,4 @@
-import { createClient, getOwnerBox } from '@/lib/supabase/server';
+import { createClient, getActiveBox } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, Users, Star, Building2, ShieldAlert, Layers } from 'lucide-react';
@@ -16,7 +16,7 @@ const LEVEL_COLORS: Record<string, { bg: string; text: string }> = {
 export default async function TournamentParticipantsPage({ params }: { params: Promise<{ id: string }> }) {
   const { id: tournamentId } = await params;
   const userClient = await createClient();
-  const box = await getOwnerBox(userClient);
+  const box = await getActiveBox(userClient);
   if (!box) redirect('/login');
 
   const [{ data: tournament }, { data: tp }] = await Promise.all([

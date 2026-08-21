@@ -1,4 +1,4 @@
-﻿import { createClient, getOwnerBox } from '@/lib/supabase/server';
+﻿import { createClient, getActiveBox } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import { cookies } from 'next/headers';
 import Link from 'next/link';
@@ -9,8 +9,11 @@ import InviteCodeWidget from '@/components/dashboard/InviteCodeWidget';
 
 export default async function DashboardPage() {
   const supabase = await createClient();
-  const box = await getOwnerBox(supabase);
+  const box = await getActiveBox(supabase);
   if (!box) redirect('/login');
+  // Le tableau de bord agrège du chiffre et du code d'invitation : il reste au
+  // gérant. Le coach entre par son périmètre, il n'y a pas de page vide à voir.
+  if (box.my_role !== 'owner') redirect('/wods');
 
   const [{ data: boxTournaments }, { data: boxGroups }, { data: { user: authUser } }] = await Promise.all([
     supabase.from('tournaments').select('id').eq('box_id', box.id),

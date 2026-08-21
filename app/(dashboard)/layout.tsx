@@ -1,11 +1,40 @@
 ﻿import { redirect } from 'next/navigation';
 import { cookies } from 'next/headers';
-import { createClient, getActiveBox, getOwnerBoxes, getBoxBillingState, getServerProfile, getServerUser } from '@/lib/supabase/server';
+import { createClient, getActiveBox, getAdminBoxes, getBoxBillingState, getServerProfile, getServerUser } from '@/lib/supabase/server';
 import Sidebar from '@/components/layout/Sidebar';
 import TrialBanner from '@/components/TrialBanner';
 import PaywallOverlay from '@/components/PaywallOverlay';
 import MultiBoxUpgradeOverlay from '@/components/MultiBoxUpgradeOverlay';
 import { getOwnerPricing } from '@/lib/owner-pricing';
+
+/**
+ * Messages non lus : mêmes règles que la tuile du dashboard (messages des
+ * autres dans les groupes de la box depuis la dernière ouverture de /messages,
+ * horodatée dans un cookie). Les groupes lus dépendent du titre : le coach ne
+ * voit que ceux dont il est membre, la RLS s'en charge.
+ */
+async function countUnreadMessages(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  boxId: string,
+  userId: string,
+): Promise<number> {
+  const { data: messageGroups } = await supabase
+    .from('message_groups')
+    .select('id')
+    .eq('box_id', boxId);
+  const groupIds = (messageGroups ?? []).map((g) => g.id);
+  if (groupIds.length === 0) return 0;
+
+  const messagesSeenAt = (await cookies()).get(`msg_seen_${boxId}`)?.value;
+  let q = supabase
+    .from('group_messages')
+    .select('id', { count: 'exact', head: true })
+    .in('group_id', groupIds)
+    .neq('sender_id', userId);
+  if (messagesSeenAt) q = q.gt('created_at', messagesSeenAt);
+  const { count } = await q;
+  return count ?? 0;
+}
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const user = await getServerUser();
@@ -19,8 +48,8 @@ export default async function DashboardLayout({ children }: { children: React.Re
     redirect('/admin');
   }
 
-  const boxes = await getOwnerBoxes(supabase, user.id);
-  const box = await getActiveBox(supabase, user.id);
+  const boxes = await getAdminBoxes(supabase);
+  const box = await getActiveBox(supabase);
   if (!box) {
     return (
       <div className="min-h-screen bg-[#0A0A0A] flex items-center justify-center">
@@ -30,6 +59,26 @@ export default async function DashboardLayout({ children }: { children: React.Re
           <p className="text-sm text-gray-400">Ce compte n&apos;est lié à aucune box. Si tu es un athlète, gère ton compte et tes abonnements ici :</p>
           <a href="/compte" className="inline-block mt-4 px-5 py-2.5 rounded-xl bg-white text-[#0A0A0A] text-sm font-bold hover:bg-gray-200 transition-colors">Mon espace athlète</a>
         </div>
+      </div>
+    );
+  }
+
+  // Coach : périmètre `CoachTabs` (Whiteboard, Horaires, Messages) et rien
+  // d'autre. La facturation de la box lui est refusée en lecture (RLS
+  // `is_box_owner_admin`), donc on ne l'interroge pas : la lire renverrait
+  // « aucun abonnement » et l'enfermerait derrière le paywall du gérant.
+  if (box.my_role === 'coach') {
+    return (
+      <div className="min-h-screen bg-[#0A0A0A] flex">
+        <Sidebar
+          box={{ name: box.name, plan: 'none' }}
+          email={user.email ?? ''}
+          unreadCount={await countUnreadMessages(supabase, box.id, user.id)}
+          boxes={boxes.map((b) => ({ id: b.id, name: b.name }))}
+          activeBoxId={box.id}
+          isOwnerAdmin={false}
+        />
+        <main className="flex-1 ml-60 min-h-screen p-8 overflow-y-auto">{children}</main>
       </div>
     );
   }
@@ -77,27 +126,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
     .eq('box_id', box.id)
     .eq('requester_unread', true);
 
-  // Messages non lus : mêmes règles que la tuile du dashboard (messages des
-  // autres dans les groupes de la box depuis la dernière ouverture de
-  // /messages, horodatée dans un cookie).
-  const { data: messageGroups } = await supabase
-    .from('message_groups')
-    .select('id')
-    .eq('box_id', box.id);
-  const groupIds = (messageGroups ?? []).map((g) => g.id);
-  const messagesSeenAt = (await cookies()).get(`msg_seen_${box.id}`)?.value;
-
-  let unreadMessages = 0;
-  if (groupIds.length) {
-    let q = supabase
-      .from('group_messages')
-      .select('id', { count: 'exact', head: true })
-      .in('group_id', groupIds)
-      .neq('sender_id', user.id);
-    if (messagesSeenAt) q = q.gt('created_at', messagesSeenAt);
-    const { count } = await q;
-    unreadMessages = count ?? 0;
-  }
+  const unreadMessages = await countUnreadMessages(supabase, box.id, user.id);
 
   // Invitations « à encaisser » : mode comptoir, paiement pas encore encaissé.
   const { count: invitationsToCollect } = await supabase
@@ -107,11 +136,6 @@ export default async function DashboardLayout({ children }: { children: React.Re
     .eq('status', 'pending')
     .eq('payment_mode', 'box')
     .eq('cash_collected', false);
-
-  // Frontière coach : l'argent, la facturation et les invitations sont réservés
-  // au gérant et au co-gérant côté serveur — la nav suit la même frontière.
-  const { data: ownerAdmin } = await supabase.rpc('is_box_owner_admin', { p_box_id: box.id });
-  const isOwnerAdmin = ownerAdmin === true;
 
   const { data: isSupportAdmin } = await supabase.rpc('is_support_admin');
   let supportAdminUnread = 0;
@@ -140,7 +164,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
         supportAdminUnread={supportAdminUnread}
         boxes={boxes.map((b) => ({ id: b.id, name: b.name }))}
         activeBoxId={box.id}
-        isOwnerAdmin={isOwnerAdmin}
+        isOwnerAdmin
       />
       <main className="flex-1 ml-60 min-h-screen p-8 overflow-y-auto">
         <TrialBanner

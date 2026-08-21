@@ -11,7 +11,7 @@ export async function GET() {
   const user = await getServerUser();
   if (!user) return NextResponse.json({ error: 'Non authentifié' }, { status: 401 });
 
-  const box = await getActiveBox(await createClient(), user.id);
+  const box = await getActiveBox(await createClient());
   if (!box) return NextResponse.json({ error: 'Aucune box trouvée pour ce compte' }, { status: 404 });
 
   const { data, error } = await createServiceClient()
@@ -25,7 +25,7 @@ export async function POST(req: NextRequest) {
   const user = await getServerUser();
   if (!user) return NextResponse.json({ error: 'Non authentifié' }, { status: 401 });
 
-  const box = await getActiveBox(await createClient(), user.id);
+  const box = await getActiveBox(await createClient());
   if (!box) return NextResponse.json({ error: 'Aucune box trouvée pour ce compte' }, { status: 404 });
 
   const body = await req.json();
