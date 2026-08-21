@@ -26,6 +26,7 @@ prescrit **ce qu'il faut aller vérifier avant de dire qu'une chose marche**.
 | Lot 4 — RPC de lecture staff | « l'appel anonyme est refusé », `42501` | c'était le *corps* qui refusait ; le grant était ouvert — une barrière sur deux |
 | Grants de fonction | règle écrite « `REVOKE … FROM anon` », appliquée 20 fois | `anon` hérite de `PUBLIC` : la règle prescrivait la moitié sans effet |
 | Grants — filet de CI | « R1/R2 tournent en CI, la règle est tenue » | la CI rejoue les migrations sur une base neuve : elle ne voit pas la prod |
+| Audit de prod — 1er run | job **rouge** (donc « une garde a sauté ») | l'audit est mort à l'import : zéro assertion exécutée, rien de constaté |
 | OTA avant révocation | « l'app se charge, OTA constaté » | l'update n'était pas publié ; l'ancien code marchait encore, la coupe n'était pas passée |
 
 ---
@@ -323,6 +324,40 @@ indistinguable d'une panne massive.** Après la fermeture de 57 fonctions à la 
 c'est `peek_box_invitation` qui répond et les lectures publiques de `/box` et `/classement`
 qui aboutissent — sans elles, « tout est refusé » se lirait comme un succès alors que ce
 serait la panne du site public.
+
+---
+
+## 16. Un rouge que deux causes produisent ne constate rien — un contrôle compte ses assertions
+
+Premier run réel de l'audit de production (dépôt serveur, workflow `grants-prod.yml`) :
+**rouge**. Mais pas parce qu'une garde avait sauté — le script est mort à l'import d'un paquet
+que le job n'installe pas, donc **avant la première assertion**.
+
+C'est la règle 13 dans une autre robe : là-bas, deux gardes rendaient le même `42501` ; ici,
+deux causes rendent le même job rouge.
+
+```
+audit qui trouve une faille        → job rouge   ← ce qu'on veut voir
+audit qui ne s'exécute pas du tout → job rouge   ← ne dit rien sur l'état de la prod
+```
+
+Tant que ces deux états se ressemblent, la lecture du rouge **dépend de quelqu'un** qui ouvre
+le log et recompte les lignes à la main.
+
+Le contrôle du contrôle, en deux couches parce qu'une seule ne couvre pas la mort au
+chargement :
+
+- **dans le script** — une attente chiffrée, **dérivée des listes** et non recopiée ; sous
+  l'attendu, l'échec porte son propre nom (« audit incomplet — 16/17 »), distinct de « une
+  assertion a échoué ». Le compte s'imprime même quand le processus meurt entre deux
+  assertions : un audit interrompu n'a pas « presque réussi » ;
+- **dans le job** — une ligne sentinelle dont **l'absence** est un échec nommé. C'est la
+  seule couche qui couvre le cas où rien du fichier ne s'exécute.
+
+Généralisation, valable pour toute suite de ce dépôt aussi : **un contrôle doit affirmer
+qu'il a tourné, pas seulement ce qu'il a trouvé.** Un compteur d'assertions attendu est à un
+audit ce que le contre-exemple positif (règle 4) est à une révocation massive : ce qui
+distingue le succès de l'absence de mesure.
 
 ---
 
