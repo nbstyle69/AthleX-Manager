@@ -411,16 +411,17 @@ function SubscribeModal({
       }
       return;
     }
-    const { data: { user } } = await supabase.auth.getUser();
-    const rows = targets.map((boxId) => ({
-      programming_id: programming.id,
-      subscriber_box_id: boxId,
-      status: 'active',
-      created_by: user?.id ?? null,
-    }));
-    const { error: err } = await supabase.from('box_programming_subscriptions').insert(rows);
+    // Le gratuit passe par la RPC : elle relit `price_cents = 0 AND billing =
+    // 'free'` dans l'offre. Un `insert` direct de `status='active'` est refusé
+    // par le serveur — c'est ce qui servait la marchandise payante sans payer.
+    for (const boxId of targets) {
+      const { error: err } = await supabase.rpc('subscribe_free_programming', {
+        p_programming_id: programming.id,
+        p_subscriber_box_id: boxId,
+      });
+      if (err) { setSaving(false); setError(err.message); return; }
+    }
     setSaving(false);
-    if (err) { setError(err.message); return; }
     onDone();
   }
 
