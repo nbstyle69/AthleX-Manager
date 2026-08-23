@@ -40,6 +40,14 @@ describe('assignation d’un programme à un membre (lot 5-C)', () => {
     expect(page).toMatch(/from\('profiles'\)[\s\S]{0,120}\.in\('id',/);
   });
 
+  it('le montant payé est lu sur la colonne qui existe', () => {
+    // `program_members` porte `amount_cents` ; `amount_paid_cents` est le nom
+    // de la vue Stripe des abonnés. Une colonne inexistante fait échouer la
+    // lecture entière, donc la modale s'ouvrait vide.
+    expect(page).toContain('amount_cents');
+    expect(page).not.toContain('amount_paid_cents');
+  });
+
   it('les candidats sont les membres actifs de la box du programme', () => {
     expect(page).toMatch(/from\('box_members'\)[\s\S]{0,220}eq\('status', 'active'\)/);
   });

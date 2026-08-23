@@ -40,7 +40,7 @@ interface ProgramMemberRow {
   status: string;
   provenance: string | null;
   purchased_at: string | null;
-  amount_paid_cents: number | null;
+  amount_cents: number | null;
 }
 
 interface ProgramAccessRow extends ProgramMemberRow {
@@ -283,7 +283,7 @@ export default function BoxOwnerProgramsPage() {
     const [inscrits, membres] = await Promise.all([
       supabase
         .from('program_members')
-        .select('id, user_id, status, provenance, purchased_at, amount_paid_cents')
+        .select('id, user_id, status, provenance, purchased_at, amount_cents')
         .eq('program_id', p.id)
         .order('purchased_at', { ascending: false }),
       supabase
@@ -1872,7 +1872,7 @@ export default function BoxOwnerProgramsPage() {
                         </p>
                         <p className="text-[11px] text-gray-500">
                           {LIBELLE_PROVENANCE[r.provenance ?? ''] ?? 'Origine inconnue'}
-                          {r.provenance === 'stripe' && r.amount_paid_cents != null && ` · ${formatPrice(r.amount_paid_cents)}`}
+                          {r.provenance === 'stripe' && r.amount_cents != null && ` · ${formatPrice(r.amount_cents)}`}
                           {r.status !== 'active' && ' · accès retiré'}
                         </p>
                       </div>
