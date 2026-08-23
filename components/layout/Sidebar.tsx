@@ -3,12 +3,13 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { Users, FolderOpen, MessageSquare, LayoutDashboard, LogOut, Dumbbell, Sun, Moon, CalendarClock, Newspaper, BarChart3, Trophy, Settings, BookOpen, CreditCard, LifeBuoy, Inbox, Store, UserPlus, MailPlus, ChevronDown } from 'lucide-react';
+import { Users, FolderOpen, MessageSquare, LayoutDashboard, LogOut, Dumbbell, Sun, Moon, CalendarClock, Newspaper, BarChart3, Trophy, Settings, BookOpen, CreditCard, LifeBuoy, Inbox, Store, UserPlus, MailPlus, ChevronDown, UserCircle } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { cn } from '@/lib/utils';
 import { useTheme } from '@/components/ThemeProvider';
 import BoxSwitcher, { type SwitcherBox } from '@/components/layout/BoxSwitcher';
 import { COACH_HREFS } from '@/lib/authz/coach-perimeter';
+import { ATHLETE_HOME } from '@/lib/authz/post-login';
 
 type NavItem = { href: string; label: string; icon: typeof Users };
 type NavGroup = { key: string; label: string; items: NavItem[] };
@@ -280,6 +281,16 @@ export default function Sidebar({ box, email, unreadCount = 0, supportUnread = 0
             {theme === 'dark' ? 'Mode clair' : 'Mode sombre'}
           </button>
         </div>
+        {/* Le back-office et l'espace athlète sont deux lieux, et un même compte
+            peut relever des deux (coach ici, membre ailleurs). Sans ce lien, il
+            faut taper l'URL pour revenir chez soi. */}
+        <Link
+          href={ATHLETE_HOME}
+          className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-sm text-gray-500 hover:text-gray-300 hover:bg-white/5 transition-all"
+        >
+          <UserCircle size={15} />
+          Mon espace athlète
+        </Link>
         <button
           onClick={handleSignOut}
           className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-sm text-gray-500 hover:text-red-400 hover:bg-red-500/10 transition-all"
