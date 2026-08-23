@@ -125,14 +125,23 @@ export async function GET(req: NextRequest) {
     }
 
     // ── Comptoir : journalisé en base depuis 20261026 ────────────────────
+    // Le journal est le grand livre unique des encaissements comptoir, y compris
+    // ceux d'un programme (`source='program'`, depuis 20261117). Ceux-là sont du
+    // chiffre d'affaires de PROGRAMME : le seau est une catégorie de recette, pas
+    // un moyen de paiement. Les laisser aussi dans `cash_cents` compterait le
+    // même euro deux fois, le total du graphe étant membership+program+cash.
     const { data: cash } = await supabase
       .from('box_cash_payments')
-      .select('amount_cents, collected_at')
+      .select('amount_cents, collected_at, source')
       .eq('box_id', boxId)
       .gte('collected_at', start.toISOString());
 
-    for (const c of (cash ?? []) as { amount_cents: number; collected_at: string }[]) {
-      add(c.collected_at.slice(0, 7), 'cash_cents', c.amount_cents);
+    for (const c of (cash ?? []) as { amount_cents: number; collected_at: string; source: string }[]) {
+      add(
+        c.collected_at.slice(0, 7),
+        c.source === 'program' ? 'program_cents' : 'cash_cents',
+        c.amount_cents,
+      );
     }
 
     return NextResponse.json({

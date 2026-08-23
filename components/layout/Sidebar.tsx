@@ -212,12 +212,18 @@ export default function Sidebar({ box, email, unreadCount = 0, supportUnread = 0
             </p>
           </div>
         </div>
-        <span
-          className="text-[10px] font-extrabold uppercase tracking-widest px-2 py-0.5 rounded-md"
-          style={{ backgroundColor: `${planColor}25`, color: planColor }}
-        >
-          {planLabel}
-        </span>
+        {/* L'état d'abonnement de la box est une information d'argent : même
+            frontière que les routes et les RPC. Le coach ne le voit pas — et il
+            ne le voyait pas juste : sa lecture de `box_subscriptions` étant
+            refusée, le badge lui affichait « Aucun plan » sur une box payée. */}
+        {isOwnerAdmin && (
+          <span
+            className="text-[10px] font-extrabold uppercase tracking-widest px-2 py-0.5 rounded-md"
+            style={{ backgroundColor: `${planColor}25`, color: planColor }}
+          >
+            {planLabel}
+          </span>
+        )}
         {boxes.length > 1 && activeBoxId && (
           <BoxSwitcher boxes={boxes} activeBoxId={activeBoxId} />
         )}
