@@ -6,6 +6,8 @@ import { useSearchParams } from 'next/navigation';
 import { Loader2, AlertCircle, ArrowLeft } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { useLanguage } from '@/components/language-provider';
+import { postLoginPath } from '@/lib/authz/post-login';
+import type { BoxRole } from '@/lib/authz/coach-perimeter';
 
 type Audience = 'athlete' | 'box';
 
@@ -68,19 +70,12 @@ export default function LoginForm({ audience }: { audience: Audience }) {
         return;
       }
 
-      // Owner (propriétaire ou co-owner) → back-office ; sinon athlète → espace compte.
-      // Pas de box active au login : on cherche seulement s'il en existe une,
-      // sans jamais supposer qu'il n'y en a qu'une (maybeSingle échoue à 2+).
-      const { data: ownedBoxes } = await supabase
-        .from('boxes').select('id').eq('owner_id', data.user.id).limit(1);
-      let isOwner = (ownedBoxes ?? []).length > 0;
-      if (!isOwner) {
-        const { data: coOwner } = await supabase
-          .from('box_members').select('id')
-          .eq('member_id', data.user.id).eq('role', 'owner').eq('status', 'active').limit(1);
-        isOwner = (coOwner ?? []).length > 0;
-      }
-      window.location.href = isOwner ? '/' : '/compte';
+      // La destination suit le titre prononcé par le serveur. Refaire « qui est
+      // staff » ici avait envoyé les coachs dans l'espace athlète : la barre
+      // latérale leur ouvrait un back-office qu'aucun lien n'atteignait.
+      const { data: boxes, error: boxesError } = await supabase.rpc('get_my_admin_boxes');
+      if (boxesError) { setError(l.serverError + boxesError.message); setLoading(false); return; }
+      window.location.href = postLoginPath((boxes ?? []) as { my_role: BoxRole }[]);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : t.funnel.common.networkError);
       setLoading(false);
