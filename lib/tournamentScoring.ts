@@ -149,6 +149,34 @@ export function formatWodScore(
   return `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`;
 }
 
+export interface MatchSide {
+  score_value: string;
+  capped?: boolean | null;
+  status: string;
+}
+
+/**
+ * Vainqueur d'un duel de bracket d'après les scores soumis, ou `null` quand le
+ * duel n'est pas décidable sans l'owner : score manquant, non validé, illisible,
+ * ou égalité stricte. Même ordre que le classement, donc que le serveur.
+ */
+export function decideMatchWinner<A, B>(
+  a: { id: A; submission: MatchSide | undefined | null },
+  b: { id: B; submission: MatchSide | undefined | null },
+  wodType: string | null | undefined,
+): A | B | null {
+  const sa = a.submission;
+  const sb = b.submission;
+  if (!sa || !sb || sa.status !== 'validated' || sb.status !== 'validated') return null;
+  const isTime = isLowerWinsType(wodType);
+  const na = normalizeWodScore(sa.score_value, sa.capped, isTime);
+  const nb = normalizeWodScore(sb.score_value, sb.capped, isTime);
+  if (na.value == null || nb.value == null) return null;
+  const cmp = compareWodScores(na, nb, isTime);
+  if (cmp === 0) return null;
+  return cmp < 0 ? a.id : b.id;
+}
+
 // Retourne les points cumulés par athlète.
 export function rankClassique(scores: RawScore[]): Record<string, number> {
   const pointsMap: Record<string, number> = {};

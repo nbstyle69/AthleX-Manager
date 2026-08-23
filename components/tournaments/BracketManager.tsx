@@ -9,23 +9,21 @@ import {
   createGrandFinalAction,
 } from '@/app/(dashboard)/tournaments/[id]/bracket/actions';
 import { formatAmrapScore, isRepsScoredType, parseMovementRow } from '@/lib/movements';
+import { decideMatchWinner, formatWodScore, isLowerWinsType } from '@/lib/tournamentScoring';
 
 /** A participant's submitted score for a match's WOD, resolved for display. */
 interface Submission { label: string; video: string | null; validated: boolean; }
 
-// Human-readable score: For Time → mm:ss, AMRAP/Max Reps → "123 reps (3 tours + 12)",
-// anything else → the raw stored value.
-function formatScoreLabel(value: string, wod: { type: string | null; reps_per_round: number | null }): string {
+// Human-readable score: temps → mm:ss (ou « CAP + n reps »), AMRAP/Max Reps →
+// "123 reps (3 tours + 12)", anything else → the raw stored value.
+function formatScoreLabel(
+  value: string,
+  capped: boolean | null,
+  wod: { type: string | null; reps_per_round: number | null },
+): string {
   const raw = String(value ?? '').trim();
   if (!raw) return '—';
-  if ((wod.type ?? '') === 'For Time') {
-    if (raw.includes(':')) return raw;
-    const secs = parseInt(raw.replace(/[^0-9]/g, ''), 10);
-    if (Number.isNaN(secs)) return raw;
-    const m = Math.floor(secs / 60);
-    const s = secs % 60;
-    return `${m}:${String(s).padStart(2, '0')}`;
-  }
+  if (isLowerWinsType(wod.type)) return formatWodScore(raw, capped, wod.type);
   if (isRepsScoredType(wod.type)) {
     const total = parseFloat(raw);
     if (!Number.isNaN(total)) return formatAmrapScore(total, wod.reps_per_round);
@@ -87,7 +85,7 @@ interface Props {
   wods: Wod[];
   /** Submitted scores per WOD then athlete — shown on cards; validated ones drive auto-decide. */
   scoresByWod?: Record<string, Record<string, {
-    value: string; tiebreak?: string | null; video: string | null;
+    value: string; capped?: boolean | null; tiebreak?: string | null; video: string | null;
     notes?: string | null; status: string; submittedAt?: string | null;
   }>>;
 }
@@ -164,32 +162,20 @@ export default function BracketManager({
     return wods.find(w => w.bracket_stage === stage);
   }
 
-  // "Temps" (For Time) → le plus petit score gagne ; sinon (AMRAP/reps/…) le plus grand.
-  function parseScoreVal(v: string | undefined | null): number | null {
-    if (v == null) return null;
-    const s = String(v).trim();
-    if (!s) return null;
-    if (s.includes(':')) {
-      const parts = s.split(':').map(x => parseFloat(x.replace(',', '.')));
-      if (parts.some(p => Number.isNaN(p))) return null;
-      return parts.reduce((acc, p) => acc * 60 + p, 0);
-    }
-    const num = parseFloat(s.replace(',', '.').replace(/[^0-9.]/g, ''));
-    return Number.isNaN(num) ? null : num;
-  }
-
   // Retourne l'athlète gagnant d'après les scores validés du WOD, ou null si indécidable
-  // (score manquant/non validé d'un côté, ou égalité → l'owner tranche manuellement).
+  // (score manquant/non validé/illisible d'un côté, ou égalité → l'owner tranche
+  // manuellement). L'ordre est celui de lib/tournamentScoring, donc celui du serveur :
+  // un cappé perd contre un finisher même si son nombre de reps est plus petit que
+  // le temps de l'autre.
   function winnerFromScores(wod: Wod, aId: string, bId: string): string | null {
     const map = scoresByWod[wod.id] ?? {};
-    const sa = map[aId];
-    const sb = map[bId];
-    const pa = sa && sa.status === 'validated' ? parseScoreVal(sa.value) : null;
-    const pb = sb && sb.status === 'validated' ? parseScoreVal(sb.value) : null;
-    if (pa == null || pb == null || pa === pb) return null;
-    const higherWins = (wod.type ?? '') !== 'For Time';
-    if (higherWins) return pa > pb ? aId : bId;
-    return pa < pb ? aId : bId;
+    const side = (id: string) => {
+      const sub = map[id];
+      return sub
+        ? { id, submission: { score_value: sub.value, capped: sub.capped ?? null, status: sub.status } }
+        : { id, submission: null };
+    };
+    return decideMatchWinner(side(aId), side(bId), wod.type);
   }
 
   // WOD assigné à un match (colonne explicite sinon la manche).
@@ -205,7 +191,11 @@ export default function BracketManager({
     if (!wod) return null;
     const sub = scoresByWod[wod.id]?.[pid];
     if (!sub) return null;
-    return { label: formatScoreLabel(sub.value, wod), video: sub.video, validated: sub.status === 'validated' };
+    return {
+      label: formatScoreLabel(sub.value, sub.capped ?? null, wod),
+      video: sub.video,
+      validated: sub.status === 'validated',
+    };
   }
 
   // Fiche de soumission complète d'un athlète pour le WOD du match (ouverte au clic sur le nom).
@@ -223,7 +213,7 @@ export default function BracketManager({
       scoring: wod?.scoring ?? null,
       movements: wod?.movements ?? null,
       hasSubmission: !!sub,
-      scoreLabel: sub && wod ? formatScoreLabel(sub.value, wod) : '—',
+      scoreLabel: sub && wod ? formatScoreLabel(sub.value, sub.capped ?? null, wod) : '—',
       rawValue: sub?.value ?? null,
       tiebreak: sub?.tiebreak ?? null,
       validated: sub?.status === 'validated',

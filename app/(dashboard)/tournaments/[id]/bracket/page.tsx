@@ -24,7 +24,7 @@ export default async function BracketPage({ params }: { params: Promise<{ id: st
        .eq('tournament_id', id),
     svc.from('tournament_wods').select('id, title, type, order_index, bracket_stage, reps_per_round, movements, description, scoring').eq('tournament_id', id).order('order_index'),
     svc.from('tournament_scores')
-       .select('athlete_id, tournament_wod_id, score_value, tiebreak_value, video_url, notes, status, submitted_at')
+       .select('athlete_id, tournament_wod_id, score_value, capped, tiebreak_value, video_url, notes, status, submitted_at')
        .eq('tournament_id', id)
        .in('status', ['pending', 'validated']),
   ]);
@@ -53,12 +53,13 @@ export default async function BracketPage({ params }: { params: Promise<{ id: st
   // Submitted scores grouped by WOD then athlete — displayed on each match card, in the
   // per-athlete submission sheet, and (validated ones) drive "auto-decide winner from score".
   const scoresByWod: Record<string, Record<string, {
-    value: string; tiebreak: string | null; video: string | null;
+    value: string; capped: boolean | null; tiebreak: string | null; video: string | null;
     notes: string | null; status: string; submittedAt: string | null;
   }>> = {};
   (scoreRows ?? []).forEach((s: any) => {
     (scoresByWod[s.tournament_wod_id] ??= {})[s.athlete_id] = {
-      value: s.score_value, tiebreak: s.tiebreak_value ?? null, video: s.video_url ?? null,
+      value: s.score_value, capped: s.capped ?? null,
+      tiebreak: s.tiebreak_value ?? null, video: s.video_url ?? null,
       notes: s.notes ?? null, status: s.status, submittedAt: s.submitted_at ?? null,
     };
   });
