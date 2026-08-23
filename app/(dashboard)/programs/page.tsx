@@ -1876,6 +1876,11 @@ export default function BoxOwnerProgramsPage() {
                           {r.status !== 'active' && ' · accès retiré'}
                         </p>
                       </div>
+                      {r.status === 'active' && r.provenance === 'stripe' && (
+                        <span className="text-[11px] text-gray-600 whitespace-nowrap">
+                          Accès payé — se retire par remboursement Stripe
+                        </span>
+                      )}
                       {r.status === 'active' && r.provenance !== 'stripe' && (
                         <button
                           onClick={() => retirerAcces(r)}
