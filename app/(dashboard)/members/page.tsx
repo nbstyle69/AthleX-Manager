@@ -277,7 +277,7 @@ export default function MembersPage() {
 
     const [{ data: membersRaw }, { data: groups }, { data: groupMemberships }, { data: plansData }, { data: planGroupData }] = await Promise.all([
       supabase.from('box_members')
-        .select('member_id, status, joined_at, plan_id, role, profile:profiles(id, username, level, elo)')
+        .select('member_id, status, joined_at, role, profile:profiles(id, username, level, elo)')
         .eq('box_id', box.id).in('status', ['active', 'banned'])
         .order('joined_at', { ascending: false }),
       supabase.from('message_groups').select('id, name, color').eq('box_id', box.id),
@@ -307,6 +307,14 @@ export default function MembersPage() {
 
     const emails = await getMemberEmails(supabase, box.id);
 
+    // `plan_id` est nominatif : il ne se lit plus sur la table (lot 6), mais par
+    // la RPC réservée au gérant et au co-gérant.
+    const { data: billingRows } = await supabase.rpc('get_box_billing', { p_box_id: box.id });
+    const planIdByMember: Record<string, string | null> = {};
+    for (const b of (billingRows ?? []) as { member_id: string | null; plan_id: string | null }[]) {
+      if (b.member_id) planIdByMember[b.member_id] = b.plan_id;
+    }
+
     const parsed: Member[] = (membersRaw ?? []).map((m: any) => {
       const p = Array.isArray(m.profile) ? m.profile[0] : m.profile;
       if (!p) return null;
@@ -317,7 +325,7 @@ export default function MembersPage() {
         // a fait pendant des mois (`p.eo`), en affichant 1000 à tout le monde.
         elo: p.elo, email: emails.get(p.id) ?? '', joined_at: m.joined_at,
         is_banned: m.status === 'banned',
-        plan_id: m.plan_id ?? null,
+        plan_id: planIdByMember[p.id] ?? null,
         role: m.role ?? 'member',
         groups: (membershipMap[p.id] ?? []).map((gid: string) => groupMap[gid]).filter(Boolean),
       };
