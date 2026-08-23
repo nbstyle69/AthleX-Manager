@@ -8,6 +8,14 @@ import { Users, Search, SlidersHorizontal, X, Loader2, ChevronDown, ChevronUp, C
 import { getMyBox } from '@/lib/getMyBox';
 import { getMemberEmails } from '@/lib/memberEmails';
 import AthleteSheet from '@/components/dashboard/AthleteSheet';
+import {
+  eloChoiceOf,
+  sortMembers,
+  sortStateForEloChoice,
+  type EloChoice,
+  type MemberSortCol,
+  type SortDir,
+} from '@/lib/memberSort';
 
 const LEVELS = ['rx+', 'rx', 'scaled', 'foundations'];
 const LEVEL_LABEL: Record<string, string> = { 'rx+': 'RX+', rx: 'RX', scaled: 'SCALED', foundations: 'FOUNDATIONS' };
@@ -251,12 +259,18 @@ export default function MembersPage() {
   );
   const [filterLevel, setFilterLevel] = useState('');
   const [filterGroup, setFilterGroup] = useState('');
-  const [eloSort,     setEloSort]     = useState<'asc' | 'desc' | ''>('');
   const [showFilters, setShowFilters] = useState(false);
 
-  type SortCol = 'username' | 'level' | 'elo' | 'plan' | 'role' | 'status' | '';
+  type SortCol = MemberSortCol;
   const [sortCol, setSortCol] = useState<SortCol>('');
-  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
+  const [sortDir, setSortDir] = useState<SortDir>('asc');
+  const eloSort = eloChoiceOf({ sortCol, sortDir });
+
+  function chooseEloSort(choice: EloChoice) {
+    const next = sortStateForEloChoice(choice);
+    setSortCol(next.sortCol);
+    setSortDir(next.sortDir);
+  }
 
   function toggleSort(col: SortCol) {
     if (sortCol === col) {
@@ -417,32 +431,12 @@ export default function MembersPage() {
     if (search)      list = list.filter(m => m.username.toLowerCase().includes(search.toLowerCase()) || m.email.toLowerCase().includes(search.toLowerCase()));
     if (filterLevel) list = list.filter(m => m.level === filterLevel);
     if (filterGroup) list = list.filter(m => m.groups.some(g => g.id === filterGroup));
-    if (eloSort === 'asc')  list = [...list].sort((a, b) => a.elo - b.elo);
-    if (eloSort === 'desc') list = [...list].sort((a, b) => b.elo - a.elo);
-
-    // Column sort (overrides eloSort if sortCol is set)
-    if (sortCol) {
-      const dir = sortDir === 'asc' ? 1 : -1;
-      const LEVEL_ORDER: Record<string, number> = { 'rx+': 4, rx: 3, scaled: 2, foundations: 1 };
-      const ROLE_ORDER: Record<string, number> = { owner: 3, coach: 2, member: 1 };
-      list = [...list].sort((a, b) => {
-        switch (sortCol) {
-          case 'username': return dir * a.username.localeCompare(b.username);
-          case 'level':    return dir * ((LEVEL_ORDER[a.level] ?? 0) - (LEVEL_ORDER[b.level] ?? 0));
-          case 'elo':      return dir * (a.elo - b.elo);
-          case 'plan': {
-            const pa = plans.find(p => p.id === a.plan_id)?.name ?? '';
-            const pb = plans.find(p => p.id === b.plan_id)?.name ?? '';
-            return dir * pa.localeCompare(pb);
-          }
-          case 'role':     return dir * ((ROLE_ORDER[a.role] ?? 0) - (ROLE_ORDER[b.role] ?? 0));
-          case 'status':   return dir * (Number(a.is_banned) - Number(b.is_banned));
-          default: return 0;
-        }
-      });
-    }
-    return list;
-  }, [members, search, filterLevel, filterGroup, eloSort, sortCol, sortDir, plans]);
+    return sortMembers(
+      list,
+      { sortCol, sortDir },
+      planId => plans.find(p => p.id === planId)?.name ?? '',
+    );
+  }, [members, search, filterLevel, filterGroup, sortCol, sortDir, plans]);
 
   const activeFilters = [filterLevel, filterGroup, eloSort].filter(Boolean).length;
 
@@ -547,8 +541,8 @@ export default function MembersPage() {
             {/* ELO sort */}
             <div className="flex items-center gap-1.5">
               <span className="text-xs text-gray-600 font-semibold">ELO :</span>
-              {([['', 'Défaut'], ['desc', '↓ Haut'], ['asc', '↑ Bas']] as [string, string][]).map(([val, label]) => (
-                <button key={val} onClick={() => setEloSort(val as any)}
+              {([['', 'Défaut'], ['desc', '↓ Haut'], ['asc', '↑ Bas']] as [EloChoice, string][]).map(([val, label]) => (
+                <button key={val} onClick={() => chooseEloSort(val)}
                   className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-colors ${eloSort === val ? 'bg-white/10 text-white' : 'text-gray-500 hover:text-gray-300 bg-white/5'}`}>
                   {label}
                 </button>
@@ -565,7 +559,7 @@ export default function MembersPage() {
             </select>
 
             {activeFilters > 0 && (
-              <button onClick={() => { setFilterLevel(''); setFilterGroup(''); setEloSort(''); }}
+              <button onClick={() => { setFilterLevel(''); setFilterGroup(''); chooseEloSort(''); }}
                 className="ml-auto text-xs text-red-400 hover:text-red-300 flex items-center gap-1">
                 <X size={11} /> Réinitialiser
               </button>
