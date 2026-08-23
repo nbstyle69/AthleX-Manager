@@ -7,7 +7,7 @@ import {
   Youtube, FileText, Pencil, Send, MessageSquare, RotateCcw,
 } from 'lucide-react';
 import { isRepsScoredType, formatAmrapScore } from '@/lib/movements';
-import { rankClassique, type RawScore } from '@/lib/tournamentScoring';
+import { rankClassique, parseScoreVal, type RawScore } from '@/lib/tournamentScoring';
 
 export interface ScoreRow {
   id: string;
@@ -55,12 +55,14 @@ export default function ScoresClient({ tournamentId, initialScores, requireVideo
   async function recalcLeaderboard() {
     const { data: allValidated } = await supabase
       .from('tournament_scores')
-      .select('athlete_id, score_value, tournament_wod_id, tw:tournament_wods(type)')
+      .select('athlete_id, score_value, capped, tiebreak_value, tournament_wod_id, tw:tournament_wods(type)')
       .eq('tournament_id', tournamentId).eq('status', 'validated');
     if (!allValidated) return;
     const rawScores: RawScore[] = allValidated.map((s: any) => ({
       athlete_id: s.athlete_id,
       score_value: s.score_value,
+      capped: s.capped ?? null,
+      tiebreak_value: s.tiebreak_value ?? null,
       tournament_wod_id: s.tournament_wod_id,
       wod_type: (Array.isArray(s.tw) ? s.tw[0] : s.tw)?.type ?? null,
     }));
@@ -89,8 +91,19 @@ export default function ScoresClient({ tournamentId, initialScores, requireVideo
   }
 
   async function saveScoreValue(scoreId: string) {
-    const newVal = editingScore[scoreId]?.trim();
-    if (!newVal) return;
+    const typed = editingScore[scoreId]?.trim();
+    if (!typed) return;
+    // score_value est canonique : secondes (For Time) ou reps. Un « 9:30 » saisi
+    // ici serait lu 9 par l'ORDER BY serveur — on le convertit avant d'écrire.
+    let newVal = typed;
+    if (typed.includes(':')) {
+      const seconds = parseScoreVal(typed);
+      if (seconds == null) {
+        alert(`Score illisible : « ${typed} ». Saisis un temps en mm:ss ou un nombre.`);
+        return;
+      }
+      newVal = String(seconds);
+    }
     setSavingScore(scoreId);
     await supabase.from('tournament_scores').update({ score_value: newVal }).eq('id', scoreId);
     setScores(prev => prev.map(s => s.id === scoreId ? { ...s, score_value: newVal } : s));
