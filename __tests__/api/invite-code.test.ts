@@ -25,20 +25,36 @@ jest.mock('@/lib/supabase/server', () => ({
   createServiceClient: jest.fn(() => ({ from: jest.fn(() => makeChain()) })),
 }));
 
+jest.mock('@/lib/isBoxOwnerAdmin', () => ({ isBoxOwnerAdmin: jest.fn() }));
+
 import { POST } from '../../app/api/box/invite-code/route';
 import { getServerUser, createClient, getActiveBox, createServiceClient } from '@/lib/supabase/server';
+import { isBoxOwnerAdmin } from '@/lib/isBoxOwnerAdmin';
 
 const mockGetServerUser    = getServerUser as jest.Mock;
 const mockCreateClient     = createClient as jest.Mock;
 const mockGetActiveBox     = getActiveBox as jest.Mock;
 const mockCreateSvcClient  = createServiceClient as jest.Mock;
+const mockIsOwnerAdmin     = isBoxOwnerAdmin as jest.Mock;
 
 function makeReq(body: any): any {
   return { json: jest.fn().mockResolvedValue(body) };
 }
 
 describe('POST /api/box/invite-code', () => {
-  beforeEach(() => jest.clearAllMocks());
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockIsOwnerAdmin.mockResolvedValue(true);
+  });
+
+  it('refuse un coach de la box active (403)', async () => {
+    mockGetServerUser.mockResolvedValueOnce({ id: 'coach-1' });
+    mockCreateClient.mockResolvedValueOnce({ from: jest.fn(() => makeChain()) });
+    mockGetActiveBox.mockResolvedValueOnce({ id: 'box-1' });
+    mockIsOwnerAdmin.mockResolvedValue(false);
+    const res = await POST(makeReq({ invite_code: 'ABCDEF' }) as any) as any;
+    expect(res._status).toBe(403);
+  });
 
   it('returns 401 when user is not authenticated', async () => {
     mockGetServerUser.mockResolvedValueOnce(null);

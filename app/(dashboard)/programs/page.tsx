@@ -11,6 +11,10 @@ import {
   CreditCard, AlertTriangle, Loader2, Ticket, Percent,
 } from 'lucide-react';
 import { formatCap, parseCap } from '@/lib/wodFields';
+import {
+  listProgramWods, createProgramWod, updateProgramWod, deleteProgramWod,
+  duplicateProgramWeek, addDays, ancreProgramme, ProgramWod,
+} from '@/lib/programContent';
 
 interface Program {
   id: string;
@@ -29,6 +33,32 @@ interface Program {
   created_at: string;
   member_count?: number;
 }
+
+interface ProgramMemberRow {
+  id: string;
+  user_id: string;
+  status: string;
+  provenance: string | null;
+  purchased_at: string | null;
+  amount_cents: number | null;
+}
+
+interface ProgramAccessRow extends ProgramMemberRow {
+  profile: { id: string; username: string | null } | null;
+}
+
+interface BoxMemberLite {
+  id: string;
+  username: string | null;
+}
+
+// La provenance est affichée telle qu'elle est stockée : un accès offert ne se
+// déguise pas en achat, et un achat ne se retire pas d'un clic.
+const LIBELLE_PROVENANCE: Record<string, string> = {
+  stripe: 'Acheté (Stripe)',
+  staff: 'Offert par la box',
+  legacy_unverified: 'Inscription héritée (origine non vérifiée)',
+};
 
 type PlanType = 'subscription' | 'drop_in' | 'pack';
 
@@ -65,18 +95,6 @@ interface PromoCode {
   created_at: string;
 }
 
-interface ProgramWOD {
-  id: string;
-  program_id: string;
-  day_number: number | null;
-  week_number: number | null;
-  title: string;
-  description: string;
-  wod_type: string | null;
-  time_cap_seconds: number | null;
-  notes: string | null;
-  sort_order: number;
-}
 
 const WOD_TYPES = [
   { value: 'for-time', label: 'For Time', color: '#EF4444' },
@@ -177,14 +195,26 @@ export default function BoxOwnerProgramsPage() {
 
   // WOD Editor state
   const [editorProgram, setEditorProgram] = useState<Program | null>(null);
-  const [wods, setWods] = useState<ProgramWOD[]>([]);
+  const [wods, setWods] = useState<ProgramWod[]>([]);
   const [wodsLoading, setWodsLoading] = useState(false);
   const [weekIdx, setWeekIdx] = useState(0);
+  // Le contenu est daté au calendrier : la grille semaine/jour est une vue,
+  // ancrée sur un lundi réel, et non un second schéma de stockage.
+  const [ancre, setAncre] = useState(() => ancreProgramme([]));
   const [showWodForm, setShowWodForm] = useState(false);
   const [editWodId, setEditWodId] = useState<string | null>(null);
   const [wodForm, setWodForm] = useState({ title: '', description: '', wod_type: 'custom', time_cap: '', notes: '' });
-  const [wodDayNumber, setWodDayNumber] = useState(1);
+  const [wodDate, setWodDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [wodSaving, setWodSaving] = useState(false);
+
+  // Accès au programme : qui l'a acheté, et à qui le gérant l'offre.
+  const [accessProgram, setAccessProgram] = useState<Program | null>(null);
+  const [accessRows, setAccessRows] = useState<ProgramAccessRow[]>([]);
+  const [accessCandidates, setAccessCandidates] = useState<BoxMemberLite[]>([]);
+  const [accessLoading, setAccessLoading] = useState(false);
+  const [accessError, setAccessError] = useState<string | null>(null);
+  const [accessBusyId, setAccessBusyId] = useState<string | null>(null);
+  const [accessPick, setAccessPick] = useState('');
 
   useEffect(() => { loadAll(); }, []);
 
@@ -236,6 +266,97 @@ export default function BoxOwnerProgramsPage() {
     await loadPlans(box.id);
     await loadPromoCodes(box.id);
     setLoading(false);
+  }
+
+  async function openAccess(p: Program) {
+    setAccessProgram(p);
+    setAccessRows([]);
+    setAccessCandidates([]);
+    setAccessError(null);
+    setAccessPick('');
+    setAccessLoading(true);
+
+    // Pas d'embed `profiles` ici : `program_members.user_id` pointe
+    // `auth.users`, pas `public.profiles` — PostgREST refuse la jointure
+    // (« Could not find a relationship … in the schema cache »). Les pseudos
+    // se lisent donc en une seconde requête.
+    const [inscrits, membres] = await Promise.all([
+      supabase
+        .from('program_members')
+        .select('id, user_id, status, provenance, purchased_at, amount_cents')
+        .eq('program_id', p.id)
+        .order('purchased_at', { ascending: false }),
+      supabase
+        .from('box_members')
+        .select('member_id, profile:profiles(id, username)')
+        .eq('box_id', p.box_id)
+        .eq('status', 'active'),
+    ]);
+
+    // Une lecture qui échoue n'est pas une liste vide : le gérant doit voir la
+    // cause, sinon « personne n'a accès » et « je n'ai pas pu lire » se
+    // ressemblent (règle 13).
+    const echec = inscrits.error?.message ?? membres.error?.message ?? null;
+    if (echec) { setAccessError(echec); setAccessLoading(false); return; }
+
+    const lignes = (inscrits.data ?? []) as unknown as ProgramMemberRow[];
+    const pseudos = new Map<string, string | null>();
+    if (lignes.length > 0) {
+      const { data: profils, error: erreurProfils } = await supabase
+        .from('profiles')
+        .select('id, username')
+        .in('id', lignes.map(l => l.user_id));
+      if (erreurProfils) { setAccessError(erreurProfils.message); setAccessLoading(false); return; }
+      for (const pr of profils ?? []) pseudos.set(pr.id, pr.username ?? null);
+    }
+
+    setAccessRows(lignes.map(l => ({
+      ...l,
+      profile: { id: l.user_id, username: pseudos.get(l.user_id) ?? null },
+    })));
+    setAccessCandidates((membres.data ?? []).map(m => {
+      const profil = Array.isArray(m.profile) ? m.profile[0] : m.profile;
+      return { id: m.member_id, username: profil?.username ?? null };
+    }));
+    setAccessLoading(false);
+  }
+
+  async function assignerAcces() {
+    if (!accessProgram || !accessPick) return;
+    setAccessBusyId(accessPick);
+    setAccessError(null);
+    // `join_program` est la seule porte d'inscription : elle vérifie côté
+    // serveur que l'appelant est gérant ou co-gérant de la box du programme —
+    // un coach est refusé là, pas seulement dans cette page.
+    const { error } = await supabase.rpc('join_program', {
+      p_program_id: accessProgram.id,
+      p_source: 'staff',
+      p_user_id: accessPick,
+    });
+    setAccessBusyId(null);
+    if (error) { setAccessError(error.message); return; }
+    await openAccess(accessProgram);
+    await loadAll();
+  }
+
+  async function retirerAcces(row: ProgramAccessRow) {
+    if (!accessProgram) return;
+    if (row.provenance === 'stripe') {
+      setAccessError('Cet accès a été payé : il se retire par un remboursement Stripe, pas ici.');
+      return;
+    }
+    setAccessBusyId(row.id);
+    setAccessError(null);
+    const { data, error } = await supabase
+      .from('program_members')
+      .update({ status: 'cancelled' })
+      .eq('id', row.id)
+      .select('id');
+    setAccessBusyId(null);
+    const fail = writeFailure(error, data);
+    if (fail) { setAccessError(fail); return; }
+    await openAccess(accessProgram);
+    await loadAll();
   }
 
   async function loadPromoCodes(id: string) {
@@ -614,96 +735,96 @@ export default function BoxOwnerProgramsPage() {
 
   async function loadWods(programId: string) {
     setWodsLoading(true);
-    const { data } = await supabase
-      .from('program_wods')
-      .select('*')
-      .eq('program_id', programId)
-      .order('day_number')
-      .order('sort_order');
-    setWods((data ?? []) as ProgramWOD[]);
+    try {
+      const list = await listProgramWods(programId);
+      setWods(list);
+      setAncre(ancreProgramme(list));
+    } catch (e) {
+      // Une lecture refusée n'est pas un programme vide : la dire.
+      alert(`Impossible de charger les séances : ${e instanceof Error ? e.message : String(e)}`);
+    }
     setWodsLoading(false);
   }
 
-  function wodsForDay(dayNum: number) {
-    return wods.filter(w => w.day_number === dayNum);
+  /** Date réelle de la case (semaine affichée, jour de la semaine). */
+  function dateDeCase(indexJour: number) {
+    return addDays(ancre, weekIdx * 7 + indexJour);
   }
 
-  function openWodCreate(dayNumber: number) {
+  function wodsForDate(date: string) {
+    return wods.filter(w => w.scheduled_date === date);
+  }
+
+  function openWodCreate(date: string) {
     setEditWodId(null);
     setWodForm({ title: '', description: '', wod_type: 'custom', time_cap: '', notes: '' });
-    setWodDayNumber(dayNumber);
+    setWodDate(date);
     setShowWodForm(true);
   }
 
-  function openWodEdit(w: ProgramWOD) {
+  function openWodEdit(w: ProgramWod) {
     setEditWodId(w.id);
     setWodForm({
       title: w.title,
-      description: w.description,
+      description: w.description ?? '',
       wod_type: w.wod_type ?? 'custom',
       time_cap: formatCap(w.time_cap_seconds),
       notes: w.notes ?? '',
     });
-    setWodDayNumber(w.day_number ?? 1);
+    setWodDate(w.scheduled_date);
     setShowWodForm(true);
   }
 
   async function saveWod() {
     if (!wodForm.title.trim() || !wodForm.description.trim() || !editorProgram) return;
     setWodSaving(true);
-    const payload: any = {
-      program_id: editorProgram.id,
-      day_number: wodDayNumber,
-      week_number: Math.ceil(wodDayNumber / 7),
+    const input = {
       title: wodForm.title.trim(),
       description: wodForm.description.trim(),
       wod_type: wodForm.wod_type,
       time_cap_seconds: parseCap(wodForm.time_cap),
       notes: wodForm.notes.trim() || null,
+      scheduled_date: wodDate,
     };
-    let res;
-    if (editWodId) {
-      res = await supabase.from('program_wods').update(payload).eq('id', editWodId).select('id');
-    } else {
-      payload.sort_order = wodsForDay(wodDayNumber).length;
-      res = await supabase.from('program_wods').insert(payload).select('id');
+    try {
+      if (editWodId) {
+        await updateProgramWod(editWodId, input);
+      } else {
+        await createProgramWod(editorProgram.id, editorProgram.box_id, {
+          ...input, sort_order: wodsForDate(wodDate).length,
+        });
+      }
+      setShowWodForm(false);
+      await loadWods(editorProgram.id);
+    } catch (e) {
+      alert(`Impossible d'enregistrer le WOD : ${e instanceof Error ? e.message : String(e)}`);
     }
     setWodSaving(false);
-    const fail = writeFailure(res.error, res.data);
-    if (fail) { alert(`Impossible d'enregistrer le WOD : ${fail}`); return; }
-    setShowWodForm(false);
-    loadWods(editorProgram.id);
   }
 
   async function deleteWod(id: string) {
     if (!confirm('Supprimer ce WOD ?') || !editorProgram) return;
-    const { data, error } = await supabase.from('program_wods').delete().eq('id', id).select('id');
-    const fail = writeFailure(error, data);
-    if (fail) { alert(`Suppression impossible : ${fail}`); return; }
-    loadWods(editorProgram.id);
+    try {
+      await deleteProgramWod(id);
+      await loadWods(editorProgram.id);
+    } catch (e) {
+      alert(`Suppression impossible : ${e instanceof Error ? e.message : String(e)}`);
+    }
   }
 
   async function duplicateWeek() {
     if (!editorProgram) return;
-    const weekStart = weekIdx * 7;
-    const currentWods = wods.filter(w => (w.day_number ?? 0) > weekStart && (w.day_number ?? 0) <= weekStart + 7);
+    const debut = addDays(ancre, weekIdx * 7);
+    const fin = addDays(debut, 7);
+    const currentWods = wods.filter(w => w.scheduled_date >= debut && w.scheduled_date < fin);
     if (currentWods.length === 0) { alert('Aucun WOD cette semaine.'); return; }
-    const inserts = currentWods.map(w => ({
-      program_id: editorProgram.id,
-      day_number: (w.day_number ?? 1) + 7,
-      week_number: (w.week_number ?? 1) + 1,
-      title: w.title,
-      description: w.description,
-      wod_type: w.wod_type,
-      time_cap_seconds: w.time_cap_seconds,
-      notes: w.notes,
-      sort_order: w.sort_order,
-    }));
-    const { data, error } = await supabase.from('program_wods').insert(inserts).select('id');
-    const fail = writeFailure(error, data);
-    if (fail) { alert(`Duplication impossible : ${fail}`); return; }
-    setWeekIdx(prev => prev + 1);
-    loadWods(editorProgram.id);
+    try {
+      await duplicateProgramWeek(editorProgram.id, editorProgram.box_id, currentWods);
+      setWeekIdx(prev => prev + 1);
+      await loadWods(editorProgram.id);
+    } catch (e) {
+      alert(`Duplication impossible : ${e instanceof Error ? e.message : String(e)}`);
+    }
   }
 
   const formatPrice = (cents: number) => {
@@ -1017,6 +1138,9 @@ export default function BoxOwnerProgramsPage() {
                 <div className="flex items-center gap-2 mt-4 pt-3 border-t border-white/[0.06]">
                   <button onClick={() => openEditor(p)} className="flex items-center gap-1.5 px-3 py-2 rounded-lg hover:bg-emerald-500/10 text-emerald-400 hover:text-emerald-300 text-xs font-semibold transition-all">
                     <FileText size={13} /> Séances
+                  </button>
+                  <button onClick={() => openAccess(p)} className="flex items-center gap-1.5 px-3 py-2 rounded-lg hover:bg-emerald-500/10 text-emerald-400 hover:text-emerald-300 text-xs font-semibold transition-all">
+                    <Users size={13} /> Accès
                   </button>
                   <button onClick={() => openEdit(p)} className="flex items-center gap-1.5 px-3 py-2 rounded-lg hover:bg-white/5 text-gray-400 hover:text-white text-xs font-semibold transition-all">
                     <Pencil size={13} /> Modifier
@@ -1532,14 +1656,14 @@ export default function BoxOwnerProgramsPage() {
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                 {Array.from({ length: 7 }, (_, i) => {
-                  const dayNum = weekIdx * 7 + i + 1;
-                  const dayWods = wodsForDay(dayNum);
+                  const date = dateDeCase(i);
+                  const dayWods = wodsForDate(date);
                   const isRest = i >= editorProgram.days_per_week;
                   return (
-                    <div key={dayNum} className={`rounded-2xl border p-4 ${isRest ? 'border-white/[0.03] bg-white/[0.01]' : 'border-white/[0.06] bg-[#111]'}`}>
+                    <div key={date} className={`rounded-2xl border p-4 ${isRest ? 'border-white/[0.03] bg-white/[0.01]' : 'border-white/[0.06] bg-[#111]'}`}>
                       <div className="flex items-center justify-between mb-3">
                         <span className={`text-xs font-bold ${isRest ? 'text-gray-600' : 'text-gray-400'}`}>
-                          {DAY_LABELS[i]} — J{dayNum}
+                          {DAY_LABELS[i]} — {date.slice(8, 10)}/{date.slice(5, 7)}
                         </span>
                         {isRest && <span className="text-[10px] text-gray-600 font-bold">REPOS</span>}
                       </div>
@@ -1576,7 +1700,7 @@ export default function BoxOwnerProgramsPage() {
 
                       {!isRest && (
                         <button
-                          onClick={() => openWodCreate(dayNum)}
+                          onClick={() => openWodCreate(date)}
                           className="w-full flex items-center justify-center gap-1.5 py-2 rounded-xl border border-dashed border-white/10 hover:border-emerald-500/50 hover:bg-emerald-500/5 text-xs font-semibold text-gray-500 hover:text-emerald-400 transition-all"
                         >
                           <Plus size={14} /> Ajouter
@@ -1597,7 +1721,7 @@ export default function BoxOwnerProgramsPage() {
           <div className="w-full max-w-lg bg-[#111] border border-white/[0.06] rounded-2xl p-6 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-5">
               <h2 className="text-lg font-black text-white">
-                {editWodId ? 'Modifier la séance' : `Nouvelle séance — J${wodDayNumber}`}
+                {editWodId ? 'Modifier la séance' : `Nouvelle séance — ${wodDate}`}
               </h2>
               <button onClick={() => setShowWodForm(false)} className="text-gray-500 hover:text-white"><X size={20} /></button>
             </div>
@@ -1649,11 +1773,11 @@ export default function BoxOwnerProgramsPage() {
                   />
                 </div>
                 <div>
-                  <label className="text-xs font-bold text-gray-400 mb-1 block">Jour</label>
+                  <label className="text-xs font-bold text-gray-400 mb-1 block">Date</label>
                   <input
-                    type="number"
+                    type="date"
                     className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white outline-none focus:border-emerald-500/50"
-                    value={wodDayNumber} onChange={e => setWodDayNumber(parseInt(e.target.value) || 1)}
+                    value={wodDate} onChange={e => setWodDate(e.target.value)}
                   />
                 </div>
               </div>
@@ -1677,6 +1801,94 @@ export default function BoxOwnerProgramsPage() {
               >
                 {wodSaving ? 'Enregistrement…' : editWodId ? 'Modifier' : 'Ajouter la séance'}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Accès au programme : acheteurs + assignation par le gérant */}
+      {accessProgram && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="w-full max-w-lg bg-[#111] border border-white/[0.06] rounded-2xl p-6 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-1">
+              <h2 className="text-lg font-black text-white">Accès au programme</h2>
+              <button onClick={() => setAccessProgram(null)} className="text-gray-500 hover:text-white"><X size={20} /></button>
+            </div>
+            <p className="text-xs text-gray-500 mb-5">{accessProgram.title}</p>
+
+            {accessError && (
+              <div className="mb-4 flex items-start gap-2 rounded-xl bg-red-500/10 border border-red-500/20 px-3 py-2.5 text-xs text-red-300">
+                <AlertTriangle size={14} className="mt-0.5 flex-shrink-0" />
+                <span>{accessError}</span>
+              </div>
+            )}
+
+            <div className="mb-6">
+              <label className="text-xs font-bold text-gray-400 mb-1 block">Offrir l&apos;accès à un membre</label>
+              <div className="flex gap-2">
+                <select
+                  className="flex-1 bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white outline-none focus:border-emerald-500/50"
+                  value={accessPick}
+                  onChange={e => setAccessPick(e.target.value)}
+                >
+                  <option value="">Choisir un membre actif…</option>
+                  {accessCandidates
+                    .filter(m => !accessRows.some(r => r.user_id === m.id && r.status === 'active'))
+                    .map(m => (
+                      <option key={m.id} value={m.id}>{m.username ?? m.id.slice(0, 8)}</option>
+                    ))}
+                </select>
+                <button
+                  onClick={assignerAcces}
+                  disabled={!accessPick || accessBusyId !== null}
+                  className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white text-sm font-bold transition-all"
+                >
+                  {accessBusyId === accessPick ? 'Attribution…' : 'Assigner'}
+                </button>
+              </div>
+              <p className="text-[11px] text-gray-600 mt-2">
+                L&apos;accès offert est gratuit et tracé comme tel : il ne remplace jamais un achat.
+                Seul un gérant ou un co-gérant peut l&apos;attribuer.
+              </p>
+            </div>
+
+            <div>
+              <p className="text-xs font-bold text-gray-400 mb-2">
+                Ont accès ({accessRows.filter(r => r.status === 'active').length})
+              </p>
+              {accessLoading ? (
+                <div className="flex items-center gap-2 text-sm text-gray-500 py-6">
+                  <Loader2 size={14} className="animate-spin" /> Chargement…
+                </div>
+              ) : accessRows.length === 0 ? (
+                <p className="text-sm text-gray-600 py-6">Personne pour l&apos;instant.</p>
+              ) : (
+                <div className="space-y-2">
+                  {accessRows.map(r => (
+                    <div key={r.id} className="flex items-center gap-3 rounded-xl bg-white/[0.03] border border-white/[0.06] px-3 py-2.5">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-white truncate">
+                          {r.profile?.username ?? r.user_id.slice(0, 8)}
+                        </p>
+                        <p className="text-[11px] text-gray-500">
+                          {LIBELLE_PROVENANCE[r.provenance ?? ''] ?? 'Origine inconnue'}
+                          {r.provenance === 'stripe' && r.amount_cents != null && ` · ${formatPrice(r.amount_cents)}`}
+                          {r.status !== 'active' && ' · accès retiré'}
+                        </p>
+                      </div>
+                      {r.status === 'active' && r.provenance !== 'stripe' && (
+                        <button
+                          onClick={() => retirerAcces(r)}
+                          disabled={accessBusyId !== null}
+                          className="px-2.5 py-1.5 rounded-lg text-[11px] font-bold text-gray-500 hover:text-red-400 hover:bg-red-500/10 disabled:opacity-50 transition-all"
+                        >
+                          {accessBusyId === r.id ? '…' : 'Retirer'}
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </div>

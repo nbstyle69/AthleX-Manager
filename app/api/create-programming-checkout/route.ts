@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { createClient, createServiceClient } from '@/lib/supabase/server';
+import { isBoxOwnerAdmin } from '@/lib/isBoxOwnerAdmin';
 import { SITE_URL } from '@/lib/site-url';
 
 function getStripe() {
@@ -33,28 +34,16 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Autorisation : le user courant doit gérer la box cliente (owner direct ou
-    // owner/coach membre actif). On ne fait jamais confiance au client.
+    // Autorisation : engager la box dans un abonnement payant est une décision
+    // d'argent — gérant ou co-gérant, jamais le coach. On ne fait jamais
+    // confiance au client.
     const authed = await createClient();
     const { data: { user } } = await authed.auth.getUser();
     if (!user) return NextResponse.json({ error: 'Non authentifié' }, { status: 401 });
 
     const supabase = createServiceClient();
 
-    const { data: ownedBox } = await supabase
-      .from('boxes').select('id').eq('id', subscriber_box_id).eq('owner_id', user.id).maybeSingle();
-    let manages = !!ownedBox;
-    if (!manages) {
-      const { data: membership } = await supabase
-        .from('box_members')
-        .select('id')
-        .eq('box_id', subscriber_box_id)
-        .eq('member_id', user.id)
-        .in('role', ['owner', 'coach'])
-        .maybeSingle();
-      manages = !!membership;
-    }
-    if (!manages) {
+    if (!(await isBoxOwnerAdmin(supabase, user.id, subscriber_box_id))) {
       return NextResponse.json({ error: 'Non autorisé pour cette box.' }, { status: 403 });
     }
 
