@@ -34,13 +34,16 @@ interface Program {
   member_count?: number;
 }
 
-interface ProgramAccessRow {
+interface ProgramMemberRow {
   id: string;
   user_id: string;
   status: string;
   provenance: string | null;
   purchased_at: string | null;
   amount_paid_cents: number | null;
+}
+
+interface ProgramAccessRow extends ProgramMemberRow {
   profile: { id: string; username: string | null } | null;
 }
 
@@ -273,10 +276,14 @@ export default function BoxOwnerProgramsPage() {
     setAccessPick('');
     setAccessLoading(true);
 
+    // Pas d'embed `profiles` ici : `program_members.user_id` pointe
+    // `auth.users`, pas `public.profiles` — PostgREST refuse la jointure
+    // (« Could not find a relationship … in the schema cache »). Les pseudos
+    // se lisent donc en une seconde requête.
     const [inscrits, membres] = await Promise.all([
       supabase
         .from('program_members')
-        .select('id, user_id, status, provenance, purchased_at, amount_paid_cents, profile:profiles(id, username)')
+        .select('id, user_id, status, provenance, purchased_at, amount_paid_cents')
         .eq('program_id', p.id)
         .order('purchased_at', { ascending: false }),
       supabase
@@ -292,11 +299,25 @@ export default function BoxOwnerProgramsPage() {
     const echec = inscrits.error?.message ?? membres.error?.message ?? null;
     if (echec) { setAccessError(echec); setAccessLoading(false); return; }
 
-    setAccessRows((inscrits.data ?? []) as unknown as ProgramAccessRow[]);
-    setAccessCandidates((membres.data ?? []).map((m: any) => ({
-      id: m.member_id,
-      username: m.profile?.username ?? null,
+    const lignes = (inscrits.data ?? []) as unknown as ProgramMemberRow[];
+    const pseudos = new Map<string, string | null>();
+    if (lignes.length > 0) {
+      const { data: profils, error: erreurProfils } = await supabase
+        .from('profiles')
+        .select('id, username')
+        .in('id', lignes.map(l => l.user_id));
+      if (erreurProfils) { setAccessError(erreurProfils.message); setAccessLoading(false); return; }
+      for (const pr of profils ?? []) pseudos.set(pr.id, pr.username ?? null);
+    }
+
+    setAccessRows(lignes.map(l => ({
+      ...l,
+      profile: { id: l.user_id, username: pseudos.get(l.user_id) ?? null },
     })));
+    setAccessCandidates((membres.data ?? []).map(m => {
+      const profil = Array.isArray(m.profile) ? m.profile[0] : m.profile;
+      return { id: m.member_id, username: profil?.username ?? null };
+    }));
     setAccessLoading(false);
   }
 

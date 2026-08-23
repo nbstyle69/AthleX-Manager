@@ -32,6 +32,14 @@ describe('assignation d’un programme à un membre (lot 5-C)', () => {
     expect(page).not.toMatch(/from\('program_members'\)[\s\S]{0,80}\.insert\(/);
   });
 
+  it('les inscrits ne sont pas lus par une jointure que PostgREST ne peut pas résoudre', () => {
+    // `program_members.user_id` a une FK vers `auth.users`, pas vers
+    // `public.profiles` : l'embed rendait « Could not find a relationship » et
+    // la modale s'ouvrait vide. Les pseudos se lisent en seconde requête.
+    expect(page).not.toMatch(/from\('program_members'\)[\s\S]{0,200}profile:profiles\(/);
+    expect(page).toMatch(/from\('profiles'\)[\s\S]{0,120}\.in\('id',/);
+  });
+
   it('les candidats sont les membres actifs de la box du programme', () => {
     expect(page).toMatch(/from\('box_members'\)[\s\S]{0,220}eq\('status', 'active'\)/);
   });
