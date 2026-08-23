@@ -361,6 +361,38 @@ distingue le succès de l'absence de mesure.
 
 ---
 
+## 17. Couleurs de domaine ≠ décoration — un nettoyage aveugle est le bug inverse
+
+La refonte monochrome sort les littéraux de couleur des écrans et les remplace par des
+jetons. Appliquée sans distinction, elle **grise du sens** : la médaille d'or et la médaille
+de bronze deviennent la même nuance, la défaite ressemble à la victoire, un avertissement ne
+s'avertit plus.
+
+```
+bg-[#C9A227] sur un cadre décoratif   → littéral à sortir     (le jeton dit la même chose)
+#C9A227 sur une médaille de podium    → couleur de DOMAINE    (le jeton dit autre chose)
+niveaux, victoire/défaite, warning,
+erreur, statut d'abonnement           → couleur de DOMAINE
+```
+
+Une couleur de domaine porte une **information que le texte ne porte pas** : c'est le test.
+Si la retirer oblige à lire une étiquette pour retrouver le sens, elle n'était pas de la
+décoration. Ces couleurs se **centralisent** (une source nommée par domaine) mais ne se
+neutralisent pas — `tailwind.config.ts` peut mapper `gold: #FFFFFF` pour la décoration sans
+que le podium devienne blanc sur blanc.
+
+Corollaire pour le contrôle qui refusera un hexadécimal en dur : sa liste d'exemption est
+nominative — fichiers de thème **et** fichiers de couleurs de domaine — et non « tout ce qui
+est rouge encore présent ». Une exemption large rendrait le contrôle indolore ; une exemption
+absente le rendrait faux, donc désactivé au premier écran légitime.
+
+Et le corollaire de mesure, appris sur les trois graphies du même noir (`bg-[#111111]`
+surchargée en mode clair, `bg-[#111]` / `[#1a1a1a]` / `[#161616]` non) : **un inventaire de
+couleurs se fait sur la valeur normalisée, pas sur la chaîne**. Sinon il compte des occurrences
+et rate des écrans.
+
+---
+
 ## Check-list avant de dire « ça marche »
 
 - [ ] Les erreurs Supabase sont remontées à l'écran, pas avalées en tableau vide.
@@ -391,3 +423,7 @@ distingue le succès de l'absence de mesure.
       pas configurée.
 - [ ] Toute fermeture massive porte son **contre-exemple positif** : ce qui doit rester
       atteignable l'est encore, sinon la panne ressemble au succès.
+- [ ] Un nettoyage monochrome laisse intactes les couleurs qui **portent l'information**
+      (podium, niveaux, victoire/défaite, warning, erreur, statut) — règle 17.
+- [ ] Un inventaire de couleurs compare des **valeurs normalisées** (`#111` = `#111111`), pas
+      des chaînes : c'est ce qui a laissé des blocs sombres en mode clair.
