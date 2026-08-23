@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { Users, FolderOpen, MessageSquare, LayoutDashboard, LogOut, Dumbbell, Sun, Moon, CalendarClock, Newspaper, BarChart3, Trophy, Settings, BookOpen, CreditCard, LifeBuoy, Inbox, Store, UserPlus, MailPlus, ChevronDown, UserCircle } from 'lucide-react';
+import { Users, FolderOpen, MessageSquare, LayoutDashboard, LogOut, Dumbbell, Sun, Moon, CalendarClock, CalendarDays, Newspaper, BarChart3, Trophy, Settings, BookOpen, CreditCard, LifeBuoy, Inbox, Store, UserPlus, MailPlus, ChevronDown, UserCircle } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { cn } from '@/lib/utils';
 import { useTheme } from '@/components/ThemeProvider';
@@ -26,6 +26,7 @@ const GROUPS: NavGroup[] = [
       { href: '/wods',        label: 'Whiteboard',    icon: Dumbbell },
       { href: '/programming', label: 'Programmation', icon: Store },
       { href: '/schedules',   label: 'Horaires',      icon: CalendarClock },
+      { href: '/templates',   label: 'Créneaux types', icon: CalendarDays },
     ],
   },
   {

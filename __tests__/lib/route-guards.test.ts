@@ -47,6 +47,16 @@ describe('gardes serveur des routes du back-office', () => {
     expect(checked).toBe(segments.length);
   });
 
+  it('le périmètre coach nomme /templates et garde /wods comme atterrissage', () => {
+    // Lot 6 : la garde de `/templates` n'est pas « retirée », la route est
+    // déclarée coach. Sans cette assertion, la suppression du layout se
+    // relirait comme un oubli à la prochaine recon.
+    expect(COACH_ROUTE_SEGMENTS).toContain('templates');
+    expect(COACH_ROUTE_SEGMENTS[0]).toBe('wods');
+    expect(segments).toContain('templates');
+    expect(fs.existsSync(path.join(DASHBOARD_DIR, 'templates', 'layout.tsx'))).toBe(false);
+  });
+
   it('les routes argent nommées par l’exigence sont gardées', () => {
     for (const money of ['programs', 'invitations', 'subscribers', 'stats']) {
       expect(segments).toContain(money);

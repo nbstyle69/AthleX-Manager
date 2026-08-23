@@ -65,6 +65,24 @@ function fmtDate(iso: string | null) {
   return new Date(iso).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' });
 }
 
+/** Une ligne de `get_box_billing` : l'abonnement nominatif, servi au gérant. */
+interface BillingRow {
+  id: string | null;
+  member_id: string | null;
+  role: string | null;
+  status: string | null;
+  joined_at: string | null;
+  plan_id: string | null;
+  subscription_status: string | null;
+  subscription_current_period_end: string | null;
+  subscription_cancel_at_period_end: boolean | null;
+  subscription_paused: boolean | null;
+  pause_resumes_at: string | null;
+  commitment_end_date: string | null;
+  amount_cents: number | null;
+  has_stripe_sub: boolean | null;
+}
+
 /** Une ligne du journal comptoir : montant réellement encaissé en espèces. */
 interface CashPaymentRow {
   id: string;
@@ -128,24 +146,32 @@ export default function SubscribersPage() {
     if (!box) { router.push('/login'); return; }
     setBoxId(box.id);
 
-    // Abonnements de salle (formules payantes)
-    const { data: memberRows } = await supabase
-      .from('box_members')
-      .select('id, member_id, joined_at, subscription_status, subscription_current_period_end, subscription_cancel_at_period_end, subscription_paused, pause_resumes_at, commitment_end_date, plan:membership_plans(name, color, price_cents), profile:profiles(username)')
-      .eq('box_id', box.id)
-      .not('subscription_status', 'is', null);
+    // Abonnements de salle (formules payantes). Les colonnes nominatives
+    // d'abonnement ne sont plus lisibles directement (lot 6) : `get_box_billing`
+    // les sert au gérant et au co-gérant, et refuse les autres en le disant.
+    const { data: billingRaw, error: billingError } = await supabase.rpc('get_box_billing', { p_box_id: box.id });
+    if (billingError) setActionError(`Abonnements indisponibles : ${billingError.message}`);
+    const memberRows = ((billingRaw ?? []) as BillingRow[]).filter((b) => b.subscription_status != null);
+
+    const planIds = Array.from(new Set(memberRows.map((b) => b.plan_id).filter((id): id is string => !!id)));
+    const planById: Record<string, { name: string | null; color: string | null; price_cents: number | null }> = {};
+    if (planIds.length > 0) {
+      const { data: planRows } = await supabase
+        .from('membership_plans').select('id, name, color, price_cents').in('id', planIds);
+      for (const p of planRows ?? []) planById[p.id] = { name: p.name, color: p.color, price_cents: p.price_cents };
+    }
+
+    const subscriberIds = Array.from(new Set(memberRows.map((b) => b.member_id).filter((id): id is string => !!id)));
+    const usernameById: Record<string, string | null> = {};
+    if (subscriberIds.length > 0) {
+      const { data: subProfiles } = await supabase
+        .from('profiles').select('id, username').in('id', subscriberIds);
+      for (const p of subProfiles ?? []) usernameById[p.id] = p.username;
+    }
 
     // `profiles.email` n'est plus lisible par `authenticated` (Phase 3) : les
     // e-mails des adhérents viennent de la RPC réservée aux admins de la box.
     const memberEmails = await getMemberEmails(supabase, box.id);
-
-    // Colonnes de facturation (amount_cents, présence Stripe) via RPC sécurisé
-    // (ces colonnes ne sont pas lisibles directement par le rôle authenticated)
-    const { data: billingRows } = await supabase.rpc('get_box_billing', { p_box_id: box.id });
-    const billingById: Record<string, { amount_cents: number | null; has_stripe_sub: boolean }> = {};
-    (billingRows ?? []).forEach((b: any) => {
-      billingById[b.id] = { amount_cents: b.amount_cents, has_stripe_sub: b.has_stripe_sub };
-    });
 
     const { data: cashRows, error: cashError } = await supabase
       .from('box_cash_payments')
@@ -192,24 +218,22 @@ export default function SubscribersPage() {
       }
     }
 
-    const memberships: Row[] = (memberRows ?? []).map((r: any, i: number) => {
-      const p = Array.isArray(r.profile) ? r.profile[0] : r.profile;
-      const plan = Array.isArray(r.plan) ? r.plan[0] : r.plan;
-      const billing = billingById[r.id];
+    const memberships: Row[] = memberRows.map((r, i) => {
+      const plan = r.plan_id ? planById[r.plan_id] : null;
       return {
         key: `m-${r.member_id}-${i}`,
         kind: 'membership' as Kind,
-        username: p?.username ?? '?',
-        email: memberEmails.get(r.member_id) ?? '',
+        username: (r.member_id ? usernameById[r.member_id] : null) ?? '?',
+        email: (r.member_id ? memberEmails.get(r.member_id) : null) ?? '',
         label: plan?.name ?? 'Formule',
         color: plan?.color ?? '#FFFFFF',
-        amountCents: billing?.amount_cents ?? plan?.price_cents ?? null,
+        amountCents: r.amount_cents ?? plan?.price_cents ?? null,
         status: r.subscription_status ?? 'active',
         periodEnd: r.subscription_current_period_end ?? null,
         cancelAtPeriodEnd: !!r.subscription_cancel_at_period_end,
         memberId: r.member_id ?? null,
         boxMemberId: r.id ?? null,
-        hasStripeSub: !!billing?.has_stripe_sub,
+        hasStripeSub: !!r.has_stripe_sub,
         paused: !!r.subscription_paused,
         pauseResumesAt: r.pause_resumes_at ?? null,
         commitmentEndDate: r.commitment_end_date ?? null,
