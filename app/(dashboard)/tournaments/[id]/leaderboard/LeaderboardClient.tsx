@@ -259,10 +259,15 @@ export default function LeaderboardClient({ general, wodRankings, divisionRankin
                     <div className="flex items-center gap-2">
                       <p className="text-sm font-bold text-white truncate">{s.username ?? '?'}</p>
                       <LevelBadge level={s.level} />
+                      {s.is_ex_aequo && (
+                        <span className="text-[9px] font-black px-1.5 py-0.5 rounded uppercase bg-white/8 text-gray-400">
+                          ex aequo
+                        </span>
+                      )}
                     </div>
                   </div>
                   <div className="text-right shrink-0">
-                    <p className="text-xl font-black text-white">{s.score_value}</p>
+                    <p className="text-xl font-black text-white">{s.score_display}</p>
                     <p className="text-[10px] text-gray-500 font-semibold">score</p>
                   </div>
                 </div>

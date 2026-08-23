@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { ArrowLeft, Trophy } from 'lucide-react';
 import LeaderboardClient from './LeaderboardClient';
 import { computeBracketStandings, type BracketMatchRow } from '@/lib/bracket';
+import { rankWodScores, formatWodScore } from '@/lib/tournamentScoring';
 
 export interface ParticipantRow {
   rank: number;
@@ -20,7 +21,15 @@ export interface WodRanking {
   wod_id: string;
   wod_title: string;
   order_index: number;
-  scores: { rank: number; athlete_id: string; score_value: string; username: string | null; level: string | null }[];
+  scores: {
+    rank: number;
+    athlete_id: string;
+    score_value: string;
+    score_display: string;
+    is_ex_aequo: boolean;
+    username: string | null;
+    level: string | null;
+  }[];
 }
 
 export interface DivisionRanking {
@@ -44,8 +53,8 @@ export default async function LeaderboardPage({ params }: { params: Promise<{ id
   const [{ data: tournament }, { data: rawParticipants }, { data: wods }, { data: validatedScores }, { data: divisionsRaw }, { data: divMembersRaw }, { data: bracketMatches }, { data: eloHistory }] = await Promise.all([
     svc.from('tournaments').select('*').eq('id', tournamentId).single(),
     svc.from('tournament_participants').select('athlete_id, score').eq('tournament_id', tournamentId).order('score', { ascending: false }),
-    svc.from('tournament_wods').select('id, title, order_index').eq('tournament_id', tournamentId).order('order_index'),
-    svc.from('tournament_scores').select('athlete_id, tournament_wod_id, score_value').eq('tournament_id', tournamentId).eq('status', 'validated'),
+    svc.from('tournament_wods').select('id, title, order_index, type').eq('tournament_id', tournamentId).order('order_index'),
+    svc.from('tournament_scores').select('athlete_id, tournament_wod_id, score_value, capped, tiebreak_value').eq('tournament_id', tournamentId).eq('status', 'validated'),
     svc.from('tournament_divisions').select('*').eq('tournament_id', tournamentId).order('level'),
     svc.from('tournament_division_members').select('division_id, athlete_id, points, rank').order('points', { ascending: false }),
     svc.from('tournament_bracket_matches').select('round, side, participant1_id, participant2_id, winner_id, loser_id, status').eq('tournament_id', tournamentId),
@@ -94,16 +103,23 @@ export default async function LeaderboardPage({ params }: { params: Promise<{ id
       }));
 
   const wodRankings: WodRanking[] = (wods ?? []).map((wod: any) => {
-    const wodScores = (validatedScores ?? [])
+    const rows = (validatedScores ?? [])
       .filter((s: any) => s.tournament_wod_id === wod.id)
-      .sort((a: any, b: any) => parseFloat(b.score_value) - parseFloat(a.score_value))
-      .map((s: any, i: number) => ({
-        rank:        i + 1,
-        athlete_id:  s.athlete_id,
-        score_value: s.score_value,
-        username:    profileMap[s.athlete_id]?.username ?? null,
-        level:       profileMap[s.athlete_id]?.level    ?? null,
+      .map((s: any) => ({
+        athlete_id:     s.athlete_id as string,
+        score_value:    s.score_value as string,
+        capped:         (s.capped ?? null) as boolean | null,
+        tiebreak_value: (s.tiebreak_value ?? null) as number | null,
       }));
+    const wodScores = rankWodScores(rows, wod.type).map((r) => ({
+      rank:          r.rank,
+      athlete_id:    r.score.athlete_id,
+      score_value:   r.score.score_value,
+      score_display: formatWodScore(r.score.score_value, r.score.capped, wod.type),
+      is_ex_aequo:   r.isExAequo,
+      username:      profileMap[r.score.athlete_id]?.username ?? null,
+      level:         profileMap[r.score.athlete_id]?.level    ?? null,
+    }));
     return { wod_id: wod.id, wod_title: wod.title, order_index: wod.order_index, scores: wodScores };
   });
 
