@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { createClient, createServiceClient, getServerUser } from '@/lib/supabase/server';
+import { createClient, getServerUser } from '@/lib/supabase/server';
 import { CreditCard, Ticket, Dumbbell, CalendarClock, Search } from 'lucide-react';
 import AccountProfileForm from './AccountProfileForm';
 import ManageSubscription from './ManageSubscription';
@@ -15,15 +15,13 @@ interface ProfileRow {
 interface PlanRef { name: string | null; color: string | null; price_cents: number | null }
 interface BoxRef { id: string; name: string | null; slug: string | null; terms_pdf_url?: string | null }
 
-interface MemberRow {
-  id: string; box_id: string; plan_id: string | null;
+interface MembershipBillingRow {
+  id: string; box_id: string; joined_at: string | null; plan_id: string | null;
   subscription_status: string | null; subscription_current_period_end: string | null;
   amount_cents: number | null;
   commitment_end_date: string | null;
   subscription_paused: boolean | null;
   pause_resumes_at: string | null;
-  plan: PlanRef | PlanRef[] | null;
-  box: BoxRef | BoxRef[] | null;
 }
 
 interface CreditRow {
@@ -71,18 +69,30 @@ export default async function AccountPage() {
   const { data: profileRows } = await supabase.rpc('get_my_profile');
   const profile = ((profileRows ?? []) as ProfileRow[])[0] ?? null;
 
-  // amount_cents n'est pas lisible par le rôle authenticated (colonne protégée) ;
-  // on lit les données personnelles de l'utilisateur via le client service-role,
-  // strictement filtrées sur member_id = user.id.
-  const svc = createServiceClient();
-  const { data: memberRaw } = await svc
-    .from('box_members')
-    .select('id, box_id, plan_id, subscription_status, subscription_current_period_end, amount_cents, commitment_end_date, subscription_paused, pause_resumes_at, plan:membership_plans(name, color, price_cents), box:boxes(id, name, slug, terms_pdf_url)')
-    .eq('member_id', user.id)
-    .not('subscription_status', 'is', null)
-    .order('joined_at', { ascending: false });
-  const members = (memberRaw ?? []) as MemberRow[];
+  // Son propre abonnement : les colonnes nominatives (plan_id, subscription_*,
+  // amount_cents) ne sont plus lisibles en direct (Lot 6). La RPC filtre sur
+  // auth.uid() côté serveur — l'appelant ne choisit pas de qui il lit.
+  const { data: billingRaw } = await supabase.rpc('get_my_membership_billing');
+  const members = ((billingRaw ?? []) as MembershipBillingRow[])
+    .filter((m) => m.subscription_status != null)
+    .sort((a, b) => (b.joined_at ?? '').localeCompare(a.joined_at ?? ''));
   const activeSub = members.find(m => ['active', 'trialing', 'past_due'].includes(m.subscription_status ?? '')) ?? members[0] ?? null;
+
+  // La formule et la box se lisent à la clé de l'adhérent : `member_see_plans`
+  // sert aussi une formule désactivée, et les colonnes publiques de `boxes`
+  // sont lisibles sans session.
+  let subPlan: PlanRef | null = null;
+  let subBox: BoxRef | null = null;
+  if (activeSub) {
+    const [planRes, boxRes] = await Promise.all([
+      activeSub.plan_id
+        ? supabase.from('membership_plans').select('name, color, price_cents').eq('id', activeSub.plan_id).maybeSingle()
+        : Promise.resolve({ data: null }),
+      supabase.from('boxes').select('id, name, slug, terms_pdf_url').eq('id', activeSub.box_id).maybeSingle(),
+    ]);
+    subPlan = (planRes.data ?? null) as PlanRef | null;
+    subBox = (boxRes.data ?? null) as BoxRef | null;
+  }
 
   const { data: creditRaw } = await supabase
     .from('member_class_credits')
@@ -111,9 +121,6 @@ export default async function AccountPage() {
       .order('price_cents', { ascending: true });
     boxPlans = ((plansRaw ?? []) as { id: string; name: string; price_cents: number }[]).map(p => ({ id: p.id, name: p.name, price_cents: p.price_cents }));
   }
-
-  const subBox = one(activeSub?.box ?? null);
-  const subPlan = one(activeSub?.plan ?? null);
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-10 space-y-8">
