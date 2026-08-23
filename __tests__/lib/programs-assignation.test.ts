@@ -1,5 +1,6 @@
 import fs from 'fs';
 import path from 'path';
+import { MENTION_ACCES_STRIPE } from '@/lib/programAccessCopy';
 
 /**
  * « Où est-ce que j'assigne une prog à un membre ? » — la question du gérant.
@@ -22,7 +23,10 @@ describe('assignation d’un programme à un membre (lot 5-C)', () => {
 
   it('la page offre une entrée d’attribution d’accès', () => {
     expect(page).toContain('assignerAcces');
-    expect(page).toContain('Offrir l&apos;accès à un membre');
+    // Le libellé a cessé d'être « Offrir » quand le comptoir est arrivé : deux
+    // gestes cohabitent sous cette étiquette, l'un gratuit, l'autre payé.
+    expect(page).toContain('Donner l&apos;accès à un membre');
+    expect(page).toContain('Assigner (offert)');
   });
 
   it('l’attribution passe par join_program, pas par un insert direct', () => {
@@ -58,11 +62,11 @@ describe('assignation d’un programme à un membre (lot 5-C)', () => {
   });
 
   it('l’absence du bouton Retirer est expliquée sur la ligne payée', () => {
-    expect(page).toContain('Accès payé — se retire par remboursement Stripe');
+    expect(MENTION_ACCES_STRIPE).toBe('Accès payé — se retire par remboursement Stripe');
     // La mention prend la place du bouton : elle est rendue là où le bouton
     // manque, pas ailleurs dans la page.
     expect(page).toMatch(
-      /r\.provenance === 'stripe'[\s\S]{0,200}Accès payé[\s\S]{0,300}r\.provenance !== 'stripe'[\s\S]{0,200}retirerAcces\(r\)/,
+      /r\.provenance === 'stripe'[\s\S]{0,200}MENTION_ACCES_STRIPE[\s\S]{0,300}r\.provenance !== 'stripe'[\s\S]{0,200}retirerAcces\(r\)/,
     );
   });
 

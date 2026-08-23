@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/client';
 import { getMyBox } from '@/lib/getMyBox';
 import { writeFailure } from '@/lib/writeGuard';
 import { SITE_URL } from '@/lib/site-url';
+import { RETRAIT_COMPTOIR_CONFIRMATION, MENTION_ACCES_STRIPE } from '@/lib/programAccessCopy';
 import {
   BookOpen, Plus, Pencil, Trash2, X, Globe, Eye, Copy, Check,
   Users, Calendar, Clock, Hash, ChevronLeft, ChevronRight, FileText,
@@ -56,9 +57,14 @@ interface BoxMemberLite {
 // déguise pas en achat, et un achat ne se retire pas d'un clic.
 const LIBELLE_PROVENANCE: Record<string, string> = {
   stripe: 'Acheté (Stripe)',
+  cash: 'Payé au comptoir',
   staff: 'Offert par la box',
   legacy_unverified: 'Inscription héritée (origine non vérifiée)',
 };
+
+// Le montant d'un encaissement comptoir vit dans le journal de caisse, jamais
+// sur la ligne d'accès : deux colonnes portant la même somme finiraient par ne
+// plus dire la même chose. Cette page n'en affiche donc pas le montant.
 
 type PlanType = 'subscription' | 'drop_in' | 'pack';
 
@@ -215,6 +221,9 @@ export default function BoxOwnerProgramsPage() {
   const [accessError, setAccessError] = useState<string | null>(null);
   const [accessBusyId, setAccessBusyId] = useState<string | null>(null);
   const [accessPick, setAccessPick] = useState('');
+  // Montant encaissé au comptoir, en euros saisis : pré-rempli depuis le prix du
+  // programme et modifiable à la baisse (remise comptoir).
+  const [accessCashAmount, setAccessCashAmount] = useState('');
 
   useEffect(() => { loadAll(); }, []);
 
@@ -274,6 +283,7 @@ export default function BoxOwnerProgramsPage() {
     setAccessCandidates([]);
     setAccessError(null);
     setAccessPick('');
+    setAccessCashAmount((p.price_cents / 100).toFixed(2));
     setAccessLoading(true);
 
     // Pas d'embed `profiles` ici : `program_members.user_id` pointe
@@ -339,12 +349,47 @@ export default function BoxOwnerProgramsPage() {
     await loadAll();
   }
 
+  // Encaissement comptoir : l'accès et la ligne du journal de caisse sont posés
+  // par la même RPC, dans la même transaction. Un accès « payé » sans trace
+  // comptable n'existe donc pas, et le montant y est borné côté serveur
+  // (0 < montant <= prix) — la borne ci-dessous n'est que la politesse de l'UI.
+  async function encaisserAcces() {
+    if (!accessProgram || !accessPick) return;
+    const cents = Math.round(Number(accessCashAmount.replace(',', '.')) * 100);
+    if (!Number.isFinite(cents) || cents <= 0) {
+      setAccessError('Montant encaissé invalide : indique une somme positive.');
+      return;
+    }
+    if (cents > accessProgram.price_cents) {
+      setAccessError(
+        `Montant encaissé supérieur au prix du programme (${formatPrice(accessProgram.price_cents)}) : `
+        + 'une remise comptoir descend, elle ne monte pas.',
+      );
+      return;
+    }
+    setAccessBusyId(accessPick);
+    setAccessError(null);
+    const { error } = await supabase.rpc('assign_program_cash', {
+      p_program_id: accessProgram.id,
+      p_user_id: accessPick,
+      p_amount_cents: cents,
+    });
+    setAccessBusyId(null);
+    if (error) { setAccessError(error.message); return; }
+    await openAccess(accessProgram);
+    await loadAll();
+  }
+
   async function retirerAcces(row: ProgramAccessRow) {
     if (!accessProgram) return;
     if (row.provenance === 'stripe') {
       setAccessError('Cet accès a été payé : il se retire par un remboursement Stripe, pas ici.');
       return;
     }
+    // Un encaissement comptoir est déjà dans la caisse et dans le journal, qui
+    // est en ajout seul : retirer l'accès ne rend pas l'argent, et l'app ne
+    // peut pas le rendre. Le gérant doit le savoir avant, pas le découvrir après.
+    if (row.provenance === 'cash' && !window.confirm(RETRAIT_COMPTOIR_CONFIRMATION)) return;
     setAccessBusyId(row.id);
     setAccessError(null);
     const { data, error } = await supabase
@@ -1824,7 +1869,7 @@ export default function BoxOwnerProgramsPage() {
             )}
 
             <div className="mb-6">
-              <label className="text-xs font-bold text-gray-400 mb-1 block">Offrir l&apos;accès à un membre</label>
+              <label className="text-xs font-bold text-gray-400 mb-1 block">Donner l&apos;accès à un membre</label>
               <div className="flex gap-2">
                 <select
                   className="flex-1 bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white outline-none focus:border-emerald-500/50"
@@ -1843,13 +1888,48 @@ export default function BoxOwnerProgramsPage() {
                   disabled={!accessPick || accessBusyId !== null}
                   className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white text-sm font-bold transition-all"
                 >
-                  {accessBusyId === accessPick ? 'Attribution…' : 'Assigner'}
+                  {accessBusyId === accessPick ? 'Attribution…' : 'Assigner (offert)'}
                 </button>
               </div>
               <p className="text-[11px] text-gray-600 mt-2">
                 L&apos;accès offert est gratuit et tracé comme tel : il ne remplace jamais un achat.
                 Seul un gérant ou un co-gérant peut l&apos;attribuer.
               </p>
+
+              {/* Encaissement au comptoir : un accès payé, dont le montant part
+                  dans le journal de caisse — le même événement comptable qu'un
+                  encaissement d'abonnement. Un programme sans prix ne s'encaisse
+                  pas : il n'y a pas de référence à laquelle borner la remise. */}
+              {accessProgram.price_cents > 0 && (
+                <div className="mt-3 pt-3 border-t border-white/[0.06]">
+                  <div className="flex gap-2 items-center">
+                    <div className="relative flex-1">
+                      <input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        max={(accessProgram.price_cents / 100).toFixed(2)}
+                        value={accessCashAmount}
+                        onChange={e => setAccessCashAmount(e.target.value)}
+                        className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 pr-8 text-sm text-white outline-none focus:border-emerald-500/50"
+                      />
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-500">€</span>
+                    </div>
+                    <button
+                      onClick={encaisserAcces}
+                      disabled={!accessPick || accessBusyId !== null}
+                      className="px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/10 disabled:opacity-50 text-white text-sm font-bold transition-all whitespace-nowrap"
+                    >
+                      {accessBusyId === accessPick ? 'Encaissement…' : 'Assigner — payé au comptoir'}
+                    </button>
+                  </div>
+                  <p className="text-[11px] text-gray-600 mt-2">
+                    Pré-rempli au prix du programme ({formatPrice(accessProgram.price_cents)}) et modifiable
+                    à la baisse. Le montant part dans le journal de caisse, qui est en ajout seul :
+                    une fois enregistré, il ne se corrige plus.
+                  </p>
+                </div>
+              )}
             </div>
 
             <div>
@@ -1878,7 +1958,7 @@ export default function BoxOwnerProgramsPage() {
                       </div>
                       {r.status === 'active' && r.provenance === 'stripe' && (
                         <span className="text-[11px] text-gray-600 whitespace-nowrap">
-                          Accès payé — se retire par remboursement Stripe
+                          {MENTION_ACCES_STRIPE}
                         </span>
                       )}
                       {r.status === 'active' && r.provenance !== 'stripe' && (

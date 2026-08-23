@@ -180,7 +180,9 @@ export default function MoneyBlock({ boxId }: { boxId: string }) {
       key: 'cash',
       label: 'Encaissé au comptoir',
       value: EUR(current.cash_collected_cents),
-      sub: `${current.cash_collected_count} encaissement(s) ce mois`,
+      // Hors comptoir de programme : celui-là est du chiffre d'affaires de
+      // programme, compté dans la carte voisine. Le total additionne les deux.
+      sub: `${current.cash_collected_count} encaissement(s) d'adhésion ce mois`,
       icon: Banknote,
       delta: <Delta current={current.cash_collected_cents} previous={previous.cash_collected_cents} suffix=" €" />,
     },
@@ -188,7 +190,7 @@ export default function MoneyBlock({ boxId }: { boxId: string }) {
       key: 'programs',
       label: 'Programmes ce mois',
       value: EUR(current.program_revenue_cents),
-      sub: `${current.program_sales_period} vente(s)`,
+      sub: `${current.program_sales_period} vente(s), Stripe et comptoir`,
       icon: PackageOpen,
       delta: <Delta current={current.program_revenue_cents} previous={previous.program_revenue_cents} suffix=" €" />,
     },
@@ -306,7 +308,7 @@ export default function MoneyBlock({ boxId }: { boxId: string }) {
           <h3 className="text-sm font-bold text-white mb-1">Encaissé sur 6 mois</h3>
           <p className="text-[11px] text-gray-500 mb-5">
             {hasStripeAccount
-              ? 'Factures Stripe, achats de programmes et encaissements comptoir journalisés.'
+              ? 'Factures Stripe, achats de programmes (Stripe et comptoir) et encaissements comptoir d\'adhésion.'
               : 'Aucun compte Stripe connecté : seuls les programmes et le comptoir apparaissent.'}
           </p>
           {history.length === 0 ? (
