@@ -57,6 +57,15 @@ describe('assignation d’un programme à un membre (lot 5-C)', () => {
     expect(page).toContain('remboursement Stripe');
   });
 
+  it('l’absence du bouton Retirer est expliquée sur la ligne payée', () => {
+    expect(page).toContain('Accès payé — se retire par remboursement Stripe');
+    // La mention prend la place du bouton : elle est rendue là où le bouton
+    // manque, pas ailleurs dans la page.
+    expect(page).toMatch(
+      /r\.provenance === 'stripe'[\s\S]{0,200}Accès payé[\s\S]{0,300}r\.provenance !== 'stripe'[\s\S]{0,200}retirerAcces\(r\)/,
+    );
+  });
+
   it('la provenance est affichée, pas devinée', () => {
     expect(page).toContain('LIBELLE_PROVENANCE');
     expect(page).toContain('legacy_unverified');
