@@ -40,6 +40,12 @@ import { BLOCKS, DAY_LABELS, WOD_TYPES, WodFormState } from '@/lib/wodFields';
 export interface WodEditorGroup { id: string; name: string; color: string }
 export interface WodEditorProgram { id: string; title: string; type: string }
 
+/** « A », « A ou B », « A, B ou C ». */
+function nomsJoints(noms: string[]): string {
+  if (noms.length <= 1) return noms[0] ?? '';
+  return `${noms.slice(0, -1).join(', ')} ou ${noms[noms.length - 1]}`;
+}
+
 interface WodEditorProps {
   mode: 'whiteboard' | 'programming';
   heading: string;
@@ -139,7 +145,7 @@ export default function WodEditor({
                   );
                 })}
               </div>
-              {form.groupIds.length > 0 && (
+              {form.groupIds.length > 0 && form.programIds.length === 0 && (
                 <p className="text-[11px] text-gray-500 mt-1.5">Seuls les membres de ces groupes verront ce WOD.</p>
               )}
             </div>
@@ -172,10 +178,21 @@ export default function WodEditor({
                   );
                 })}
               </div>
-              {form.programIds.length > 0 && (
+              {form.programIds.length > 0 && form.groupIds.length === 0 && (
                 <p className="text-[11px] text-gray-500 mt-1.5">Ce WOD apparaîtra dans le whiteboard des membres de ces programmes.</p>
               )}
             </div>
+          )}
+
+          {/* Deux restrictions posees separement se combinent en OU, jamais en ET :
+              l'enoncer evite de croire qu'on a restreint deux fois. */}
+          {isWhiteboard && form.programIds.length > 0 && form.groupIds.length > 0 && (
+            <p className="text-[11px] text-amber-400/90 bg-amber-500/5 border border-amber-500/20 rounded-xl px-3 py-2">
+              Visible par : les acheteurs de{' '}
+              {nomsJoints(programs.filter(p => form.programIds.includes(p.id)).map(p => p.title))}
+              {' '}ou les membres de{' '}
+              {nomsJoints(groups.filter(g => form.groupIds.includes(g.id)).map(g => g.name))}
+            </p>
           )}
 
           {isWhiteboard ? (

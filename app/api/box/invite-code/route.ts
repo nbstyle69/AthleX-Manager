@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient, getServerUser, getActiveBox } from '@/lib/supabase/server';
 import { createServiceClient } from '@/lib/supabase/server';
+import { isBoxOwnerAdmin } from '@/lib/isBoxOwnerAdmin';
 
 export async function POST(req: NextRequest) {
   const user = await getServerUser();
@@ -24,6 +25,12 @@ export async function POST(req: NextRequest) {
 
   // Use service client to bypass RLS
   const service = createServiceClient();
+
+  // Le code d'invitation ouvre l'entrée dans la box : gérant ou co-gérant.
+  // Depuis le lot 5-B, `getActiveBox` rend aussi la box d'un coach.
+  if (!(await isBoxOwnerAdmin(service, user.id, box.id))) {
+    return NextResponse.json({ error: 'Non autorisé pour cette box.' }, { status: 403 });
+  }
 
   // Check uniqueness — reject if another box already uses this code
   const { data: existing } = await service
