@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { notFound } from 'next/navigation';
+import { rowOrNullOrThrow, rowsOrThrow } from '@/lib/publicRead';
 import {
   BoxPublicView,
   type PublicBox,
@@ -46,7 +47,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 export default async function BoxPublicPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
 
-  const { data: box } = await supabase
+  const boxRes = await supabase
     .from('boxes')
     .select(
       'id, name, slug, description, tagline, logo_url, cover_url, address, city, phone, contact_email, website_url, instagram_url, google_maps_url, latitude, longitude, sport_type, services, opening_hours, founded_at, member_count, terms_pdf_url',
@@ -55,33 +56,43 @@ export default async function BoxPublicPage({ params }: { params: Promise<{ slug
     .eq('is_active', true)
     .single();
 
-  if (!box) notFound();
+  const row = rowOrNullOrThrow<BoxRow>('boxes', boxRes);
+  if (!row) notFound();
 
-  const row = box as unknown as BoxRow;
-
-  const { count: memberCount } = await supabase
+  const membersRes = await supabase
     .from('box_members')
     .select('id', { count: 'exact', head: true })
     .eq('box_id', row.id)
     .eq('status', 'active');
+  if (membersRes.error) {
+    throw new Error(
+      `Lecture publique refusée (box_members) : ${membersRes.error.message}`,
+    );
+  }
+  const memberCount = membersRes.count;
 
-  const { data: programsRaw } = await supabase
+  // Tri sur `title` et non `created_at` : `anon` n'a le droit de lire aucune des
+  // colonnes internes de `programs` (dont `created_at`), et PostgREST refuse la
+  // requête ENTIÈRE quand l'ORDER BY porte sur une colonne fermée — 42501, zéro
+  // ligne, aucune offre à l'écran. Un tri se fait sur ce que le public peut lire.
+  const programsRes = await supabase
     .from('programs')
     .select('id, title, description, price_cents, type, duration_weeks, days_per_week, image_url')
     .eq('box_id', row.id)
     .eq('is_active', true)
-    .order('created_at', { ascending: false });
+    .order('title', { ascending: true });
+  const programs = rowsOrThrow<PublicProgram>('programs', programsRes);
 
   // Only paid formulas are shown publicly.
-  const { data: plansRaw } = await supabase
+  const plansRes = await supabase
     .from('membership_plans')
     .select('id, name, description, price_cents, max_sessions_per_week, color, plan_type, credits, validity_days, commitment_months, terms')
     .eq('box_id', row.id)
     .eq('is_active', true)
     .gt('price_cents', 0)
     .order('price_cents', { ascending: true });
+  const allPlans = rowsOrThrow<PublicPlan>('membership_plans', plansRes);
 
-  const allPlans = (plansRaw ?? []) as unknown as PublicPlan[];
   const plans = allPlans.filter((pl) => (pl.plan_type ?? 'subscription') === 'subscription');
   const creditOffers = allPlans.filter((pl) => pl.plan_type === 'drop_in' || pl.plan_type === 'pack');
 
@@ -123,7 +134,7 @@ export default async function BoxPublicPage({ params }: { params: Promise<{ slug
       foundedYear={row.founded_at ? new Date(row.founded_at).getFullYear() : null}
       plans={plans}
       creditOffers={creditOffers}
-      programs={(programsRaw ?? []) as unknown as PublicProgram[]}
+      programs={programs}
       mapQuery={mapQuery}
       mapsLink={mapsLink}
     />

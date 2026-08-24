@@ -2,6 +2,7 @@ import { createServiceClient } from '@/lib/supabase/server';
 import { LandingHeader } from '@/components/landing/header';
 import { LandingFooter } from '@/components/landing/footer';
 import BoxDirectory, { type DirectoryBox } from './BoxDirectory';
+import { rowsOrThrow } from '@/lib/publicRead';
 
 export const revalidate = 300;
 
@@ -16,7 +17,7 @@ const ACTIVE_SUB_STATUSES = ['active', 'trialing', 'past_due'];
 export default async function BoxDirectoryPage() {
   const supabase = createServiceClient();
 
-  const { data: boxesRaw } = await supabase
+  const boxesRes = await supabase
     .from('boxes')
     .select('id, name, slug, tagline, logo_url, cover_url, city, sport_type, member_count, stripe_onboarding_complete')
     .eq('is_active', true)
@@ -24,7 +25,7 @@ export default async function BoxDirectoryPage() {
     .not('slug', 'is', null)
     .order('member_count', { ascending: false, nullsFirst: false });
 
-  const boxes = (boxesRaw ?? []) as Array<{
+  const boxes = rowsOrThrow<{
     id: string;
     name: string;
     slug: string;
@@ -35,17 +36,19 @@ export default async function BoxDirectoryPage() {
     sport_type: string[] | null;
     member_count: number | null;
     stripe_onboarding_complete: boolean | null;
-  }>;
+  }>('boxes', boxesRes);
 
   // A box is publicly listed if it can take payments (Stripe onboarded)
   // OR is a live AthleX customer (active/trialing subscription).
-  const { data: subsRaw } = await supabase
+  const subsRes = await supabase
     .from('box_subscriptions')
     .select('box_id, status')
     .in('status', ACTIVE_SUB_STATUSES);
 
   const subscribedBoxIds = new Set(
-    ((subsRaw ?? []) as Array<{ box_id: string }>).map((s) => s.box_id),
+    rowsOrThrow<{ box_id: string }>('box_subscriptions', subsRes).map(
+      (s) => s.box_id,
+    ),
   );
 
   const eligible: DirectoryBox[] = boxes

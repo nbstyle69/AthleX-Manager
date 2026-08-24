@@ -19,6 +19,15 @@ import {
 const ROOT = process.cwd();
 const read = (...p: string[]) => fs.readFileSync(path.join(ROOT, ...p), 'utf8');
 
+/** Tous les fichiers source sous `dir`, récursivement. */
+function walk(dir: string): string[] {
+  return fs.readdirSync(dir, { withFileTypes: true }).flatMap((e) => {
+    const full = path.join(dir, e.name);
+    if (e.isDirectory()) return walk(full);
+    return /\.tsx?$/.test(e.name) ? [full] : [];
+  });
+}
+
 const SIDEBAR = read('components', 'layout', 'Sidebar.tsx');
 
 /** Libellés déclarés dans la barre latérale, lus depuis le disque. */
@@ -102,6 +111,23 @@ describe('phrase de refus coach', () => {
     const forbidden = read('app', 'forbidden.tsx');
     expect(forbidden).toContain('coachPerimeterSentence()');
     expect(forbidden).not.toMatch(/aux Horaires et aux Messages/);
+  });
+
+  it('la page /templates porte le nom que la barre latérale annonce', () => {
+    // Deux noms pour la même page (« Créneaux types » dans la barre, « Modèle
+    // de semaine » en titre) : le gérant cherche une rubrique qui n'existe pas.
+    const page = read('app', '(dashboard)', 'templates', 'page.tsx');
+    expect(page).toContain(`>${COACH_ROUTE_LABELS.templates}</h1>`);
+  });
+
+  it('aucune surface du back-office n’appelle encore la grille « Modèle de semaine »', () => {
+    // Énumération depuis le disque : le titre n'était qu'une des deux surfaces
+    // (le bouton d'Horaires qui ouvre la même grille portait l'autre nom).
+    const fautifs = walk(path.join(ROOT, 'app'))
+      .concat(walk(path.join(ROOT, 'components')))
+      .filter((f) => fs.readFileSync(f, 'utf8').includes('Modèle de semaine'))
+      .map((f) => path.relative(ROOT, f));
+    expect(fautifs).toEqual([]);
   });
 
   it('la barre latérale et la phrase de refus lisent les mêmes libellés', () => {

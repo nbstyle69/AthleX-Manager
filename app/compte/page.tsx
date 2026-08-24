@@ -4,6 +4,7 @@ import { createClient, getServerUser } from '@/lib/supabase/server';
 import { CreditCard, Ticket, Dumbbell, CalendarClock, Search } from 'lucide-react';
 import AccountProfileForm from './AccountProfileForm';
 import ManageSubscription from './ManageSubscription';
+import { selectMembership, type MembershipBillingRow } from '@/lib/compte/membership';
 
 export const dynamic = 'force-dynamic';
 
@@ -14,15 +15,6 @@ interface ProfileRow {
 
 interface PlanRef { name: string | null; color: string | null; price_cents: number | null }
 interface BoxRef { id: string; name: string | null; slug: string | null; terms_pdf_url?: string | null }
-
-interface MembershipBillingRow {
-  id: string; box_id: string; joined_at: string | null; plan_id: string | null;
-  subscription_status: string | null; subscription_current_period_end: string | null;
-  amount_cents: number | null;
-  commitment_end_date: string | null;
-  subscription_paused: boolean | null;
-  pause_resumes_at: string | null;
-}
 
 interface CreditRow {
   id: string; credits_total: number; credits_used: number;
@@ -73,10 +65,9 @@ export default async function AccountPage() {
   // amount_cents) ne sont plus lisibles en direct (Lot 6). La RPC filtre sur
   // auth.uid() côté serveur — l'appelant ne choisit pas de qui il lit.
   const { data: billingRaw } = await supabase.rpc('get_my_membership_billing');
-  const members = ((billingRaw ?? []) as MembershipBillingRow[])
-    .filter((m) => m.subscription_status != null)
-    .sort((a, b) => (b.joined_at ?? '').localeCompare(a.joined_at ?? ''));
-  const activeSub = members.find(m => ['active', 'trialing', 'past_due'].includes(m.subscription_status ?? '')) ?? members[0] ?? null;
+  const { membership: activeSub, stripeBacked, canManage } = selectMembership(
+    (billingRaw ?? []) as MembershipBillingRow[],
+  );
 
   // La formule et la box se lisent à la clé de l'adhérent : `member_see_plans`
   // sert aussi une formule désactivée, et les colonnes publiques de `boxes`
@@ -156,21 +147,27 @@ export default async function AccountPage() {
               </div>
               <div className="text-right">
                 <span className={`text-[11px] px-2 py-0.5 rounded-md font-bold ${
-                  ['active', 'trialing'].includes(activeSub.subscription_status ?? '') ? 'bg-emerald-500/10 text-emerald-400'
+                  !stripeBacked ? (activeSub.status === 'active' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-gray-500/10 text-gray-400')
+                  : ['active', 'trialing'].includes(activeSub.subscription_status ?? '') ? 'bg-emerald-500/10 text-emerald-400'
                   : activeSub.subscription_status === 'past_due' ? 'bg-amber-500/10 text-amber-400'
                   : 'bg-red-500/10 text-red-400'}`}>
-                  {SUB_STATUS_LABEL[activeSub.subscription_status ?? ''] ?? activeSub.subscription_status}
+                  {stripeBacked
+                    ? (SUB_STATUS_LABEL[activeSub.subscription_status ?? ''] ?? activeSub.subscription_status)
+                    : (activeSub.status === 'active' ? 'Adhésion active' : 'Adhésion inactive')}
                 </span>
                 <p className="text-sm font-black text-white mt-1">{fmtPrice(activeSub.amount_cents ?? subPlan?.price_cents)}<span className="text-[10px] text-gray-500"> /mois</span></p>
               </div>
             </div>
             <div className="flex items-center gap-1.5 text-xs text-gray-500">
-              <CalendarClock size={13} /> Prochaine échéance : {fmtDate(activeSub.subscription_current_period_end)}
+              <CalendarClock size={13} />{' '}
+              {stripeBacked
+                ? <>Prochaine échéance : {fmtDate(activeSub.subscription_current_period_end)}</>
+                : <>Sans abonnement en ligne — formule attribuée ou payée à la box{activeSub.joined_at ? ` depuis le ${fmtDate(activeSub.joined_at)}` : ''}</>}
             </div>
             <ManageSubscription
               currentPlanId={activeSub.plan_id}
               plans={boxPlans}
-              canManage={['active', 'trialing', 'past_due'].includes(activeSub.subscription_status ?? '')}
+              canManage={canManage}
               boxId={activeSub.box_id}
               commitmentEndDate={activeSub.commitment_end_date}
               paused={!!activeSub.subscription_paused}

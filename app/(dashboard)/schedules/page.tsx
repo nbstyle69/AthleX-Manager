@@ -527,7 +527,7 @@ export default function SchedulesPage() {
             className="flex items-center gap-2 border border-white/10 text-gray-300 hover:text-white hover:bg-white/5 text-sm font-bold px-4 py-2.5 rounded-xl transition-colors"
           >
             <LayoutTemplate size={16} />
-            Modèle de semaine
+            Créneaux types
           </button>
           <button
             onClick={generateFromTemplate}
