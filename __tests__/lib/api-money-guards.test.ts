@@ -40,6 +40,7 @@ const CLASSIFICATION: Record<string, Classe> = {
   'admin/daily-tournaments': 'platform_admin',
   'admin/geocode-boxes': 'platform_admin',
   'admin/inter-competitions': 'platform_admin',
+  'auth/browser-session': 'auth',
   'auth/clear-session': 'auth',
   'auth/login': 'auth',
   'auth/set-session': 'auth',

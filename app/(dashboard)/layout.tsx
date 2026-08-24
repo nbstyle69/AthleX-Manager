@@ -2,6 +2,7 @@
 import { cookies } from 'next/headers';
 import { createClient, getActiveBox, getAdminBoxes, getBoxBillingState, getServerProfile, getServerUser } from '@/lib/supabase/server';
 import Sidebar from '@/components/layout/Sidebar';
+import SessionGate from '@/components/auth/SessionGate';
 import TrialBanner from '@/components/TrialBanner';
 import PaywallOverlay from '@/components/PaywallOverlay';
 import MultiBoxUpgradeOverlay from '@/components/MultiBoxUpgradeOverlay';
@@ -78,7 +79,9 @@ export default async function DashboardLayout({ children }: { children: React.Re
           activeBoxId={box.id}
           isOwnerAdmin={false}
         />
-        <main className="flex-1 ml-60 min-h-screen p-8 overflow-y-auto">{children}</main>
+        <main className="flex-1 ml-60 min-h-screen p-8 overflow-y-auto">
+          <SessionGate>{children}</SessionGate>
+        </main>
       </div>
     );
   }
@@ -174,7 +177,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
           isEarlyAdopter={sub?.is_early_adopter ?? false}
           boxId={box.id}
         />
-        {children}
+        <SessionGate>{children}</SessionGate>
       </main>
       {locked && <PaywallOverlay boxId={box.id} trialEndsAt={trialEndsAt} />}
       {billing.requiresMulti && (
