@@ -7,6 +7,7 @@ import {
   Globe, Lock, Video, Upload,
 } from 'lucide-react';
 import WodEditor from '@/components/wods/WodEditor';
+import { ACTIVE_BOX_COOKIE, getMyAdminBoxes } from '@/lib/getMyBox';
 import ProgWodImportModal from '@/components/wods/ProgWodImportModal';
 import {
   BLOCK_COLOR, BLOCK_LABEL, DAY_LABELS, EMPTY_WOD_FORM, TYPE_COLOR,
@@ -18,7 +19,6 @@ const LEVELS = ['all', 'beginner', 'intermediate', 'advanced'];
 const LEVEL_LABEL: Record<string, string> = {
   all: 'Tous niveaux', beginner: 'Débutant', intermediate: 'Intermédiaire', advanced: 'Avancé',
 };
-const ACTIVE_BOX_COOKIE = 'active_box_id';
 const INPUT_CLS = 'w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-white/30';
 
 function readCookie(name: string): string | null {
@@ -93,6 +93,7 @@ export default function ProgrammingPage() {
 
   const [myBoxes, setMyBoxes] = useState<Box[]>([]);
   const [activeBoxId, setActiveBoxId] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   const [catalogue, setCatalogue] = useState<Programming[]>([]);
   const [subs, setSubs] = useState<Subscription[]>([]);
@@ -106,23 +107,20 @@ export default function ProgrammingPage() {
 
   const load = useCallback(async () => {
     setLoading(true);
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) { setLoading(false); return; }
+    setLoadError(null);
 
-    // Resolve the owner's boxes (owned + co-owned), active-box aware.
-    const boxMap = new Map<string, Box>();
-    const { data: owned } = await supabase
-      .from('boxes').select('id, name, created_at')
-      .eq('owner_id', user.id).order('created_at', { ascending: true });
-    for (const b of owned ?? []) boxMap.set(b.id, { id: b.id, name: b.name });
-    const { data: co } = await supabase
-      .from('box_members').select('box_id, boxes(id, name)')
-      .eq('member_id', user.id).eq('role', 'owner').eq('status', 'active');
-    for (const m of (co ?? []) as unknown as { box_id: string; boxes: { id: string; name: string }[] | { id: string; name: string } | null }[]) {
-      const bx = Array.isArray(m.boxes) ? m.boxes[0] : m.boxes;
-      if (bx && !boxMap.has(bx.id)) boxMap.set(bx.id, { id: bx.id, name: bx.name });
+    // Les box administrées viennent de `get_my_admin_boxes()` — la source que
+    // la barre latérale et le résolveur serveur utilisent déjà. L'inventaire
+    // refait ici sur `owner_id` + `box_members.role = 'owner'` divergeait, et
+    // son échec se lisait « Aucune box active » sur une box qui existe.
+    let boxes: Box[];
+    try {
+      boxes = (await getMyAdminBoxes(supabase)).map((b) => ({ id: b.id, name: b.name }));
+    } catch (err) {
+      setLoadError(err instanceof Error ? err.message : 'Lecture des box impossible');
+      setLoading(false);
+      return;
     }
-    const boxes = Array.from(boxMap.values());
     setMyBoxes(boxes);
     const cookieBox = readCookie(ACTIVE_BOX_COOKIE);
     const active = (cookieBox && boxes.find((b) => b.id === cookieBox)?.id) || boxes[0]?.id || null;
@@ -130,11 +128,12 @@ export default function ProgrammingPage() {
     const myBoxIds = boxes.map((b) => b.id);
 
     // Catalogue: published offers (RLS lets a managing box see them). Enrich with publisher name.
-    const { data: cat } = await supabase
+    const { data: cat, error: catError } = await supabase
       .from('box_programming')
       .select('*, boxes:publisher_box_id(name)')
       .eq('is_published', true)
       .order('created_at', { ascending: false });
+    if (catError) setLoadError(catError.message);
     setCatalogue(((cat ?? []) as (Programming & { boxes: { name: string } | null })[]).map((p) => ({
       ...p, publisher_name: p.boxes?.name ?? 'Box',
     })));
@@ -146,13 +145,14 @@ export default function ProgrammingPage() {
         .select('*').in('subscriber_box_id', myBoxIds);
       setSubs((mySubs ?? []) as Subscription[]);
 
-      const { data: offers } = await supabase
+      const { data: offers, error: offersError } = await supabase
         .from('box_programming')
         // Les semaines types sont des programmations internes : elles vivent sur
         // le Whiteboard, pas dans les offres vendables de la box.
         .select('*').in('publisher_box_id', myBoxIds)
         .eq('is_template', false)
         .order('created_at', { ascending: false });
+      if (offersError) setLoadError(offersError.message);
       setMyOffers((offers ?? []) as Programming[]);
     }
     setLoading(false);
@@ -175,6 +175,15 @@ export default function ProgrammingPage() {
       <p className="text-sm text-gray-400 mb-6">
         Recevez la programmation d&apos;autres boxs dans votre Whiteboard, ou vendez la vôtre. Réservé aux owners/coaches.
       </p>
+
+      {loadError && (
+        <div className="bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3 mb-6">
+          <p className="text-sm text-red-300">
+            Lecture incomplète : {loadError}. Les listes ci-dessous peuvent être vides pour cette raison,
+            pas parce qu&apos;il n&apos;y a rien.
+          </p>
+        </div>
+      )}
 
       <div className="flex gap-1 mb-6 border-b border-white/10">
         {([['catalogue', 'Catalogue'], ['mine', 'Mes offres']] as const).map(([k, label]) => (
@@ -492,8 +501,11 @@ function MyOffers({ offers, activeBoxId, onChanged }: {
     <div>
       <div className="flex justify-between items-center mb-5">
         <p className="text-sm text-gray-400">Vos programmations publiées pour d&apos;autres boxs.</p>
-        <button onClick={() => setEditing('new')}
-          className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-white text-black text-sm font-bold hover:bg-gray-200">
+        {/* Sans box active, la création échouerait à l'enregistrement : le bouton
+            le dit avant, il ne le découvre pas après un formulaire rempli. */}
+        <button onClick={() => setEditing('new')} disabled={!activeBoxId}
+          title={activeBoxId ? undefined : 'Aucune box active : recharge la page ou reconnecte-toi'}
+          className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-white text-black text-sm font-bold hover:bg-gray-200 disabled:opacity-40 disabled:cursor-not-allowed">
           <Plus size={15} /> Nouvelle programmation
         </button>
       </div>
