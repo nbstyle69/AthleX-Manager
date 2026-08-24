@@ -880,8 +880,8 @@ export default function BoxOwnerProgramsPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-2xl font-black text-white">Offres & Programmation</h1>
-        <p className="text-sm text-gray-500 mt-1">Gérez vos abonnements de salle et vos programmes de coaching</p>
+        <h1 className="text-2xl font-black text-white">Programmes athlètes</h1>
+        <p className="text-sm text-gray-500 mt-1">Offres vendues ou assignées à tes membres</p>
       </div>
 
       {/* Slug / Public page */}

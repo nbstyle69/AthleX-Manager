@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { ShieldAlert } from 'lucide-react';
+import { coachPerimeterSentence } from '@/lib/authz/coach-perimeter';
 
 export default function Forbidden() {
   return (
@@ -9,7 +10,7 @@ export default function Forbidden() {
         <h1 className="text-lg font-bold text-white mb-2">Accès refusé</h1>
         <p className="text-sm text-gray-400">
           Cette page est réservée au gérant et au co-gérant de la box. Ton compte
-          coach donne accès au Whiteboard, aux Horaires et aux Messages.
+          coach donne accès à : {coachPerimeterSentence()}.
         </p>
         <Link
           href="/wods"

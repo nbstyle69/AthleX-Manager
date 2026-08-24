@@ -22,3 +22,22 @@ export const COACH_ROUTE_SEGMENTS = ['wods', 'schedules', 'templates', 'messages
 export const COACH_HREFS: readonly string[] = COACH_ROUTE_SEGMENTS.map((s) => `/${s}`);
 
 export type BoxRole = 'owner' | 'coach';
+
+/**
+ * Libellés visibles des routes du périmètre, source unique de la barre latérale
+ * et de la phrase de refus. La phrase énumérait « Whiteboard, Horaires et
+ * Messages » alors que `/templates` était entré dans le périmètre : un libellé
+ * orphelin dit au coach qu'une page lui est fermée quand elle lui est ouverte.
+ */
+export const COACH_ROUTE_LABELS: Record<(typeof COACH_ROUTE_SEGMENTS)[number], string> = {
+  wods: 'Whiteboard',
+  schedules: 'Horaires',
+  templates: 'Créneaux types',
+  messages: 'Messages',
+};
+
+/** « Whiteboard, Horaires, Créneaux types et Messages » */
+export function coachPerimeterSentence(): string {
+  const labels = COACH_ROUTE_SEGMENTS.map((s) => COACH_ROUTE_LABELS[s]);
+  return `${labels.slice(0, -1).join(', ')} et ${labels[labels.length - 1]}`;
+}

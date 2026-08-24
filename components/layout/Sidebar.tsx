@@ -24,7 +24,7 @@ const GROUPS: NavGroup[] = [
     label: 'Entraînement',
     items: [
       { href: '/wods',        label: 'Whiteboard',    icon: Dumbbell },
-      { href: '/programming', label: 'Programmation', icon: Store },
+      { href: '/programming', label: 'Marketplace',   icon: Store },
       { href: '/schedules',   label: 'Horaires',      icon: CalendarClock },
       { href: '/templates',   label: 'Créneaux types', icon: CalendarDays },
     ],
@@ -53,7 +53,7 @@ const GROUPS: NavGroup[] = [
     key: 'business',
     label: 'Business',
     items: [
-      { href: '/programs', label: 'Offres & Programmes', icon: BookOpen },
+      { href: '/programs', label: 'Programmes athlètes', icon: BookOpen },
       { href: '/stats',    label: 'Statistiques',        icon: BarChart3 },
     ],
   },
