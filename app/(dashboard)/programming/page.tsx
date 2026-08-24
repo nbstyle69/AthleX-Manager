@@ -170,10 +170,10 @@ export default function ProgrammingPage() {
     <div className="max-w-6xl mx-auto px-6 py-8">
       <div className="flex items-center gap-3 mb-1">
         <Store className="text-white" size={26} />
-        <h1 className="text-2xl font-black text-white">Programmation</h1>
+        <h1 className="text-2xl font-black text-white">Marketplace</h1>
       </div>
       <p className="text-sm text-gray-400 mb-6">
-        Recevez la programmation d&apos;autres boxs dans votre Whiteboard, ou vendez la vôtre. Réservé aux owners/coaches.
+        Achète ou vends des programmations entre box. Ce que tu reçois arrive dans ton Whiteboard ; réservé au gérant et aux coachs.
       </p>
 
       {loadError && (

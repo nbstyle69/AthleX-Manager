@@ -214,7 +214,7 @@ export default function ApplyProgramWeekModal({
             </div>
           ) : items.length === 0 ? (
             <p className="text-sm text-gray-400 leading-relaxed py-4">
-              Aucune semaine type ni programmation souscrite. Enregistre une semaine du Whiteboard comme <span className="text-white font-semibold">semaine type</span>, ou abonne-toi à une offre dans <span className="text-white font-semibold">Entraînement → Programmation</span>.
+              Aucune semaine type ni programmation souscrite. Enregistre une semaine du Whiteboard comme <span className="text-white font-semibold">semaine type</span>, ou abonne-toi à une offre dans <span className="text-white font-semibold">Entraînement → Marketplace</span>.
             </p>
           ) : (
             <>

@@ -199,7 +199,7 @@ export default function AdminProgramsPage() {
             <BookOpen size={22} className="text-violet-400" />
           </div>
           <div>
-            <h1 className="text-xl font-black text-white">Programmation</h1>
+            <h1 className="text-xl font-black text-white">Programmes athlètes</h1>
             <p className="text-sm text-gray-400">{affiliates.length} affilié{affiliates.length > 1 ? 's' : ''} · {programs.length} programme{programs.length > 1 ? 's' : ''}</p>
           </div>
         </div>
