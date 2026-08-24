@@ -139,8 +139,8 @@ export default function TemplatesPage() {
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-2xl font-bold text-white">Modèle de semaine</h1>
-          <p className="text-gray-400 text-sm mt-1">Définissez les créneaux récurrents de votre box</p>
+          <h1 className="text-2xl font-bold text-white">Créneaux types</h1>
+          <p className="text-gray-400 text-sm mt-1">La grille des créneaux récurrents de ta box, celle qui génère les cours des semaines à venir</p>
         </div>
         <button
           onClick={openCreate}
