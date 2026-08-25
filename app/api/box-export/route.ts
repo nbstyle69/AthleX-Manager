@@ -48,7 +48,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Non autorisé pour cette box.' }, { status: 403 });
     }
 
-    const [box, members, plans, cash, invitations, schedules, wods] = await Promise.all([
+    const [box, members, plans, cash, invitations, schedules, wods, prospects] = await Promise.all([
       supabase.from('boxes').select('id, name, slug, city').eq('id', boxId).maybeSingle(),
       supabase.from('box_members')
         .select('member_id, role, status, joined_at, plan_id, subscription_status, subscription_current_period_end, subscription_cancel_at_period_end, subscription_paused, amount_cents, payment_method_type, past_due_since, commitment_end_date')
@@ -66,6 +66,9 @@ export async function GET(req: NextRequest) {
       supabase.from('box_wods')
         .select('scheduled_date, title, wod_type, description, rounds, time_cap_seconds, notes, is_published, created_at')
         .eq('box_id', boxId).order('scheduled_date', { ascending: false }),
+      supabase.from('box_prospects')
+        .select('id, created_at, first_name, last_name, email, phone, status, source, notes, plan_id, schedule_id')
+        .eq('box_id', boxId).order('created_at', { ascending: false }),
     ]);
 
     const memberIds = (members.data ?? []).map(m => m.member_id).filter((id): id is string => !!id);
@@ -76,13 +79,14 @@ export async function GET(req: NextRequest) {
         ? supabase.from('profiles').select('id, email, username, full_name, gender').in('id', memberIds)
         : Promise.resolve({ data: [] as Array<{ id: string; email: string; username: string; full_name: string | null; gender: string | null }> }),
       supabase.from('class_reservations')
-        .select('created_at, schedule_id, member_id, status, attended')
+        .select('created_at, schedule_id, member_id, prospect_id, is_trial, status, attended')
         .eq('box_id', boxId).order('created_at', { ascending: false }),
     ]);
 
     const who = new Map((profiles.data ?? []).map(p => [p.id, p]));
     const planName = new Map((plans.data ?? []).map(p => [p.id, p.name]));
     const seance = new Map((schedules.data ?? []).map(s => [s.id, s]));
+    const prospectEmail = new Map((prospects.data ?? []).map(p => [p.id as string, p.email as string]));
     const ident = (id: string | null) => {
       const p = id ? who.get(id) : undefined;
       return { email: p?.email ?? '', nom: p?.full_name ?? p?.username ?? '' };
@@ -146,13 +150,35 @@ export async function GET(req: NextRequest) {
           heure: s?.start_time ?? '',
           cours: s?.title ?? '',
           coach: s?.coach ?? '',
-          email: ident(r.member_id).email,
+          email: r.is_trial ? prospectEmail.get(r.prospect_id ?? '') ?? '' : ident(r.member_id).email,
+          type: r.is_trial ? 'essai' : 'adhérent',
           statut: r.status,
           presence: r.attended === null ? 'non pointé' : r.attended ? 'présent' : 'absent',
           reserve_le: r.created_at ?? '',
         };
       }),
-      ['date_cours', 'heure', 'cours', 'coach', 'email', 'statut', 'presence', 'reserve_le'],
+      ['date_cours', 'heure', 'cours', 'coach', 'email', 'type', 'statut', 'presence', 'reserve_le'],
+    ));
+
+    // Les prospects sont une donnée de la box : ils sortent dans leur propre
+    // fichier, distincts des adhérents comme ils le sont en base.
+    zip.file('prospects.csv', csv(
+      (prospects.data ?? []).map(p => {
+        const s = p.schedule_id ? seance.get(p.schedule_id) : undefined;
+        return {
+          cree_le: p.created_at ?? '',
+          prenom: p.first_name,
+          nom: p.last_name ?? '',
+          email: p.email,
+          telephone: p.phone ?? '',
+          statut: p.status,
+          origine: p.source,
+          offre: p.plan_id ? planName.get(p.plan_id) ?? '' : '',
+          cours_reserve: s ? `${s.scheduled_date} ${s.start_time} ${s.title}` : '',
+          notes: p.notes ?? '',
+        };
+      }),
+      ['cree_le', 'prenom', 'nom', 'email', 'telephone', 'statut', 'origine', 'offre', 'cours_reserve', 'notes'],
     ));
 
     zip.file('wods.csv', csv(

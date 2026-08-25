@@ -32,7 +32,9 @@ type Classe =
   /** Autorisé par la possession du jeton d'invitation, pas par une session. */
   | 'token'
   /** L'appelant agit pour lui-même, ou tunnel public d'achat. */
-  | 'self_service';
+  | 'self_service'
+  /** Écriture anonyme : aucune session à lire, donc un plafond de débit par IP. */
+  | 'public_debit';
 
 const CLASSIFICATION: Record<string, Classe> = {
   'admin/boxes': 'platform_admin',
@@ -72,6 +74,8 @@ const CLASSIFICATION: Record<string, Classe> = {
   'stripe-portal': 'primary_owner',
   'stripe-webhook': 'webhook',
   'subscriber-invoices': 'owner_admin',
+  'trial/book': 'public_debit',
+  'trial/slots': 'public_debit',
   'upload-box-logo': 'owner_admin',
   'verify-subscription': 'primary_owner',
 };
@@ -86,6 +90,7 @@ const GARDE: Record<Classe, string | null> = {
   auth: null,
   token: 'peek_box_invitation',
   self_service: null,
+  public_debit: 'takeToken(',
 };
 
 /**
@@ -155,6 +160,16 @@ describe('gardes des routes d’API (inventaire dérivé du disque)', () => {
     for (const [route, classe] of Object.entries(CLASSIFICATION)) {
       if (classe === 'auth' || classe === 'webhook') continue;
       expect(source(route)).not.toMatch(/\[['"]owner['"], ?['"]coach['"]\]/);
+    }
+  });
+
+  it('aucune route publique anonyme ne détient la clé de service', () => {
+    const publiques = Object.entries(CLASSIFICATION)
+      .filter(([, classe]) => classe === 'public_debit')
+      .map(([route]) => route);
+    expect(publiques.length).toBeGreaterThan(0);
+    for (const route of publiques) {
+      expect(source(route)).not.toMatch(/SERVICE_ROLE/);
     }
   });
 

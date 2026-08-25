@@ -75,7 +75,7 @@ export default function BoxStatsPage() {
         .eq('box_id', box.id)
         .order('joined_at', { ascending: true }),
       supabase.from('class_reservations')
-        .select('created_at, member_id')
+        .select('created_at, member_id, is_trial')
         .eq('box_id', box.id)
         .order('created_at', { ascending: true }),
       // `gender` n'est plus lisible en colonne par `authenticated` (Lot 0-bis) :
@@ -127,7 +127,7 @@ export default function BoxStatsPage() {
     setJoinChart(Object.entries(joinsByDate).map(([date, count]) => ({ date, count })).sort((a, b) => a.date.localeCompare(b.date)));
 
     // Reservation stats
-    const resas = (resaData ?? []) as { created_at: string; member_id: string }[];
+    const resas = (resaData ?? []) as { created_at: string; member_id: string | null; is_trial: boolean | null }[];
     const weekAgo = new Date(Date.now() - 7 * 86400000).toISOString().slice(0, 10);
     const monthAgo = new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10);
     const resaByDate: Record<string, number> = {};
@@ -137,6 +137,9 @@ export default function BoxStatsPage() {
       const d = r.created_at?.slice(0, 10);
       if (!d) continue;
       resaByDate[d] = (resaByDate[d] ?? 0) + 1;
+      // Un essai n'a pas d'adhérent : sans ce filtre, tous les essais se
+      // confondent en un athlète actif fantôme.
+      if (r.is_trial || !r.member_id) continue;
       if (d >= weekAgo) activeWeekSet.add(r.member_id);
       if (d >= monthAgo) activeMonthSet.add(r.member_id);
     }

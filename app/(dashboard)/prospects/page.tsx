@@ -7,6 +7,7 @@ import { getMemberEmails } from '@/lib/memberEmails';
 import { writeFailure } from '@/lib/writeGuard';
 import {
   Loader2, UserPlus, Star, CalendarPlus, CalendarClock, Trash2, Check, X, Send, Users,
+  Mail, Phone, Sparkles,
 } from 'lucide-react';
 
 const supabase = createClient();
@@ -36,6 +37,33 @@ interface Followup {
   email: string;
 }
 
+// Les deux populations ne se mélangent pas : `box_prospects` porte les
+// visiteurs SANS compte du tunnel Essai, `session_followups` le flux historique
+// des adhérents déjà inscrits. Même écran, deux onglets, aucune fusion.
+type TrialStatus = 'essai_reserve' | 'venu' | 'pas_venu' | 'relance' | 'converti' | 'perdu';
+
+const TRIAL_PIPELINE: { key: TrialStatus; label: string; hint: string }[] = [
+  { key: 'essai_reserve', label: 'Essai réservé', hint: 'A pris une place' },
+  { key: 'venu', label: 'Venu', hint: 'Pointé présent' },
+  { key: 'pas_venu', label: 'Pas venu', hint: 'Absent au cours' },
+  { key: 'relance', label: 'Relancé', hint: 'Contacté après l\u2019essai' },
+  { key: 'converti', label: 'Converti', hint: 'Devenu adhérent' },
+];
+
+interface TrialProspect {
+  id: string;
+  first_name: string;
+  last_name: string | null;
+  email: string;
+  phone: string | null;
+  status: TrialStatus;
+  notes: string | null;
+  created_at: string;
+  schedule_id: string | null;
+  plan_id: string | null;
+  slotLabel: string | null;
+}
+
 interface Slot {
   id: string;
   starts_at: string;
@@ -53,6 +81,13 @@ interface Plan {
   price_cents: number | null;
 }
 
+function fmtDay(iso: string) {
+  const [y, m, d] = iso.split('-').map(Number);
+  return new Date(Date.UTC(y, (m ?? 1) - 1, d ?? 1)).toLocaleDateString('fr-FR', {
+    day: 'numeric', month: 'short', timeZone: 'UTC',
+  });
+}
+
 function fmt(dt: string) {
   return new Date(dt).toLocaleString('fr-FR', {
     day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit',
@@ -62,8 +97,9 @@ function fmt(dt: string) {
 export default function ProspectsPage() {
   const [boxId, setBoxId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [tab, setTab] = useState<'pipeline' | 'slots'>('pipeline');
+  const [tab, setTab] = useState<'essais' | 'pipeline' | 'slots'>('essais');
 
+  const [trials, setTrials] = useState<TrialProspect[]>([]);
   const [followups, setFollowups] = useState<Followup[]>([]);
   const [slots, setSlots] = useState<Slot[]>([]);
   const [plans, setPlans] = useState<Plan[]>([]);
@@ -90,6 +126,29 @@ export default function ProspectsPage() {
       ...r,
       username: profByeId.get(r.member_id)?.username ?? '—',
       email: emails.get(r.member_id) ?? '',
+    })));
+
+    // Prospects sans compte du tunnel Essai + le créneau réservé
+    const { data: tp } = await supabase
+      .from('box_prospects')
+      .select('id, first_name, last_name, email, phone, status, notes, created_at, schedule_id, plan_id')
+      .eq('box_id', bid)
+      .order('created_at', { ascending: false });
+    const trialRows = (tp ?? []) as Omit<TrialProspect, 'slotLabel'>[];
+    const scheduleIds = [...new Set(trialRows.map((r) => r.schedule_id).filter((v): v is string => !!v))];
+    const slotLabels = new Map<string, string>();
+    if (scheduleIds.length) {
+      const { data: cs } = await supabase
+        .from('class_schedules')
+        .select('id, title, scheduled_date, start_time')
+        .in('id', scheduleIds);
+      for (const s of (cs ?? []) as { id: string; title: string; scheduled_date: string; start_time: string }[]) {
+        slotLabels.set(s.id, `${s.title} · ${fmtDay(s.scheduled_date)} ${s.start_time.slice(0, 5)}`);
+      }
+    }
+    setTrials(trialRows.map((r) => ({
+      ...r,
+      slotLabel: r.schedule_id ? slotLabels.get(r.schedule_id) ?? null : null,
     })));
 
     // Créneaux RDV + nb réservés
@@ -135,6 +194,16 @@ export default function ProspectsPage() {
     })();
   }, [load]);
 
+  async function setTrialStatus(p: TrialProspect, status: TrialStatus) {
+    const { data, error } = await supabase.from('box_prospects')
+      .update({ status })
+      .eq('id', p.id)
+      .select('id');
+    const fail = writeFailure(error, data);
+    if (fail) { alert(`Impossible de mettre à jour ce prospect : ${fail}`); return; }
+    if (boxId) await load(boxId);
+  }
+
   async function setStatus(f: Followup, status: Status, planId?: string) {
     const { data, error } = await supabase.from('session_followups')
       .update({ status, converted_plan_id: planId ?? f.converted_plan_id, updated_at: new Date().toISOString() })
@@ -164,9 +233,13 @@ export default function ProspectsPage() {
           </p>
         </div>
         <div className="flex gap-1 bg-white/5 rounded-xl p-1">
+          <button onClick={() => setTab('essais')}
+            className={`px-3 py-1.5 rounded-lg text-sm font-bold ${tab === 'essais' ? 'bg-white text-black' : 'text-gray-400'}`}>
+            Essais ({trials.length})
+          </button>
           <button onClick={() => setTab('pipeline')}
             className={`px-3 py-1.5 rounded-lg text-sm font-bold ${tab === 'pipeline' ? 'bg-white text-black' : 'text-gray-400'}`}>
-            Pipeline
+            Adhérents ({followups.length})
           </button>
           <button onClick={() => setTab('slots')}
             className={`px-3 py-1.5 rounded-lg text-sm font-bold ${tab === 'slots' ? 'bg-white text-black' : 'text-gray-400'}`}>
@@ -175,7 +248,9 @@ export default function ProspectsPage() {
         </div>
       </div>
 
-      {tab === 'pipeline' ? (
+      {tab === 'essais' ? (
+        <TrialPipeline trials={trials} onStatus={setTrialStatus} />
+      ) : tab === 'pipeline' ? (
         <Pipeline followups={followups} plans={plans} onStatus={setStatus} />
       ) : (
         <Slots
@@ -186,6 +261,130 @@ export default function ProspectsPage() {
           onRemoved={(id) => setSlots((prev) => prev.filter((s) => s.id !== id))}
           onChange={() => load(boxId)}
         />
+      )}
+    </div>
+  );
+}
+
+function TrialPipeline({
+  trials, onStatus,
+}: {
+  trials: TrialProspect[];
+  onStatus: (p: TrialProspect, s: TrialStatus) => void;
+}) {
+  const lost = trials.filter((p) => p.status === 'perdu');
+
+  if (trials.length === 0) {
+    return (
+      <div className="bg-[#111] border border-white/8 rounded-2xl p-10 text-center">
+        <Sparkles className="mx-auto text-white/20 mb-3" size={32} />
+        <p className="text-gray-400 text-sm">
+          Aucun essai réservé pour l&apos;instant. Publie une offre de type « Essai » dans
+          Programmes athlètes : elle apparaît sur la page publique de la box, et chaque
+          réservation arrive ici avec ses coordonnées et son créneau.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <>
+      <p className="text-xs text-gray-500 mb-3">
+        Visiteurs <strong className="text-gray-300">sans compte</strong> venus par le tunnel Essai.
+        « Venu / Pas venu » se remplit tout seul au pointage de présence du cours.
+      </p>
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-4">
+        {TRIAL_PIPELINE.map((col) => {
+          const items = trials.filter((p) => p.status === col.key);
+          return (
+            <div key={col.key} className="bg-[#0d0d0d] border border-white/8 rounded-2xl p-3">
+              <div className="mb-3 px-1">
+                <p className="text-sm font-black text-white">{col.label}</p>
+                <p className="text-[11px] text-gray-500">{col.hint} · {items.length}</p>
+              </div>
+              <div className="space-y-2">
+                {items.map((p) => (
+                  <TrialCard key={p.id} p={p} onStatus={onStatus} />
+                ))}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      {lost.length > 0 && (
+        <div className="mt-6">
+          <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">Perdus</p>
+          <div className="flex flex-wrap gap-2">
+            {lost.map((p) => (
+              <span key={p.id} className="text-xs text-gray-500 bg-white/5 border border-white/10 rounded-lg px-3 py-1.5">
+                {p.first_name} {p.last_name ?? ''}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
+function TrialCard({
+  p, onStatus,
+}: {
+  p: TrialProspect;
+  onStatus: (p: TrialProspect, s: TrialStatus) => void;
+}) {
+  return (
+    <div className="bg-[#161616] border border-white/10 rounded-xl p-3">
+      <div className="flex items-center gap-1.5">
+        <p className="text-sm font-bold text-white truncate">
+          {p.first_name} {p.last_name ?? ''}
+        </p>
+        <span className="text-[9px] px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-300 font-bold shrink-0">ESSAI</span>
+      </div>
+      <p className="text-[11px] text-gray-500 truncate flex items-center gap-1">
+        <Mail size={10} /> {p.email}
+      </p>
+      {p.phone && (
+        <p className="text-[11px] text-gray-500 truncate flex items-center gap-1">
+          <Phone size={10} /> {p.phone}
+        </p>
+      )}
+      <p className="text-[11px] text-gray-600 mt-1">
+        {p.slotLabel ?? 'Créneau supprimé'}
+      </p>
+      <p className="text-[11px] text-gray-600">Réservé le {fmt(p.created_at)}</p>
+
+      {p.status !== 'converti' && p.status !== 'perdu' && (
+        <div className="mt-3 space-y-1.5">
+          {p.status === 'essai_reserve' && (
+            <div className="flex gap-1.5">
+              <button onClick={() => onStatus(p, 'venu')}
+                className="flex-1 text-[11px] font-bold bg-white/10 hover:bg-white/20 text-white rounded-lg py-1.5">
+                Venu
+              </button>
+              <button onClick={() => onStatus(p, 'pas_venu')}
+                className="flex-1 text-[11px] font-bold bg-white/5 hover:bg-white/10 text-gray-300 rounded-lg py-1.5">
+                Pas venu
+              </button>
+            </div>
+          )}
+          {(p.status === 'venu' || p.status === 'pas_venu') && (
+            <button onClick={() => onStatus(p, 'relance')}
+              className="w-full flex items-center justify-center gap-1 text-[11px] font-bold bg-white/10 hover:bg-white/20 text-white rounded-lg py-1.5">
+              <Send size={11} /> Marquer relancé
+            </button>
+          )}
+          <div className="flex gap-1.5">
+            <button onClick={() => onStatus(p, 'converti')}
+              className="flex-1 flex items-center justify-center gap-1 text-[11px] font-bold bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 rounded-lg py-1.5">
+              <Check size={12} /> Converti
+            </button>
+            <button onClick={() => onStatus(p, 'perdu')} title="Marquer perdu"
+              className="px-2 text-gray-500 hover:text-red-400 rounded-lg py-1.5 bg-white/5">
+              <X size={13} />
+            </button>
+          </div>
+        </div>
       )}
     </div>
   );

@@ -21,12 +21,20 @@ class NextResponse {
   }
 }
 
-NextResponse.json = jest.fn((data, init) => ({
-  _data: data,
-  _status: init?.status ?? 200,
-  status: init?.status ?? 200,
-  json: async () => data,
-}));
+NextResponse.json = jest.fn((data, init) => {
+  const headers = new Map(
+    Object.entries(init?.headers ?? {}).map(([k, v]) => [k.toLowerCase(), v]),
+  );
+  const get = headers.get.bind(headers);
+  headers.get = (name) => get(String(name).toLowerCase()) ?? null;
+  return {
+    _data: data,
+    _status: init?.status ?? 200,
+    status: init?.status ?? 200,
+    headers,
+    json: async () => data,
+  };
+});
 NextResponse.redirect = jest.fn((url) => ({ _redirect: url, status: 302 }));
 NextResponse.next = jest.fn(() => ({ _next: true, status: 200 }));
 
