@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { X, Loader2, CalendarCheck, Users } from 'lucide-react';
 import { useLanguage } from '@/components/language-provider';
 
@@ -23,6 +23,9 @@ interface BookedSlot {
 
 type Step = 'form' | 'slots' | 'done';
 
+/** Horizon affiché d'emblée. Le serveur en ouvre 21 : les suivants se demandent. */
+const FIRST_DAYS = 7;
+
 export default function TrialBookingCta({
   boxId,
   planName,
@@ -39,6 +42,8 @@ export default function TrialBookingCta({
   const [error, setError] = useState<string | null>(null);
   const [slots, setSlots] = useState<Slot[]>([]);
   const [chosen, setChosen] = useState<string | null>(null);
+  const [day, setDay] = useState<string | null>(null);
+  const [allDays, setAllDays] = useState(false);
   const [booked, setBooked] = useState<BookedSlot | null>(null);
   const [mailSent, setMailSent] = useState(false);
 
@@ -67,6 +72,21 @@ export default function TrialBookingCta({
 
   const hhmm = (time: string) => time.slice(0, 5);
 
+  function shortDayLabel(iso: string): string {
+    const [y, m, d] = iso.split('-').map(Number);
+    return new Date(Date.UTC(y, (m ?? 1) - 1, d ?? 1)).toLocaleDateString(locale, {
+      weekday: 'short',
+      day: 'numeric',
+      month: 'short',
+      timeZone: 'UTC',
+    });
+  }
+
+  const days = useMemo(() => [...new Set(slots.map((s) => s.scheduled_date))].sort(), [slots]);
+  const shownDays = allDays ? days : days.slice(0, FIRST_DAYS);
+  const activeDay = day && shownDays.includes(day) ? day : (shownDays[0] ?? null);
+  const daySlots = slots.filter((s) => s.scheduled_date === activeDay);
+
   function seatsLabel(n: number): string {
     return (n > 1 ? tr.seatsLeftPlural : tr.seatsLeft).replace('{n}', String(n));
   }
@@ -78,6 +98,8 @@ export default function TrialBookingCta({
     setChosen(null);
     setBooked(null);
     setSlots([]);
+    setDay(null);
+    setAllDays(false);
   }
 
   async function loadSlots() {
@@ -159,7 +181,7 @@ export default function TrialBookingCta({
 
       {open && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
-          <div className="relative max-h-[85vh] w-full max-w-md overflow-y-auto rounded-2xl border border-border bg-card p-6">
+          <div className="relative flex max-h-[85vh] w-full max-w-md flex-col overflow-hidden rounded-2xl border border-border bg-card p-6">
             <button
               onClick={reset}
               className="absolute right-4 top-4 text-muted-foreground transition-colors hover:text-foreground"
@@ -169,7 +191,7 @@ export default function TrialBookingCta({
             </button>
 
             {step === 'form' && (
-              <>
+              <div className="overflow-y-auto">
                 <h3 className="mb-1 font-display text-lg font-bold">{planName}</h3>
                 <p className="mb-5 text-xs text-muted-foreground">{tr.formHint}</p>
                 <div className="space-y-3">
@@ -211,11 +233,11 @@ export default function TrialBookingCta({
                   {busy ? <Loader2 size={15} className="animate-spin" /> : null}
                   {busy ? tr.loading : tr.next}
                 </button>
-              </>
+              </div>
             )}
 
             {step === 'slots' && (
-              <>
+              <div className="flex min-h-0 flex-1 flex-col">
                 <h3 className="mb-1 font-display text-lg font-bold">{tr.slotsTitle}</h3>
                 <p className="mb-4 text-xs text-muted-foreground">{tr.slotsHint}</p>
 
@@ -224,8 +246,40 @@ export default function TrialBookingCta({
                     {tr.noSlots}
                   </p>
                 ) : (
-                  <div className="space-y-2">
-                    {slots.map((s) => {
+                  <div className="min-h-0 flex-1 overflow-y-auto">
+                    <p className="mb-2 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
+                      {tr.pickDay}
+                    </p>
+                    <div className="mb-4 flex flex-wrap gap-2">
+                      {shownDays.map((d) => (
+                        <button
+                          key={d}
+                          onClick={() => {
+                            setDay(d);
+                            setChosen(null);
+                            setError(null);
+                          }}
+                          className={`rounded-lg border px-3 py-1.5 text-xs font-semibold capitalize transition-colors ${
+                            d === activeDay
+                              ? 'border-foreground bg-foreground text-background'
+                              : 'border-border bg-background text-foreground hover:border-foreground/40'
+                          }`}
+                        >
+                          {shortDayLabel(d)}
+                        </button>
+                      ))}
+                      {days.length > shownDays.length ? (
+                        <button
+                          onClick={() => setAllDays(true)}
+                          className="rounded-lg border border-dashed border-border px-3 py-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground"
+                        >
+                          {tr.moreDays}
+                        </button>
+                      ) : null}
+                    </div>
+
+                    <div className="space-y-2">
+                    {daySlots.map((s) => {
                       const active = chosen === s.schedule_id;
                       return (
                         <button
@@ -238,25 +292,36 @@ export default function TrialBookingCta({
                           }`}
                         >
                           <div className="flex items-center justify-between gap-3">
-                            <span className="text-sm font-semibold text-foreground">{s.title}</span>
-                            <span className="inline-flex items-center gap-1 text-[11px] font-bold text-muted-foreground">
+                            <span className="text-sm font-semibold text-foreground">
+                              {hhmm(s.start_time)}
+                              {s.end_time ? ` – ${hhmm(s.end_time)}` : ''} · {s.title}
+                            </span>
+                            <span className="inline-flex shrink-0 items-center gap-1 text-[11px] font-bold text-muted-foreground">
                               <Users size={11} /> {seatsLabel(s.seats_left)}
                             </span>
                           </div>
                           <p className="mt-0.5 text-xs capitalize text-muted-foreground">
-                            {dayLabel(s.scheduled_date)} · {hhmm(s.start_time)}
-                            {s.end_time ? ` – ${hhmm(s.end_time)}` : ''}
+                            {dayLabel(s.scheduled_date)}
                             {s.coach ? ` · ${s.coach}` : ''}
                           </p>
                         </button>
                       );
                     })}
+                    {daySlots.length === 0 ? (
+                      <p className="rounded-xl border border-border bg-background p-4 text-xs text-muted-foreground">
+                        {tr.noSlotsThatDay}
+                      </p>
+                    ) : null}
+                    </div>
+                    {allDays && days.length > FIRST_DAYS ? (
+                      <p className="mt-3 text-[11px] text-muted-foreground">{tr.horizonAll}</p>
+                    ) : null}
                   </div>
                 )}
 
                 {error && <p className="mt-3 text-xs font-semibold text-red-500">{error}</p>}
 
-                <div className="mt-5 flex gap-3">
+                <div className="mt-4 flex shrink-0 gap-3 border-t border-border bg-card pt-4">
                   <button
                     onClick={() => setStep('form')}
                     className="rounded-xl border border-border px-4 py-3 text-sm font-bold text-foreground"
@@ -272,11 +337,11 @@ export default function TrialBookingCta({
                     {busy ? tr.loading : tr.confirm}
                   </button>
                 </div>
-              </>
+              </div>
             )}
 
             {step === 'done' && booked && (
-              <>
+              <div className="overflow-y-auto">
                 <h3 className="mb-2 font-display text-lg font-bold">{tr.successTitle}</h3>
                 <p className="text-sm text-foreground">
                   {tr.successBody
@@ -295,7 +360,7 @@ export default function TrialBookingCta({
                 >
                   {tr.close}
                 </button>
-              </>
+              </div>
             )}
           </div>
         </div>
