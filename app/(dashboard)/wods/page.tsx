@@ -1,15 +1,18 @@
 ﻿'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import {
   Plus, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, ArrowLeft, ArrowRight, Pencil, Trash2,
   Eye, EyeOff, X, Loader2, Dumbbell, Upload, Download, FileText, Calendar, LayoutGrid, List, Video,
-  CalendarPlus, BookmarkPlus,
+  CalendarPlus, BookmarkPlus, CheckSquare, Square,
 } from 'lucide-react';
 import { getMyBox } from '@/lib/getMyBox';
 import WodEditor from '@/components/wods/WodEditor';
 import ApplyProgramWeekModal from '@/components/wods/ApplyProgramWeekModal';
+import { RestrictionBadges, programColor } from '@/components/wods/RestrictionBadges';
+import AssignRestrictionsModal from '@/components/wods/AssignRestrictionsModal';
+import { assignRestrictions, libelleAssignation } from '@/lib/wodAssignment';
 import SaveWeekAsTemplateModal from '@/components/wods/SaveWeekAsTemplateModal';
 import { applyWeekNotes } from '@/lib/programWeek';
 import {
@@ -117,9 +120,24 @@ export default function WODsPage() {
   const [templateModal, setTemplateModal] = useState(false);
   const [boxPrograms, setBoxPrograms] = useState<{ id: string; title: string; type: string }[]>([]);
   const [wodProgramMap, setWodProgramMap] = useState<Record<string, string[]>>({});
+  const [pdfDestGroups, setPdfDestGroups] = useState<string[]>([]);
+  const [pdfDestPrograms, setPdfDestPrograms] = useState<string[]>([]);
+  const [dragOver, setDragOver] = useState(false);
+  const [selectMode, setSelectMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [assignModal, setAssignModal] = useState(false);
 
   const weekDates = getWeekDates(weekOffset);
   const todayISO  = toISO(new Date());
+
+  const refGroups = useMemo(
+    () => groups.map(g => ({ id: g.id, name: g.name, color: g.color })),
+    [groups],
+  );
+  const refPrograms = useMemo(
+    () => boxPrograms.map(p => ({ id: p.id, name: p.title, color: programColor(p.type) })),
+    [boxPrograms],
+  );
 
   useEffect(() => {
     (async () => {
@@ -178,6 +196,10 @@ export default function WODsPage() {
   }, [boxId, weekOffset]);
 
   useEffect(() => { load(); }, [load]);
+
+  function toggleSelected(id: string) {
+    setSelectedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+  }
 
   function openCreate(date: string) {
     setEditWOD(null);
@@ -244,20 +266,32 @@ export default function WODsPage() {
       wodId = newWod.id;
     }
 
-    // Save group access
+    // Les restrictions de l'éditeur sont l'état complet du WOD : on repose
+    // exactement ce qui est coché. Un refus d'écriture se dit — sinon la
+    // fenêtre se ferme sur un enregistrement qui n'a pas eu lieu.
     if (wodId) {
-      await supabase.from('wod_group_access').delete().eq('wod_id', wodId);
+      const echecs: string[] = [];
+      const gDel = await supabase.from('wod_group_access').delete().eq('wod_id', wodId);
+      if (gDel.error) echecs.push(`groupes (retrait) : ${gDel.error.message}`);
       if (form.groupIds.length > 0) {
-        await supabase.from('wod_group_access').insert(
+        const gIns = await supabase.from('wod_group_access').insert(
           form.groupIds.map(gid => ({ wod_id: wodId, group_id: gid }))
         );
+        if (gIns.error) echecs.push(`groupes : ${gIns.error.message}`);
       }
-      // Save program access
-      await supabase.from('wod_program_access').delete().eq('wod_id', wodId);
+      const pDel = await supabase.from('wod_program_access').delete().eq('wod_id', wodId);
+      if (pDel.error) echecs.push(`programmes (retrait) : ${pDel.error.message}`);
       if (form.programIds.length > 0) {
-        await supabase.from('wod_program_access').insert(
+        const pIns = await supabase.from('wod_program_access').insert(
           form.programIds.map(pid => ({ wod_id: wodId, program_id: pid }))
         );
+        if (pIns.error) echecs.push(`programmes : ${pIns.error.message}`);
+      }
+      if (echecs.length > 0) {
+        setSaving(false);
+        setFormError(`WOD enregistré, mais les restrictions n'ont pas été posées — ${echecs.join(' ; ')}`);
+        load();
+        return;
       }
     }
 
@@ -412,6 +446,8 @@ export default function WODsPage() {
         return;
       }
       setPdfPreview({ wods: parsed, selected: parsed.map(() => true), inserting: false });
+      setPdfDestGroups([]);
+      setPdfDestPrograms([]);
     } catch (e: any) {
       setImportResult({ ok: 0, errors: [`Erreur IA : ${e?.message ?? 'analyse PDF impossible'}`] });
     } finally {
@@ -439,26 +475,59 @@ export default function WODsPage() {
       leaderboard_enabled: true,
       sort_order: i,
     }));
-    const { error } = await supabase.from('box_wods').insert(payloads);
+    const { data: inserted, error } = await supabase.from('box_wods').insert(payloads).select('id');
     if (error) {
       setImportResult({ ok: 0, errors: [error.message] });
-    } else {
-      setImportResult({ ok: selected.length, errors: [] });
-      load();
+      setPdfPreview(null);
+      return;
     }
+
+    const ids = (inserted ?? []).map(r => r.id);
+    const notes: string[] = [];
+    const errors: string[] = [];
+    if (ids.length > 0 && (pdfDestGroups.length > 0 || pdfDestPrograms.length > 0)) {
+      try {
+        await assignRestrictions(ids, pdfDestGroups, pdfDestPrograms, 'ajouter');
+        notes.push(libelleAssignation(ids.length, {
+          groupes: pdfDestGroups.map(id => refGroups.find(g => g.id === id)?.name ?? id),
+          programmes: pdfDestPrograms.map(id => refPrograms.find(p => p.id === id)?.name ?? id),
+        }, 'ajouter'));
+      } catch (e) {
+        errors.push(`WOD importés, mais l'assignation a échoué : ${e instanceof Error ? e.message : String(e)}`);
+      }
+    } else if (ids.length > 0) {
+      notes.push('Aucune restriction choisie : ces WOD sont visibles par toute la box. Sélectionne-les et utilise « Assigner à… » pour les restreindre.');
+    }
+
+    setImportResult({ ok: selected.length, errors, notes });
     setPdfPreview(null);
+    void load();
   }
 
   // ── CSV / JSON / PDF Import ──────────────────────────────────────────────────────────────
   async function handleImport(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
-    if (!file || !boxId || !userId) return;
+    if (fileInputRef.current) fileInputRef.current.value = '';
+    if (file) await importFile(file);
+  }
 
-    // PDF → IA Claude
-    if (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) {
-      // reset input so user can re-pick same file
-      if (fileInputRef.current) fileInputRef.current.value = '';
+  /**
+   * Un seul chemin d'import, deux portes : le bouton « Importer » et le
+   * glisser-déposer. Même parseur, mêmes refus nommés, même preview PDF.
+   */
+  async function importFile(file: File) {
+    if (!boxId || !userId) return;
+    const nom = file.name.toLowerCase();
+
+    if (file.type === 'application/pdf' || nom.endsWith('.pdf')) {
       await importPdfWods(file);
+      return;
+    }
+    if (!nom.endsWith('.csv') && !nom.endsWith('.json')) {
+      setImportResult({
+        ok: 0,
+        errors: [`Type de fichier non supporté : « ${file.name} ». L'import accepte PDF, CSV et JSON.`],
+      });
       return;
     }
 
@@ -489,6 +558,7 @@ export default function WODsPage() {
     // --- Insert WODs ---
     let ok = 0;
     const errors = [...parseErrors];
+    const importedIds: string[] = [];
 
     for (let i = 0; i < rows.length; i++) {
       const r = rows[i];
@@ -504,6 +574,7 @@ export default function WODsPage() {
       }).select('id').single();
       if (error) { errors.push(`Ligne ${i + 2} : ${error.message}`); continue; }
       ok++;
+      if (inserted) importedIds.push(inserted.id);
       // Insert group access
       if (inserted && r.groupNames.length > 0) {
         const accessRows = r.groupNames
@@ -516,9 +587,17 @@ export default function WODsPage() {
       }
     }
 
-    setImportResult({ ok, errors });
+    const notes: string[] = [];
+    if (importedIds.length > 0) {
+      notes.push(
+        'Choisis qui voit ces WOD : ils sont déjà sélectionnés, clique « Assigner à… ». '
+        + 'Le CSV ne pose que les groupes de sa colonne groups ; les programmes se posent ici.',
+      );
+      setSelectMode(true);
+      setSelectedIds(importedIds);
+    }
+    setImportResult({ ok, errors, notes });
     setImporting(false);
-    if (fileInputRef.current) fileInputRef.current.value = '';
     if (ok > 0) load();
   }
 
@@ -538,8 +617,33 @@ export default function WODsPage() {
     setShowDateNav(false);
   }
 
+  /** Le dépôt n'est proposé que pour un vrai fichier traîné, pas pour du texte. */
+  function dragPorteUnFichier(e: React.DragEvent): boolean {
+    return Array.from(e.dataTransfer.types).includes('Files');
+  }
+
   return (
-    <div className="space-y-6">
+    <div
+      className="space-y-6 relative"
+      onDragOver={(e) => { if (dragPorteUnFichier(e)) { e.preventDefault(); setDragOver(true); } }}
+      onDragLeave={(e) => { if (e.currentTarget === e.target) setDragOver(false); }}
+      onDrop={(e) => {
+        if (!dragPorteUnFichier(e)) return;
+        e.preventDefault();
+        setDragOver(false);
+        const file = e.dataTransfer.files?.[0];
+        if (file) void importFile(file);
+      }}
+    >
+      {dragOver && (
+        <div className="fixed inset-0 z-40 bg-black/70 backdrop-blur-sm flex items-center justify-center pointer-events-none">
+          <div className="border-2 border-dashed border-white/40 rounded-2xl px-10 py-8 text-center bg-[#111111]/80">
+            <Upload size={28} className="text-white mx-auto mb-2" />
+            <p className="text-base font-bold text-white">Lâche ton fichier pour l&apos;importer</p>
+            <p className="text-xs text-gray-400 mt-1">PDF, CSV ou JSON — même parseur que le bouton « Importer ».</p>
+          </div>
+        </div>
+      )}
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
@@ -560,6 +664,15 @@ export default function WODsPage() {
             {importing ? 'Import…' : 'Importer'}
             <input ref={fileInputRef} type="file" accept=".csv,.json,.pdf" className="hidden" onChange={handleImport} />
           </label>
+          <button
+            onClick={() => { setSelectMode(m => !m); setSelectedIds([]); }}
+            title="Sélectionner plusieurs WOD pour les assigner à un groupe ou un programme"
+            className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold border transition-colors ${
+              selectMode ? 'border-white/40 text-white bg-white/10' : 'border-white/10 text-gray-400 hover:text-white hover:border-white/20'
+            }`}
+          >
+            <CheckSquare size={13} /> {selectMode ? 'Quitter la sélection' : 'Sélectionner'}
+          </button>
           <button
             onClick={() => setLayout(l => l === 'rows' ? 'columns' : 'rows')}
             title={layout === 'rows' ? 'Vue colonnes' : 'Vue lignes'}
@@ -599,6 +712,43 @@ export default function WODsPage() {
           </button>
         </div>
       </div>
+
+      {/* Sélection multiple : le geste d'assignation et son compte-rendu */}
+      {selectMode && (
+        <div className="flex flex-wrap items-center gap-2 bg-[#111111] border border-white/15 rounded-xl px-4 py-3">
+          <p className="text-sm font-bold text-white">
+            {selectedIds.length} WOD{selectedIds.length > 1 ? 's' : ''} sélectionné{selectedIds.length > 1 ? 's' : ''}
+          </p>
+          <button
+            onClick={() => setSelectedIds(selectedIds.length === wods.length ? [] : wods.map(w => w.id))}
+            className="px-3 py-1.5 rounded-xl text-xs font-bold border border-white/10 text-gray-300 hover:text-white hover:border-white/20 transition-colors"
+          >
+            {selectedIds.length === wods.length && wods.length > 0 ? 'Tout désélectionner' : 'Toute la semaine'}
+          </button>
+          <button
+            onClick={() => setAssignModal(true)}
+            disabled={selectedIds.length === 0}
+            className="px-4 py-1.5 rounded-xl text-xs font-bold bg-white text-black disabled:opacity-40 transition-colors"
+          >
+            Assigner à…
+          </button>
+        </div>
+      )}
+
+      {assignModal && (
+        <AssignRestrictionsModal
+          wodIds={selectedIds}
+          groups={refGroups}
+          programs={refPrograms}
+          onClose={() => setAssignModal(false)}
+          onDone={(message) => {
+            setAssignModal(false);
+            setImportResult({ ok: 0, errors: [], notes: [message] });
+            setSelectedIds([]);
+            void load();
+          }}
+        />
+      )}
 
       {/* Appliquer une programmation souscrite sur la semaine affichée */}
       {applyModal && boxId && (
@@ -754,6 +904,42 @@ export default function WODsPage() {
               })}
             </div>
 
+            <div className="px-6 py-3 border-t border-white/8 space-y-2">
+              <p className="text-xs font-black uppercase tracking-wider text-gray-500">Qui verra ces WOD</p>
+              <div className="flex flex-wrap gap-2">
+                {refGroups.map(g => (
+                  <button
+                    key={g.id}
+                    onClick={() => setPdfDestGroups(prev => prev.includes(g.id) ? prev.filter(x => x !== g.id) : [...prev, g.id])}
+                    className={`text-xs font-semibold px-2.5 py-1.5 rounded-full border transition-colors ${
+                      pdfDestGroups.includes(g.id) ? 'border-white/40 text-white' : 'border-white/10 text-gray-400'
+                    }`}
+                    style={pdfDestGroups.includes(g.id) ? { backgroundColor: `${g.color}25` } : undefined}
+                  >
+                    Groupe : {g.name}
+                  </button>
+                ))}
+                {refPrograms.map(p => (
+                  <button
+                    key={p.id}
+                    onClick={() => setPdfDestPrograms(prev => prev.includes(p.id) ? prev.filter(x => x !== p.id) : [...prev, p.id])}
+                    className={`text-xs font-semibold px-2.5 py-1.5 rounded-full border transition-colors ${
+                      pdfDestPrograms.includes(p.id) ? 'border-white/40 text-white' : 'border-white/10 text-gray-400'
+                    }`}
+                    style={pdfDestPrograms.includes(p.id) ? { backgroundColor: `${p.color}25` } : undefined}
+                  >
+                    Programme : {p.name}
+                  </button>
+                ))}
+                {refGroups.length === 0 && refPrograms.length === 0 && (
+                  <p className="text-xs text-gray-600">Aucun groupe ni programme dans cette box.</p>
+                )}
+              </div>
+              <p className="text-[11px] text-gray-500">
+                Rien de coché : les WOD importés seront visibles par toute la box. Tu pourras les restreindre après coup avec « Assigner à… ».
+              </p>
+            </div>
+
             <div className="flex items-center gap-3 px-6 py-4 border-t border-white/8">
               <button
                 onClick={() => {
@@ -886,33 +1072,26 @@ export default function WODsPage() {
                               {!wod.is_published && <EyeOff size={9} className="text-amber-500 shrink-0" />}
                               {wod.publish_at && new Date(wod.publish_at) > new Date() && <span className="text-[8px] font-bold text-blue-400">⏰ {new Date(wod.publish_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</span>}
                             </div>
-                            <p className="text-xs font-bold text-white truncate">{wod.title}</p>
+                            <div className="flex items-start gap-1.5">
+                              {selectMode && (
+                                <button onClick={() => toggleSelected(wod.id)} className="mt-0.5 shrink-0" title="Sélectionner ce WOD">
+                                  {selectedIds.includes(wod.id)
+                                    ? <CheckSquare size={13} className="text-white" />
+                                    : <Square size={13} className="text-gray-600" />}
+                                </button>
+                              )}
+                              <p className="text-xs font-bold text-white truncate">{wod.title}</p>
+                            </div>
                             {wod.description && <p className="text-[10px] text-gray-500 truncate mt-0.5">{wod.description}</p>}
-                            {((wodGroupMap[wod.id] ?? []).length > 0 || (wodProgramMap[wod.id] ?? []).length > 0) && (
-                              <div className="flex flex-wrap gap-1 mt-1">
-                                {(wodGroupMap[wod.id] ?? []).map(gid => {
-                                  const g = groups.find(gr => gr.id === gid);
-                                  if (!g) return null;
-                                  return (
-                                    <span key={gid} className="inline-flex items-center gap-0.5 text-[8px] font-bold px-1.5 py-0.5 rounded-full" style={{ backgroundColor: `${g.color}20`, color: g.color }}>
-                                      <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: g.color }} />
-                                      {g.name}
-                                    </span>
-                                  );
-                                })}
-                                {(wodProgramMap[wod.id] ?? []).map(pid => {
-                                  const pr = boxPrograms.find(p => p.id === pid);
-                                  if (!pr) return null;
-                                  const pc = pr.type === 'fixed' ? '#3B82F6' : '#8B5CF6';
-                                  return (
-                                    <span key={pid} className="inline-flex items-center gap-0.5 text-[8px] font-bold px-1.5 py-0.5 rounded-full" style={{ backgroundColor: `${pc}20`, color: pc }}>
-                                      <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: pc }} />
-                                      {pr.title}
-                                    </span>
-                                  );
-                                })}
-                              </div>
-                            )}
+                            <div className="mt-1">
+                              <RestrictionBadges
+                                compact
+                                groupIds={wodGroupMap[wod.id] ?? []}
+                                programIds={wodProgramMap[wod.id] ?? []}
+                                groups={refGroups}
+                                programs={refPrograms}
+                              />
+                            </div>
                             <div className="flex items-center gap-0.5 mt-2 pt-1.5 border-t border-white/5">
                               <button onClick={() => moveWodToDay(wod, 'prev')} className="p-1 rounded-lg hover:bg-white/10 transition-colors" title="Jour précédent">
                                 <ArrowLeft size={11} className="text-gray-400" />
@@ -1017,6 +1196,13 @@ export default function WODsPage() {
                             </button>
                           </div>
                           <div className="w-1 h-10 rounded-full shrink-0" style={{ backgroundColor: wod.block_name ? (BLOCK_COLOR[wod.block_name] ?? color) : color }} />
+                          {selectMode && (
+                            <button onClick={() => toggleSelected(wod.id)} className="shrink-0 mr-1" title="Sélectionner ce WOD">
+                              {selectedIds.includes(wod.id)
+                                ? <CheckSquare size={16} className="text-white" />
+                                : <Square size={16} className="text-gray-600" />}
+                            </button>
+                          )}
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 mb-0.5 flex-wrap">
                               {wod.block_name && (
@@ -1039,27 +1225,12 @@ export default function WODsPage() {
                                   Brouillon
                                 </span>
                               )}
-                              {(wodGroupMap[wod.id] ?? []).map(gid => {
-                                const g = groups.find(gr => gr.id === gid);
-                                if (!g) return null;
-                                return (
-                                  <span key={gid} className="inline-flex items-center gap-0.5 text-[9px] font-bold px-1.5 py-0.5 rounded-full" style={{ backgroundColor: `${g.color}20`, color: g.color }}>
-                                    <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: g.color }} />
-                                    {g.name}
-                                  </span>
-                                );
-                              })}
-                              {(wodProgramMap[wod.id] ?? []).map(pid => {
-                                const pr = boxPrograms.find(p => p.id === pid);
-                                if (!pr) return null;
-                                const pc = pr.type === 'fixed' ? '#3B82F6' : '#8B5CF6';
-                                return (
-                                  <span key={pid} className="inline-flex items-center gap-0.5 text-[9px] font-bold px-1.5 py-0.5 rounded-full" style={{ backgroundColor: `${pc}20`, color: pc }}>
-                                    <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: pc }} />
-                                    {pr.title}
-                                  </span>
-                                );
-                              })}
+                              <RestrictionBadges
+                                groupIds={wodGroupMap[wod.id] ?? []}
+                                programIds={wodProgramMap[wod.id] ?? []}
+                                groups={refGroups}
+                                programs={refPrograms}
+                              />
                             </div>
                             <p className="text-sm font-bold text-white truncate">{wod.title}</p>
                             {wod.description && (

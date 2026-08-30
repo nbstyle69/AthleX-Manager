@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { useLanguage } from '@/components/language-provider';
 import { LanguageToggle } from './language-toggle';
 import { Logo } from './logo';
+import { useHomeHref } from '@/lib/useHomeHref';
 
 const ONBOARDING = '/pricing/onboarding';
 
@@ -19,6 +20,7 @@ const ONBOARDING = '/pricing/onboarding';
 export function LandingHeader({ variant = 'full' }: { variant?: 'full' | 'funnel' }) {
   const { t } = useLanguage();
   const [open, setOpen] = useState(false);
+  const homeHref = useHomeHref();
 
   // Ancres préfixées : le header vit aussi sur /box, /classement et /privacy,
   // où un « #pricing » nu ne mènerait nulle part.
@@ -35,7 +37,7 @@ export function LandingHeader({ variant = 'full' }: { variant?: 'full' | 'funnel
     return (
       <header className="sticky top-0 z-50 border-b border-border bg-background/70 backdrop-blur-xl">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-6">
-          <a href="/landing" aria-label="AthleX">
+          <a href={homeHref} aria-label="AthleX">
             <Logo />
           </a>
           <LanguageToggle />
@@ -49,7 +51,7 @@ export function LandingHeader({ variant = 'full' }: { variant?: 'full' | 'funnel
       {/* Nav dans le flux : le bloc de droite la repousse au lieu de passer par-dessus.
           Bascule burger à lg, dimensionnée sur le français (libellés plus longs). */}
       <div className="mx-auto flex h-16 max-w-6xl items-center gap-6 px-6">
-        <a href="/landing" aria-label="AthleX" className="shrink-0">
+        <a href={homeHref} aria-label="AthleX" className="shrink-0">
           <Logo />
         </a>
 
