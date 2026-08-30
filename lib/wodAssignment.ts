@@ -79,14 +79,15 @@ export function libelleAssignation(
   noms: { groupes: string[]; programmes: string[] },
   mode: AssignMode,
 ): string {
-  const wods = `${nbWods} WOD${nbWods > 1 ? 's' : ''}`;
+  const s = nbWods > 1 ? 's' : '';
+  const wods = `${nbWods} WOD${s}`;
   const cibles = [
     ...noms.groupes.map(n => `Groupe : ${n}`),
     ...noms.programmes.map(n => `Programme : ${n}`),
   ];
   if (cibles.length === 0) {
-    return `${wods} sans restriction — visibles par toute la box.`;
+    return `${wods} sans restriction — visible${s} par toute la box.`;
   }
-  const verbe = mode === 'ajouter' ? 'assignés à' : 'restreints à (remplacement)';
+  const verbe = mode === 'ajouter' ? `assigné${s} à` : `restreint${s} à (remplacement)`;
   return `${wods} ${verbe} ${cibles.join(', ')}.`;
 }

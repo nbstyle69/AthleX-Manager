@@ -130,8 +130,14 @@ export default function AssignRestrictionsModal({
               Rien n&apos;est coché : ces {wodIds.length} WOD perdront toute restriction et deviendront visibles par toute la box.
             </p>
           )}
-          {mode === 'ajouter' && rienDeCoche && (
-            <p className="text-xs text-gray-500">Coche au moins un groupe ou un programme pour assigner.</p>
+          {/* Emplacement de hauteur constante : une ligne qui apparaît/disparaît
+              déplace les puces sous le curseur entre deux clics. */}
+          {mode === 'ajouter' && (
+            <p className="text-xs text-gray-500 min-h-[16px]">
+              {rienDeCoche
+                ? 'Coche au moins un groupe ou un programme pour assigner.'
+                : `${groupIds.length + programIds.length} destination${groupIds.length + programIds.length > 1 ? 's' : ''} cochée${groupIds.length + programIds.length > 1 ? 's' : ''}.`}
+            </p>
           )}
           {error && (
             <p className="text-xs font-semibold text-red-400 bg-red-500/10 border border-red-500/20 rounded-xl px-3 py-2">

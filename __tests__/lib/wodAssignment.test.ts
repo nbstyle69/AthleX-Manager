@@ -14,8 +14,15 @@ describe('libelleAssignation', () => {
       .toBe('3 WODs assignés à Groupe : Muscu.');
   });
 
+  it('accorde au singulier pour un seul WOD', () => {
+    expect(libelleAssignation(1, { groupes: ['Intra-Box'], programmes: [] }, 'remplacer'))
+      .toBe('1 WOD restreint à (remplacement) Groupe : Intra-Box.');
+    expect(libelleAssignation(1, { groupes: ['Intra-Box'], programmes: [] }, 'ajouter'))
+      .toBe('1 WOD assigné à Groupe : Intra-Box.');
+  });
+
   it('dit la conséquence quand le remplacement ne vise rien', () => {
     expect(libelleAssignation(1, { groupes: [], programmes: [] }, 'remplacer'))
-      .toBe('1 WOD sans restriction — visibles par toute la box.');
+      .toBe('1 WOD sans restriction — visible par toute la box.');
   });
 });

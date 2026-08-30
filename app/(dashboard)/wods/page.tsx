@@ -1,6 +1,6 @@
 ﻿'use client';
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import {
   Plus, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, ArrowLeft, ArrowRight, Pencil, Trash2,
@@ -20,7 +20,6 @@ import {
   WodFormState, WodType, formatCap, movementLines, parseCap, sharedWodColumns,
 } from '@/lib/wodFields';
 import { downloadWodCsvTemplate, parseWodImportFile, VALID_WOD_TYPES } from '@/lib/wodImport';
-import { useRef } from 'react';
 
 interface BoxWOD {
   id: string; box_id: string; created_by: string;
@@ -123,6 +122,7 @@ export default function WODsPage() {
   const [pdfDestGroups, setPdfDestGroups] = useState<string[]>([]);
   const [pdfDestPrograms, setPdfDestPrograms] = useState<string[]>([]);
   const [dragOver, setDragOver] = useState(false);
+  const importRef = useRef<(f: File) => Promise<void>>(async () => {});
   const [selectMode, setSelectMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [assignModal, setAssignModal] = useState(false);
@@ -601,6 +601,57 @@ export default function WODsPage() {
     if (ok > 0) load();
   }
 
+  importRef.current = importFile;
+
+  /* Le dépôt s'écoute sur la fenêtre : sans un preventDefault au niveau du
+     document, Chrome traite le lâcher comme une navigation et télécharge le
+     fichier au lieu de le donner à la page. Le compteur et le dragleave hors
+     fenêtre évitent qu'un survol annulé laisse l'overlay collé. */
+  useEffect(() => {
+    let profondeur = 0;
+    const porteUnFichier = (e: DragEvent) =>
+      Array.from(e.dataTransfer?.types ?? []).includes('Files');
+
+    const onEnter = (e: DragEvent) => {
+      if (!porteUnFichier(e)) return;
+      profondeur += 1;
+      setDragOver(true);
+    };
+    const onOver = (e: DragEvent) => {
+      if (!porteUnFichier(e)) return;
+      e.preventDefault();
+      if (e.dataTransfer) e.dataTransfer.dropEffect = 'copy';
+    };
+    const onLeave = (e: DragEvent) => {
+      profondeur = Math.max(0, profondeur - 1);
+      if (profondeur === 0 || e.relatedTarget === null) setDragOver(false);
+    };
+    const relacher = () => { profondeur = 0; setDragOver(false); };
+    const onDrop = (e: DragEvent) => {
+      if (!porteUnFichier(e)) return;
+      e.preventDefault();
+      relacher();
+      const file = e.dataTransfer?.files?.[0];
+      if (file) void importRef.current(file);
+    };
+    const onEsc = (e: KeyboardEvent) => { if (e.key === 'Escape') relacher(); };
+
+    window.addEventListener('dragenter', onEnter);
+    window.addEventListener('dragover', onOver);
+    window.addEventListener('dragleave', onLeave);
+    window.addEventListener('dragend', relacher);
+    window.addEventListener('drop', onDrop);
+    window.addEventListener('keydown', onEsc);
+    return () => {
+      window.removeEventListener('dragenter', onEnter);
+      window.removeEventListener('dragover', onOver);
+      window.removeEventListener('dragleave', onLeave);
+      window.removeEventListener('dragend', relacher);
+      window.removeEventListener('drop', onDrop);
+      window.removeEventListener('keydown', onEsc);
+    };
+  }, []);
+
   function jumpToDate(dateStr: string) {
     const target = new Date(dateStr + 'T00:00:00');
     const today = new Date();
@@ -617,24 +668,8 @@ export default function WODsPage() {
     setShowDateNav(false);
   }
 
-  /** Le dépôt n'est proposé que pour un vrai fichier traîné, pas pour du texte. */
-  function dragPorteUnFichier(e: React.DragEvent): boolean {
-    return Array.from(e.dataTransfer.types).includes('Files');
-  }
-
   return (
-    <div
-      className="space-y-6 relative"
-      onDragOver={(e) => { if (dragPorteUnFichier(e)) { e.preventDefault(); setDragOver(true); } }}
-      onDragLeave={(e) => { if (e.currentTarget === e.target) setDragOver(false); }}
-      onDrop={(e) => {
-        if (!dragPorteUnFichier(e)) return;
-        e.preventDefault();
-        setDragOver(false);
-        const file = e.dataTransfer.files?.[0];
-        if (file) void importFile(file);
-      }}
-    >
+    <div className="space-y-6 relative">
       {dragOver && (
         <div className="fixed inset-0 z-40 bg-black/70 backdrop-blur-sm flex items-center justify-center pointer-events-none">
           <div className="border-2 border-dashed border-white/40 rounded-2xl px-10 py-8 text-center bg-[#111111]/80">
@@ -970,9 +1005,11 @@ export default function WODsPage() {
         <div className={`border rounded-xl px-4 py-3 text-sm ${importResult.errors.length > 0 ? 'bg-amber-500/10 border-amber-500/20' : 'bg-emerald-500/10 border-emerald-500/20'}`}>
           <div className="flex items-center justify-between">
             <p className={`font-bold ${importResult.errors.length > 0 ? 'text-amber-400' : 'text-emerald-400'}`}>
+              {/* Zéro WOD posé n'est pas un enregistrement : un refus annoncé
+                  par « ✅ Enregistré » se lit comme un import réussi. */}
               {importResult.ok > 0
                 ? `✅ ${importResult.ok} WOD${importResult.ok > 1 ? 's' : ''} posé${importResult.ok > 1 ? 's' : ''}`
-                : '✅ Enregistré'}
+                : importResult.errors.length > 0 ? '⚠️ Rien n\u2019a été posé' : '✅ Fait'}
               {importResult.errors.length > 0 && ` — ⚠️ ${importResult.errors.length} erreur(s)`}
             </p>
             <button onClick={() => setImportResult(null)} className="text-gray-500 hover:text-white"><X size={13} /></button>
