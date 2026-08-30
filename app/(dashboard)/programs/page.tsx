@@ -66,7 +66,7 @@ const LIBELLE_PROVENANCE: Record<string, string> = {
 // sur la ligne d'accès : deux colonnes portant la même somme finiraient par ne
 // plus dire la même chose. Cette page n'en affiche donc pas le montant.
 
-type PlanType = 'subscription' | 'drop_in' | 'pack';
+type PlanType = 'subscription' | 'drop_in' | 'pack' | 'trial';
 
 interface MembershipPlan {
   id: string;
@@ -598,7 +598,10 @@ export default function BoxOwnerProgramsPage() {
     // Drop-in / Carnet : achat unique -> crédits + validité. Prix obligatoire (> 0).
     let credits: number | null = null;
     let validityDays: number | null = null;
-    if (type === 'drop_in') {
+    if (type === 'trial') {
+      credits = null;
+      validityDays = null;
+    } else if (type === 'drop_in') {
       credits = 1;
       validityDays = 14;
     } else if (type === 'pack') {
@@ -626,7 +629,7 @@ export default function BoxOwnerProgramsPage() {
       box_id: boxId,
       name: planForm.name.trim(),
       description: planForm.description.trim() || null,
-      price_cents: priceCents,
+      price_cents: type === 'trial' ? 0 : priceCents,
       max_sessions_per_week: type === 'subscription' ? maxVal : null,
       color: planForm.color,
       is_active: planForm.is_active,
@@ -645,11 +648,7 @@ export default function BoxOwnerProgramsPage() {
 
     const fail = writeFailure(error, data);
     if (fail) {
-      setPlanError(
-        error?.code === '23505'
-          ? 'Une formule porte déjà ce nom.'
-          : `Impossible d'enregistrer la formule : ${fail}`,
-      );
+      setPlanError(planWriteMessage(error, fail));
       setPlanSaving(false);
       return;
     }
@@ -657,6 +656,20 @@ export default function BoxOwnerProgramsPage() {
     setPlanSaving(false);
     setShowPlanForm(false);
     if (boxId) await loadPlans(boxId);
+  }
+
+  // Le serveur a le dernier mot : ses refus sont nommés, on ne les traduit pas
+  // tous en « nom déjà pris ».
+  function planWriteMessage(error: { code?: string; message?: string } | null, fail: string): string {
+    const msg = error?.message ?? '';
+    if (msg.includes('membership_plans_une_offre_trial_par_box')) {
+      return 'Cette box a déjà une offre Essai. Modifie-la au lieu d\'en créer une seconde.';
+    }
+    if (msg.includes('membership_plans_trial_gratuit')) {
+      return 'Une offre Essai est gratuite : son prix doit rester à 0 €.';
+    }
+    if (error?.code === '23505') return 'Une formule porte déjà ce nom.';
+    return `Impossible d'enregistrer la formule : ${fail}`;
   }
 
   async function handleDeletePlan(id: string) {
@@ -1002,8 +1015,12 @@ export default function BoxOwnerProgramsPage() {
                       <span className={`text-[10px] px-2 py-0.5 rounded-md font-bold ${
                         pl.plan_type === 'drop_in' ? 'bg-blue-500/10 text-blue-400'
                         : pl.plan_type === 'pack' ? 'bg-purple-500/10 text-purple-400'
+                        : pl.plan_type === 'trial' ? 'bg-amber-500/10 text-amber-400'
                         : 'bg-emerald-500/10 text-emerald-400'}`}>
-                        {pl.plan_type === 'drop_in' ? 'Drop-in' : pl.plan_type === 'pack' ? 'Carnet' : 'Abonnement'}
+                        {pl.plan_type === 'drop_in' ? 'Drop-in'
+                          : pl.plan_type === 'pack' ? 'Carnet'
+                          : pl.plan_type === 'trial' ? 'Essai'
+                          : 'Abonnement'}
                       </span>
                       {!pl.is_active && (
                         <span className="text-[10px] px-2 py-0.5 rounded-md bg-red-500/10 text-red-400 font-semibold">Inactif</span>
@@ -1013,7 +1030,9 @@ export default function BoxOwnerProgramsPage() {
                     <div className="flex items-center gap-1.5 mt-2 text-xs text-gray-500">
                       <Calendar size={13} />
                       <span className="font-semibold">
-                        {pl.plan_type === 'drop_in'
+                        {pl.plan_type === 'trial'
+                          ? '1 séance découverte · gratuite'
+                          : pl.plan_type === 'drop_in'
                           ? `1 séance · valable ${pl.validity_days ?? 14} j`
                           : pl.plan_type === 'pack'
                           ? `${pl.credits ?? 0} séances · valable ${Math.round((pl.validity_days ?? 0) / 30)} mois`
@@ -1481,11 +1500,12 @@ export default function BoxOwnerProgramsPage() {
             <div className="space-y-4">
               <div>
                 <label className="text-xs font-bold text-gray-400 mb-2 block">Type d'offre</label>
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-2 gap-2">
                   {([
                     { v: 'subscription', label: 'Abonnement', desc: 'Mensuel récurrent' },
                     { v: 'drop_in', label: 'Drop-in', desc: '1 séance' },
                     { v: 'pack', label: 'Carnet', desc: 'N séances / X mois' },
+                    { v: 'trial', label: 'Essai', desc: 'Gratuit · 1 séance découverte' },
                   ] as { v: PlanType; label: string; desc: string }[]).map(o => (
                     <button
                       key={o.v}
@@ -1505,7 +1525,7 @@ export default function BoxOwnerProgramsPage() {
                 <input
                   className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white outline-none focus:border-emerald-500/50"
                   value={planForm.name} onChange={e => setPlanForm({ ...planForm, name: e.target.value })}
-                  placeholder={planForm.plan_type === 'drop_in' ? 'Séance à l\'unité' : planForm.plan_type === 'pack' ? 'Carnet 10 séances' : 'Essentiel, Premium…'}
+                  placeholder={planForm.plan_type === 'drop_in' ? 'Séance à l\'unité' : planForm.plan_type === 'pack' ? 'Carnet 10 séances' : planForm.plan_type === 'trial' ? 'Séance découverte' : 'Essentiel, Premium…'}
                 />
               </div>
 
@@ -1559,6 +1579,27 @@ export default function BoxOwnerProgramsPage() {
                       className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white outline-none focus:border-emerald-500/50 resize-none"
                       value={planForm.terms} onChange={e => setPlanForm({ ...planForm, terms: e.target.value })}
                       placeholder="Ex. Prix TTC. Horaires d'accès 6h–22h. Résiliation possible pour motif légitime (déménagement, blessure) sur justificatif."
+                    />
+                  </div>
+                </div>
+              )}
+
+              {planForm.plan_type === 'trial' && (
+                <div className="space-y-3">
+                  <div className="px-3 py-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20">
+                    <p className="text-xs font-bold text-amber-300">Gratuite par construction</p>
+                    <p className="text-[11px] text-amber-200/70 mt-1">
+                      Pas de prix à saisir : la base refuse une offre Essai payante. Une seule offre Essai par box.
+                      Le visiteur réserve un cours à venir sans créer de compte, et son dossier arrive dans Prospects.
+                    </p>
+                  </div>
+                  <div>
+                    <label className="text-xs font-bold text-gray-400 mb-1 block">Conditions / mentions (affichées au visiteur)</label>
+                    <textarea
+                      rows={3}
+                      className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white outline-none focus:border-emerald-500/50 resize-none"
+                      value={planForm.terms} onChange={e => setPlanForm({ ...planForm, terms: e.target.value })}
+                      placeholder="Ex. Une séance d'essai par personne. Prévoir des chaussures de sport. Présente-toi 10 minutes avant le cours."
                     />
                   </div>
                 </div>

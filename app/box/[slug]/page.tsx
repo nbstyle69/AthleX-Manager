@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { notFound } from 'next/navigation';
 import { rowOrNullOrThrow, rowsOrThrow } from '@/lib/publicRead';
+import { PUBLIC_PLAN_FILTER, splitPublicPlans } from '@/lib/publicPlans';
 import {
   BoxPublicView,
   type PublicBox,
@@ -83,18 +84,21 @@ export default async function BoxPublicPage({ params }: { params: Promise<{ slug
     .order('title', { ascending: true });
   const programs = rowsOrThrow<PublicProgram>('programs', programsRes);
 
-  // Only paid formulas are shown publicly.
+  // Les formules gratuites restent masquées, sauf l'Essai : c'est une exception
+  // nommée, pas la levée de la règle. Une formule à 0 € d'un autre type ne
+  // devient pas visible pour autant.
   const plansRes = await supabase
     .from('membership_plans')
     .select('id, name, description, price_cents, max_sessions_per_week, color, plan_type, credits, validity_days, commitment_months, terms')
     .eq('box_id', row.id)
     .eq('is_active', true)
-    .gt('price_cents', 0)
+    .or(PUBLIC_PLAN_FILTER)
     .order('price_cents', { ascending: true });
   const allPlans = rowsOrThrow<PublicPlan>('membership_plans', plansRes);
 
-  const plans = allPlans.filter((pl) => (pl.plan_type ?? 'subscription') === 'subscription');
-  const creditOffers = allPlans.filter((pl) => pl.plan_type === 'drop_in' || pl.plan_type === 'pack');
+  // La base garantit l'unicité de l'Essai (index partiel sur `box_id` où
+  // `plan_type = 'trial'`).
+  const { plans, creditOffers, trialOffer } = splitPublicPlans(allPlans);
 
   // Keyless Google Maps embed: prefer exact coordinates, else fall back to the address.
   const mapQuery =
@@ -134,6 +138,7 @@ export default async function BoxPublicPage({ params }: { params: Promise<{ slug
       foundedYear={row.founded_at ? new Date(row.founded_at).getFullYear() : null}
       plans={plans}
       creditOffers={creditOffers}
+      trialOffer={trialOffer}
       programs={programs}
       mapQuery={mapQuery}
       mapsLink={mapsLink}

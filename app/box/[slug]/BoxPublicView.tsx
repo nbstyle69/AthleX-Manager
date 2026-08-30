@@ -2,7 +2,7 @@
 
 import {
   MapPin, Phone, Mail, Globe, Instagram, Calendar,
-  Clock, Dumbbell, ShoppingCart, Users, ChevronRight,
+  Clock, Dumbbell, ShoppingCart, Users, ChevronRight, CalendarCheck,
 } from 'lucide-react';
 import { LandingHeader } from '@/components/landing/header';
 import { LandingFooter } from '@/components/landing/footer';
@@ -11,6 +11,7 @@ import { useLanguage } from '@/components/language-provider';
 import ProgramBuyButton from './ProgramBuyButton';
 import MembershipSubscribeButton from './MembershipSubscribeButton';
 import MembershipManageButton from './MembershipManageButton';
+import TrialBookingCta from './TrialBookingCta';
 
 export interface PublicBox {
   id: string;
@@ -41,7 +42,7 @@ export interface PublicPlan {
   price_cents: number;
   max_sessions_per_week: number | null;
   color: string;
-  plan_type: 'subscription' | 'drop_in' | 'pack';
+  plan_type: 'subscription' | 'drop_in' | 'pack' | 'trial';
   credits: number | null;
   validity_days: number | null;
   commitment_months: number | null;
@@ -69,6 +70,7 @@ export function BoxPublicView({
   foundedYear,
   plans,
   creditOffers,
+  trialOffer,
   programs,
   mapQuery,
   mapsLink,
@@ -78,6 +80,7 @@ export function BoxPublicView({
   foundedYear: number | null;
   plans: PublicPlan[];
   creditOffers: PublicPlan[];
+  trialOffer: PublicPlan | null;
   programs: PublicProgram[];
   mapQuery: string | null;
   mapsLink: string | null;
@@ -198,6 +201,45 @@ export function BoxPublicView({
                     </div>
                   );
                 })}
+              </div>
+            </section>
+          )}
+
+          {trialOffer && (
+            <section>
+              <h2 className="mb-1 flex items-center gap-2 font-display text-lg font-semibold">
+                <CalendarCheck size={18} /> {p.trial.section}
+              </h2>
+              <p className="mb-4 text-xs text-muted-foreground">
+                {p.trial.subtitle.replace('{box}', b.name)}
+              </p>
+              <div className="rounded-2xl border border-border bg-card p-5">
+                <div className="flex items-center gap-2">
+                  <div
+                    className="h-3 w-3 shrink-0 rounded-full"
+                    style={{ backgroundColor: trialOffer.color }}
+                  />
+                  <h3 className="font-semibold text-foreground">{trialOffer.name}</h3>
+                  <span className="rounded-md bg-secondary/60 px-2 py-0.5 text-[10px] font-bold text-foreground">
+                    {p.trial.badge}
+                  </span>
+                </div>
+                {trialOffer.description && (
+                  <p className="mt-1 text-xs text-muted-foreground">{trialOffer.description}</p>
+                )}
+                <div className="mt-2 flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <Calendar size={12} /> {p.trial.detail}
+                </div>
+                {trialOffer.terms && (
+                  <p className="mt-3 whitespace-pre-line rounded-xl border border-border bg-background p-3 text-[11px] text-muted-foreground">
+                    <span className="font-bold text-foreground">{p.trial.terms} — </span>
+                    {trialOffer.terms}
+                  </p>
+                )}
+                <div className="mt-4 flex items-center justify-between border-t border-border pt-4">
+                  <span className="text-sm font-bold text-foreground">{p.free}</span>
+                  <TrialBookingCta boxId={b.id} planName={trialOffer.name} />
+                </div>
               </div>
             </section>
           )}

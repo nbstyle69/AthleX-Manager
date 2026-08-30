@@ -14,7 +14,10 @@ import { writeFailure } from '@/lib/writeGuard';
 
 interface Participant {
   reservation_id: string;
-  member_id: string;
+  /** Null pour un essai : la ligne porte un prospect, pas un adhérent. */
+  member_id: string | null;
+  prospect_id: string | null;
+  is_trial: boolean;
   username: string;
   avatar_url: string | null;
   email: string;
@@ -348,18 +351,22 @@ export default function SchedulesPage() {
     setMemberSearch('');
     const { data } = await supabase
       .from('class_reservations')
-      .select('id, member_id, status, attended, created_at, profile:profiles(username, avatar_url)')
+      .select('id, member_id, prospect_id, is_trial, status, attended, created_at, profile:profiles(username, avatar_url), prospect:box_prospects(first_name, last_name, email)')
       .eq('schedule_id', item.id)
       .order('created_at', { ascending: true });
     const emails = boxId ? await getMemberEmails(supabase, boxId) : new Map<string, string>();
     const list: Participant[] = (data ?? []).map((r: any) => {
       const p = Array.isArray(r.profile) ? r.profile[0] : r.profile;
+      const pr = Array.isArray(r.prospect) ? r.prospect[0] : r.prospect;
+      const trialName = pr ? [pr.first_name, pr.last_name].filter(Boolean).join(' ') : 'Essai';
       return {
         reservation_id: r.id,
-        member_id: r.member_id,
-        username: p?.username ?? '?',
+        member_id: r.member_id ?? null,
+        prospect_id: r.prospect_id ?? null,
+        is_trial: Boolean(r.is_trial),
+        username: r.is_trial ? trialName : (p?.username ?? '?'),
         avatar_url: p?.avatar_url ?? null,
-        email: emails.get(r.member_id) ?? '',
+        email: r.is_trial ? (pr?.email ?? '') : (r.member_id ? emails.get(r.member_id) ?? '' : ''),
         status: r.status,
         attended: r.attended ?? null,
         created_at: r.created_at,
@@ -382,19 +389,39 @@ export default function SchedulesPage() {
     if (fail) {
       alert('Erreur : ' + fail);
       setParticipants(prev => prev.map(p => p.reservation_id === reservationId ? { ...p, attended: current } : p));
-    } else if (current === null) {
+    } else {
+      await syncProspectStatus(reservationId, next);
+      if (current === null) {
       // Le compteur « n pointés » de la vue du jour suit le pointage sans
       // relire tout le créneau.
-      setDayItems(prev => prev.map(s => s.id === detailItem?.id ? { ...s, pointed_count: s.pointed_count + 1 } : s));
+        setDayItems(prev => prev.map(s => s.id === detailItem?.id ? { ...s, pointed_count: s.pointed_count + 1 } : s));
+      }
     }
     setTogglingAtt(null);
   }
 
+  /**
+   * Le pointage du coach fait avancer le prospect : présent → « venu »,
+   * absent → « pas venu ». Un prospect déjà converti ou perdu ne redescend
+   * pas dans le tunnel : le filtre de statut le protège, et zéro ligne
+   * touchée est alors le résultat attendu, pas un échec.
+   */
+  async function syncProspectStatus(reservationId: string, attended: boolean) {
+    const p = participants.find(x => x.reservation_id === reservationId);
+    if (!p?.is_trial || !p.prospect_id) return;
+    const { error } = await supabase
+      .from('box_prospects')
+      .update({ status: attended ? 'venu' : 'pas_venu' })
+      .eq('id', p.prospect_id)
+      .in('status', ['essai_reserve', 'venu', 'pas_venu', 'relance']);
+    if (error) alert('Statut du prospect non mis à jour : ' + error.message);
+  }
+
   function exportAttendanceCSV() {
     if (!detailItem || participants.length === 0) return;
-    const header = 'Nom,Email,Statut,Présent';
+    const header = 'Nom,Email,Statut,Présent,Type';
     const rows = participants.map(p =>
-      `"${p.username}","${p.email}","${p.status}","${p.attended === true ? 'Oui' : p.attended === false ? 'Non' : '-'}"`
+      `"${p.username}","${p.email}","${p.status}","${p.attended === true ? 'Oui' : p.attended === false ? 'Non' : '-'}","${p.is_trial ? 'Essai' : 'Adhérent'}"`
     );
     const csv = [header, ...rows].join('\n');
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
@@ -416,7 +443,7 @@ export default function SchedulesPage() {
       .eq('box_id', boxId)
       .eq('status', 'active');
     const emails = await getMemberEmails(supabase, boxId);
-    const existingIds = new Set(participants.map(p => p.member_id));
+    const existingIds = new Set(participants.map(p => p.member_id).filter((v): v is string => !!v));
     const results = (data ?? [])
       .map((m: any) => {
         const pr = Array.isArray(m.profiles) ? m.profiles[0] : m.profiles;
@@ -454,7 +481,7 @@ export default function SchedulesPage() {
     }
     setParticipants(prev => [
       ...prev,
-      { reservation_id: inserted?.id ?? `tmp-${memberId}`, member_id: memberId, username, avatar_url: null, email, status: savedStatus, attended: savedStatus === 'confirmed', created_at: new Date().toISOString() },
+      { reservation_id: inserted?.id ?? `tmp-${memberId}`, member_id: memberId, prospect_id: null, is_trial: false, username, avatar_url: null, email, status: savedStatus, attended: savedStatus === 'confirmed', created_at: new Date().toISOString() },
     ]);
     setAddMemberOpen(false);
     setMemberSearch('');
@@ -1001,7 +1028,12 @@ export default function SchedulesPage() {
                               </button>
                               <Avatar url={p.avatar_url} name={p.username} />
                               <div className="flex-1 min-w-0">
-                                <p className="text-sm font-semibold text-white truncate">{p.username}</p>
+                                <div className="flex items-center gap-1.5">
+                                  <p className="text-sm font-semibold text-white truncate">{p.username}</p>
+                                  {p.is_trial && (
+                                    <span className="text-[9px] px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-300 font-bold shrink-0">ESSAI</span>
+                                  )}
+                                </div>
                                 <p className="text-xs text-gray-500 truncate">{p.email}</p>
                               </div>
                               <span className="text-[10px] text-gray-600 font-mono">#{i + 1}</span>

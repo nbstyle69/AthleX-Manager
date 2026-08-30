@@ -37,10 +37,26 @@ const rowsByTable: Record<string, any[]> = {
     rounds: null, time_cap_seconds: 600, notes: null, is_published: true, created_at: '2026-02-01T08:00:00Z',
   }],
   class_reservations: [
-    { created_at: '2026-02-02T12:00:00Z', schedule_id: 'sch-1', member_id: 'u-1', status: 'confirmed', attended: true },
+    {
+      created_at: '2026-02-02T12:00:00Z', schedule_id: 'sch-1', member_id: 'u-1',
+      prospect_id: null, is_trial: false, status: 'confirmed', attended: true,
+    },
+    // Essai : la ligne ne porte pas d'adhérent, son e-mail vient du prospect.
+    {
+      created_at: '2026-02-02T13:00:00Z', schedule_id: 'sch-1', member_id: null,
+      prospect_id: 'pros-1', is_trial: true, status: 'confirmed', attended: null,
+    },
     // Cours d'une AUTRE box : la réservation ne doit pas atterrir dans le pack.
-    { created_at: '2026-02-02T12:00:00Z', schedule_id: 'sch-autre-box', member_id: 'u-2', status: 'confirmed', attended: null },
+    {
+      created_at: '2026-02-02T12:00:00Z', schedule_id: 'sch-autre-box', member_id: 'u-2',
+      prospect_id: null, is_trial: false, status: 'confirmed', attended: null,
+    },
   ],
+  box_prospects: [{
+    id: 'pros-1', created_at: '2026-02-01T18:00:00Z', first_name: 'Jean', last_name: 'Dujardin',
+    email: 'prospect@exemple.fr', phone: '0600000000', status: 'essai_reserve',
+    source: 'page_publique', notes: null, plan_id: 'plan-1', schedule_id: 'sch-1',
+  }],
   profiles: [{ id: 'u-1', email: 'membre@exemple.fr', username: 'membre', full_name: 'Membre Un', gender: 'M' }],
 };
 
@@ -104,7 +120,7 @@ describe('GET /api/box-export', () => {
     const zip = await JSZip.loadAsync(Buffer.from(await res.arrayBuffer()));
     expect(Object.keys(zip.files).sort()).toEqual([
       'LISEZ-MOI.txt', 'abonnements.csv', 'encaissements-comptoir.csv', 'formules.csv',
-      'invitations.csv', 'membres.csv', 'reservations.csv', 'wods.csv',
+      'invitations.csv', 'membres.csv', 'prospects.csv', 'reservations.csv', 'wods.csv',
     ]);
 
     const membres = await zip.file('membres.csv')!.async('string');
@@ -134,6 +150,19 @@ describe('GET /api/box-export', () => {
     const zip = await JSZip.loadAsync(Buffer.from(await res.arrayBuffer()));
     const reservations = await zip.file('reservations.csv')!.async('string');
     expect(reservations).toContain('WOD 18h');
-    expect(reservations.trim().split('\r\n')).toHaveLength(2); // en-tête + 1 ligne
+    expect(reservations.trim().split('\r\n')).toHaveLength(3); // en-tête + adhérent + essai
+  });
+
+  it('distingue l’essai de l’adhérent, et sort le prospect dans son propre fichier', async () => {
+    const res = await GET(makeReq('box-1'));
+    const zip = await JSZip.loadAsync(Buffer.from(await res.arrayBuffer()));
+
+    const reservations = await zip.file('reservations.csv')!.async('string');
+    expect(reservations).toContain('membre@exemple.fr;adhérent');
+    expect(reservations).toContain('prospect@exemple.fr;essai');
+
+    const prospects = await zip.file('prospects.csv')!.async('string');
+    expect(prospects).toContain('prospect@exemple.fr');
+    expect(prospects).toContain('essai_reserve');
   });
 });
