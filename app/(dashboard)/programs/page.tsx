@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import { getMyBox } from '@/lib/getMyBox';
 import { writeFailure } from '@/lib/writeGuard';
@@ -9,7 +10,7 @@ import { RETRAIT_COMPTOIR_CONFIRMATION, MENTION_ACCES_STRIPE } from '@/lib/progr
 import {
   BookOpen, Plus, Pencil, Trash2, X, Globe, Eye, Copy, Check,
   Users, Calendar, Clock, Hash, ChevronLeft, ChevronRight, FileText,
-  CreditCard, AlertTriangle, Loader2, Ticket, Percent,
+  CreditCard, AlertTriangle, Loader2, Ticket, Percent, Dumbbell,
 } from 'lucide-react';
 import { formatCap, parseCap } from '@/lib/wodFields';
 import {
@@ -33,6 +34,8 @@ interface Program {
   is_active: boolean;
   created_at: string;
   member_count?: number;
+  /** WOD réellement rattachés au programme (`wod_program_access`). */
+  wod_count?: number;
 }
 
 interface ProgramMemberRow {
@@ -262,13 +265,14 @@ export default function BoxOwnerProgramsPage() {
 
     const { data: progs } = await supabase
       .from('programs')
-      .select('*, program_members(count)')
+      .select('*, program_members(count), wod_program_access(count)')
       .eq('box_id', box.id)
       .order('created_at', { ascending: false });
 
     const mapped = (progs ?? []).map((p: any) => ({
       ...p,
       member_count: p.program_members?.[0]?.count ?? 0,
+      wod_count: p.wod_program_access?.[0]?.count ?? 0,
     }));
     setPrograms(mapped as Program[]);
 
@@ -1193,6 +1197,12 @@ export default function BoxOwnerProgramsPage() {
                   <div className="flex items-center gap-1.5 text-xs text-gray-500">
                     <Calendar size={13} /> <span className="font-semibold">{p.days_per_week}j/sem</span>
                   </div>
+                  <div className="flex items-center gap-1.5 text-xs text-gray-500">
+                    <Dumbbell size={13} />
+                    <span className={`font-semibold ${(p.wod_count ?? 0) === 0 ? 'text-amber-400' : ''}`}>
+                      {p.wod_count ?? 0} WOD{(p.wod_count ?? 0) > 1 ? 's' : ''} liés
+                    </span>
+                  </div>
                   <button onClick={() => copyCode(p.invite_code)} className="flex items-center gap-1.5 text-xs font-bold text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-lg hover:bg-emerald-500/20 transition-all">
                     {codeCopied === p.invite_code ? <Check size={12} /> : <Hash size={12} />}
                     {codeCopied === p.invite_code ? 'Copié !' : p.invite_code}
@@ -1203,6 +1213,9 @@ export default function BoxOwnerProgramsPage() {
                   <button onClick={() => openEditor(p)} className="flex items-center gap-1.5 px-3 py-2 rounded-lg hover:bg-emerald-500/10 text-emerald-400 hover:text-emerald-300 text-xs font-semibold transition-all">
                     <FileText size={13} /> Séances
                   </button>
+                  <Link href="/wods" className="flex items-center gap-1.5 px-3 py-2 rounded-lg hover:bg-white/5 text-gray-400 hover:text-white text-xs font-semibold transition-all">
+                    <Dumbbell size={13} /> Whiteboard
+                  </Link>
                   <button onClick={() => openAccess(p)} className="flex items-center gap-1.5 px-3 py-2 rounded-lg hover:bg-emerald-500/10 text-emerald-400 hover:text-emerald-300 text-xs font-semibold transition-all">
                     <Users size={13} /> Accès
                   </button>

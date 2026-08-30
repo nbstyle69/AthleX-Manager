@@ -93,6 +93,26 @@ export async function getAdminBoxes(
 }
 
 /**
+ * Où mène « l'accueil » pour l'appelant, décidé par son titre réel.
+ *
+ * Le titre sort de `get_my_admin_boxes()` — la même source que les routes
+ * argent — et pas d'une déduction côté client : un lien d'accueil qui devine
+ * le rôle envoie l'athlète sur l'écran du gérant, ce qui était le défaut.
+ *
+ * gérant/co-gérant → `/` · coach → `/wods` · adhérent connecté → `/compte` ·
+ * visiteur → `/landing`.
+ */
+export async function resolveHomeHref(): Promise<string> {
+  const user = await getServerUser();
+  if (!user) return '/landing';
+  const supabase = await createClient();
+  const boxes = await getAdminBoxes(supabase);
+  if (boxes.some((b) => b.my_role === 'owner')) return '/';
+  if (boxes.length > 0) return '/wods';
+  return '/compte';
+}
+
+/**
  * The currently-active box for the dashboard. Resolves the `active_box_id`
  * cookie against the set of boxes the user is authorized to administrate
  * (rejecting a forged/stale cookie to prevent IDOR), and falls back to the
