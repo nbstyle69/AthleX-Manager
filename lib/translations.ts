@@ -427,6 +427,11 @@ export const translations = {
         tooShort: 'Le mot de passe doit contenir au moins 6 caractères.',
         mismatch: 'Les deux mots de passe ne correspondent pas.',
       },
+      confirmed: {
+        header: 'E-mail confirmé',
+        title: 'Ton e-mail est confirmé.',
+        body: "Ouvre l'app AthleX et connecte-toi.",
+      },
       signup: {
         subtitle: 'Crée ton compte athlète',
         title: 'Inscription',
@@ -1057,6 +1062,11 @@ export const translations = {
         submitting: 'Updating…',
         tooShort: 'The password must be at least 6 characters long.',
         mismatch: 'The two passwords do not match.',
+      },
+      confirmed: {
+        header: 'Email confirmed',
+        title: 'Your email is confirmed.',
+        body: 'Open the AthleX app and sign in.',
       },
       signup: {
         subtitle: 'Create your athlete account',

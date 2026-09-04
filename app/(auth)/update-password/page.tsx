@@ -2,14 +2,17 @@
 
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { Loader2, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { useLanguage } from '@/components/language-provider';
+import { UPDATE_PASSWORD_PATH, resolveAuthReturnPath } from '@/lib/authReturn';
 
 type Phase = 'checking' | 'ready' | 'invalid' | 'done';
 
 export default function UpdatePasswordPage() {
   const { t } = useLanguage();
+  const router = useRouter();
   const u = t.funnel.update;
   const [phase, setPhase] = useState<Phase>('checking');
   const [password, setPassword] = useState('');
@@ -27,6 +30,13 @@ export default function UpdatePasswordPage() {
   // instead use a PKCE ?code=. Consume whichever is present and open a session
   // so updateUser() can set the new password.
   useEffect(() => {
+    // Une confirmation d'inscription (type=signup) n'a rien à faire ici :
+    // seul un lien de récupération ouvre le formulaire de mot de passe.
+    const target = resolveAuthReturnPath(window.location.hash, window.location.search);
+    if (target !== UPDATE_PASSWORD_PATH) {
+      router.replace(target);
+      return;
+    }
     (async () => {
       try {
         const hash = new URLSearchParams(window.location.hash.replace(/^#/, ''));
