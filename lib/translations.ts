@@ -477,6 +477,8 @@ export const translations = {
           'Tu es connecté avec une autre adresse. Cette invitation est nominative : déconnecte-toi pour l’utiliser avec ',
         otherAccountAfter: '.',
         welcomeTitle: 'Bienvenue chez ',
+        confirmBefore: 'Un mail « Confirme ton adresse » vient de partir à ',
+        confirmAfter: " : clique le lien, puis connecte-toi dans l'app.",
         welcomeStripe:
           "Ton compte est créé. Il ne reste qu'à régler ton abonnement pour activer ton accès.",
         welcomeBox:
@@ -1112,6 +1114,8 @@ export const translations = {
           "You're signed in with a different address. This invitation is personal: sign out to use it with ",
         otherAccountAfter: '.',
         welcomeTitle: 'Welcome to ',
+        confirmBefore: 'A “Confirm your address” email was just sent to ',
+        confirmAfter: ': click the link, then sign in to the app.',
         welcomeStripe:
           'Your account is created. All that is left is paying your membership to activate access.',
         welcomeBox:

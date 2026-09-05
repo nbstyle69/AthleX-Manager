@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 import { createServiceClient, getAccessToken } from '@/lib/supabase/server';
+import { SITE_URL } from '@/lib/site-url';
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
@@ -121,7 +122,10 @@ export async function POST(request: NextRequest) {
   const { data: signUpData, error: signUpError } = await anon.auth.signUp({
     email,
     password,
-    options: { data: { username: finalUsername, level: 'inter', gender } },
+    options: {
+      data: { username: finalUsername, level: 'inter', gender },
+      emailRedirectTo: `${SITE_URL}/email-confirme`,
+    },
   });
   if (signUpError) {
     const emailTaken = /already registered|already been registered|user already exists/i.test(signUpError.message);

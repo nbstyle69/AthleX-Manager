@@ -102,6 +102,8 @@ describe('POST /api/invitations/accept', () => {
 
     expect(res._status).toBe(200);
     expect(mockSignUp).toHaveBeenCalledWith(expect.objectContaining({ email: 'lea@example.com' }));
+    // Le lien de confirmation ne dépend pas du Site URL : la page est nommée.
+    expect(mockSignUp.mock.calls[0][0].options.emailRedirectTo).toMatch(/^https:\/\/.+\/email-confirme$/);
     expect(rpc).toHaveBeenNthCalledWith(1, 'peek_box_invitation', { p_token: 'tok' });
     expect(rpc).toHaveBeenNthCalledWith(2, 'consume_box_invitation_for', {
       p_token: 'tok', p_user_id: 'user-1',
