@@ -30,6 +30,9 @@ jobs:
       - name: ESLint
         run: npx next lint
 
+      - name: Aucune écriture ELO côté client (components/, app/)
+        run: npm run check:elo-writes
+
       - name: TypeScript check
         run: |
           touch next-env.d.ts
