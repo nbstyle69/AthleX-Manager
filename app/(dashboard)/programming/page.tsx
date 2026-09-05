@@ -15,6 +15,15 @@ import {
 } from '@/lib/wodFields';
 
 const DISCIPLINES = ['crossfit', 'hyrox', 'hybrid', 'haltero', 'endurance'];
+export const DISCIPLINE_LABEL: Record<string, string> = {
+  crossfit: 'Functional',
+  hyrox: 'Hybrid',
+  hybrid: 'Hybrid',
+  functional: 'Functional',
+  haltero: 'Haltéro',
+  endurance: 'Endurance',
+};
+export const disciplineLabel = (d: string) => DISCIPLINE_LABEL[d] ?? d;
 const LEVELS = ['all', 'beginner', 'intermediate', 'advanced'];
 const LEVEL_LABEL: Record<string, string> = {
   all: 'Tous niveaux', beginner: 'Débutant', intermediate: 'Intermédiaire', advanced: 'Avancé',
@@ -243,7 +252,7 @@ function Catalogue({
         <select value={fDiscipline} onChange={(e) => setFDiscipline(e.target.value)}
           className="px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm text-white">
           <option value="">Toutes disciplines</option>
-          {DISCIPLINES.map((d) => <option key={d} value={d}>{d}</option>)}
+          {DISCIPLINES.map((d) => <option key={d} value={d}>{disciplineLabel(d)}</option>)}
         </select>
         <select value={fLevel} onChange={(e) => setFLevel(e.target.value)}
           className="px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm text-white">
@@ -274,7 +283,7 @@ function Catalogue({
                 <p className="text-xs text-gray-500 mb-1">par {p.publisher_name}</p>
                 {p.description && <p className="text-sm text-gray-400 mb-3 line-clamp-3">{p.description}</p>}
                 <div className="flex flex-wrap gap-1.5 mb-4 mt-auto">
-                  {p.discipline && <Tag>{p.discipline}</Tag>}
+                  {p.discipline && <Tag>{disciplineLabel(p.discipline)}</Tag>}
                   {p.level && <Tag>{LEVEL_LABEL[p.level] ?? p.level}</Tag>}
                   {p.days_per_week && <Tag>{p.days_per_week} j/sem</Tag>}
                   <Tag>{p.weeks_count} sem</Tag>
@@ -528,7 +537,7 @@ function MyOffers({ offers, activeBoxId, onChanged }: {
                       : <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded bg-white/10 text-gray-400 flex items-center gap-1"><Lock size={10} /> Brouillon</span>}
                   </div>
                   <p className="text-xs text-gray-500">
-                    {o.discipline} · {LEVEL_LABEL[o.level ?? 'all']} · {o.weeks_count} sem · {o.billing === 'free' ? 'Gratuit' : `${(o.price_cents / 100).toFixed(0)}€${o.billing === 'monthly' ? '/mois' : ''}`}
+                    {o.discipline ? disciplineLabel(o.discipline) : ''} · {LEVEL_LABEL[o.level ?? 'all']} · {o.weeks_count} sem · {o.billing === 'free' ? 'Gratuit' : `${(o.price_cents / 100).toFixed(0)}€${o.billing === 'monthly' ? '/mois' : ''}`}
                   </p>
                 </div>
                 <div className="flex items-center gap-1.5 shrink-0">
@@ -710,7 +719,7 @@ function OfferEditor({ offer, publisherBoxId, onClose, onSaved }: {
           <div className="grid grid-cols-2 gap-3">
             <Field label="Discipline">
               <select value={form.discipline} onChange={(e) => setForm({ ...form, discipline: e.target.value })} className={INPUT_CLS}>
-                {DISCIPLINES.map((d) => <option key={d} value={d}>{d}</option>)}
+                {DISCIPLINES.map((d) => <option key={d} value={d}>{disciplineLabel(d)}</option>)}
               </select>
             </Field>
             <Field label="Niveau">
