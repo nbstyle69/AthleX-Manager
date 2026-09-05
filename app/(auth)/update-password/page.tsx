@@ -2,17 +2,14 @@
 
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { Loader2, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { useLanguage } from '@/components/language-provider';
-import { UPDATE_PASSWORD_PATH, resolveAuthReturnPath } from '@/lib/authReturn';
 
 type Phase = 'checking' | 'ready' | 'invalid' | 'done';
 
 export default function UpdatePasswordPage() {
   const { t } = useLanguage();
-  const router = useRouter();
   const u = t.funnel.update;
   const [phase, setPhase] = useState<Phase>('checking');
   const [password, setPassword] = useState('');
@@ -25,18 +22,15 @@ export default function UpdatePasswordPage() {
   if (clientRef.current === null) clientRef.current = createClient();
   const supabase = clientRef.current;
 
-  // The recovery link lands here with a token. GoTrue's verify redirect uses an
-  // implicit hash (#access_token=…&type=recovery); the web-initiated flow may
-  // instead use a PKCE ?code=. Consume whichever is present and open a session
-  // so updateUser() can set the new password.
+  // Seul un lien « Reset password » (redirectTo) atterrit ici : la page n'a
+  // pas à deviner le type du lien. Le client Supabase émet PASSWORD_RECOVERY
+  // quand il consomme le jeton de l'URL ; on l'écoute, et on consomme aussi
+  // nous-mêmes le fragment implicite (#access_token=…) ou le ?code= PKCE pour
+  // ouvrir la session contre laquelle updateUser() s'exécute.
   useEffect(() => {
-    // Une confirmation d'inscription (type=signup) n'a rien à faire ici :
-    // seul un lien de récupération ouvre le formulaire de mot de passe.
-    const target = resolveAuthReturnPath(window.location.hash, window.location.search);
-    if (target !== UPDATE_PASSWORD_PATH) {
-      router.replace(target);
-      return;
-    }
+    const { data: sub } = supabase.auth.onAuthStateChange(event => {
+      if (event === 'PASSWORD_RECOVERY') setPhase(p => (p === 'checking' ? 'ready' : p));
+    });
     (async () => {
       try {
         const hash = new URLSearchParams(window.location.hash.replace(/^#/, ''));
@@ -73,12 +67,13 @@ export default function UpdatePasswordPage() {
 
         // No token in the URL but maybe detectSessionInUrl already stored one.
         const { data } = await supabase.auth.getSession();
-        setPhase(data.session ? 'ready' : 'invalid');
+        setPhase(p => (p === 'checking' ? (data.session ? 'ready' : 'invalid') : p));
       } catch (err: unknown) {
         setError(err instanceof Error ? err.message : u.invalidFallback);
         setPhase('invalid');
       }
     })();
+    return () => sub.subscription.unsubscribe();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
