@@ -5,6 +5,7 @@ import { Loader2, AlertCircle, CheckCircle2, Mail, Building2, CreditCard } from 
 import { LandingHeader } from '@/components/landing/header';
 import { useLanguage } from '@/components/language-provider';
 import { StoreBadges } from '@/components/store-badges';
+import { ConfirmationNotice } from './ConfirmationNotice';
 
 export type InvitationPeek = {
   ok: true;
@@ -54,7 +55,7 @@ export default function JoinInvitationClient({
   const [cgu, setCgu] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [done, setDone] = useState<{ finalUsername: string; pseudoChanged: boolean } | null>(null);
+  const [done, setDone] = useState<{ finalUsername: string; pseudoChanged: boolean; needsConfirmation: boolean } | null>(null);
   const [payLoading, setPayLoading] = useState(false);
   const [payError, setPayError] = useState<string | null>(null);
 
@@ -79,7 +80,7 @@ export default function JoinInvitationClient({
         setLoading(false);
         return;
       }
-      setDone({ finalUsername: json.finalUsername ?? '', pseudoChanged: !!json.pseudoChanged });
+      setDone({ finalUsername: json.finalUsername ?? '', pseudoChanged: !!json.pseudoChanged, needsConfirmation: !!json.needsConfirmation });
       setLoading(false);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : t.funnel.common.networkError);
@@ -121,6 +122,7 @@ export default function JoinInvitationClient({
             {j.welcomeTitle}
             {box.name} 🎉
           </h2>
+          <ConfirmationNotice needsConfirmation={done.needsConfirmation} email={invitation.email} j={j} />
           <p className="text-sm text-muted-foreground mt-2">
             {invitation.payment_mode === 'stripe' ? j.welcomeStripe : j.welcomeBox}
           </p>
