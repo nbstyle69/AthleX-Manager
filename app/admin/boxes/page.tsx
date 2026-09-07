@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { Building2, Search, Users, Calendar, CheckCircle, XCircle, ChevronRight, Plus, X, MapPin } from 'lucide-react';
 import Link from 'next/link';
+import { FREE_TIER, planTierClasses } from '@/lib/boxPlanTier';
 
 interface BoxItem {
   id: string;
@@ -27,19 +28,17 @@ export default function AdminBoxesPage() {
 
   const load = useCallback(async () => {
     setLoading(true);
-    const { data } = await supabase
-      .from('boxes')
-      .select('*, owner:profiles!boxes_owner_id_fkey(username)')
-      .order('created_at', { ascending: false });
+    const res = await fetch('/api/admin/boxes');
+    const data: any[] = res.ok ? await res.json() : [];
 
-    const mapped: BoxItem[] = (data ?? []).map((b: any) => {
+    const mapped: BoxItem[] = data.map((b: any) => {
       const owner = Array.isArray(b.owner) ? b.owner[0] : b.owner;
       return {
         id: b.id,
         name: b.name,
         slug: b.slug,
         city: b.city,
-        plan: b.plan ?? 'free',
+        plan: b.plan_tier ?? FREE_TIER,
         is_active: b.is_active,
         created_at: b.created_at,
         owner_name: owner?.username ?? 'Inconnu',
@@ -135,11 +134,6 @@ export default function AdminBoxesPage() {
       setGeocoding(false);
     }
   }
-
-  const planColor = (p: string) =>
-    p === 'elite' ? 'text-yellow-400 bg-yellow-500/15' :
-    p === 'pro' ? 'text-purple-400 bg-purple-500/15' :
-    'text-gray-400 bg-white/5';
 
   return (
     <div className="space-y-6">
@@ -279,7 +273,7 @@ export default function AdminBoxesPage() {
                   <p className="text-xs font-semibold text-gray-300">{box.owner_name}</p>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className={`text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-lg ${planColor(box.plan)}`}>
+                  <span className={`text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-lg ${planTierClasses(box.plan)}`}>
                     {box.plan}
                   </span>
                   <ChevronRight size={14} className="text-gray-600 group-hover:text-emerald-400 transition-colors" />
