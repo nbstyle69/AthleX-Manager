@@ -4,6 +4,21 @@ const nextConfig = {
   // Sans ce drapeau, la seule issue serait un 404 (indistinguable d'une route
   // absente) ou une redirection — donc un signal non discriminant.
   experimental: { authInterrupts: true },
+  // `pdf-parse` (pdfjs-dist) est chargé tel quel par Node au lieu d'être rebundlé par webpack :
+  // le bundle fige `createRequire("file:///<chemin de build>/pdf.mjs")`, invalide au runtime
+  // serverless, donc `@napi-rs/canvas` ne se charge pas et pdfjs plante à l'import
+  // (`SCALE_MATRIX = new DOMMatrix()` → « DOMMatrix is not defined »).
+  serverExternalPackages: ['pdf-parse', 'pdfjs-dist', '@napi-rs/canvas'],
+  // Chargements dynamiques invisibles au file tracing : `@napi-rs/canvas` (createRequire dans un
+  // try/catch) et le worker `pdf.worker.mjs` (import() à l'exécution). On les embarque explicitement.
+  outputFileTracingIncludes: {
+    '/api/wods/import-pdf': [
+      './node_modules/pdf-parse/dist/**',
+      './node_modules/pdfjs-dist/legacy/build/**',
+      './node_modules/@napi-rs/canvas/**',
+      './node_modules/@napi-rs/canvas-linux-x64-gnu/**',
+    ],
+  },
   images: {
     remotePatterns: [
       { protocol: 'https', hostname: '*.supabase.co' },
