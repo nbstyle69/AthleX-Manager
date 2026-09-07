@@ -1,15 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { createServiceClient } from '@/lib/supabase/server';
-
-function getStripe() {
-  return new Stripe(process.env.STRIPE_SECRET_KEY!, {
-    apiVersion: '2023-10-16' as any,
-  });
-}
+import { boxSubscriptionSync, getPlatformStripe, type StripeSubscriptionLike } from '@/lib/stripeSubscription';
 
 export async function POST(req: NextRequest) {
-  const stripe = getStripe();
+  const stripe = getPlatformStripe();
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!;
   const signature = req.headers.get('stripe-signature');
   if (!signature) {
@@ -40,7 +35,8 @@ export async function POST(req: NextRequest) {
           const ownerId = session.metadata?.supabase_owner_id;
           const quota = Number(session.metadata?.box_quota ?? '1') || 1;
           if (!ownerId) break;
-          const ownerSub = await stripe.subscriptions.retrieve(subscriptionId) as any;
+          const ownerSub = await stripe.subscriptions.retrieve(subscriptionId) as unknown as StripeSubscriptionLike;
+          const { current_period_end } = boxSubscriptionSync(ownerSub);
           await supabase.from('owner_subscriptions').upsert({
             owner_id: ownerId,
             plan_tier: 'multi',
@@ -48,7 +44,7 @@ export async function POST(req: NextRequest) {
             status: ownerSub.status === 'trialing' ? 'trialing' : 'active',
             stripe_customer_id: customerId,
             stripe_subscription_id: subscriptionId,
-            current_period_end: new Date(ownerSub.current_period_end * 1000).toISOString(),
+            ...(current_period_end ? { current_period_end } : {}),
             updated_at: new Date().toISOString(),
           }, { onConflict: 'owner_id' });
           console.log(`Owner Multi checkout completed for owner ${ownerId}`);
@@ -58,18 +54,16 @@ export async function POST(req: NextRequest) {
         const boxId = session.metadata?.box_id;
         if (!boxId) break;
 
-        const subscription = await stripe.subscriptions.retrieve(subscriptionId) as any;
+        const subscription = await stripe.subscriptions.retrieve(subscriptionId) as unknown as StripeSubscriptionLike;
+        const sync = boxSubscriptionSync(subscription);
 
         await supabase.from('box_subscriptions')
           .update({
             stripe_customer_id: customerId,
             stripe_subscription_id: subscriptionId,
             plan_tier: 'complete',
+            ...sync,
             status: subscription.status === 'trialing' ? 'trialing' : 'active',
-            current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
-            trial_ends_at: subscription.trial_end
-              ? new Date(subscription.trial_end * 1000).toISOString()
-              : null,
           })
           .eq('box_id', boxId);
 
@@ -78,36 +72,18 @@ export async function POST(req: NextRequest) {
       }
 
       case 'customer.subscription.updated': {
-        const subscription = event.data.object as any;
-        const customerId = subscription.customer as string;
-
-        let status: string;
-        switch (subscription.status) {
-          case 'trialing': status = 'trialing'; break;
-          case 'active': status = 'active'; break;
-          case 'past_due': status = 'past_due'; break;
-          case 'canceled':
-          case 'unpaid': status = 'canceled'; break;
-          default: status = 'expired';
-        }
+        const subscription = event.data.object as unknown as StripeSubscriptionLike & { customer: string };
+        const customerId = subscription.customer;
+        const { status, current_period_end, trial_ends_at } = boxSubscriptionSync(subscription);
+        const periodPatch = current_period_end ? { current_period_end } : {};
 
         await supabase.from('box_subscriptions')
-          .update({
-            status,
-            current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
-            trial_ends_at: subscription.trial_end
-              ? new Date(subscription.trial_end * 1000).toISOString()
-              : null,
-          })
+          .update({ status, ...periodPatch, trial_ends_at })
           .eq('stripe_customer_id', customerId);
 
         // Owner-level subscription mirrors the same status transitions.
         await supabase.from('owner_subscriptions')
-          .update({
-            status,
-            current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
-            updated_at: new Date().toISOString(),
-          })
+          .update({ status, ...periodPatch, updated_at: new Date().toISOString() })
           .eq('stripe_customer_id', customerId);
 
         break;

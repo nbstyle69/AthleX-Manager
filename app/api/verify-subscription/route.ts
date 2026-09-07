@@ -1,12 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import Stripe from 'stripe';
 import { requireBoxOwner } from '@/lib/requireBoxOwner';
-
-function getStripe() {
-  return new Stripe(process.env.STRIPE_SECRET_KEY!, {
-    apiVersion: '2023-10-16' as any,
-  });
-}
+import { boxSubscriptionSync, getPlatformStripe, type StripeSubscriptionLike } from '@/lib/stripeSubscription';
 
 export async function POST(req: NextRequest) {
   try {
@@ -25,38 +19,23 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ status: 'none', message: 'No subscription record — go to pricing page to subscribe' });
     }
 
-    // If already active, nothing to do
-    if (sub.status === 'active') {
+    // Une ligne active sans identifiant Stripe est offerte : rien à synchroniser.
+    if (sub.status === 'active' && !sub.stripe_subscription_id && !sub.stripe_customer_id) {
       return NextResponse.json({ status: 'active', updated: false });
     }
 
-    const stripe = getStripe();
+    const stripe = getPlatformStripe();
 
     // Try with subscription ID first
     if (sub.stripe_subscription_id) {
-      const subscription = await stripe.subscriptions.retrieve(sub.stripe_subscription_id) as any;
-
-      let status: string;
-      switch (subscription.status) {
-        case 'trialing': status = 'trialing'; break;
-        case 'active': status = 'active'; break;
-        case 'past_due': status = 'past_due'; break;
-        case 'canceled':
-        case 'unpaid': status = 'canceled'; break;
-        default: status = 'expired';
-      }
+      const subscription = await stripe.subscriptions.retrieve(sub.stripe_subscription_id) as unknown as StripeSubscriptionLike;
+      const sync = boxSubscriptionSync(subscription);
 
       await supabase.from('box_subscriptions')
-        .update({
-          status,
-          current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
-          trial_ends_at: subscription.trial_end
-            ? new Date(subscription.trial_end * 1000).toISOString()
-            : null,
-        })
+        .update(sync)
         .eq('box_id', box_id);
 
-      return NextResponse.json({ status, updated: true });
+      return NextResponse.json({ status: sync.status, updated: true });
     }
 
     // Fallback: search by customer ID for recent subscriptions
@@ -67,30 +46,14 @@ export async function POST(req: NextRequest) {
       });
 
       if (subscriptions.data.length > 0) {
-        const subscription = subscriptions.data[0] as any;
-
-        let status: string;
-        switch (subscription.status) {
-          case 'trialing': status = 'trialing'; break;
-          case 'active': status = 'active'; break;
-          case 'past_due': status = 'past_due'; break;
-          case 'canceled':
-          case 'unpaid': status = 'canceled'; break;
-          default: status = 'expired';
-        }
+        const subscription = subscriptions.data[0] as unknown as StripeSubscriptionLike & { id: string };
+        const sync = boxSubscriptionSync(subscription);
 
         await supabase.from('box_subscriptions')
-          .update({
-            status,
-            stripe_subscription_id: subscription.id,
-            current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
-            trial_ends_at: subscription.trial_end
-              ? new Date(subscription.trial_end * 1000).toISOString()
-              : null,
-          })
+          .update({ ...sync, stripe_subscription_id: subscription.id })
           .eq('box_id', box_id);
 
-        return NextResponse.json({ status, updated: true });
+        return NextResponse.json({ status: sync.status, updated: true });
       }
     }
 

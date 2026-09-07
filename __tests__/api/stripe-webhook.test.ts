@@ -117,6 +117,50 @@ describe('POST /api/stripe-webhook', () => {
     expect(currentChain.eq).toHaveBeenCalledWith('stripe_customer_id', 'cus_9');
   });
 
+  it('customer.subscription.updated : période lue dans items.data[] (racine absente, API >= 2025-03-31)', async () => {
+    mockConstructEvent.mockReturnValue({
+      type: 'customer.subscription.updated',
+      data: {
+        object: {
+          id: 'sub_1TsSrdJDlbyV6Ki3GmhQTY7G',
+          customer: 'cus_UKQF',
+          status: 'active',
+          trial_end: null,
+          items: { data: [{ current_period_start: 1786562193, current_period_end: 1789240593 }] },
+        },
+        previous_attributes: { items: { data: [{ current_period_end: 1786562193 }] } },
+      },
+    });
+    await POST(makeReq() as any);
+    expect(currentChain.update).toHaveBeenCalledWith({
+      status: 'active',
+      current_period_end: '2026-09-12T19:16:33.000Z',
+      trial_ends_at: null,
+    });
+    expect(currentChain.eq).toHaveBeenCalledWith('stripe_customer_id', 'cus_UKQF');
+  });
+
+  it('customer.subscription.updated : sans période nulle part, status seul est écrit', async () => {
+    mockConstructEvent.mockReturnValue({
+      type: 'customer.subscription.updated',
+      data: { object: { customer: 'cus_UKQF', status: 'past_due', trial_end: null } },
+    });
+    await POST(makeReq() as any);
+    expect(currentChain.update).toHaveBeenCalledWith({ status: 'past_due', trial_ends_at: null });
+  });
+
+  it('checkout.session.completed : période depuis les items quand retrieve ne la met pas à la racine', async () => {
+    mockConstructEvent.mockReturnValue({
+      type: 'checkout.session.completed',
+      data: { object: { metadata: { box_id: 'box-1' }, customer: 'cus_1', subscription: 'sub_1' } },
+    });
+    mockRetrieve.mockResolvedValue({ status: 'active', trial_end: null, items: { data: [{ current_period_end: 1789240593 }] } });
+    await POST(makeReq() as any);
+    expect(currentChain.update).toHaveBeenCalledWith(
+      expect.objectContaining({ status: 'active', current_period_end: '2026-09-12T19:16:33.000Z' }),
+    );
+  });
+
   it('sets past_due on invoice.payment_failed', async () => {
     mockConstructEvent.mockReturnValue({
       type: 'invoice.payment_failed',
