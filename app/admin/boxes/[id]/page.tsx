@@ -9,7 +9,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { formatCap } from '@/lib/wodFields';
-import { FREE_TIER, planTierClasses } from '@/lib/boxPlanTier';
+import { FREE_TIER, formatExpiredSince, planTierClasses } from '@/lib/boxPlanTier';
 
 const TABS = ['Infos', 'Membres', 'Whiteboard', 'Tournois'];
 
@@ -94,6 +94,7 @@ export default function BoxDetailPage() {
   const owner = Array.isArray(box.owner) ? box.owner[0] : box.owner;
 
   const planTier: string = box.plan_tier ?? FREE_TIER;
+  const planExpiredAt: string | null = box.expired_at ?? null;
 
   const levelColor = (l: string) =>
     l === 'pro' ? 'text-red-400' : l === 'gx' ? 'text-purple-400' :
@@ -136,6 +137,9 @@ export default function BoxDetailPage() {
                 <span className={`text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-lg border ${planTierClasses(planTier)}`}>
                   {planTier}
                 </span>
+                {planExpiredAt && (
+                  <span className="text-[10px] text-orange-400/80">{formatExpiredSince(planExpiredAt)}</span>
+                )}
                 {box.is_active ? (
                   <span className="flex items-center gap-1 text-[10px] font-bold text-emerald-400 bg-emerald-500/15 px-2 py-0.5 rounded-lg">
                     <CheckCircle size={10} /> Active

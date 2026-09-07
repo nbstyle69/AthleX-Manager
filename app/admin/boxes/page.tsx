@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { Building2, Search, Users, Calendar, CheckCircle, XCircle, ChevronRight, Plus, X, MapPin } from 'lucide-react';
 import Link from 'next/link';
-import { FREE_TIER, planTierClasses } from '@/lib/boxPlanTier';
+import { FREE_TIER, formatExpiredSince, planTierClasses } from '@/lib/boxPlanTier';
 
 interface BoxItem {
   id: string;
@@ -12,6 +12,7 @@ interface BoxItem {
   slug: string;
   city: string | null;
   plan: string;
+  expired_at: string | null;
   is_active: boolean;
   created_at: string;
   owner_name: string;
@@ -39,6 +40,7 @@ export default function AdminBoxesPage() {
         slug: b.slug,
         city: b.city,
         plan: b.plan_tier ?? FREE_TIER,
+        expired_at: b.expired_at ?? null,
         is_active: b.is_active,
         created_at: b.created_at,
         owner_name: owner?.username ?? 'Inconnu',
@@ -273,6 +275,9 @@ export default function AdminBoxesPage() {
                   <p className="text-xs font-semibold text-gray-300">{box.owner_name}</p>
                 </div>
                 <div className="flex items-center gap-2">
+                  {box.expired_at && (
+                    <span className="text-[10px] text-orange-400/80">{formatExpiredSince(box.expired_at)}</span>
+                  )}
                   <span className={`text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-lg ${planTierClasses(box.plan)}`}>
                     {box.plan}
                   </span>

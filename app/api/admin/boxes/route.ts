@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient, getServerUser } from '@/lib/supabase/server';
-import { activePlanTier, type BoxSubscriptionTier } from '@/lib/boxPlanTier';
+import { boxPlanInfo, type BoxSubscriptionTier } from '@/lib/boxPlanTier';
 
 async function checkAdmin() {
   const user = await getServerUser();
@@ -21,14 +21,14 @@ export async function GET() {
       .from('boxes')
       .select('*, owner:profiles!boxes_owner_id_fkey(username)')
       .order('created_at', { ascending: false }),
-    supabase.from('box_subscriptions').select('box_id, status, plan_tier'),
+    supabase.from('box_subscriptions').select('box_id, status, plan_tier, current_period_end'),
   ]);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
   const allSubs = (subs ?? []) as BoxSubscriptionTier[];
   const boxesWithTier = (boxes ?? []).map(b => ({
     ...b,
-    plan_tier: activePlanTier(allSubs.filter(s => s.box_id === b.id)),
+    ...boxPlanInfo(allSubs.filter(s => s.box_id === b.id)),
   }));
   return NextResponse.json(boxesWithTier);
 }
