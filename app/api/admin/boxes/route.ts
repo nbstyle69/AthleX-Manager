@@ -21,7 +21,7 @@ export async function GET() {
       .from('boxes')
       .select('*, owner:profiles!boxes_owner_id_fkey(username)')
       .order('created_at', { ascending: false }),
-    supabase.from('box_subscriptions').select('box_id, status, plan_tier, current_period_end'),
+    supabase.from('box_subscriptions').select('*'),
   ]);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
