@@ -17,6 +17,7 @@ interface BoxData {
   box: any;
   members: any[];
   wods: any[];
+  wod_count?: number;
   scores: any[];
   competitions: any[];
 }
@@ -123,6 +124,7 @@ export default function BoxDetailPage() {
   }
 
   const { box, members, wods, scores, competitions } = data;
+  const wodCount = data.wod_count ?? wods.length;
   const owner = Array.isArray(box.owner) ? box.owner[0] : box.owner;
 
   const planTier: string = box.plan_tier ?? FREE_TIER;
@@ -217,7 +219,7 @@ export default function BoxDetailPage() {
           >
             {t}
             {i === 1 && <span className="ml-1.5 text-[10px] opacity-60">({members.length})</span>}
-            {i === 2 && <span className="ml-1.5 text-[10px] opacity-60">({wods.length})</span>}
+            {i === 2 && <span className="ml-1.5 text-[10px] opacity-60">({wodCount})</span>}
             {i === 3 && <span className="ml-1.5 text-[10px] opacity-60">({competitions.length})</span>}
           </button>
         ))}
@@ -309,7 +311,7 @@ export default function BoxDetailPage() {
             {/* Stats */}
             <div className="grid grid-cols-3 gap-3">
               <StatCard icon={Users} label="Membres" value={members.length} color="text-blue-400" bg="bg-blue-500/15" />
-              <StatCard icon={Dumbbell} label="WODs" value={wods.length} color="text-emerald-400" bg="bg-emerald-500/15" />
+              <StatCard icon={Dumbbell} label="WODs" value={wodCount} color="text-emerald-400" bg="bg-emerald-500/15" />
               <StatCard icon={Trophy} label="Tournois" value={competitions.length} color="text-purple-400" bg="bg-purple-500/15" />
             </div>
 
@@ -401,6 +403,9 @@ export default function BoxDetailPage() {
       {/* TAB: Whiteboard */}
       {tab === 2 && (
         <div className="space-y-4">
+          {wodCount > wods.length && (
+            <p className="text-xs text-gray-500">{wods.length} derniers WODs affichés sur {wodCount}.</p>
+          )}
           {wods.length === 0 ? (
             <div className="text-center py-16">
               <Dumbbell size={40} className="text-gray-600 mx-auto mb-3" />
@@ -508,10 +513,11 @@ export default function BoxDetailPage() {
                   <span className={cn(
                     'text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-lg',
                     c.status === 'open' ? 'text-emerald-400 bg-emerald-500/15' :
+                    c.status === 'active' ? 'text-orange-400 bg-orange-500/15' :
                     c.status === 'completed' ? 'text-blue-400 bg-blue-500/15' :
                     'text-gray-400 bg-white/5'
                   )}>
-                    {c.status === 'open' ? 'En cours' : c.status === 'completed' ? 'Terminé' : c.status}
+                    {c.status === 'open' ? 'Inscriptions ouvertes' : c.status === 'active' ? 'En cours' : c.status === 'completed' ? 'Terminé' : c.status}
                   </span>
                 </div>
                 <div className="flex items-center gap-4 text-xs text-gray-500">

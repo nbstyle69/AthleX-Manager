@@ -39,13 +39,19 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
     .eq('box_id', id)
     .order('joined_at', { ascending: true });
 
-  // WODs (whiteboard)
-  const { data: wods } = await supabase
-    .from('box_wods')
-    .select('*')
-    .eq('box_id', id)
-    .order('scheduled_date', { ascending: false })
-    .limit(50);
+  // WODs (whiteboard) : liste limitée aux 50 derniers, compteur exact à part
+  const [{ data: wods }, { count: wodCount }] = await Promise.all([
+    supabase
+      .from('box_wods')
+      .select('*')
+      .eq('box_id', id)
+      .order('scheduled_date', { ascending: false })
+      .limit(50),
+    supabase
+      .from('box_wods')
+      .select('id', { count: 'exact', head: true })
+      .eq('box_id', id),
+  ]);
 
   // Scores for each WOD
   const wodIds = (wods ?? []).map((w: any) => w.id);
@@ -59,20 +65,20 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
     scores = s ?? [];
   }
 
-  // Competitions
-  const { data: competitions } = await supabase
-    .from('competitions')
-    .select('*')
+  // Tournois de la box (table `tournaments`, celle du back-office gérant)
+  const { data: tournaments } = await supabase
+    .from('tournaments')
+    .select('id, name, description, status, format, max_participants, start_date, created_at')
     .eq('box_id', id)
-    .order('created_at', { ascending: false })
-    .limit(20);
+    .order('created_at', { ascending: false });
 
   return NextResponse.json({
     box: { ...box, ...boxPlanInfo((subs ?? []) as BoxSubscriptionTier[]) },
     members: members ?? [],
     wods: wods ?? [],
+    wod_count: wodCount ?? (wods ?? []).length,
     scores: scores ?? [],
-    competitions: competitions ?? [],
+    competitions: tournaments ?? [],
   });
 }
 
