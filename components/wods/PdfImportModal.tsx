@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { X, Loader2, AlertTriangle, Plus, Trash2, RefreshCw } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { BLOCKS, WOD_TYPES, TYPE_COLOR } from '@/lib/wodFields';
@@ -42,6 +42,33 @@ const WARNING_LABEL: Record<ImportWarning, string> = {
 
 const INPUT = 'px-2 py-1.5 rounded-lg bg-black/40 border border-white/10 text-xs text-white focus:outline-none focus:border-white/30';
 const ORANGE = 'border-orange-500/60 bg-orange-500/10 text-orange-300';
+const NOTES_MIN_ROWS = 3;
+const NOTES_MAX_ROWS = 10;
+
+/** Textarea qui suit son contenu entre NOTES_MIN_ROWS et NOTES_MAX_ROWS lignes (scroll interne au-delà). */
+function NotesTextarea({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const ref = useRef<HTMLTextAreaElement>(null);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const lineHeight = parseFloat(getComputedStyle(el).lineHeight) || 16;
+    const padding = el.offsetHeight - el.clientHeight + (parseFloat(getComputedStyle(el).paddingTop) || 0) + (parseFloat(getComputedStyle(el).paddingBottom) || 0);
+    const max = lineHeight * NOTES_MAX_ROWS + padding;
+    el.style.height = 'auto';
+    el.style.height = `${Math.min(el.scrollHeight, max)}px`;
+    el.style.overflowY = el.scrollHeight > max ? 'auto' : 'hidden';
+  }, [value]);
+  return (
+    <textarea
+      ref={ref}
+      value={value}
+      onChange={ev => onChange(ev.target.value)}
+      rows={NOTES_MIN_ROWS}
+      className={`${INPUT} w-full resize-y leading-5`}
+      placeholder="Notes coach"
+    />
+  );
+}
 
 function isMonday(iso: string): boolean {
   const d = new Date(`${iso}T00:00:00`);
@@ -257,7 +284,30 @@ export default function PdfImportModal({ file, boxId, userId, defaultWeekStart, 
                   <span className="text-[10px] text-gray-600 shrink-0">p.{e.source_page}</span>
                 </div>
 
-                <div className="px-3 py-2 grid grid-cols-1 lg:grid-cols-2 gap-3">
+                <div className="px-3 py-2 space-y-2">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <label className="text-[11px] text-gray-400 flex items-center gap-1">TC
+                      <input value={e.timecap ?? ''} onChange={ev => patch(e.key, { timecap: ev.target.value || null })} className={`${INPUT} w-20 ${warnings.includes('timecap-unparsed') ? ORANGE : ''}`} placeholder="MM:SS" />
+                    </label>
+                    <label className="text-[11px] text-gray-400 flex items-center gap-1">Rounds
+                      <input value={e.rounds ?? ''} onChange={ev => patch(e.key, { rounds: ev.target.value ? parseInt(ev.target.value, 10) : null })} className={`${INPUT} w-14`} />
+                    </label>
+                    {e.type === 'emom' && (
+                      <label className="text-[11px] text-gray-400 flex items-center gap-1">Toutes les (min)
+                        <input value={e.emom_interval_minutes ?? ''} onChange={ev => patch(e.key, { emom_interval_minutes: ev.target.value ? parseInt(ev.target.value, 10) : null })} className={`${INPUT} w-12`} />
+                      </label>
+                    )}
+                    {e.type === 'tabata' && (
+                      <label className="text-[11px] text-gray-400 flex items-center gap-1">Work/Rest (s)
+                        <input value={e.tabata_work_seconds ?? ''} onChange={ev => patch(e.key, { tabata_work_seconds: ev.target.value ? parseInt(ev.target.value, 10) : null })} className={`${INPUT} w-12`} />
+                        <input value={e.tabata_rest_seconds ?? ''} onChange={ev => patch(e.key, { tabata_rest_seconds: ev.target.value ? parseInt(ev.target.value, 10) : null })} className={`${INPUT} w-12`} />
+                      </label>
+                    )}
+                    <label className="text-[11px] text-gray-400 flex items-center gap-1">
+                      <input type="checkbox" checked={e.rank} onChange={ev => patch(e.key, { rank: ev.target.checked })} className="accent-white" /> Classement
+                    </label>
+                  </div>
+
                   <div className="space-y-1.5">
                     {e.musculation.length > 0 && <p className="text-[10px] font-black uppercase tracking-wider text-gray-500">Musculation</p>}
                     {e.musculation.map((s, i) => (
@@ -274,11 +324,11 @@ export default function PdfImportModal({ file, boxId, userId, defaultWeekStart, 
                     {e.movements.length > 0 && <p className="text-[10px] font-black uppercase tracking-wider text-gray-500 pt-1">Mouvements</p>}
                     {e.movements.map((m, i) => (
                       <div key={i} className="flex items-center gap-1">
-                        <input value={m.reps ?? ''} onChange={ev => patchMovement(e.key, i, { reps: ev.target.value || null })} className={`${INPUT} w-20`} placeholder="Reps" />
-                        <input value={m.name} onChange={ev => patchMovement(e.key, i, { name: ev.target.value, resolved: false })} className={`${INPUT} flex-1 ${m.resolved ? '' : ORANGE}`} placeholder="Mouvement" title={m.resolved ? '' : 'Hors catalogue — conservé tel quel'} />
+                        <input value={m.reps ?? ''} onChange={ev => patchMovement(e.key, i, { reps: ev.target.value || null })} className={`${INPUT} w-32 shrink-0`} placeholder="Reps" title={m.reps ?? ''} />
+                        <input value={m.name} onChange={ev => patchMovement(e.key, i, { name: ev.target.value, resolved: false })} className={`${INPUT} flex-[2] min-w-0 ${m.resolved ? '' : ORANGE}`} placeholder="Mouvement" title={m.resolved ? '' : 'Hors catalogue — conservé tel quel'} />
                         <input value={m.charge_h ?? ''} onChange={ev => patchMovement(e.key, i, { charge_h: ev.target.value || null })} className={`${INPUT} w-16`} placeholder="♂" />
                         <input value={m.charge_f ?? ''} onChange={ev => patchMovement(e.key, i, { charge_f: ev.target.value || null })} className={`${INPUT} w-16`} placeholder="♀" />
-                        <input value={m.note ?? ''} onChange={ev => patchMovement(e.key, i, { note: ev.target.value || null })} className={`${INPUT} w-28`} placeholder="Note" />
+                        <input value={m.note ?? ''} onChange={ev => patchMovement(e.key, i, { note: ev.target.value || null })} className={`${INPUT} flex-1 min-w-0`} placeholder="Note" title={m.note ?? ''} />
                         <button onClick={() => patchMovement(e.key, i, null)} className="text-gray-600 hover:text-red-400"><Trash2 size={12} /></button>
                       </div>
                     ))}
@@ -288,30 +338,9 @@ export default function PdfImportModal({ file, boxId, userId, defaultWeekStart, 
                     </div>
                   </div>
 
-                  <div className="space-y-1.5">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <label className="text-[11px] text-gray-400 flex items-center gap-1">TC
-                        <input value={e.timecap ?? ''} onChange={ev => patch(e.key, { timecap: ev.target.value || null })} className={`${INPUT} w-16 ${warnings.includes('timecap-unparsed') ? ORANGE : ''}`} placeholder="MM:SS" />
-                      </label>
-                      <label className="text-[11px] text-gray-400 flex items-center gap-1">Rounds
-                        <input value={e.rounds ?? ''} onChange={ev => patch(e.key, { rounds: ev.target.value ? parseInt(ev.target.value, 10) : null })} className={`${INPUT} w-14`} />
-                      </label>
-                      {e.type === 'emom' && (
-                        <label className="text-[11px] text-gray-400 flex items-center gap-1">Toutes les (min)
-                          <input value={e.emom_interval_minutes ?? ''} onChange={ev => patch(e.key, { emom_interval_minutes: ev.target.value ? parseInt(ev.target.value, 10) : null })} className={`${INPUT} w-12`} />
-                        </label>
-                      )}
-                      {e.type === 'tabata' && (
-                        <label className="text-[11px] text-gray-400 flex items-center gap-1">Work/Rest (s)
-                          <input value={e.tabata_work_seconds ?? ''} onChange={ev => patch(e.key, { tabata_work_seconds: ev.target.value ? parseInt(ev.target.value, 10) : null })} className={`${INPUT} w-12`} />
-                          <input value={e.tabata_rest_seconds ?? ''} onChange={ev => patch(e.key, { tabata_rest_seconds: ev.target.value ? parseInt(ev.target.value, 10) : null })} className={`${INPUT} w-12`} />
-                        </label>
-                      )}
-                      <label className="text-[11px] text-gray-400 flex items-center gap-1">
-                        <input type="checkbox" checked={e.rank} onChange={ev => patch(e.key, { rank: ev.target.checked })} className="accent-white" /> Classement
-                      </label>
-                    </div>
-                    <textarea value={e.notes_coach} onChange={ev => patch(e.key, { notes_coach: ev.target.value })} rows={4} className={`${INPUT} w-full resize-y`} placeholder="Notes coach" />
+                  <div className="space-y-1">
+                    <p className="text-[10px] font-black uppercase tracking-wider text-gray-500">Notes coach</p>
+                    <NotesTextarea value={e.notes_coach} onChange={v => patch(e.key, { notes_coach: v })} />
                     {(warnings.length > 0 || errs.length > 0) && (
                       <div className="flex flex-wrap gap-1">
                         {warnings.map(w => <span key={w} className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${ORANGE}`}>{WARNING_LABEL[w]}</span>)}
