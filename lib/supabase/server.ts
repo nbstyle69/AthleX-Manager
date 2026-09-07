@@ -1,6 +1,7 @@
 import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
 import { cache } from 'react';
+import { boxAccessState } from '@/lib/boxAccess';
 
 const SUPABASE_URL     = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
@@ -137,6 +138,8 @@ export interface BoxBillingState {
   coveredByMulti: boolean;
   /** This is an additional box and Multi is not active → must upgrade to unlock. */
   requiresMulti: boolean;
+  /** Owner-level (Multi) subscription is past_due: payment-failure banner. */
+  ownerPastDue: boolean;
   /** Number of boxes owned directly by the box owner. */
   boxCount: number;
   /** This box is the owner's primary (oldest) box. */
@@ -169,16 +172,27 @@ export async function getBoxBillingState(
 
   const { data: sub } = await svc
     .from('owner_subscriptions')
-    .select('status, box_quota')
+    .select('status, box_quota, billing_source, stripe_customer_id, stripe_subscription_id, current_period_end')
     .eq('owner_id', box.owner_id)
     .maybeSingle();
 
-  const s = sub as { status: string; box_quota: number } | null;
-  const multiActive = !!s && ['active', 'trialing', 'past_due'].includes(s.status);
+  const s = sub as {
+    status: string;
+    box_quota: number;
+    billing_source: string | null;
+    stripe_customer_id: string | null;
+    stripe_subscription_id: string | null;
+    current_period_end: string | null;
+  } | null;
+  // Mêmes règles que la ligne de box : active / past_due / essai en cours
+  // ouvrent, canceled / expired ferment ; une ligne offerte n'expire jamais.
+  const ownerAccess = boxAccessState(s ? { ...s, trial_ends_at: s.current_period_end } : null);
+  const multiActive = !!s && !ownerAccess.locked;
+  const ownerPastDue = ownerAccess.banner === 'past_due';
   // Ranked position of this box among the owner's boxes (1-based).
   const rank = index >= 0 ? index + 1 : boxCount;
   const coveredByMulti = multiActive && (s?.box_quota ?? 0) >= rank;
   const requiresMulti = !coveredByMulti && !isPrimary;
 
-  return { multiActive, coveredByMulti, requiresMulti, boxCount, isPrimary };
+  return { multiActive, coveredByMulti, requiresMulti, boxCount, isPrimary, ownerPastDue };
 }

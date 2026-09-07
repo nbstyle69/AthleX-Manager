@@ -1,6 +1,9 @@
 ﻿import { redirect } from 'next/navigation';
 import { cookies } from 'next/headers';
-import { createClient, getActiveBox, getAdminBoxes, getBoxBillingState, getServerProfile, getServerUser } from '@/lib/supabase/server';
+import { createClient, createServiceClient, getActiveBox, getAdminBoxes, getBoxBillingState, getServerProfile, getServerUser } from '@/lib/supabase/server';
+import { boxAccessState } from '@/lib/boxAccess';
+import { syncBoxSubscriptionFromStripe } from '@/lib/syncBoxSubscription';
+import PaymentFailedBanner from '@/components/PaymentFailedBanner';
 import Sidebar from '@/components/layout/Sidebar';
 import SessionGate from '@/components/auth/SessionGate';
 import TrialBanner from '@/components/TrialBanner';
@@ -82,30 +85,40 @@ export default async function DashboardLayout({ children }: { children: React.Re
   // Fetch subscription for this box
   const { data: sub } = await supabase
     .from('box_subscriptions')
-    .select('status, trial_ends_at, is_early_adopter, current_period_end, plan_tier')
+    .select('*')
     .eq('box_id', box.id)
     .order('created_at', { ascending: false })
     .limit(1)
     .maybeSingle();
 
-  const now = new Date();
   const trialEndsAt = sub?.trial_ends_at ?? null;
-  const daysLeft = trialEndsAt
-    ? Math.max(0, Math.ceil((new Date(trialEndsAt).getTime() - now.getTime()) / (1000 * 60 * 60 * 24)))
-    : 0;
-  const subStatus = sub ? (sub.status as string) : 'none';
+  let subStatus = sub ? (sub.status as string) : 'none';
 
-  // Lock the back-office once the trial is over and there's no paying subscription.
-  // `active` = paid, `past_due` = paid-but-dunning (kept accessible), `trialing` with
-  // days left = still in trial. Everything else past the trial end is locked.
+  // Accès : active / past_due (bandeau) / essai en cours ouvrent, le reste
+  // verrouille. Ligne Stripe active dont la période est dépassée de plus de
+  // 7 jours : on relit Stripe avant de trancher (le webhook a pu être manqué)
+  // et on ne verrouille que si Stripe confirme. Une ligne offerte (manual)
+  // n'est jamais resynchronisée. Voir lib/boxAccess.ts.
+  let access = boxAccessState(sub);
+  if (access.needsResync) {
+    try {
+      const synced = await syncBoxSubscriptionFromStripe(createServiceClient(), box.id);
+      if (synced.updated) {
+        subStatus = synced.status;
+        access = boxAccessState({ ...sub, status: synced.status, current_period_end: synced.current_period_end });
+      }
+    } catch (err) {
+      console.error('resync au rendu échouée, accès maintenu :', err);
+    }
+  }
+  const daysLeft = Math.max(0, access.daysLeft);
+
   // Owner-level Solo/Multi entitlement. Additional boxes are locked behind the
   // Multi plan; the Multi plan also supersedes the legacy per-box paywall.
   const billing = await getBoxBillingState({ id: box.id, owner_id: box.owner_id });
 
-  const legacyLocked =
-    subStatus !== 'active' &&
-    subStatus !== 'past_due' &&
-    !(subStatus === 'trialing' && daysLeft > 0);
+  const legacyLocked = access.locked;
+  const showPaymentFailed = access.banner === 'past_due' || billing.ownerPastDue;
 
   // Primary box: keep legacy gate unless Multi already covers it.
   // Additional box: gated purely by the Multi plan.
@@ -163,13 +176,17 @@ export default async function DashboardLayout({ children }: { children: React.Re
         isOwnerAdmin
       />
       <main className="flex-1 ml-60 min-h-screen p-8 overflow-y-auto">
-        <TrialBanner
-          status={subStatus}
-          daysLeft={daysLeft}
-          trialEndsAt={trialEndsAt}
-          isEarlyAdopter={sub?.is_early_adopter ?? false}
-          boxId={box.id}
-        />
+        {showPaymentFailed ? (
+          <PaymentFailedBanner boxId={box.id} />
+        ) : (
+          <TrialBanner
+            status={subStatus}
+            daysLeft={daysLeft}
+            trialEndsAt={trialEndsAt}
+            isEarlyAdopter={sub?.is_early_adopter ?? false}
+            boxId={box.id}
+          />
+        )}
         <SessionGate>{children}</SessionGate>
       </main>
       {locked && <PaywallOverlay boxId={box.id} trialEndsAt={trialEndsAt} />}
