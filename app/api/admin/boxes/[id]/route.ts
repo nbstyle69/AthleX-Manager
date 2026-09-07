@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient, getServerUser } from '@/lib/supabase/server';
-import { activePlanTier, type BoxSubscriptionTier } from '@/lib/boxPlanTier';
+import { boxPlanInfo, type BoxSubscriptionTier } from '@/lib/boxPlanTier';
 
 async function checkAdmin() {
   const user = await getServerUser();
@@ -29,7 +29,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
 
   const { data: subs } = await supabase
     .from('box_subscriptions')
-    .select('box_id, status, plan_tier')
+    .select('box_id, status, plan_tier, current_period_end')
     .eq('box_id', id);
 
   // Members
@@ -68,7 +68,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
     .limit(20);
 
   return NextResponse.json({
-    box: { ...box, plan_tier: activePlanTier((subs ?? []) as BoxSubscriptionTier[]) },
+    box: { ...box, ...boxPlanInfo((subs ?? []) as BoxSubscriptionTier[]) },
     members: members ?? [],
     wods: wods ?? [],
     scores: scores ?? [],
