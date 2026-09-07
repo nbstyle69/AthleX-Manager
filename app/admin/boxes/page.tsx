@@ -32,30 +32,22 @@ export default function AdminBoxesPage() {
       .select('*, owner:profiles!boxes_owner_id_fkey(username)')
       .order('created_at', { ascending: false });
 
-    const mapped: BoxItem[] = await Promise.all(
-      (data ?? []).map(async (b: any) => {
-        const owner = Array.isArray(b.owner) ? b.owner[0] : b.owner;
-
-        const { count } = await supabase
-          .from('box_members')
-          .select('*', { count: 'exact', head: true })
-          .eq('box_id', b.id);
-
-        return {
-          id: b.id,
-          name: b.name,
-          slug: b.slug,
-          city: b.city,
-          plan: b.plan ?? 'free',
-          is_active: b.is_active,
-          created_at: b.created_at,
-          owner_name: owner?.username ?? 'Inconnu',
-          owner_email: '',
-          member_count: count ?? 0,
-          logo_url: b.logo_url ?? null,
-        };
-      })
-    );
+    const mapped: BoxItem[] = (data ?? []).map((b: any) => {
+      const owner = Array.isArray(b.owner) ? b.owner[0] : b.owner;
+      return {
+        id: b.id,
+        name: b.name,
+        slug: b.slug,
+        city: b.city,
+        plan: b.plan ?? 'free',
+        is_active: b.is_active,
+        created_at: b.created_at,
+        owner_name: owner?.username ?? 'Inconnu',
+        owner_email: '',
+        member_count: b.member_count ?? 0,
+        logo_url: b.logo_url ?? null,
+      };
+    });
     setBoxes(mapped);
     setLoading(false);
   }, []);
