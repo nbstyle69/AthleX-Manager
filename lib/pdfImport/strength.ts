@@ -1,5 +1,5 @@
 import type { ParsedStrength } from './types';
-import { resolveMovementName } from './movements';
+import { EXEC_QUALIFIER_RE, resolveMovementName } from './movements';
 import { applyTypoFixes, normalizeQuotes } from './text';
 
 /**
@@ -101,6 +101,9 @@ export function parseStrengthLine(rawLine: string, opts: StrengthParseOptions): 
   } else {
     return null;
   }
+
+  const qual = exercise?.match(EXEC_QUALIFIER_RE);
+  if (qual && exercise) { exercise = exercise.replace(EXEC_QUALIFIER_RE, ' ').trim(); notes.push(qual[1]); }
 
   const load = interpretLoad(loadRaw);
   if (load.rpe) rpe = load.rpe;

@@ -70,10 +70,14 @@ function lookupSyn(key: string, table: Record<string, string>): Resolution | nul
   return null;
 }
 
-/** Retire les qualificatifs entre parenthèses de type `(technique)` et l'espace superflu. */
+/** `P&D` (pause & descente), `P&P`… : qualificatif d'exécution, pas une partie du nom. */
+export const EXEC_QUALIFIER_RE = /\s*\b(P&[A-Z])\b\s*/;
+
+/** Retire les qualificatifs entre parenthèses de type `(technique)`, normalise `2DB` → `Dual DB`. */
 export function cleanMovementName(raw: string): string {
   return stripAccents(raw)
     .replace(/\((?:technique|resistance|résistance|skill)\)/gi, '')
+    .replace(/\b2\s*DB\b/gi, 'Dual DB')
     .replace(/\s+/g, ' ')
     .trim();
 }
@@ -268,6 +272,8 @@ export function parseMovementLine(rawLine: string, opts: MovementParseOptions): 
   // `J1` / `J2` en suffixe = note
   const jour = name.match(/^(.+?)\s+(J\d)$/);
   if (jour) { name = jour[1]; notes.unshift(jour[2]); }
+  const qual = name.match(EXEC_QUALIFIER_RE);
+  if (qual) { name = name.replace(EXEC_QUALIFIER_RE, ' ').trim(); notes.push(qual[1]); }
 
   const { charge_h, charge_f, ambiguous } = assignCharges(charge, opts.chargeOrder);
   const res = resolveMovementName(name, opts.synonyms);

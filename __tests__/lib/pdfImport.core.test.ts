@@ -68,6 +68,78 @@ describe('resolveMovementName (§7)', () => {
     expect(r.resolved).toBe(false);
     expect(r.name).toBe('Copenhagen Plank Hold');
   });
+  it.each(['Chin-ups', 'Chin-up', 'Chin up'])('%s → non résolu (absent du catalogue, pas de mapping arbitraire)', raw => {
+    expect(resolveMovementName(raw, kplusPerf.synonyms).resolved).toBe(false);
+  });
+  it('2DB → Dual DB (DB seul conservé), Erg non résolu', () => {
+    expect(resolveMovementName('2DB Floor Press', kplusPerf.synonyms)).toEqual({ name: 'Dual DB Floor Press', resolved: false });
+    expect(resolveMovementName('2DB Thruster', kplusPerf.synonyms)).toEqual({ name: 'DB Thruster', resolved: true });
+    expect(resolveMovementName('DB Snatch', kplusPerf.synonyms).name).not.toContain('Dual');
+    expect(resolveMovementName('Erg', kplusPerf.synonyms).resolved).toBe(false);
+  });
+});
+
+describe('cas S37 (corrections)', () => {
+  const opts = { synonyms: kplusPerf.synonyms, typoFixes: kplusPerf.typoFixes };
+  it('P&D est une note, pas une partie du nom', () => {
+    const s = parseStrengthLine('- 4X2 Deadlift P&D @84%', opts)!;
+    expect(s.exercise).toBe('Deadlift');
+    expect(s.resolved).toBe(true);
+    expect(s.charge_note).toBe('P&D');
+    const m = parseMovementLine('- 5 Deadlift P&D', { ...opts, chargeOrder: 'unknown' })!;
+    expect(m.movement.name).toBe('Deadlift');
+    expect(m.movement.note).toContain('P&D');
+  });
+
+  const pages = [{ index: 1, text: `mardi
+🎯 HALTERO 🏋️‍♂️
+1) JERK SKILL
+EMOM 6'
+- 1 Power Clean + 1 Push Press + 1 Power Jerk @50% (RM JERK)
+2) JERK WORK
+E2MOM X5
+- 1 RM sur le complexe* (si échecs alors STOP)
+*1 Power Clean + 1 Push Press + 1 Power Jerk
+3) PULL
+- 1 Clean Pull + 2 Hang Clean RPE 8
+🎯 MOBILITÉ 🧘
+- 15 à 25' Mobilité
+` }];
+
+  it('complexe A + B + C → une ligne force par mouvement, (complexe), aucun nom composé résolu', () => {
+    const r = parseDocument(pages, kplusPerf, '2026-09-07');
+    const skill = r.entries.find(e => e.title.includes('JERK SKILL'))!;
+    expect(skill.movements).toEqual([]);
+    expect(skill.musculation.map(s => s.exercise)).toEqual(['Power Clean', 'Push Press', 'Power Jerk']);
+    expect(skill.musculation.every(s => s.percent === 50 && s.charge_note === 'complexe · RM JERK')).toBe(true);
+    expect(r.unresolved_movements.some(n => n.includes('+'))).toBe(false);
+  });
+  it('1 RM sur le complexe* → musculation non structurée avec le renvoi, renvoi absent des notes', () => {
+    const r = parseDocument(pages, kplusPerf, '2026-09-07');
+    const work = r.entries.find(e => e.title.includes('JERK WORK'))!;
+    expect(work.movements).toEqual([]);
+    expect(work.musculation).toHaveLength(1);
+    expect(work.musculation[0].exercise).toBe('Complexe : 1 Power Clean + 1 Push Press + 1 Power Jerk');
+    expect(work.musculation[0].charge_note).toBe('1 RM sur le complexe · si échecs alors STOP');
+    expect(work.warnings).toContain('strength-unstructured');
+    expect(work.notes_coach).not.toContain('*1 Power Clean');
+    expect(r.unresolved_movements).not.toContain('RM');
+  });
+  it('complexe à charge non représentable (RPE) → une seule ligne non structurée', () => {
+    const r = parseDocument(pages, kplusPerf, '2026-09-07');
+    const pull = r.entries.find(e => e.title.includes('PULL'))!;
+    expect(pull.musculation).toHaveLength(1);
+    expect(pull.musculation[0].exercise).toMatch(/^Complexe : /);
+    expect(pull.warnings).toContain('strength-unstructured');
+  });
+  it("15 à 25' Mobilité → timecap 25:00, texte en notes, pas de mouvement", () => {
+    const r = parseDocument(pages, kplusPerf, '2026-09-07');
+    const mob = r.entries.find(e => e.title.startsWith('MOBILITÉ'))!;
+    expect(mob.movements).toEqual([]);
+    expect(mob.timecap).toBe('25:00');
+    expect(mob.notes_coach).toContain("15 à 25' Mobilité");
+    expect(r.unresolved_movements).not.toContain('Mobilite');
+  });
 });
 
 describe('parseMovementLine (§7)', () => {

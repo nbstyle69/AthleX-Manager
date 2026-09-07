@@ -4,10 +4,10 @@ import type {
   ParsedMovement, ParsedStrength, PdfPage, RawSection, SourceProfile,
 } from './types';
 import { detectFormat, timecapOf, type FormatDetection } from './formats';
-import { looksLikeMovementLine, parseMovementLine } from './movements';
+import { looksLikeMovementLine, parseMovementLine, resolveMovementName } from './movements';
 import { parseStrengthLine } from './strength';
 import { serializeImportStrength } from './serialize';
-import { applyTypoFixes, normKey, normalizeQuotes, removeArtefacts, stripEmojis, toLines } from './text';
+import { applyTypoFixes, normKey, normalizeQuotes, removeArtefacts, secondsToTimecap, stripEmojis, toLines } from './text';
 
 /**
  * Cœur générique de l'importateur (§3–§8, §11). Ne connaît aucun coach : il
@@ -197,6 +197,24 @@ function isStrengthEntry(block: BlockName | null, sectionTitle: string, lines: s
   return mv.length > 0 && sets.length >= Math.ceil(mv.length / 2);
 }
 
+const RM_COMPLEX_RE = /^\s*[-•·*]?\s*(\d+)\s*RM\s+sur\s+le\s+complexe\*?\s*(.*)$/i;
+const COMPLEX_FOOTNOTE_RE = /^\s*\*\s*\d+\s+[^+]+(?:\+\s*\d+\s+[^+]+)+$/;
+const DURATION_ACTIVITY_RE = /^\s*[-•·*]?\s*(\d+)(?:\s*(?:à|-)\s*(\d+))?\s*(?:'|min)\s+(\p{L}[\p{L} '-]*)$/iu;
+
+/**
+ * `1 Power Clean + 1 Push Press + 1 Power Jerk @50% (RM JERK)` →
+ * parts `['1 Power Clean', '1 Push Press', '1 Power Jerk']`, tail ` @50% (RM JERK)`.
+ */
+function splitComplexLine(line: string): { parts: string[]; tail: string } | null {
+  const body = line.replace(/^\s*[-•·*]\s*/, '');
+  const cut = body.search(/\s*(?:@|\(|RPE\s*\d)/i);
+  const head = cut >= 0 ? body.slice(0, cut) : body;
+  const tail = cut >= 0 ? ` ${body.slice(cut).trim()}` : '';
+  const parts = head.split(/\s*\+\s*/).map(p => p.trim()).filter(Boolean);
+  if (parts.length < 2 || !parts.every(p => /^\d+\s+\p{L}/u.test(p))) return null;
+  return { parts, tail };
+}
+
 /** `- Min 1/3/5 : 25% T2B (…)` → mouvement `25% T2B` annoté `Min 1/3/5`. */
 const MINUTE_PREFIX_RE = /^\s*[-•·*]?\s*(min(?:ute)?s?\s+[\d\/,\-\s]+?)\s*:\s*(.+)$/i;
 
@@ -329,10 +347,71 @@ export function buildEntry(draft: EntryDraft, profile: SourceProfile, weekStart:
   let lastExercise = '';
   let subTitle = draft.subTitle ?? '';
 
+  let extraTimecapSec: number | null = null;
+
+  // `- 1 RM sur le complexe*` + renvoi `*1 Power Clean + 1 Push Press + …` → une ligne force non
+  // structurée portant le complexe ; le renvoi est consommé (pas de note dupliquée).
+  const allLines = [...mergeWrappedLines(draft.sharedLines), ...lines];
+  const rmIdx = allLines.findIndex(l => RM_COMPLEX_RE.test(normalizeQuotes(l)));
+  const footIdx = rmIdx >= 0 ? allLines.findIndex(l => COMPLEX_FOOTNOTE_RE.test(normalizeQuotes(l))) : -1;
+  if (rmIdx >= 0) {
+    const rm = normalizeQuotes(allLines[rmIdx]).match(RM_COMPLEX_RE)!;
+    const complex = footIdx >= 0 ? normalizeQuotes(allLines[footIdx]).replace(/^\s*\*\s*/, '').trim() : null;
+    musculation.push({
+      exercise: complex ? `Complexe : ${complex}` : 'Complexe',
+      resolved: true, // pseudo-exercice, jamais soumis à la résolution
+      sets: 1,
+      reps: 1,
+      percent: null,
+      rpe: null,
+      charge_note: `${rm[1]} RM sur le complexe${rm[2] ? ` · ${rm[2].trim().replace(/^\((.*)\)$/, '$1')}` : ''}`,
+      tempo: null,
+      rest: null,
+    });
+  }
+
   const explicitLevel = section.levelLines ?? [];
-  for (const raw of [...mergeWrappedLines(draft.sharedLines), ...lines]) {
+  for (const [idx, raw] of allLines.entries()) {
+    if (idx === rmIdx || idx === footIdx) continue;
     let line = normalizeQuotes(raw).trim();
     if (!line) continue;
+
+    // `- 15 à 25' Mobilité` : durée + activité hors catalogue → time cap + texte en notes.
+    const dur = line.match(DURATION_ACTIVITY_RE);
+    if (dur && !/^(?:rest|repos)\b/i.test(dur[3]) && !resolveMovementName(dur[3], profile.synonyms).resolved) {
+      extraTimecapSec = Math.max(extraTimecapSec ?? 0, parseInt(dur[2] ?? dur[1], 10) * 60);
+      paragraphs.push(line.replace(/^[-•·*]\s*/, ''));
+      continue;
+    }
+
+    // Complexe `1 Power Clean + 1 Push Press + 1 Power Jerk @50% (RM JERK)` : une ligne force
+    // par mouvement, `(complexe)` sur chacune ; une seule ligne non structurée si la charge
+    // n'est pas représentable en %1RM.
+    const complex = splitComplexLine(line);
+    if (complex) {
+      const parts = complex.parts.map(p => parseStrengthLine(`${p}${complex.tail}`, { synonyms: profile.synonyms, typoFixes: profile.typoFixes, defaultSets: format.rounds ?? 1 }));
+      const representable = parts.every(p => p && p.exercise && !p.rpe && (p.percent != null || !complex.tail.includes('@')));
+      if (representable) {
+        for (const p of parts) {
+          const s = p!;
+          s.charge_note = ['complexe', s.charge_note].filter(Boolean).join(' · ');
+          musculation.push(s);
+        }
+      } else {
+        musculation.push({
+          exercise: `Complexe : ${complex.parts.join(' + ')}`,
+          resolved: true,
+          sets: format.rounds ?? 1,
+          reps: 1,
+          percent: null,
+          rpe: null,
+          charge_note: complex.tail.trim() || null,
+          tempo: null,
+          rest: null,
+        });
+      }
+      continue;
+    }
 
     // `(RM JERK)` seul sur sa ligne : complément du mouvement précédent.
     if (/^\(.+\)$/.test(line) && (movements.length || musculation.length)) {
@@ -433,7 +512,7 @@ export function buildEntry(draft: EntryDraft, profile: SourceProfile, weekStart:
     title,
     movements,
     musculation,
-    timecap: timecapOf(format),
+    timecap: timecapOf(format) ?? (extraTimecapSec != null ? secondsToTimecap(extraTimecapSec) : null),
     rounds: format.rounds,
     emom_interval_minutes: type === 'emom' ? format.emomIntervalMin : null,
     tabata_work_seconds: format.tabataWorkSec,

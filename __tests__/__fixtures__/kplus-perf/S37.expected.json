@@ -349,19 +349,53 @@
       "block": "skill-haltero",
       "type": "emom",
       "title": "HALTERO — JERK SKILL (EMOM 6')",
-      "movements": [
+      "movements": [],
+      "musculation": [
         {
-          "name": "Power Clean + 1 Push Press + 1 Power Jerk + 1 Split jerk",
+          "exercise": "Power Clean",
+          "resolved": true,
+          "sets": 1,
+          "reps": 1,
+          "percent": 50,
+          "rpe": null,
+          "charge_note": "complexe · RM JERK",
+          "tempo": null,
+          "rest": null
+        },
+        {
+          "exercise": "Push Press",
+          "resolved": true,
+          "sets": 1,
+          "reps": 1,
+          "percent": 50,
+          "rpe": null,
+          "charge_note": "complexe · RM JERK",
+          "tempo": null,
+          "rest": null
+        },
+        {
+          "exercise": "Power Jerk",
           "resolved": false,
-          "reps": "1",
-          "charge_h": "50%",
-          "charge_f": "50%",
-          "reps_h": null,
-          "reps_f": null,
-          "note": "RM JERK"
+          "sets": 1,
+          "reps": 1,
+          "percent": 50,
+          "rpe": null,
+          "charge_note": "complexe · RM JERK",
+          "tempo": null,
+          "rest": null
+        },
+        {
+          "exercise": "Split Jerk",
+          "resolved": false,
+          "sets": 1,
+          "reps": 1,
+          "percent": 50,
+          "rpe": null,
+          "charge_note": "complexe · RM JERK",
+          "tempo": null,
+          "rest": null
         }
       ],
-      "musculation": [],
       "timecap": "06:00",
       "rounds": null,
       "emom_interval_minutes": 1,
@@ -386,25 +420,26 @@
       "block": "skill-haltero",
       "type": "emom",
       "title": "HALTERO — JERK WORK (E2MOM × 5)",
-      "movements": [
+      "movements": [],
+      "musculation": [
         {
-          "name": "RM",
-          "resolved": false,
-          "reps": "1",
-          "charge_h": null,
-          "charge_f": null,
-          "reps_h": null,
-          "reps_f": null,
-          "note": "si échecs alors STOP · sur le complexe*"
+          "exercise": "Complexe : 1 Power Clean + 1 Push Press + 1 Power Jerk",
+          "resolved": true,
+          "sets": 1,
+          "reps": 1,
+          "percent": null,
+          "rpe": null,
+          "charge_note": "1 RM sur le complexe · si échecs alors STOP",
+          "tempo": null,
+          "rest": null
         }
       ],
-      "musculation": [],
       "timecap": "10:00",
       "rounds": 5,
       "emom_interval_minutes": 2,
       "tabata_work_seconds": null,
       "tabata_rest_seconds": null,
-      "notes_coach": "*1 Power Clean + 1 Push Press + 1 Power Jerk\n\nToutes les 2 min × 5",
+      "notes_coach": "Toutes les 2 min × 5",
       "video_url": null,
       "groups": [
         "K+ Perf"
@@ -415,7 +450,7 @@
       "source_profile": "kplus-perf",
       "source_page": 3,
       "warnings": [
-        "movement-unresolved"
+        "strength-unstructured"
       ]
     },
     {
@@ -459,17 +494,17 @@
       "date": "2026-09-08",
       "block": "skill-haltero",
       "type": "strength",
-      "title": "DEADLIFT X PAG — Deadlift P&D",
+      "title": "DEADLIFT X PAG — Deadlift",
       "movements": [],
       "musculation": [
         {
-          "exercise": "Deadlift P&D",
-          "resolved": false,
+          "exercise": "Deadlift",
+          "resolved": true,
           "sets": 4,
           "reps": 2,
           "percent": 84,
           "rpe": null,
-          "charge_note": null,
+          "charge_note": "P&D",
           "tempo": null,
           "rest": null
         }
@@ -489,9 +524,7 @@
       "rank": false,
       "source_profile": "kplus-perf",
       "source_page": 3,
-      "warnings": [
-        "movement-unresolved"
-      ]
+      "warnings": []
     },
     {
       "date": "2026-09-08",
@@ -661,7 +694,7 @@
       "title": "RENFO — BONUS",
       "movements": [
         {
-          "name": "2DB Floor Press",
+          "name": "Dual DB Floor Press",
           "resolved": false,
           "reps": "15",
           "charge_h": null,
@@ -961,7 +994,7 @@
       "title": "RENFO — BONUS",
       "movements": [
         {
-          "name": "2DB Curl Biceps prise marteau",
+          "name": "Dual DB Curl Biceps prise marteau",
           "resolved": false,
           "reps": "10",
           "charge_h": null,
@@ -1062,26 +1095,15 @@
       "date": "2026-09-10",
       "block": "post-wod",
       "type": "custom",
-      "title": "MOBILITÉ — Mobilite",
-      "movements": [
-        {
-          "name": "Mobilite",
-          "resolved": false,
-          "reps": "15-25'",
-          "charge_h": null,
-          "charge_f": null,
-          "reps_h": null,
-          "reps_f": null,
-          "note": null
-        }
-      ],
+      "title": "MOBILITÉ",
+      "movements": [],
       "musculation": [],
-      "timecap": null,
+      "timecap": "25:00",
       "rounds": null,
       "emom_interval_minutes": null,
       "tabata_work_seconds": null,
       "tabata_rest_seconds": null,
-      "notes_coach": "",
+      "notes_coach": "15 à 25' Mobilité",
       "video_url": null,
       "groups": [
         "K+ Perf"
@@ -1091,9 +1113,7 @@
       "rank": false,
       "source_profile": "kplus-perf",
       "source_page": 5,
-      "warnings": [
-        "movement-unresolved"
-      ]
+      "warnings": []
     },
     {
       "date": "2026-09-11",
@@ -1353,7 +1373,7 @@
       "title": "RENFO — PULL LEG",
       "movements": [
         {
-          "name": "Lunges 2DB",
+          "name": "Lunges Dual DB",
           "resolved": false,
           "reps": "20m",
           "charge_h": "RPE 10",
@@ -1559,7 +1579,7 @@
       "title": "RENFO — BENCH · Option A",
       "movements": [
         {
-          "name": "2DB Bench Press",
+          "name": "Dual DB Bench Press",
           "resolved": false,
           "reps": "4",
           "charge_h": "RPE 10",
@@ -1569,7 +1589,7 @@
           "note": null
         },
         {
-          "name": "2DB Rowing",
+          "name": "Dual DB Rowing",
           "resolved": false,
           "reps": "6",
           "charge_h": "RPE 10",
@@ -1695,10 +1715,6 @@
     }
   ],
   "unresolved_movements": [
-    "2DB Bench Press",
-    "2DB Curl Biceps prise marteau",
-    "2DB Floor Press",
-    "2DB Rowing",
     "Back Rack Split Jerk",
     "Bench press",
     "Bird Dog Knees Up",
@@ -1708,17 +1724,19 @@
     "Clean Pull",
     "Copenhagen Plank Hold",
     "DB Strict Press",
-    "Deadlift P&D",
+    "Dual DB Bench Press",
+    "Dual DB Curl Biceps prise marteau",
+    "Dual DB Floor Press",
     "Dual DB Romanian Deadlift",
+    "Dual DB Rowing",
     "Dual DB Suitcase Walking Lunges",
     "Erg",
-    "Lunges 2DB",
-    "Mobilite",
-    "Power Clean + 1 Push Press + 1 Power Jerk + 1 Split jerk",
-    "RM",
+    "Lunges Dual DB",
+    "Power Jerk",
     "Single leg Hamstring curl on medball",
     "Snatch Balance",
     "Snatch High Pull",
+    "Split Jerk",
     "Strict Press",
     "Tall Clean",
     "Tirage bras d'arrache",
