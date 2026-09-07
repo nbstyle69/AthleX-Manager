@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { formatCap } from '@/lib/wodFields';
+import { FREE_TIER, planTierClasses } from '@/lib/boxPlanTier';
 
 const TABS = ['Infos', 'Membres', 'Whiteboard', 'Tournois'];
 
@@ -32,7 +33,6 @@ export default function BoxDetailPage() {
   const [editDesc, setEditDesc] = useState('');
   const [editCity, setEditCity] = useState('');
   const [editActive, setEditActive] = useState(true);
-  const [editPlan, setEditPlan] = useState('free');
 
   async function loadData() {
     setLoading(true);
@@ -51,7 +51,6 @@ export default function BoxDetailPage() {
     setEditDesc(data.box.description ?? '');
     setEditCity(data.box.city ?? '');
     setEditActive(data.box.is_active ?? true);
-    setEditPlan(data.box.plan ?? 'free');
     setEditing(true);
   }
 
@@ -65,7 +64,6 @@ export default function BoxDetailPage() {
         description: editDesc.trim() || null,
         city: editCity.trim() || null,
         is_active: editActive,
-        plan: editPlan,
       }),
     });
     setSaving(false);
@@ -95,10 +93,7 @@ export default function BoxDetailPage() {
   const { box, members, wods, scores, competitions } = data;
   const owner = Array.isArray(box.owner) ? box.owner[0] : box.owner;
 
-  const planColor =
-    box.plan === 'elite' ? 'text-yellow-400 bg-yellow-500/15 border-yellow-500/20' :
-    box.plan === 'pro' ? 'text-purple-400 bg-purple-500/15 border-purple-500/20' :
-    'text-gray-400 bg-white/5 border-white/10';
+  const planTier: string = box.plan_tier ?? FREE_TIER;
 
   const levelColor = (l: string) =>
     l === 'pro' ? 'text-red-400' : l === 'gx' ? 'text-purple-400' :
@@ -138,8 +133,8 @@ export default function BoxDetailPage() {
               <h1 className="text-2xl font-black text-white">{box.name}</h1>
               <div className="flex items-center gap-3 mt-1">
                 {box.city && <span className="text-sm text-gray-400">{box.city}</span>}
-                <span className={`text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-lg border ${planColor}`}>
-                  {box.plan ?? 'free'}
+                <span className={`text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-lg border ${planTierClasses(planTier)}`}>
+                  {planTier}
                 </span>
                 {box.is_active ? (
                   <span className="flex items-center gap-1 text-[10px] font-bold text-emerald-400 bg-emerald-500/15 px-2 py-0.5 rounded-lg">
@@ -202,15 +197,6 @@ export default function BoxDetailPage() {
                   <label className="block text-xs font-bold text-gray-500 mb-1">Description</label>
                   <textarea value={editDesc} onChange={e => setEditDesc(e.target.value)}
                     className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-sm text-white focus:outline-none focus:border-emerald-500/50 h-20 resize-none" />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-gray-500 mb-1">Plan</label>
-                  <select value={editPlan} onChange={e => setEditPlan(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-sm text-white focus:outline-none focus:border-emerald-500/50">
-                    <option value="free">Free</option>
-                    <option value="pro">Pro</option>
-                    <option value="elite">Elite</option>
-                  </select>
                 </div>
                 <div className="flex items-center gap-3">
                   <label className="text-xs font-bold text-gray-500">Active</label>

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient, getServerUser } from '@/lib/supabase/server';
+import { activePlanTier, type BoxSubscriptionTier } from '@/lib/boxPlanTier';
 
 async function checkAdmin() {
   const user = await getServerUser();
@@ -25,6 +26,11 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
     .single();
 
   if (!box) return NextResponse.json({ error: 'Box not found' }, { status: 404 });
+
+  const { data: subs } = await supabase
+    .from('box_subscriptions')
+    .select('box_id, status, plan_tier')
+    .eq('box_id', id);
 
   // Members
   const { data: members } = await supabase
@@ -62,7 +68,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
     .limit(20);
 
   return NextResponse.json({
-    box,
+    box: { ...box, plan_tier: activePlanTier((subs ?? []) as BoxSubscriptionTier[]) },
     members: members ?? [],
     wods: wods ?? [],
     scores: scores ?? [],
@@ -83,7 +89,6 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   if (body.description !== undefined) updates.description = body.description;
   if (body.city !== undefined) updates.city = body.city;
   if (body.is_active !== undefined) updates.is_active = body.is_active;
-  if (body.plan !== undefined) updates.plan = body.plan;
   if (body.allowed_tournament_formats !== undefined) {
     const valid = ['simple','bracket','swiss','league_div'];
     const fmts = Array.isArray(body.allowed_tournament_formats)

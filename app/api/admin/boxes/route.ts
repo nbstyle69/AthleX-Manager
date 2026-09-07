@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient, getServerUser } from '@/lib/supabase/server';
+import { activePlanTier, type BoxSubscriptionTier } from '@/lib/boxPlanTier';
 
 async function checkAdmin() {
   const user = await getServerUser();
@@ -8,6 +9,28 @@ async function checkAdmin() {
   const { data: profile } = await service.from('profiles').select('role').eq('id', user.id).single();
   if (!profile || !['super_admin', 'admin'].includes(profile.role)) return null;
   return user;
+}
+
+export async function GET() {
+  const user = await checkAdmin();
+  if (!user) return NextResponse.json({ error: 'Non autorisé' }, { status: 403 });
+
+  const supabase = createServiceClient();
+  const [{ data: boxes, error }, { data: subs }] = await Promise.all([
+    supabase
+      .from('boxes')
+      .select('*, owner:profiles!boxes_owner_id_fkey(username)')
+      .order('created_at', { ascending: false }),
+    supabase.from('box_subscriptions').select('box_id, status, plan_tier'),
+  ]);
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  const allSubs = (subs ?? []) as BoxSubscriptionTier[];
+  const boxesWithTier = (boxes ?? []).map(b => ({
+    ...b,
+    plan_tier: activePlanTier(allSubs.filter(s => s.box_id === b.id)),
+  }));
+  return NextResponse.json(boxesWithTier);
 }
 
 export async function POST(req: NextRequest) {
