@@ -195,7 +195,14 @@ export function parseMovementLine(rawLine: string, opts: MovementParseOptions): 
   if (at) {
     const c = at[1].trim();
     line = line.slice(0, at.index).trim();
-    charge = normalizeRpe(c) ?? c.replace(/^de\s+/i, '');
+    // `@75% 3" Pause au dessus du genoux` : la charge s'arrête au nombre/unité, le reste est une note.
+    const num = c.match(/^(?:de\s+)?([\d.,]+(?:\s*[-à]\s*[\d.,]+)?\s*(?:%|kg|lbs?)?(?:\s*\/\s*[\d.,]+\s*(?:%|kg|lbs?)?)?)\s*(.*)$/i);
+    if (num && num[2] && !/^(?:%|kg|lbs?)/i.test(num[2])) {
+      charge = num[1].replace(/\s+/g, '');
+      notes.push(num[2].trim());
+    } else {
+      charge = normalizeRpe(c) ?? c.replace(/^de\s+/i, '');
+    }
   } else {
     const bare = line.match(/\s+([\d.,]+(?:\s*[xX×]\s*[\d.,]+)?(?:\s*\/\s*[\d.,]+(?:\s*[xX×]\s*[\d.,]+)?)?\s*(?:kg|lbs?))$/i);
     if (bare && /\S\s+\S/.test(line.slice(0, bare.index))) {
@@ -246,12 +253,18 @@ export function parseMovementLine(rawLine: string, opts: MovementParseOptions): 
   }
   else return null;
 
+  // `3 Rounds de :`, `5 Rounds For Time`, `2 Rounds` : entête de format, pas un mouvement.
+  if (/^(?:rounds?|tours?|rds?)\b/i.test(name)) return null;
+
   // « … sur deux Row en relais libre » : le nom s'arrête au premier mot de liaison
   const tail = name.match(/^(.+?)\s+(sur|avec|en|puis|then|same time)\s+(.+)$/i);
   if (tail && tail[1].trim().split(/\s+/).length <= 4) {
     name = tail[1];
     notes.push(/^same time$/i.test(tail[2]) ? `simultané avec ${tail[3]}` : `${tail[2]} ${tail[3]}`);
   }
+  // `Strict HSPU 2" pause tête ras le sol*` : la consigne de pause/hold devient une note
+  const pause = name.match(/^(.+?)\s+(\d+\s*["']?\s*(?:pause|hold|sec)\b.*)$/i);
+  if (pause) { name = pause[1]; notes.push(pause[2].trim()); }
   // `J1` / `J2` en suffixe = note
   const jour = name.match(/^(.+?)\s+(J\d)$/);
   if (jour) { name = jour[1]; notes.unshift(jour[2]); }

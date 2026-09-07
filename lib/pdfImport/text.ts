@@ -26,7 +26,8 @@ export function applyTypoFixes(s: string, fixes: Record<string, string>): string
   let out = s;
   for (const [from, to] of Object.entries(fixes)) {
     const re = new RegExp(escapeRegExp(from), 'gi');
-    out = out.replace(re, to);
+    // `SPlit` → `Split` ne doit pas toucher `SPLIT JERK` : un mot tout en capitales garde sa casse.
+    out = out.replace(re, hit => (hit === hit.toUpperCase() && hit !== hit.toLowerCase() && from !== from.toUpperCase()) ? hit : to);
   }
   return out;
 }

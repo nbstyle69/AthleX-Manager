@@ -65,9 +65,35 @@ export function splitSubBlocks(lines: string[]): SubBlock[] {
   return out;
 }
 
-function hasOwnTemporalFormat(sb: SubBlock): boolean {
+function hasOwnFormat(sb: SubBlock): boolean {
   const t = `${sb.title}\n${sb.lines.join('\n')}`;
-  return /\b(EMOM|E\d+(?:'\d{2})?MOM|AMRAP|every\s+\d|for\s*time|tabata|death\s*by)\b/i.test(t);
+  return /\b(EMOM|E\d+(?:'\d{2})?MOM|AMRAP|AMQAP|every\s+\d|for\s*time|tabata|death\s*by|\d+\s*rounds?)\b/i.test(t);
+}
+
+/**
+ * Échauffement du préambule (marqueur sur une ligne, pas de sous-bloc) : tout ce qui
+ * suit jusqu'à la première ligne qui n'est ni puce, ni consigne de tours/barre à vide.
+ */
+const SETS_LINE_RE = /^\s*[-•·*]?\s*\d+(?:\s*à\s*\d+)?\s*[xX×]\s*\d+(?:\s+\S|\s*@)/;
+
+function extractInlineWarmup(lines: string[], markers: string[]): { rest: string[]; warmup: string[] } {
+  const rest: string[] = [];
+  const warmup: string[] = [];
+  let inWarmup = false;
+  for (const raw of lines) {
+    const line = normalizeQuotes(raw).trim();
+    if (!line) continue;
+    if (isWarmupHeader(line, markers)) { inWarmup = true; continue; }
+    if (inWarmup) {
+      // Le warm-up s'arrête au sous-bloc numéroté suivant ou à une ligne `séries × reps` ;
+      // jamais sur `@` / `%` seuls (`4 Rounds : de barre à vide à 30%` est l'entête du warm-up).
+      const isWork = SETS_LINE_RE.test(line);
+      if (!isWork && (/^[-•·*]/.test(line) || /\b(rounds?|tours?)\b|à vide|barre vide/i.test(line))) { warmup.push(line); continue; }
+      inWarmup = false;
+    }
+    rest.push(line);
+  }
+  return { rest, warmup };
 }
 
 function isLevelLine(line: string, markers?: LevelMarkers): 'open' | 'pro' | 'elite' | null {
@@ -120,6 +146,7 @@ export function buildTitle(args: {
   if (/^CHILL/i.test(upper)) title = 'CHILL DAY 🛋️';
   else {
     let sub = args.subTitle?.trim() || null;
+    if (sub && sub.toUpperCase() === upper) sub = null;
     if (!sub) {
       const names = uniq([
         ...args.movements.map(m => m.name),
@@ -147,73 +174,128 @@ export function buildTitle(args: {
 
 function uniq<T>(xs: T[]): T[] { return Array.from(new Set(xs)); }
 
+function titleCaseExercise(s: string): string {
+  return s.toLowerCase().replace(/(^|[\s-])(\p{L})/gu, (_, sep: string, c: string) => sep + c.toUpperCase()).trim();
+}
+
 function formatLabel(text: string): string | null {
   const m = text.match(/\b(E\d+(?:'\d{2})?MOM\s*[x×]\s*\d+|EMOM\s*\d+'?|AMRAP\s*\d+(?:\s*à\s*\d+)?'?|every\s+\d+(?:'\d{2}?|")\s*[x×]\s*\d+|\d+\s*rounds?\s*for\s*time|for\s*time|tabata|death\s*by)/i);
   if (!m) return null;
   return m[1].replace(/\s*[x×]\s*/i, ' × ').replace(/\s+/g, ' ').trim();
 }
 
-function isStrengthEntry(block: BlockName | null, sectionTitle: string, lines: string[]): boolean {
+/**
+ * Mode force : PAG / Front Squat / Bench (toujours), sinon toute section hors WOD dont la
+ * majorité des lignes sont des `séries × reps` sans format temporel (`2) SNATCH - 1X3 … @65%`).
+ */
+function isStrengthEntry(block: BlockName | null, sectionTitle: string, lines: string[], temporal: boolean): boolean {
   const t = normalizeSectionTitle(sectionTitle);
   if (block === 'skill-haltero' && !/haltero/i.test(t) && !HALTERO_WORDS.test(t)) return true;
-  if (block === 'post-wod' && /renfo|p\d\s*core|accessoire/i.test(t)) {
-    const mv = lines.filter(looksLikeMovementLine);
-    const sets = mv.filter(l => /^\s*[-•·*]?\s*\d+(?:\s*à\s*\d+)?\s*[xX×]\s*\d+\s+\S/.test(normalizeQuotes(l)));
-    return mv.length > 0 && sets.length >= Math.ceil(mv.length / 2);
+  if (block === 'wod' || temporal) return false;
+  const mv = lines.filter(looksLikeMovementLine);
+  const sets = mv.filter(l => SETS_LINE_RE.test(normalizeQuotes(l)));
+  return mv.length > 0 && sets.length >= Math.ceil(mv.length / 2);
+}
+
+/** `- Min 1/3/5 : 25% T2B (…)` → mouvement `25% T2B` annoté `Min 1/3/5`. */
+const MINUTE_PREFIX_RE = /^\s*[-•·*]?\s*(min(?:ute)?s?\s+[\d\/,\-\s]+?)\s*:\s*(.+)$/i;
+
+/**
+ * Recolle les retours à la ligne du PDF : parenthèse ouverte non fermée, ou ligne suivante
+ * qui commence en minuscule / par une parenthèse sans être une puce.
+ */
+function mergeWrappedLines(lines: string[]): string[] {
+  const out: string[] = [];
+  for (const raw of lines) {
+    const line = raw.trim();
+    if (!line) continue;
+    const prev = out[out.length - 1];
+    if (prev !== undefined) {
+      const open = (prev.match(/\(/g) ?? []).length > (prev.match(/\)/g) ?? []).length;
+      const notBullet = !/^[-•·*\d🟣🔴🥇*]/u.test(line);
+      const continuation = notBullet && !/[.:!?"»]$/.test(prev)
+        && (/^[a-zà-ü(]/.test(line) || (open && !/^[A-Z]\)/.test(line)) || MINUTE_PREFIX_RE.test(prev));
+      if (open || continuation) { out[out.length - 1] = `${prev} ${line}`; continue; }
+    }
+    out.push(line);
   }
-  return false;
+  return out;
 }
 
 interface EntryDraft {
   section: RawSection;
   subTitle: string | null;
   lines: string[];
+  /** Lignes du sous-bloc WARM-UPS (ou du warm-up inline du préambule) → notes, jamais des mouvements. */
+  warmupLines: string[];
+  /** Texte partagé par tous les sous-blocs d'une section (méthodo RENFO, consignes). */
+  sharedLines: string[];
   option: 'A' | 'B' | null;
   alternativeWith: string | null;
 }
 
-function draftsForSection(section: RawSection): EntryDraft[] {
-  const rawTitle = normalizeSectionTitle(section.title);
-  const alt = rawTitle.match(/^(.+?)\s+OU\s+(.+)$/i);
+interface AltInfo { title: string; option: 'A' | 'B' | null; alternativeWith: string | null }
+
+/**
+ * `RENFO OU RUN` : si une section `RUN … OU RENFO` existe le même jour, chacune est une
+ * option (A puis B) avec la note « Au choix avec … ». Sinon une seule entrée, annotée.
+ */
+function resolveAlternatives(sections: RawSection[]): AltInfo[] {
+  const parsed = sections.map(s => {
+    const t = normalizeSectionTitle(s.title).replace(/\s*\([^)]*\)\s*/g, ' ').replace(/\s+/g, ' ').trim();
+    const m = t.match(/^(.+?)\s+OU\s+(.+)$/i);
+    return m ? { title: m[1].trim(), other: m[2].trim() } : { title: t, other: null };
+  });
+  return parsed.map((p, i) => {
+    if (!p.other) return { title: p.title, option: null, alternativeWith: null };
+    const j = parsed.findIndex((q, k) => k !== i && q.title.toUpperCase() === p.other!.toUpperCase());
+    if (j < 0) return { title: p.title, option: null, alternativeWith: p.other };
+    return { title: p.title, option: j > i ? 'A' : 'B', alternativeWith: p.other };
+  });
+}
+
+function draftsForSection(section: RawSection, profile: SourceProfile, alt: AltInfo): EntryDraft[] {
+  const rawTitle = alt.title;
   const drafts: EntryDraft[] = [];
 
   const subs = splitSubBlocks(section.lines);
   const preamble = subs.find(s => s.label === null);
-  const labelled = subs.filter(s => s.label !== null);
+  const labelled = subs.filter(s => s.label !== null && !isWarmupHeader(s.title, profile.warmupMarkers));
+  const warmupSubs = subs.filter(s => s.label !== null && isWarmupHeader(s.title, profile.warmupMarkers));
+  const inline = extractInlineWarmup(preamble?.lines ?? [], profile.warmupMarkers);
+  const warmupLines = [...inline.warmup, ...warmupSubs.flatMap(s => s.lines)];
 
+  // Dès qu'un sous-bloc porte son propre format (EMOM, AMRAP, N rounds…), chaque sous-bloc
+  // devient une entrée ; sinon (`2) SNATCH` / `3) SNATCH PULL`) ils forment une seule entrée force.
+  const splitAll = labelled.some(hasOwnFormat);
   const grouped: SubBlock[] = [];
   const separate: SubBlock[] = [];
   for (const sb of labelled) {
-    if (hasOwnTemporalFormat(sb)) separate.push(sb);
+    if (splitAll) separate.push(sb);
     else if (/\b(PAG|X\s*PAG)\b/i.test(sb.title) && /haltero/i.test(rawTitle)) separate.push(sb);
     else grouped.push(sb);
   }
 
+  const base = { section: { ...section, title: rawTitle }, option: alt.option, alternativeWith: alt.alternativeWith };
   const mainLines = [
-    ...(preamble?.lines ?? []),
+    ...(separate.length ? [] : inline.rest),
     ...grouped.flatMap(sb => [sb.title ? `${sb.label}) ${sb.title}` : '', ...sb.lines].filter(Boolean)),
   ];
   if (mainLines.length || labelled.length === 0) {
     const firstSub = grouped.length === 1 && grouped[0].title ? grouped[0].title : null;
-    drafts.push({ section, subTitle: firstSub, lines: mainLines, option: null, alternativeWith: null });
+    drafts.push({ ...base, subTitle: firstSub, lines: mainLines, warmupLines, sharedLines: [] });
   }
-  for (const sb of separate) {
+  separate.forEach((sb, i) => {
+    const pag = /\bPAG\b/i.test(sb.title);
     drafts.push({
-      section: { ...section, title: /\bPAG\b/i.test(sb.title) ? sb.title : section.title },
-      subTitle: /\bPAG\b/i.test(sb.title) ? null : sb.title,
+      ...base,
+      section: { ...base.section, title: pag ? sb.title : rawTitle },
+      subTitle: pag ? null : sb.title,
       lines: sb.lines,
-      option: null,
-      alternativeWith: null,
+      warmupLines: i === 0 && !drafts.length ? warmupLines : [],
+      sharedLines: inline.rest,
     });
-  }
-
-  if (alt) {
-    // Une entrée par alternative, même corps : le coach ajuste en preview.
-    return drafts.flatMap(d => [
-      { ...d, section: { ...d.section, title: alt[1] }, option: 'A' as const, alternativeWith: alt[2] },
-      { ...d, section: { ...d.section, title: alt[2] }, option: 'B' as const, alternativeWith: alt[1] },
-    ]);
-  }
+  });
   return drafts;
 }
 
@@ -224,44 +306,57 @@ function addDays(iso: string, days: number): string {
 }
 
 export function buildEntry(draft: EntryDraft, profile: SourceProfile, weekStart: string, order: number): ImportEntry | null {
-  const { section, lines } = draft;
+  const { section } = draft;
   const warnings = new Set<ImportWarning>();
   const block = blockForTitle(section.title, profile, section.blockHint ?? null);
   if (!block) warnings.add('enum-fallback');
 
+  const lines = mergeWrappedLines(draft.lines);
   const bodyText = [draft.subTitle ?? '', ...lines].join('\n');
   const format = detectFormat(bodyText);
   format.warnings.forEach(w => warnings.add(w));
 
-  const strengthMode = isStrengthEntry(block, section.title, lines);
+  const temporal = format.matched && format.type != null && format.type !== 'strength';
+  const strengthMode = isStrengthEntry(block, section.title, lines, temporal);
   const movements: ParsedMovement[] = [];
   const musculation: ParsedStrength[] = [];
-  const warmup: string[] = [];
+  const warmup: string[] = [...draft.warmupLines];
   const levelLines: { level: 'open' | 'pro' | 'elite'; text: string }[] = [];
   const advice: string[] = [];
   const options: string[] = [];
   const paragraphs: string[] = [];
   let chargeAmbiguous = false;
-  let inWarmup = false;
   let lastExercise = '';
+  let subTitle = draft.subTitle ?? '';
 
   const explicitLevel = section.levelLines ?? [];
-  for (const raw of [...lines]) {
-    const line = normalizeQuotes(raw).trim();
+  for (const raw of [...mergeWrappedLines(draft.sharedLines), ...lines]) {
+    let line = normalizeQuotes(raw).trim();
     if (!line) continue;
 
-    if (isWarmupHeader(line, profile.warmupMarkers)) { inWarmup = true; continue; }
+    // `(RM JERK)` seul sur sa ligne : complément du mouvement précédent.
+    if (/^\(.+\)$/.test(line) && (movements.length || musculation.length)) {
+      const inner = line.slice(1, -1).trim();
+      const lastMv = movements[movements.length - 1];
+      const lastSt = musculation[musculation.length - 1];
+      if (lastMv && (!lastSt || movements.length >= musculation.length)) lastMv.note = lastMv.note ? `${lastMv.note} · ${inner}` : inner;
+      else if (lastSt) lastSt.charge_note = lastSt.charge_note ? `${lastSt.charge_note} · ${inner}` : inner;
+      continue;
+    }
+    let minuteNote: string | null = null;
+    const minute = line.match(MINUTE_PREFIX_RE);
+    if (minute && looksLikeMovementLine(minute[2])) {
+      minuteNote = minute[1].replace(/\s+/g, ' ').trim();
+      line = `- ${minute[2]}`;
+    }
+
     const lvl = isLevelLine(line, profile.levelMarkers);
     if (lvl || explicitLevel.includes(raw)) {
       levelLines.push({ level: lvl ?? 'open', text: line });
       continue;
     }
-    if (inWarmup) {
-      // L'échauffement s'arrête à la première ligne de travail (séries × reps, `@`, `%`, RPE)
-      const isWork = /^\s*[-•·*]?\s*\d+(?:\s*à\s*\d+)?\s*[xX×]\s*\d+\s+\S/.test(line) || /[@%]|\bRPE\b/i.test(line);
-      if (!isWork && (looksLikeMovementLine(line) || /^[-•·*]/.test(line))) { warmup.push(line); continue; }
-      inWarmup = false;
-    }
+    const sub = line.match(SUBBLOCK_STRICT_RE);
+    if (sub) { subTitle = sub[3].replace(/\s*\([^)]*\)\s*/g, ' ').trim(); lastExercise = ''; continue; }
     if (/(rest|repos)\b/i.test(line) && /^\d+(?:'\d{0,2}|")/.test(line)) continue; // repos → format.rests
     if (format.matched && !looksLikeMovementLine(line) && line.length <= 60 && FORMAT_HEADER_RE.test(line)) continue;
     if (QUOTE_RE.test(line) || ADVICE_RE.test(line)) { advice.push(line); continue; }
@@ -271,7 +366,8 @@ export function buildEntry(draft: EntryDraft, profile: SourceProfile, weekStart:
       if (strengthMode) {
         const s = parseStrengthLine(line, { synonyms: profile.synonyms, typoFixes: profile.typoFixes, defaultSets: format.rounds });
         if (s) {
-          if (!s.exercise && lastExercise) s.exercise = lastExercise;
+          // `- 6X1 @RPE9` sous `3) TALL CLEAN` : l'exercice est le titre du sous-bloc.
+          if (!s.exercise) s.exercise = lastExercise || titleCaseExercise(subTitle);
           if (s.exercise) lastExercise = s.exercise;
           musculation.push(s);
           continue;
@@ -280,9 +376,11 @@ export function buildEntry(draft: EntryDraft, profile: SourceProfile, weekStart:
       const mv = parseMovementLine(line, { chargeOrder: profile.chargeOrder, synonyms: profile.synonyms, typoFixes: profile.typoFixes });
       if (mv) {
         if (mv.chargeAmbiguous) chargeAmbiguous = true;
+        if (minuteNote) mv.movement.note = mv.movement.note ? `${minuteNote} · ${mv.movement.note}` : minuteNote;
         movements.push(mv.movement);
         continue;
       }
+      if (/^\d+\s*(?:rounds?|tours?|rds?)\b/i.test(line.replace(/^[-•·*]\s*/, ''))) continue; // entête `3 Rounds de :`
     }
     if (/^[-•·*]/.test(line)) { paragraphs.push(line.replace(/^[-•·*]\s*/, '')); continue; }
     if (SUBBLOCK_STRICT_RE.test(line)) continue;
@@ -304,12 +402,13 @@ export function buildEntry(draft: EntryDraft, profile: SourceProfile, weekStart:
   if (type == null && !format.matched) type = block === 'skill-haltero' ? 'strength' : null;
   if (type == null && format.matched && block === 'skill-haltero') type = 'strength';
   if (type == null && musculation.length > 0 && !format.matched) type = 'strength';
-  if (type == null && format.matched) type = 'custom';
+  if (type == null) type = 'custom';
 
   const rank = block === 'wod' && format.scored && !(advice.length > 0 && movements.length === 0);
 
   const notes: string[] = [];
   if (draft.alternativeWith) notes.push(`Au choix avec ${normalizeSectionTitle(draft.alternativeWith)}`);
+  if (section.preamble?.length && order === 1) notes.push(mergeWrappedLines(section.preamble).join('\n'));
   if (advice.length) notes.push(uniq(advice).join('\n'));
   if (format.intervalNote) notes.push(format.intervalNote);
   if (warmup.length) notes.push(formatWarmup(warmup));
@@ -372,8 +471,10 @@ export function parseDocument(
   const entries: ImportEntry[] = [];
   for (const day of dayPages) {
     let order = 1;
-    for (const section of profile.splitSections(day)) {
-      for (const draft of draftsForSection(section)) {
+    const sections = profile.splitSections(day);
+    const alts = resolveAlternatives(sections);
+    for (const [i, section] of sections.entries()) {
+      for (const draft of draftsForSection(section, profile, alts[i])) {
         const entry = buildEntry(draft, profile, weekStart, order);
         if (entry) { entries.push(entry); order += 1; }
       }

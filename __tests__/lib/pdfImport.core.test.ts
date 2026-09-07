@@ -247,17 +247,19 @@ describe('profil kplus-perf + parseDocument', () => {
     const titles = r.entries.map(e => e.title);
     const lundi = r.entries.filter(e => e.date === '2026-09-07');
     const mardi = r.entries.filter(e => e.date === '2026-09-08');
-    expect(lundi.length).toBeGreaterThanOrEqual(3);
+    expect(lundi.length).toBe(2);
     expect(mardi.length).toBeGreaterThanOrEqual(3);
 
     const haltero = lundi.find(e => e.block === 'skill-haltero')!;
     expect(haltero).toBeDefined();
     expect(haltero.type).toBe('strength');
-    expect(haltero.movements.map(m => m.name)).toEqual(['Squat Snatch', 'Clean Pull']);
+    expect(haltero.musculation.map(m => `${m.exercise} ${m.sets}x${m.reps}`)).toEqual(['Squat Snatch 6x1', 'Clean Pull 4x3']);
     expect(haltero.notes_coach).not.toMatch(/1\) HALTERO/);
 
-    const optA = lundi.find(e => /METCON.*Option A/.test(e.title))!;
-    const optB = lundi.find(e => /RUN.*Option B/.test(e.title))!;
+    // `METCON OU RUN` sans section RUN en face : une seule entrée, annotée, sans « Option ».
+    const optA = lundi.find(e => /^METCON/.test(e.title))!;
+    expect(optA.title).not.toMatch(/Option/);
+    expect(lundi.some(e => /^RUN/.test(e.title))).toBe(false);
     expect(optA.block).toBe('wod');
     expect(optA.type).toBe('for-time');
     expect(optA.rank).toBe(true);
@@ -268,7 +270,6 @@ describe('profil kplus-perf + parseDocument', () => {
     expect(optA.movements).toHaveLength(2);
     expect(optA.movements[0]).toMatchObject({ name: 'Thruster', charge_f: '35kg', charge_h: '50kg' });
     expect(optA.warnings).not.toContain('level-scale-missing');
-    expect(optB.block).toBe('post-wod');
 
     const squat = mardi.find(e => /SQUAT X PAG/.test(e.title))!;
     expect(squat.block).toBe('skill-haltero');

@@ -1,0 +1,1729 @@
+{
+  "week_start": "2026-09-07",
+  "source_profile": "kplus-perf",
+  "detected_scores": {},
+  "week_notes": "\"LA DOULEUR QUE VOUS RESSENTEZ AUJOUD'HUI EST LA FORCE QUE\nVOUS RESSENTIREZ DEMAIN\"\n----- LASHA TALAKHADZE -----",
+  "programs": [],
+  "entries": [
+    {
+      "date": "2026-09-07",
+      "block": "skill-haltero",
+      "type": "strength",
+      "title": "HALTERO — Squat Snatch & Snatch High Pull",
+      "movements": [],
+      "musculation": [
+        {
+          "exercise": "Squat Snatch",
+          "resolved": true,
+          "sets": 1,
+          "reps": 3,
+          "percent": 65,
+          "rpe": null,
+          "charge_note": null,
+          "tempo": null,
+          "rest": null
+        },
+        {
+          "exercise": "Squat Snatch",
+          "resolved": true,
+          "sets": 1,
+          "reps": 2,
+          "percent": 75,
+          "rpe": null,
+          "charge_note": null,
+          "tempo": null,
+          "rest": null
+        },
+        {
+          "exercise": "Squat Snatch",
+          "resolved": true,
+          "sets": 1,
+          "reps": 1,
+          "percent": 80,
+          "rpe": null,
+          "charge_note": null,
+          "tempo": null,
+          "rest": null
+        },
+        {
+          "exercise": "Squat Snatch",
+          "resolved": true,
+          "sets": 6,
+          "reps": 1,
+          "percent": null,
+          "rpe": null,
+          "charge_note": "85-90%",
+          "tempo": null,
+          "rest": null
+        },
+        {
+          "exercise": "Snatch High Pull",
+          "resolved": false,
+          "sets": 4,
+          "reps": 3,
+          "percent": null,
+          "rpe": null,
+          "charge_note": "95-105%",
+          "tempo": null,
+          "rest": null
+        }
+      ],
+      "timecap": null,
+      "rounds": null,
+      "emom_interval_minutes": null,
+      "tabata_work_seconds": null,
+      "tabata_rest_seconds": null,
+      "notes_coach": "Échauffement : 4 Rounds : de barre à vide à 30% — 1 Muscle Snatch — 1 Power Snatch — 1 Snatch balance — 1 Squat Snatch",
+      "video_url": null,
+      "groups": [
+        "K+ Perf"
+      ],
+      "programs": [],
+      "published": true,
+      "rank": false,
+      "source_profile": "kplus-perf",
+      "source_page": 2,
+      "warnings": [
+        "movement-unresolved"
+      ]
+    },
+    {
+      "date": "2026-09-07",
+      "block": "skill-haltero",
+      "type": "strength",
+      "title": "SQUAT X PAG — Back Squat",
+      "movements": [],
+      "musculation": [
+        {
+          "exercise": "Back Squat",
+          "resolved": true,
+          "sets": 4,
+          "reps": 2,
+          "percent": 88,
+          "rpe": null,
+          "charge_note": null,
+          "tempo": null,
+          "rest": null
+        }
+      ],
+      "timecap": null,
+      "rounds": null,
+      "emom_interval_minutes": null,
+      "tabata_work_seconds": null,
+      "tabata_rest_seconds": null,
+      "notes_coach": "",
+      "video_url": null,
+      "groups": [
+        "K+ Perf"
+      ],
+      "programs": [],
+      "published": true,
+      "rank": false,
+      "source_profile": "kplus-perf",
+      "source_page": 2,
+      "warnings": []
+    },
+    {
+      "date": "2026-09-07",
+      "block": "skill-gym",
+      "type": "custom",
+      "title": "GYM — RMU (technique)",
+      "movements": [
+        {
+          "name": "Ring Muscle-ups",
+          "resolved": true,
+          "reps": "selon niveau",
+          "charge_h": null,
+          "charge_f": null,
+          "reps_h": null,
+          "reps_f": null,
+          "note": null
+        },
+        {
+          "name": "Ring Muscle-ups",
+          "resolved": true,
+          "reps": "selon niveau",
+          "charge_h": null,
+          "charge_f": null,
+          "reps_h": null,
+          "reps_f": null,
+          "note": null
+        }
+      ],
+      "musculation": [],
+      "timecap": null,
+      "rounds": 3,
+      "emom_interval_minutes": null,
+      "tabata_work_seconds": null,
+      "tabata_rest_seconds": null,
+      "notes_coach": "Barème :\n🟣 Open : 1 à 2 RMU\n🔴 Pro : ♀ 2 RMU / ♂ 3 RMU\n🥇 Elite : ♀ 3 RMU / ♂ 4 RMU\n\nRepos : 1'15, 1'15 entre rounds",
+      "video_url": null,
+      "groups": [
+        "K+ Perf"
+      ],
+      "programs": [],
+      "published": true,
+      "rank": false,
+      "source_profile": "kplus-perf",
+      "source_page": 2,
+      "warnings": []
+    },
+    {
+      "date": "2026-09-07",
+      "block": "skill-gym",
+      "type": "custom",
+      "title": "GYM — HSPU X T2B (résistance)",
+      "movements": [
+        {
+          "name": "Toes-to-Bar",
+          "resolved": true,
+          "reps": "25% du max UBK",
+          "charge_h": null,
+          "charge_f": null,
+          "reps_h": null,
+          "reps_f": null,
+          "note": "Min 1/3/5/7/9/11 · CAP à 12"
+        },
+        {
+          "name": "Handstand Push-ups",
+          "resolved": true,
+          "reps": "15% du max UBK",
+          "charge_h": null,
+          "charge_f": null,
+          "reps_h": null,
+          "reps_f": null,
+          "note": "Min 2/4/6/8/10/12 · Arrondir à l'entier inférieur · CAP à 4 · 2\" pause tête ras le sol*"
+        }
+      ],
+      "musculation": [],
+      "timecap": "12:00",
+      "rounds": null,
+      "emom_interval_minutes": null,
+      "tabata_work_seconds": null,
+      "tabata_rest_seconds": null,
+      "notes_coach": "*si pause impossible ras le sol alors faire la pause tête au sol",
+      "video_url": null,
+      "groups": [
+        "K+ Perf"
+      ],
+      "programs": [],
+      "published": true,
+      "rank": false,
+      "source_profile": "kplus-perf",
+      "source_page": 2,
+      "warnings": []
+    },
+    {
+      "date": "2026-09-07",
+      "block": "post-wod",
+      "type": "custom",
+      "title": "RENFO — Push LEG",
+      "movements": [
+        {
+          "name": "Zercher Squat",
+          "resolved": false,
+          "reps": "5",
+          "charge_h": "RPE 9",
+          "charge_f": "RPE 9",
+          "reps_h": null,
+          "reps_f": null,
+          "note": "focus mouvement"
+        }
+      ],
+      "musculation": [],
+      "timecap": null,
+      "rounds": 3,
+      "emom_interval_minutes": null,
+      "tabata_work_seconds": null,
+      "tabata_rest_seconds": null,
+      "notes_coach": "Pour les charges, nous allons réaliser ce même bloc sur 3 semaines. Je vous demande donc de commencer en RPE\n7/8, puis semaine 2 en RPE 8/9, puis semaine 3 en RPE 9/10.\nL'objectif est de monter progressivement les charges au fur et à mesure des 3 semaines et, plus globalement, des 20 semaines. 💪",
+      "video_url": null,
+      "groups": [
+        "K+ Perf"
+      ],
+      "programs": [],
+      "published": true,
+      "rank": false,
+      "source_profile": "kplus-perf",
+      "source_page": 2,
+      "warnings": [
+        "movement-unresolved"
+      ]
+    },
+    {
+      "date": "2026-09-07",
+      "block": "post-wod",
+      "type": "emom",
+      "title": "RENFO — PULL LEG (EMOM 8')",
+      "movements": [
+        {
+          "name": "Bulgarian Split Squat",
+          "resolved": false,
+          "reps": "6",
+          "charge_h": "RPE 10",
+          "charge_f": "RPE 10",
+          "reps_h": null,
+          "reps_f": null,
+          "note": "Min 1 · J1"
+        },
+        {
+          "name": "Bulgarian Split Squat",
+          "resolved": false,
+          "reps": "6",
+          "charge_h": "RPE 10",
+          "charge_f": "RPE 10",
+          "reps_h": null,
+          "reps_f": null,
+          "note": "Min 2 · J2"
+        }
+      ],
+      "musculation": [],
+      "timecap": "08:00",
+      "rounds": null,
+      "emom_interval_minutes": 1,
+      "tabata_work_seconds": null,
+      "tabata_rest_seconds": null,
+      "notes_coach": "Pour les charges, nous allons réaliser ce même bloc sur 3 semaines. Je vous demande donc de commencer en RPE\n7/8, puis semaine 2 en RPE 8/9, puis semaine 3 en RPE 9/10.\nL'objectif est de monter progressivement les charges au fur et à mesure des 3 semaines et, plus globalement, des 20 semaines. 💪",
+      "video_url": null,
+      "groups": [
+        "K+ Perf"
+      ],
+      "programs": [],
+      "published": true,
+      "rank": false,
+      "source_profile": "kplus-perf",
+      "source_page": 2,
+      "warnings": [
+        "movement-unresolved"
+      ]
+    },
+    {
+      "date": "2026-09-07",
+      "block": "post-wod",
+      "type": "amrap",
+      "title": "RENFO — BONUS (AMRAP 6')",
+      "movements": [
+        {
+          "name": "Copenhagen Plank Hold",
+          "resolved": false,
+          "reps": "20-30\"/côté",
+          "charge_h": null,
+          "charge_f": null,
+          "reps_h": null,
+          "reps_f": null,
+          "note": "genoux possible"
+        },
+        {
+          "name": "Bird Dog Knees Up",
+          "resolved": false,
+          "reps": "12",
+          "charge_h": null,
+          "charge_f": null,
+          "reps_h": null,
+          "reps_f": null,
+          "note": null
+        }
+      ],
+      "musculation": [],
+      "timecap": "06:00",
+      "rounds": null,
+      "emom_interval_minutes": null,
+      "tabata_work_seconds": null,
+      "tabata_rest_seconds": null,
+      "notes_coach": "Pour les charges, nous allons réaliser ce même bloc sur 3 semaines. Je vous demande donc de commencer en RPE\n7/8, puis semaine 2 en RPE 8/9, puis semaine 3 en RPE 9/10.\nL'objectif est de monter progressivement les charges au fur et à mesure des 3 semaines et, plus globalement, des 20 semaines. 💪",
+      "video_url": null,
+      "groups": [
+        "K+ Perf"
+      ],
+      "programs": [],
+      "published": true,
+      "rank": false,
+      "source_profile": "kplus-perf",
+      "source_page": 2,
+      "warnings": [
+        "movement-unresolved"
+      ]
+    },
+    {
+      "date": "2026-09-08",
+      "block": "skill-haltero",
+      "type": "emom",
+      "title": "HALTERO — JERK SKILL (EMOM 6')",
+      "movements": [
+        {
+          "name": "Power Clean + 1 Push Press + 1 Power Jerk + 1 Split jerk",
+          "resolved": false,
+          "reps": "1",
+          "charge_h": "50%",
+          "charge_f": "50%",
+          "reps_h": null,
+          "reps_f": null,
+          "note": "RM JERK"
+        }
+      ],
+      "musculation": [],
+      "timecap": "06:00",
+      "rounds": null,
+      "emom_interval_minutes": 1,
+      "tabata_work_seconds": null,
+      "tabata_rest_seconds": null,
+      "notes_coach": "Échauffement : 2 Rounds barre à vide — 30\" Hold bras tendu au dessus de la tête — 4 back rack Split Jerk",
+      "video_url": null,
+      "groups": [
+        "K+ Perf"
+      ],
+      "programs": [],
+      "published": true,
+      "rank": false,
+      "source_profile": "kplus-perf",
+      "source_page": 3,
+      "warnings": [
+        "movement-unresolved"
+      ]
+    },
+    {
+      "date": "2026-09-08",
+      "block": "skill-haltero",
+      "type": "emom",
+      "title": "HALTERO — JERK WORK (E2MOM × 5)",
+      "movements": [
+        {
+          "name": "RM",
+          "resolved": false,
+          "reps": "1",
+          "charge_h": null,
+          "charge_f": null,
+          "reps_h": null,
+          "reps_f": null,
+          "note": "si échecs alors STOP · sur le complexe*"
+        }
+      ],
+      "musculation": [],
+      "timecap": "10:00",
+      "rounds": 5,
+      "emom_interval_minutes": 2,
+      "tabata_work_seconds": null,
+      "tabata_rest_seconds": null,
+      "notes_coach": "*1 Power Clean + 1 Push Press + 1 Power Jerk\n\nToutes les 2 min × 5",
+      "video_url": null,
+      "groups": [
+        "K+ Perf"
+      ],
+      "programs": [],
+      "published": true,
+      "rank": false,
+      "source_profile": "kplus-perf",
+      "source_page": 3,
+      "warnings": [
+        "movement-unresolved"
+      ]
+    },
+    {
+      "date": "2026-09-08",
+      "block": "skill-haltero",
+      "type": "emom",
+      "title": "HALTERO — BACK RACK SPLIT JERK (EMOM 8')",
+      "movements": [
+        {
+          "name": "Back Rack Split Jerk",
+          "resolved": false,
+          "reps": "1",
+          "charge_h": "70-80%",
+          "charge_f": "70-80%",
+          "reps_h": null,
+          "reps_f": null,
+          "note": "RM Jerk · départ du rack"
+        }
+      ],
+      "musculation": [],
+      "timecap": "08:00",
+      "rounds": null,
+      "emom_interval_minutes": 1,
+      "tabata_work_seconds": null,
+      "tabata_rest_seconds": null,
+      "notes_coach": "",
+      "video_url": null,
+      "groups": [
+        "K+ Perf"
+      ],
+      "programs": [],
+      "published": true,
+      "rank": false,
+      "source_profile": "kplus-perf",
+      "source_page": 3,
+      "warnings": [
+        "movement-unresolved"
+      ]
+    },
+    {
+      "date": "2026-09-08",
+      "block": "skill-haltero",
+      "type": "strength",
+      "title": "DEADLIFT X PAG — Deadlift P&D",
+      "movements": [],
+      "musculation": [
+        {
+          "exercise": "Deadlift P&D",
+          "resolved": false,
+          "sets": 4,
+          "reps": 2,
+          "percent": 84,
+          "rpe": null,
+          "charge_note": null,
+          "tempo": null,
+          "rest": null
+        }
+      ],
+      "timecap": null,
+      "rounds": null,
+      "emom_interval_minutes": null,
+      "tabata_work_seconds": null,
+      "tabata_rest_seconds": null,
+      "notes_coach": "Focus vitesse et position de départ",
+      "video_url": null,
+      "groups": [
+        "K+ Perf"
+      ],
+      "programs": [],
+      "published": true,
+      "rank": false,
+      "source_profile": "kplus-perf",
+      "source_page": 3,
+      "warnings": [
+        "movement-unresolved"
+      ]
+    },
+    {
+      "date": "2026-09-08",
+      "block": "skill-gym",
+      "type": "custom",
+      "title": "GYM — HSW (technique) (Every 1'30 × 4)",
+      "movements": [
+        {
+          "name": "Handstand Walk",
+          "resolved": true,
+          "reps": "selon niveau",
+          "charge_h": null,
+          "charge_f": null,
+          "reps_h": null,
+          "reps_f": null,
+          "note": null
+        }
+      ],
+      "musculation": [],
+      "timecap": "06:00",
+      "rounds": 4,
+      "emom_interval_minutes": null,
+      "tabata_work_seconds": null,
+      "tabata_rest_seconds": null,
+      "notes_coach": "Toutes les 1'30 × 4\n\nBarème :\n🟣 Open : 5 à 6 m HSW (UBK)\n🔴 Pro : 8 à 10m HSW (UBK)\n🥇 Elite : 12m HSW (UBK) (6m UBK Maximum)",
+      "video_url": null,
+      "groups": [
+        "K+ Perf"
+      ],
+      "programs": [],
+      "published": true,
+      "rank": false,
+      "source_profile": "kplus-perf",
+      "source_page": 3,
+      "warnings": [
+        "enum-fallback"
+      ]
+    },
+    {
+      "date": "2026-09-08",
+      "block": "skill-gym",
+      "type": "custom",
+      "title": "GYM — C2B (technique) (Every 1'30 × 4)",
+      "movements": [
+        {
+          "name": "Chest-to-Bar",
+          "resolved": true,
+          "reps": "28% du max UBK",
+          "charge_h": null,
+          "charge_f": null,
+          "reps_h": null,
+          "reps_f": null,
+          "note": "CAP à 14"
+        }
+      ],
+      "musculation": [],
+      "timecap": "06:00",
+      "rounds": 4,
+      "emom_interval_minutes": null,
+      "tabata_work_seconds": null,
+      "tabata_rest_seconds": null,
+      "notes_coach": "Toutes les 1'30 × 4",
+      "video_url": null,
+      "groups": [
+        "K+ Perf"
+      ],
+      "programs": [],
+      "published": true,
+      "rank": false,
+      "source_profile": "kplus-perf",
+      "source_page": 3,
+      "warnings": [
+        "enum-fallback"
+      ]
+    },
+    {
+      "date": "2026-09-08",
+      "block": "skill-haltero",
+      "type": "strength",
+      "title": "BENCH X PAG — Bench press",
+      "movements": [],
+      "musculation": [
+        {
+          "exercise": "Bench press",
+          "resolved": false,
+          "sets": 2,
+          "reps": 1,
+          "percent": null,
+          "rpe": "9",
+          "charge_note": null,
+          "tempo": null,
+          "rest": null
+        },
+        {
+          "exercise": "Bench press",
+          "resolved": false,
+          "sets": 4,
+          "reps": 4,
+          "percent": 80,
+          "rpe": null,
+          "charge_note": null,
+          "tempo": null,
+          "rest": null
+        }
+      ],
+      "timecap": null,
+      "rounds": null,
+      "emom_interval_minutes": null,
+      "tabata_work_seconds": null,
+      "tabata_rest_seconds": null,
+      "notes_coach": "Pour les charges, nous allons réaliser ce même bloc sur 3 semaines. Je vous demande donc de commencer en RPE 7/8, puis semaine 2 en RPE 8/9, puis semaine 3 en RPE 9/10.\nL'objectif est de monter progressivement les charges au fur et à mesure des 3 semaines et, plus globalement, des 20 semaines. 💪",
+      "video_url": null,
+      "groups": [
+        "K+ Perf"
+      ],
+      "programs": [],
+      "published": true,
+      "rank": false,
+      "source_profile": "kplus-perf",
+      "source_page": 3,
+      "warnings": [
+        "movement-unresolved",
+        "strength-unstructured"
+      ]
+    },
+    {
+      "date": "2026-09-08",
+      "block": "post-wod",
+      "type": "custom",
+      "title": "RENFO — PUSH",
+      "movements": [
+        {
+          "name": "Strict Press",
+          "resolved": false,
+          "reps": "5",
+          "charge_h": "RPE 10",
+          "charge_f": "RPE 10",
+          "reps_h": null,
+          "reps_f": null,
+          "note": null
+        }
+      ],
+      "musculation": [],
+      "timecap": null,
+      "rounds": 3,
+      "emom_interval_minutes": null,
+      "tabata_work_seconds": null,
+      "tabata_rest_seconds": null,
+      "notes_coach": "Pour les charges, nous allons réaliser ce même bloc sur 3 semaines. Je vous demande donc de commencer en RPE 7/8, puis semaine 2 en RPE 8/9, puis semaine 3 en RPE 9/10.\nL'objectif est de monter progressivement les charges au fur et à mesure des 3 semaines et, plus globalement, des 20 semaines. 💪",
+      "video_url": null,
+      "groups": [
+        "K+ Perf"
+      ],
+      "programs": [],
+      "published": true,
+      "rank": false,
+      "source_profile": "kplus-perf",
+      "source_page": 3,
+      "warnings": [
+        "movement-unresolved"
+      ]
+    },
+    {
+      "date": "2026-09-08",
+      "block": "post-wod",
+      "type": "custom",
+      "title": "RENFO — BONUS",
+      "movements": [
+        {
+          "name": "2DB Floor Press",
+          "resolved": false,
+          "reps": "15",
+          "charge_h": null,
+          "charge_f": null,
+          "reps_h": null,
+          "reps_f": null,
+          "note": "+lourd que semaine 2"
+        }
+      ],
+      "musculation": [],
+      "timecap": null,
+      "rounds": 3,
+      "emom_interval_minutes": null,
+      "tabata_work_seconds": null,
+      "tabata_rest_seconds": null,
+      "notes_coach": "Pour les charges, nous allons réaliser ce même bloc sur 3 semaines. Je vous demande donc de commencer en RPE 7/8, puis semaine 2 en RPE 8/9, puis semaine 3 en RPE 9/10.\nL'objectif est de monter progressivement les charges au fur et à mesure des 3 semaines et, plus globalement, des 20 semaines. 💪",
+      "video_url": null,
+      "groups": [
+        "K+ Perf"
+      ],
+      "programs": [],
+      "published": true,
+      "rank": false,
+      "source_profile": "kplus-perf",
+      "source_page": 3,
+      "warnings": [
+        "movement-unresolved"
+      ]
+    },
+    {
+      "date": "2026-09-09",
+      "block": "skill-haltero",
+      "type": "strength",
+      "title": "FRONT SQUAT — Front Squat",
+      "movements": [],
+      "musculation": [
+        {
+          "exercise": "Front Squat",
+          "resolved": true,
+          "sets": 4,
+          "reps": 3,
+          "percent": null,
+          "rpe": null,
+          "charge_note": "90-100% ⚠️ RM Clean pas toutes les reps à la même charge !",
+          "tempo": null,
+          "rest": null
+        }
+      ],
+      "timecap": null,
+      "rounds": null,
+      "emom_interval_minutes": null,
+      "tabata_work_seconds": null,
+      "tabata_rest_seconds": null,
+      "notes_coach": "",
+      "video_url": null,
+      "groups": [
+        "K+ Perf"
+      ],
+      "programs": [],
+      "published": true,
+      "rank": false,
+      "source_profile": "kplus-perf",
+      "source_page": 4,
+      "warnings": []
+    },
+    {
+      "date": "2026-09-09",
+      "block": "skill-haltero",
+      "type": "strength",
+      "title": "HALTERO — Snatch Balance & Tirage bras d'arrache & Tall Clean",
+      "movements": [],
+      "musculation": [
+        {
+          "exercise": "Snatch Balance",
+          "resolved": false,
+          "sets": 5,
+          "reps": 2,
+          "percent": 70,
+          "rpe": null,
+          "charge_note": "RM Snatch départ du rack",
+          "tempo": null,
+          "rest": null
+        },
+        {
+          "exercise": "Tirage bras d'arrache",
+          "resolved": false,
+          "sets": 3,
+          "reps": 6,
+          "percent": null,
+          "rpe": null,
+          "charge_note": "25-30% High hang Snatch No hip RM SNATCH",
+          "tempo": null,
+          "rest": null
+        },
+        {
+          "exercise": "Tall Clean",
+          "resolved": false,
+          "sets": 6,
+          "reps": 1,
+          "percent": null,
+          "rpe": "9",
+          "charge_note": null,
+          "tempo": null,
+          "rest": null
+        }
+      ],
+      "timecap": null,
+      "rounds": null,
+      "emom_interval_minutes": null,
+      "tabata_work_seconds": null,
+      "tabata_rest_seconds": null,
+      "notes_coach": "",
+      "video_url": null,
+      "groups": [
+        "K+ Perf"
+      ],
+      "programs": [],
+      "published": true,
+      "rank": false,
+      "source_profile": "kplus-perf",
+      "source_page": 4,
+      "warnings": [
+        "movement-unresolved",
+        "strength-unstructured"
+      ]
+    },
+    {
+      "date": "2026-09-09",
+      "block": "skill-gym",
+      "type": "emom",
+      "title": "GYM — RMU (résistance) (EMOM 5')",
+      "movements": [
+        {
+          "name": "Ring Muscle-ups",
+          "resolved": true,
+          "reps": "30%",
+          "charge_h": null,
+          "charge_f": null,
+          "reps_h": null,
+          "reps_f": null,
+          "note": null
+        }
+      ],
+      "musculation": [],
+      "timecap": "05:00",
+      "rounds": null,
+      "emom_interval_minutes": 1,
+      "tabata_work_seconds": null,
+      "tabata_rest_seconds": null,
+      "notes_coach": "",
+      "video_url": null,
+      "groups": [
+        "K+ Perf"
+      ],
+      "programs": [],
+      "published": true,
+      "rank": false,
+      "source_profile": "kplus-perf",
+      "source_page": 4,
+      "warnings": []
+    },
+    {
+      "date": "2026-09-09",
+      "block": "skill-gym",
+      "type": "emom",
+      "title": "GYM — BMU (technique) (EMOM 10')",
+      "movements": [
+        {
+          "name": "Bar Muscle-ups",
+          "resolved": true,
+          "reps": "15% du max UBK",
+          "charge_h": null,
+          "charge_f": null,
+          "reps_h": null,
+          "reps_f": null,
+          "note": "CAP à 5"
+        }
+      ],
+      "musculation": [],
+      "timecap": "10:00",
+      "rounds": null,
+      "emom_interval_minutes": 1,
+      "tabata_work_seconds": null,
+      "tabata_rest_seconds": null,
+      "notes_coach": "",
+      "video_url": null,
+      "groups": [
+        "K+ Perf"
+      ],
+      "programs": [],
+      "published": true,
+      "rank": false,
+      "source_profile": "kplus-perf",
+      "source_page": 4,
+      "warnings": []
+    },
+    {
+      "date": "2026-09-09",
+      "block": "skill-gym",
+      "type": "emom",
+      "title": "GYM — T2B (technique) (EMOM 10')",
+      "movements": [
+        {
+          "name": "Toes-to-Bar",
+          "resolved": true,
+          "reps": "15% du max UBK",
+          "charge_h": null,
+          "charge_f": null,
+          "reps_h": null,
+          "reps_f": null,
+          "note": "Cap à 6"
+        }
+      ],
+      "musculation": [],
+      "timecap": "10:00",
+      "rounds": null,
+      "emom_interval_minutes": 1,
+      "tabata_work_seconds": null,
+      "tabata_rest_seconds": null,
+      "notes_coach": "",
+      "video_url": null,
+      "groups": [
+        "K+ Perf"
+      ],
+      "programs": [],
+      "published": true,
+      "rank": false,
+      "source_profile": "kplus-perf",
+      "source_page": 4,
+      "warnings": []
+    },
+    {
+      "date": "2026-09-09",
+      "block": "post-wod",
+      "type": "custom",
+      "title": "RENFO — PULL",
+      "movements": [
+        {
+          "name": "Tirage bûcherons",
+          "resolved": false,
+          "reps": "8/bras",
+          "charge_h": "RPE 9",
+          "charge_f": "RPE 9",
+          "reps_h": null,
+          "reps_f": null,
+          "note": null
+        }
+      ],
+      "musculation": [],
+      "timecap": null,
+      "rounds": 3,
+      "emom_interval_minutes": null,
+      "tabata_work_seconds": null,
+      "tabata_rest_seconds": null,
+      "notes_coach": "Pour les charges, nous allons réaliser ce même bloc sur 3 semaines. Je vous demande donc de commencer en RPE 7/8, puis semaine 2 en RPE 8/9, puis semaine 3 en RPE 9/10.\nL'objectif est de monter progressivement les charges au fur et à mesure des 3 semaines et, plus globalement, des 20 semaines. 💪",
+      "video_url": null,
+      "groups": [
+        "K+ Perf"
+      ],
+      "programs": [],
+      "published": true,
+      "rank": false,
+      "source_profile": "kplus-perf",
+      "source_page": 4,
+      "warnings": [
+        "movement-unresolved"
+      ]
+    },
+    {
+      "date": "2026-09-09",
+      "block": "post-wod",
+      "type": "custom",
+      "title": "RENFO — BIG DOS",
+      "movements": [],
+      "musculation": [],
+      "timecap": null,
+      "rounds": 4,
+      "emom_interval_minutes": null,
+      "tabata_work_seconds": null,
+      "tabata_rest_seconds": null,
+      "notes_coach": "Pour les charges, nous allons réaliser ce même bloc sur 3 semaines. Je vous demande donc de commencer en RPE 7/8, puis semaine 2 en RPE 8/9, puis semaine 3 en RPE 9/10.\nL'objectif est de monter progressivement les charges au fur et à mesure des 3 semaines et, plus globalement, des 20 semaines. 💪",
+      "video_url": null,
+      "groups": [
+        "K+ Perf"
+      ],
+      "programs": [],
+      "published": true,
+      "rank": false,
+      "source_profile": "kplus-perf",
+      "source_page": 4,
+      "warnings": []
+    },
+    {
+      "date": "2026-09-09",
+      "block": "post-wod",
+      "type": "custom",
+      "title": "RENFO — BONUS",
+      "movements": [
+        {
+          "name": "2DB Curl Biceps prise marteau",
+          "resolved": false,
+          "reps": "10",
+          "charge_h": null,
+          "charge_f": null,
+          "reps_h": null,
+          "reps_f": null,
+          "note": "+ lourds que semaine 2"
+        }
+      ],
+      "musculation": [],
+      "timecap": null,
+      "rounds": 3,
+      "emom_interval_minutes": null,
+      "tabata_work_seconds": null,
+      "tabata_rest_seconds": null,
+      "notes_coach": "Pour les charges, nous allons réaliser ce même bloc sur 3 semaines. Je vous demande donc de commencer en RPE 7/8, puis semaine 2 en RPE 8/9, puis semaine 3 en RPE 9/10.\nL'objectif est de monter progressivement les charges au fur et à mesure des 3 semaines et, plus globalement, des 20 semaines. 💪",
+      "video_url": null,
+      "groups": [
+        "K+ Perf"
+      ],
+      "programs": [],
+      "published": true,
+      "rank": false,
+      "source_profile": "kplus-perf",
+      "source_page": 4,
+      "warnings": [
+        "movement-unresolved"
+      ]
+    },
+    {
+      "date": "2026-09-10",
+      "block": "post-wod",
+      "type": "custom",
+      "title": "ZONE 2 — SkiErg & Row & Double-unders",
+      "movements": [
+        {
+          "name": "SkiErg",
+          "resolved": true,
+          "reps": "500m",
+          "charge_h": "RPE 4/6",
+          "charge_f": "RPE 4/6",
+          "reps_h": null,
+          "reps_f": null,
+          "note": null
+        },
+        {
+          "name": "Row",
+          "resolved": true,
+          "reps": "500m",
+          "charge_h": "RPE 4/6",
+          "charge_f": "RPE 4/6",
+          "reps_h": null,
+          "reps_f": null,
+          "note": null
+        },
+        {
+          "name": "Double-unders",
+          "resolved": true,
+          "reps": "100",
+          "charge_h": null,
+          "charge_f": null,
+          "reps_h": null,
+          "reps_f": null,
+          "note": "max UBK = 50"
+        },
+        {
+          "name": "Burpees Target",
+          "resolved": false,
+          "reps": "20",
+          "charge_h": null,
+          "charge_f": null,
+          "reps_h": null,
+          "reps_f": null,
+          "note": null
+        }
+      ],
+      "musculation": [],
+      "timecap": "20:00",
+      "rounds": null,
+      "emom_interval_minutes": null,
+      "tabata_work_seconds": null,
+      "tabata_rest_seconds": null,
+      "notes_coach": "OFF SAISON S15/20\n\"UNIQUEMENT SI VOUS VOUS SENTEZ EN FORME ET QUE VOUS\nAVEZ LA CAPACITÉ MENTALE DE RÉALISER UN BLOC DE\nRÉCUPÉRATION NON SCORÉ. TOUT EXCÈS DE RYTHME (DÉPASSANT UN RPE DE 4-6) SERAIT DÉSAVANTAGEUX POUR\nVOTRE SEMAINE D'ENTRAÎNEMENT.\"\n\n*Travaillez de préférence le jeudi. Il est possible de le faire à un autre moment dans la semaine. Considérez ce bloc comme un entraînement long et technique avant tout. Respectez les options en fonction de vos niveaux et de votre couleur sans vous emballer. Le format changera et ne restera pas le même. La difficulté doit se situer entre 4 et 6 selon la fatigue et la chaleur. Au-delà de ça, nous sommes trop hauts.\n\nRepos : 2'\n\nERGO MIXT (RPE5/6 max)\nDans une fenêtre de maximum 20' :",
+      "video_url": null,
+      "groups": [
+        "K+ Perf"
+      ],
+      "programs": [],
+      "published": true,
+      "rank": false,
+      "source_profile": "kplus-perf",
+      "source_page": 5,
+      "warnings": [
+        "movement-unresolved"
+      ]
+    },
+    {
+      "date": "2026-09-10",
+      "block": "post-wod",
+      "type": "custom",
+      "title": "MOBILITÉ — Mobilite",
+      "movements": [
+        {
+          "name": "Mobilite",
+          "resolved": false,
+          "reps": "15-25'",
+          "charge_h": null,
+          "charge_f": null,
+          "reps_h": null,
+          "reps_f": null,
+          "note": null
+        }
+      ],
+      "musculation": [],
+      "timecap": null,
+      "rounds": null,
+      "emom_interval_minutes": null,
+      "tabata_work_seconds": null,
+      "tabata_rest_seconds": null,
+      "notes_coach": "",
+      "video_url": null,
+      "groups": [
+        "K+ Perf"
+      ],
+      "programs": [],
+      "published": true,
+      "rank": false,
+      "source_profile": "kplus-perf",
+      "source_page": 5,
+      "warnings": [
+        "movement-unresolved"
+      ]
+    },
+    {
+      "date": "2026-09-11",
+      "block": "skill-haltero",
+      "type": "strength",
+      "title": "HALTERO — Squat Clean & Jerk & Clean Pull",
+      "movements": [],
+      "musculation": [
+        {
+          "exercise": "Squat Clean & Jerk",
+          "resolved": true,
+          "sets": 1,
+          "reps": 3,
+          "percent": 65,
+          "rpe": null,
+          "charge_note": null,
+          "tempo": null,
+          "rest": null
+        },
+        {
+          "exercise": "Squat Clean & Jerk",
+          "resolved": true,
+          "sets": 1,
+          "reps": 2,
+          "percent": 75,
+          "rpe": null,
+          "charge_note": null,
+          "tempo": null,
+          "rest": null
+        },
+        {
+          "exercise": "Squat Clean & Jerk",
+          "resolved": true,
+          "sets": 1,
+          "reps": 1,
+          "percent": 80,
+          "rpe": null,
+          "charge_note": null,
+          "tempo": null,
+          "rest": null
+        },
+        {
+          "exercise": "Squat Clean & Jerk",
+          "resolved": true,
+          "sets": 6,
+          "reps": 1,
+          "percent": null,
+          "rpe": null,
+          "charge_note": "85-90%",
+          "tempo": null,
+          "rest": null
+        },
+        {
+          "exercise": "Clean Pull",
+          "resolved": false,
+          "sets": 4,
+          "reps": 3,
+          "percent": 110,
+          "rpe": null,
+          "charge_note": "3 à 4 séries",
+          "tempo": null,
+          "rest": null
+        }
+      ],
+      "timecap": null,
+      "rounds": null,
+      "emom_interval_minutes": null,
+      "tabata_work_seconds": null,
+      "tabata_rest_seconds": null,
+      "notes_coach": "Échauffement : 2 Rounds : — 2 Muscle Clean — 2 Front Squat — 30\" bras tendu en position de Split jerk",
+      "video_url": null,
+      "groups": [
+        "K+ Perf"
+      ],
+      "programs": [],
+      "published": true,
+      "rank": false,
+      "source_profile": "kplus-perf",
+      "source_page": 6,
+      "warnings": [
+        "movement-unresolved"
+      ]
+    },
+    {
+      "date": "2026-09-11",
+      "block": "skill-haltero",
+      "type": "strength",
+      "title": "SQUAT X PAG — Back Squat",
+      "movements": [],
+      "musculation": [
+        {
+          "exercise": "Back Squat",
+          "resolved": true,
+          "sets": 1,
+          "reps": 3,
+          "percent": 78,
+          "rpe": null,
+          "charge_note": null,
+          "tempo": null,
+          "rest": null
+        },
+        {
+          "exercise": "Back Squat",
+          "resolved": true,
+          "sets": 1,
+          "reps": 3,
+          "percent": 81,
+          "rpe": null,
+          "charge_note": null,
+          "tempo": null,
+          "rest": null
+        },
+        {
+          "exercise": "Back Squat",
+          "resolved": true,
+          "sets": 1,
+          "reps": 3,
+          "percent": 84,
+          "rpe": null,
+          "charge_note": null,
+          "tempo": null,
+          "rest": null
+        },
+        {
+          "exercise": "Back Squat",
+          "resolved": true,
+          "sets": 1,
+          "reps": 3,
+          "percent": 87,
+          "rpe": null,
+          "charge_note": null,
+          "tempo": null,
+          "rest": null
+        }
+      ],
+      "timecap": null,
+      "rounds": null,
+      "emom_interval_minutes": null,
+      "tabata_work_seconds": null,
+      "tabata_rest_seconds": null,
+      "notes_coach": "",
+      "video_url": null,
+      "groups": [
+        "K+ Perf"
+      ],
+      "programs": [],
+      "published": true,
+      "rank": false,
+      "source_profile": "kplus-perf",
+      "source_page": 6,
+      "warnings": []
+    },
+    {
+      "date": "2026-09-11",
+      "block": "skill-gym",
+      "type": "emom",
+      "title": "GYM — HSPU (technique) (EMOM 10')",
+      "movements": [
+        {
+          "name": "Handstand Push-ups",
+          "resolved": true,
+          "reps": "15%",
+          "charge_h": null,
+          "charge_f": null,
+          "reps_h": null,
+          "reps_f": null,
+          "note": "Série KHSPU Max UBK · CAP 6"
+        }
+      ],
+      "musculation": [],
+      "timecap": "10:00",
+      "rounds": null,
+      "emom_interval_minutes": 1,
+      "tabata_work_seconds": null,
+      "tabata_rest_seconds": null,
+      "notes_coach": "",
+      "video_url": null,
+      "groups": [
+        "K+ Perf"
+      ],
+      "programs": [],
+      "published": true,
+      "rank": false,
+      "source_profile": "kplus-perf",
+      "source_page": 6,
+      "warnings": []
+    },
+    {
+      "date": "2026-09-11",
+      "block": "skill-gym",
+      "type": "custom",
+      "title": "GYM — BMU X C2B (résistance)",
+      "movements": [
+        {
+          "name": "Bar Muscle-ups",
+          "resolved": true,
+          "reps": "20%",
+          "charge_h": null,
+          "charge_f": null,
+          "reps_h": null,
+          "reps_f": null,
+          "note": null
+        },
+        {
+          "name": "Chest-to-Bar",
+          "resolved": true,
+          "reps": "20%",
+          "charge_h": null,
+          "charge_f": null,
+          "reps_h": null,
+          "reps_f": null,
+          "note": null
+        },
+        {
+          "name": "Bar Muscle-ups",
+          "resolved": true,
+          "reps": "20%",
+          "charge_h": null,
+          "charge_f": null,
+          "reps_h": null,
+          "reps_f": null,
+          "note": null
+        },
+        {
+          "name": "Chest-to-Bar",
+          "resolved": true,
+          "reps": "20%",
+          "charge_h": null,
+          "charge_f": null,
+          "reps_h": null,
+          "reps_f": null,
+          "note": null
+        }
+      ],
+      "musculation": [],
+      "timecap": null,
+      "rounds": 3,
+      "emom_interval_minutes": null,
+      "tabata_work_seconds": null,
+      "tabata_rest_seconds": null,
+      "notes_coach": "Repos : 1' entre rounds, 10\"",
+      "video_url": null,
+      "groups": [
+        "K+ Perf"
+      ],
+      "programs": [],
+      "published": true,
+      "rank": false,
+      "source_profile": "kplus-perf",
+      "source_page": 6,
+      "warnings": []
+    },
+    {
+      "date": "2026-09-11",
+      "block": "post-wod",
+      "type": "custom",
+      "title": "RENFO — PULL LEG",
+      "movements": [
+        {
+          "name": "Lunges 2DB",
+          "resolved": false,
+          "reps": "20m",
+          "charge_h": "RPE 10",
+          "charge_f": "RPE 10",
+          "reps_h": null,
+          "reps_f": null,
+          "note": null
+        }
+      ],
+      "musculation": [],
+      "timecap": null,
+      "rounds": 3,
+      "emom_interval_minutes": null,
+      "tabata_work_seconds": null,
+      "tabata_rest_seconds": null,
+      "notes_coach": "Pour les charges, nous allons réaliser ce même bloc sur 3 semaines. Je vous demande donc de commencer en RPE 7/8, puis semaine 2 en RPE 8/9, puis semaine 3 en RPE 9/10.\nL'objectif est de monter progressivement les charges au fur et à mesure des 3 semaines et, plus globalement, des 20 semaines. 💪",
+      "video_url": null,
+      "groups": [
+        "K+ Perf"
+      ],
+      "programs": [],
+      "published": true,
+      "rank": false,
+      "source_profile": "kplus-perf",
+      "source_page": 6,
+      "warnings": [
+        "movement-unresolved"
+      ]
+    },
+    {
+      "date": "2026-09-11",
+      "block": "post-wod",
+      "type": "strength",
+      "title": "RENFO — Push LEG",
+      "movements": [],
+      "musculation": [
+        {
+          "exercise": "Dual DB Romanian Deadlift",
+          "resolved": false,
+          "sets": 5,
+          "reps": 6,
+          "percent": null,
+          "rpe": "10",
+          "charge_note": null,
+          "tempo": "3\" pause ras le sol",
+          "rest": null
+        }
+      ],
+      "timecap": null,
+      "rounds": null,
+      "emom_interval_minutes": null,
+      "tabata_work_seconds": null,
+      "tabata_rest_seconds": null,
+      "notes_coach": "Pour les charges, nous allons réaliser ce même bloc sur 3 semaines. Je vous demande donc de commencer en RPE 7/8, puis semaine 2 en RPE 8/9, puis semaine 3 en RPE 9/10.\nL'objectif est de monter progressivement les charges au fur et à mesure des 3 semaines et, plus globalement, des 20 semaines. 💪",
+      "video_url": null,
+      "groups": [
+        "K+ Perf"
+      ],
+      "programs": [],
+      "published": true,
+      "rank": false,
+      "source_profile": "kplus-perf",
+      "source_page": 6,
+      "warnings": [
+        "movement-unresolved",
+        "strength-unstructured"
+      ]
+    },
+    {
+      "date": "2026-09-11",
+      "block": "post-wod",
+      "type": "custom",
+      "title": "RENFO — BONUS",
+      "movements": [
+        {
+          "name": "Dual DB Suitcase Walking Lunges",
+          "resolved": false,
+          "reps": "12",
+          "charge_h": null,
+          "charge_f": null,
+          "reps_h": null,
+          "reps_f": null,
+          "note": null
+        },
+        {
+          "name": "Single leg Hamstring curl on medball",
+          "resolved": false,
+          "reps": "8/8",
+          "charge_h": null,
+          "charge_f": null,
+          "reps_h": null,
+          "reps_f": null,
+          "note": "deuxième pied au sol si trop dur"
+        }
+      ],
+      "musculation": [],
+      "timecap": null,
+      "rounds": 4,
+      "emom_interval_minutes": null,
+      "tabata_work_seconds": null,
+      "tabata_rest_seconds": null,
+      "notes_coach": "Pour les charges, nous allons réaliser ce même bloc sur 3 semaines. Je vous demande donc de commencer en RPE 7/8, puis semaine 2 en RPE 8/9, puis semaine 3 en RPE 9/10.\nL'objectif est de monter progressivement les charges au fur et à mesure des 3 semaines et, plus globalement, des 20 semaines. 💪",
+      "video_url": null,
+      "groups": [
+        "K+ Perf"
+      ],
+      "programs": [],
+      "published": true,
+      "rank": false,
+      "source_profile": "kplus-perf",
+      "source_page": 6,
+      "warnings": [
+        "movement-unresolved"
+      ]
+    },
+    {
+      "date": "2026-09-12",
+      "block": "skill-haltero",
+      "type": "strength",
+      "title": "HALTERO — SNATCH",
+      "movements": [],
+      "musculation": [
+        {
+          "exercise": "Squat Snatch",
+          "resolved": true,
+          "sets": 4,
+          "reps": 2,
+          "percent": 75,
+          "rpe": null,
+          "charge_note": null,
+          "tempo": "3\" Pause au dessus du genoux",
+          "rest": null
+        }
+      ],
+      "timecap": null,
+      "rounds": null,
+      "emom_interval_minutes": null,
+      "tabata_work_seconds": null,
+      "tabata_rest_seconds": null,
+      "notes_coach": "Échauffement : Réaliser 2 rounds : à vide — 2 Power Snatch 3\" pause au dessus du genoux — 2 Squat Snatch 3\" pause au dessus du genoux",
+      "video_url": null,
+      "groups": [
+        "K+ Perf"
+      ],
+      "programs": [],
+      "published": true,
+      "rank": false,
+      "source_profile": "kplus-perf",
+      "source_page": 7,
+      "warnings": []
+    },
+    {
+      "date": "2026-09-12",
+      "block": "skill-gym",
+      "type": "for-time",
+      "title": "GYM — WW & HSW (5 Rounds For Time)",
+      "movements": [
+        {
+          "name": "Handstand Walk",
+          "resolved": true,
+          "reps": "12m",
+          "charge_h": null,
+          "charge_f": null,
+          "reps_h": null,
+          "reps_f": null,
+          "note": "6m UBK max"
+        },
+        {
+          "name": "Wall Walk",
+          "resolved": false,
+          "reps": "4",
+          "charge_h": null,
+          "charge_f": null,
+          "reps_h": null,
+          "reps_f": null,
+          "note": null
+        }
+      ],
+      "musculation": [],
+      "timecap": null,
+      "rounds": 5,
+      "emom_interval_minutes": null,
+      "tabata_work_seconds": null,
+      "tabata_rest_seconds": null,
+      "notes_coach": "Repos : 1'30 entre rounds",
+      "video_url": null,
+      "groups": [
+        "K+ Perf"
+      ],
+      "programs": [],
+      "published": true,
+      "rank": false,
+      "source_profile": "kplus-perf",
+      "source_page": 7,
+      "warnings": [
+        "movement-unresolved"
+      ]
+    },
+    {
+      "date": "2026-09-12",
+      "block": "post-wod",
+      "type": "custom",
+      "title": "RENFO — BENCH · Option A",
+      "movements": [
+        {
+          "name": "2DB Bench Press",
+          "resolved": false,
+          "reps": "4",
+          "charge_h": "RPE 10",
+          "charge_f": "RPE 10",
+          "reps_h": null,
+          "reps_f": null,
+          "note": null
+        },
+        {
+          "name": "2DB Rowing",
+          "resolved": false,
+          "reps": "6",
+          "charge_h": "RPE 10",
+          "charge_f": "RPE 10",
+          "reps_h": null,
+          "reps_f": null,
+          "note": null
+        }
+      ],
+      "musculation": [],
+      "timecap": null,
+      "rounds": 4,
+      "emom_interval_minutes": null,
+      "tabata_work_seconds": null,
+      "tabata_rest_seconds": null,
+      "notes_coach": "Au choix avec RUN\n\nPour les charges, nous allons réaliser ce même bloc sur 3 semaines. Je vous demande donc de commencer en RPE 7/8, puis semaine 2 en RPE 8/9, puis semaine 3 en RPE 9/10.\nL'objectif est de monter progressivement les charges au fur et à mesure des 3 semaines et, plus globalement, des 20 semaines. 💪",
+      "video_url": null,
+      "groups": [
+        "K+ Perf"
+      ],
+      "programs": [],
+      "published": true,
+      "rank": false,
+      "source_profile": "kplus-perf",
+      "source_page": 7,
+      "warnings": [
+        "movement-unresolved"
+      ]
+    },
+    {
+      "date": "2026-09-12",
+      "block": "post-wod",
+      "type": "custom",
+      "title": "RENFO — PUSH / PULL · Option A",
+      "movements": [
+        {
+          "name": "DB Strict Press",
+          "resolved": false,
+          "reps": "10",
+          "charge_h": "RPE 9",
+          "charge_f": "RPE 9",
+          "reps_h": null,
+          "reps_f": null,
+          "note": null
+        },
+        {
+          "name": "Chin-ups",
+          "resolved": false,
+          "reps": "5-10",
+          "charge_h": "RPE 9",
+          "charge_f": "RPE 9",
+          "reps_h": null,
+          "reps_f": null,
+          "note": null
+        }
+      ],
+      "musculation": [],
+      "timecap": null,
+      "rounds": 4,
+      "emom_interval_minutes": null,
+      "tabata_work_seconds": null,
+      "tabata_rest_seconds": null,
+      "notes_coach": "Au choix avec RUN\n\nRepos : 1'30 entre rounds\n\nPour les charges, nous allons réaliser ce même bloc sur 3 semaines. Je vous demande donc de commencer en RPE 7/8, puis semaine 2 en RPE 8/9, puis semaine 3 en RPE 9/10.\nL'objectif est de monter progressivement les charges au fur et à mesure des 3 semaines et, plus globalement, des 20 semaines. 💪",
+      "video_url": null,
+      "groups": [
+        "K+ Perf"
+      ],
+      "programs": [],
+      "published": true,
+      "rank": false,
+      "source_profile": "kplus-perf",
+      "source_page": 7,
+      "warnings": [
+        "movement-unresolved"
+      ]
+    },
+    {
+      "date": "2026-09-12",
+      "block": "post-wod",
+      "type": "custom",
+      "title": "RUN — RUN / BIKE · Option B",
+      "movements": [
+        {
+          "name": "Run",
+          "resolved": true,
+          "reps": "800m",
+          "charge_h": "RPE 7/8",
+          "charge_f": "RPE 7/8",
+          "reps_h": null,
+          "reps_f": null,
+          "note": null
+        },
+        {
+          "name": "Erg",
+          "resolved": false,
+          "reps": "800m",
+          "charge_h": "RPE 7/8",
+          "charge_f": "RPE 7/8",
+          "reps_h": null,
+          "reps_f": null,
+          "note": null
+        }
+      ],
+      "musculation": [],
+      "timecap": null,
+      "rounds": 2,
+      "emom_interval_minutes": null,
+      "tabata_work_seconds": null,
+      "tabata_rest_seconds": null,
+      "notes_coach": "Au choix avec RENFO\n\nÉchauffement : AMRAP 5' : — ABCD Run — 5' Run Chill (RPE 3/4)\n\nRepos : 2' entre rounds",
+      "video_url": null,
+      "groups": [
+        "K+ Perf"
+      ],
+      "programs": [],
+      "published": true,
+      "rank": false,
+      "source_profile": "kplus-perf",
+      "source_page": 7,
+      "warnings": [
+        "movement-unresolved"
+      ]
+    }
+  ],
+  "unresolved_movements": [
+    "2DB Bench Press",
+    "2DB Curl Biceps prise marteau",
+    "2DB Floor Press",
+    "2DB Rowing",
+    "Back Rack Split Jerk",
+    "Bench press",
+    "Bird Dog Knees Up",
+    "Bulgarian Split Squat",
+    "Burpees Target",
+    "Chin-ups",
+    "Clean Pull",
+    "Copenhagen Plank Hold",
+    "DB Strict Press",
+    "Deadlift P&D",
+    "Dual DB Romanian Deadlift",
+    "Dual DB Suitcase Walking Lunges",
+    "Erg",
+    "Lunges 2DB",
+    "Mobilite",
+    "Power Clean + 1 Push Press + 1 Power Jerk + 1 Split jerk",
+    "RM",
+    "Single leg Hamstring curl on medball",
+    "Snatch Balance",
+    "Snatch High Pull",
+    "Strict Press",
+    "Tall Clean",
+    "Tirage bras d'arrache",
+    "Tirage bûcherons",
+    "Wall Walk",
+    "Zercher Squat"
+  ]
+}

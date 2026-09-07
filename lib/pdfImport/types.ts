@@ -22,6 +22,8 @@ export interface RawSection {
   pageIndex: number;
   /** Lignes marquées « niveau » par le profil (barème) ; vide si non marquées. */
   levelLines?: string[];
+  /** Texte libre du jour avant la première section (citation, « OFF SAISON ») → notes de la 1re entrée. */
+  preamble?: string[];
   /** Suggestion de block du profil quand le titre ne suffit pas (`generic`). */
   blockHint?: BlockName | null;
 }

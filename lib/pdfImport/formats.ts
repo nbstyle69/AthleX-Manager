@@ -56,7 +56,7 @@ const REST_RE = /(\d+)(?:'(\d{2})?|")\s*(?:de\s+)?(?:rest|repos)(?:\s+(?:each|en
 export function extractRests(text: string): string[] {
   const out: string[] = [];
   for (const m of text.matchAll(REST_RE)) {
-    const dur = m[0].match(/^\d+(?:'\d{2}?|")/)?.[0] ?? m[1];
+    const dur = m[0].match(/^\d+(?:'(?:\d{2})?|")/)?.[0] ?? m[1];
     const scope = m[3]?.toLowerCase();
     const where = scope
       ? (scope.startsWith('round') ? 'entre rounds' : 'entre séries')
