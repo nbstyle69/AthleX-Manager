@@ -14,6 +14,27 @@ export function getPlatformStripe(): Stripe {
 
 export type BoxSubscriptionStatus = 'trialing' | 'active' | 'past_due' | 'canceled' | 'expired';
 
+/**
+ * Origine d'une ligne d'abonnement. 'manual' = offerte / saisie à la main :
+ * aucun mécanisme Stripe (webhook, verify-subscription, resync au rendu) ne la
+ * touche. Toute écriture Stripe filtre sur `billing_source = 'stripe'`.
+ */
+export type BillingSource = 'stripe' | 'manual';
+export const STRIPE_BILLING_SOURCE: BillingSource = 'stripe';
+
+export function isManualBilling(row: { billing_source?: string | null } | null | undefined): boolean {
+  return row?.billing_source === 'manual';
+}
+
+/**
+ * Statuts Stripe transitoires (`incomplete`, `incomplete_expired`, `paused`) :
+ * le checkout n'a pas abouti ou l'abonnement est suspendu par Stripe ; on ne
+ * répercute rien en base tant que Stripe n'a pas tranché.
+ */
+export function isSyncableStripeStatus(stripeStatus: string): boolean {
+  return ['trialing', 'active', 'past_due', 'canceled', 'unpaid'].includes(stripeStatus);
+}
+
 export interface StripeSubscriptionLike {
   status: string;
   current_period_end?: number | null;

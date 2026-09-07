@@ -181,4 +181,97 @@ describe('POST /api/stripe-webhook', () => {
     expect(res._status).toBe(500);
     expect(res._data.error).toBe('stripe down');
   });
+
+  describe('billing_source : les lignes manual ne sont jamais touchées', () => {
+    // Chaque écriture Stripe est filtrée par .eq('billing_source', 'stripe') sur
+    // box_subscriptions ET owner_subscriptions : une ligne manual est hors cible.
+    function expectStripeOnlyFilter(times: number) {
+      const calls = currentChain.eq.mock.calls.filter((c: any[]) => c[0] === 'billing_source');
+      expect(calls).toHaveLength(times);
+      calls.forEach((c: any[]) => expect(c[1]).toBe('stripe'));
+    }
+
+    it('customer.subscription.updated filtre billing_source = stripe (box + owner)', async () => {
+      mockConstructEvent.mockReturnValue({
+        type: 'customer.subscription.updated',
+        data: { object: { customer: 'cus_manual', status: 'canceled', trial_end: null } },
+      });
+      await POST(makeReq() as any);
+      expect(currentChain.update).toHaveBeenCalledTimes(2);
+      expectStripeOnlyFilter(2);
+    });
+
+    it('customer.subscription.deleted filtre billing_source = stripe', async () => {
+      mockConstructEvent.mockReturnValue({ type: 'customer.subscription.deleted', data: { object: { customer: 'cus_manual' } } });
+      await POST(makeReq() as any);
+      expectStripeOnlyFilter(2);
+    });
+
+    it('invoice.payment_failed filtre billing_source = stripe', async () => {
+      mockConstructEvent.mockReturnValue({ type: 'invoice.payment_failed', data: { object: { customer: 'cus_manual' } } });
+      await POST(makeReq() as any);
+      expectStripeOnlyFilter(2);
+    });
+
+    it('checkout.session.completed pose billing_source = stripe (box et owner)', async () => {
+      mockConstructEvent.mockReturnValue({
+        type: 'checkout.session.completed',
+        data: { object: { metadata: { box_id: 'box-1' }, customer: 'cus_1', subscription: 'sub_1' } },
+      });
+      mockRetrieve.mockResolvedValue({ status: 'active', current_period_end: 1800000000, trial_end: null });
+      await POST(makeReq() as any);
+      expect(currentChain.update).toHaveBeenCalledWith(expect.objectContaining({ billing_source: 'stripe' }));
+
+      jest.clearAllMocks();
+      mockConstructEvent.mockReturnValue({
+        type: 'checkout.session.completed',
+        data: { object: { metadata: { owner_subscription: '1', supabase_owner_id: 'own-1', box_quota: '3' }, customer: 'cus_o', subscription: 'sub_o' } },
+      });
+      mockRetrieve.mockResolvedValue({ status: 'active', current_period_end: 1800000000, trial_end: null });
+      await POST(makeReq() as any);
+      expect(currentChain.upsert).toHaveBeenCalledWith(
+        expect.objectContaining({ owner_id: 'own-1', billing_source: 'stripe', status: 'active' }),
+        { onConflict: 'owner_id' },
+      );
+    });
+  });
+
+  describe('cycle de vie : past_due / unpaid / incomplete / invoice.paid', () => {
+    it('past_due est écrit tel quel, accès conservé côté layout', async () => {
+      mockConstructEvent.mockReturnValue({
+        type: 'customer.subscription.updated',
+        data: { object: { customer: 'cus_1', status: 'past_due', trial_end: null, items: { data: [{ current_period_end: 1789240593 }] } } },
+      });
+      await POST(makeReq() as any);
+      expect(currentChain.update).toHaveBeenCalledWith({ status: 'past_due', current_period_end: '2026-09-12T19:16:33.000Z', trial_ends_at: null });
+    });
+
+    it('unpaid → canceled (réglage Stripe « cancel après retries »)', async () => {
+      mockConstructEvent.mockReturnValue({
+        type: 'customer.subscription.updated',
+        data: { object: { customer: 'cus_1', status: 'unpaid', trial_end: null } },
+      });
+      await POST(makeReq() as any);
+      expect(currentChain.update).toHaveBeenCalledWith({ status: 'canceled', trial_ends_at: null });
+    });
+
+    it.each(['incomplete', 'incomplete_expired', 'paused'])('%s : aucune écriture', async (status) => {
+      mockConstructEvent.mockReturnValue({
+        type: 'customer.subscription.updated',
+        data: { object: { customer: 'cus_1', status, trial_end: null } },
+      });
+      const res = (await POST(makeReq() as any)) as any;
+      expect(res._status).toBe(200);
+      expect(currentChain.update).not.toHaveBeenCalled();
+    });
+
+    it('invoice.paid : seule une ligne past_due repasse active (box + owner, stripe uniquement)', async () => {
+      mockConstructEvent.mockReturnValue({ type: 'invoice.paid', data: { object: { customer: 'cus_1' } } });
+      await POST(makeReq() as any);
+      expect(currentChain.update).toHaveBeenCalledTimes(2);
+      expect(currentChain.update).toHaveBeenCalledWith({ status: 'active' });
+      expect(currentChain.eq).toHaveBeenCalledWith('status', 'past_due');
+      expect(currentChain.eq.mock.calls.filter((c: any[]) => c[0] === 'billing_source' && c[1] === 'stripe')).toHaveLength(2);
+    });
+  });
 });
