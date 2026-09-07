@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import {
   Building2, ArrowLeft, Users, Dumbbell, Trophy, Crown,
   CheckCircle, XCircle, Calendar, Clock, Shield, Hash,
-  Pencil, Save, X as XIcon, Image as ImageIcon,
+  Pencil, Save, X as XIcon, Image as ImageIcon, RefreshCw,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { formatCap } from '@/lib/wodFields';
@@ -33,6 +33,8 @@ export default function BoxDetailPage() {
   const [editDesc, setEditDesc] = useState('');
   const [editCity, setEditCity] = useState('');
   const [editActive, setEditActive] = useState(true);
+  const [resyncing, setResyncing] = useState(false);
+  const [resyncResult, setResyncResult] = useState<string | null>(null);
 
   async function loadData() {
     setLoading(true);
@@ -70,6 +72,36 @@ export default function BoxDetailPage() {
     if (res.ok) {
       setEditing(false);
       loadData();
+    }
+  }
+
+  async function handleResync() {
+    setResyncing(true);
+    setResyncResult(null);
+    try {
+      const res = await fetch('/api/verify-subscription', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ box_id: id }),
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        setResyncResult(`Erreur : ${json.error ?? res.status}`);
+      } else if (json.status === 'none') {
+        setResyncResult('Aucune ligne box_subscriptions');
+      } else if (json.source === 'manual') {
+        setResyncResult(`${json.status} · offert (aucun abonnement Stripe)`);
+      } else {
+        const period = json.current_period_end
+          ? ` · période jusqu'au ${new Date(json.current_period_end).toLocaleDateString('fr-FR')}`
+          : '';
+        setResyncResult(`${json.status}${period}${json.updated ? '' : ' · inchangé'}`);
+        if (json.updated) loadData();
+      }
+    } catch {
+      setResyncResult('Erreur réseau');
+    } finally {
+      setResyncing(false);
     }
   }
 
@@ -153,10 +185,21 @@ export default function BoxDetailPage() {
             </div>
           </div>
           {!editing && (
-            <button onClick={startEdit}
-              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-sm font-bold text-gray-300 hover:text-white hover:border-emerald-500/30 transition-all">
-              <Pencil size={14} /> Modifier
-            </button>
+            <div className="flex flex-col items-end gap-2">
+              <div className="flex items-center gap-2">
+                <button onClick={handleResync} disabled={resyncing}
+                  className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-sm font-bold text-gray-300 hover:text-white hover:border-purple-500/30 disabled:opacity-50 transition-all">
+                  <RefreshCw size={14} className={resyncing ? 'animate-spin' : ''} /> {resyncing ? 'Synchronisation...' : 'Resynchroniser avec Stripe'}
+                </button>
+                <button onClick={startEdit}
+                  className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-sm font-bold text-gray-300 hover:text-white hover:border-emerald-500/30 transition-all">
+                  <Pencil size={14} /> Modifier
+                </button>
+              </div>
+              {resyncResult && (
+                <p className="text-xs text-gray-400">{resyncResult}</p>
+              )}
+            </div>
           )}
         </div>
       </div>

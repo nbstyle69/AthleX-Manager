@@ -11,7 +11,7 @@ export async function POST(req: NextRequest) {
     const supabase = guard.service;
 
     const { data: sub } = await supabase.from('box_subscriptions')
-      .select('stripe_customer_id, stripe_subscription_id, status')
+      .select('stripe_customer_id, stripe_subscription_id, status, current_period_end')
       .eq('box_id', box_id)
       .maybeSingle();
 
@@ -21,7 +21,7 @@ export async function POST(req: NextRequest) {
 
     // Une ligne active sans identifiant Stripe est offerte : rien à synchroniser.
     if (sub.status === 'active' && !sub.stripe_subscription_id && !sub.stripe_customer_id) {
-      return NextResponse.json({ status: 'active', updated: false });
+      return NextResponse.json({ status: 'active', updated: false, current_period_end: sub.current_period_end, source: 'manual' });
     }
 
     const stripe = getPlatformStripe();
@@ -35,7 +35,7 @@ export async function POST(req: NextRequest) {
         .update(sync)
         .eq('box_id', box_id);
 
-      return NextResponse.json({ status: sync.status, updated: true });
+      return NextResponse.json({ status: sync.status, updated: true, current_period_end: sync.current_period_end ?? sub.current_period_end });
     }
 
     // Fallback: search by customer ID for recent subscriptions
@@ -53,11 +53,11 @@ export async function POST(req: NextRequest) {
           .update({ ...sync, stripe_subscription_id: subscription.id })
           .eq('box_id', box_id);
 
-        return NextResponse.json({ status: sync.status, updated: true });
+        return NextResponse.json({ status: sync.status, updated: true, current_period_end: sync.current_period_end ?? sub.current_period_end });
       }
     }
 
-    return NextResponse.json({ status: sub.status, updated: false });
+    return NextResponse.json({ status: sub.status, updated: false, current_period_end: sub.current_period_end });
   } catch (err: any) {
     console.error('verify-subscription error:', err);
     return NextResponse.json({ error: err.message }, { status: 500 });
