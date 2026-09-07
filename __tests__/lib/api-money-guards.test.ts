@@ -34,7 +34,9 @@ type Classe =
   /** L'appelant agit pour lui-même, ou tunnel public d'achat. */
   | 'self_service'
   /** Écriture anonyme : aucune session à lire, donc un plafond de débit par IP. */
-  | 'public_debit';
+  | 'public_debit'
+  /** Programmation : gérant, co-gérant ou coach de la box (`get_my_admin_boxes`). Jamais d'argent. */
+  | 'box_staff';
 
 const CLASSIFICATION: Record<string, Classe> = {
   'admin/boxes': 'platform_admin',
@@ -78,6 +80,7 @@ const CLASSIFICATION: Record<string, Classe> = {
   'trial/slots': 'public_debit',
   'upload-box-logo': 'owner_admin',
   'verify-subscription': 'primary_owner',
+  'wods/import-pdf': 'box_staff',
 };
 
 /** Jeton que le code de la route doit contenir pour sa classe. */
@@ -91,6 +94,7 @@ const GARDE: Record<Classe, string | null> = {
   token: 'peek_box_invitation',
   self_service: null,
   public_debit: 'takeToken(',
+  box_staff: 'getAdminBoxes(',
 };
 
 /**
@@ -102,6 +106,7 @@ const SESSION_REQUISE: Classe[] = [
   'owner_self',
   'platform_admin',
   'self_service',
+  'box_staff',
 ];
 
 /** Une route self-service ne s'autorise que sur l'appelant. */
