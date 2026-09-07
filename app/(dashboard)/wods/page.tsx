@@ -14,6 +14,7 @@ import { RestrictionBadges, programColor } from '@/components/wods/RestrictionBa
 import AssignRestrictionsModal from '@/components/wods/AssignRestrictionsModal';
 import { assignRestrictions, libelleAssignation } from '@/lib/wodAssignment';
 import SaveWeekAsTemplateModal from '@/components/wods/SaveWeekAsTemplateModal';
+import PdfImportModal from '@/components/wods/PdfImportModal';
 import { applyWeekNotes } from '@/lib/programWeek';
 import {
   BLOCK_COLOR, BLOCK_LABEL, DAY_LABELS, EMPTY_WOD_FORM, TYPE_COLOR,
@@ -74,23 +75,7 @@ export default function WODsPage() {
   const [importing,   setImporting]   = useState(false);
   const [importResult, setImportResult] = useState<{ ok: number; errors: string[]; notes?: string[] } | null>(null);
 
-  // PDF AI import
-  interface ParsedPdfWOD {
-    scheduled_date: string;
-    title: string;
-    wod_type: WodType;
-    description: string | null;
-    time_cap_seconds: number | null;
-    rounds: number | null;
-    notes: string | null;
-    block_name: string | null;
-  }
-  const [pdfAnalyzing, setPdfAnalyzing] = useState(false);
-  const [pdfPreview, setPdfPreview] = useState<{
-    wods: ParsedPdfWOD[];
-    selected: boolean[];
-    inserting: boolean;
-  } | null>(null);
+  const [pdfFile, setPdfFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [layout, setLayoutRaw] = useState<'rows' | 'columns'>(() => {
     if (typeof window !== 'undefined') {
@@ -119,8 +104,6 @@ export default function WODsPage() {
   const [templateModal, setTemplateModal] = useState(false);
   const [boxPrograms, setBoxPrograms] = useState<{ id: string; title: string; type: string }[]>([]);
   const [wodProgramMap, setWodProgramMap] = useState<Record<string, string[]>>({});
-  const [pdfDestGroups, setPdfDestGroups] = useState<string[]>([]);
-  const [pdfDestPrograms, setPdfDestPrograms] = useState<string[]>([]);
   const [dragOver, setDragOver] = useState(false);
   const importRef = useRef<(f: File) => Promise<void>>(async () => {});
   const [selectMode, setSelectMode] = useState(false);
@@ -402,108 +385,6 @@ export default function WODsPage() {
     downloadWodCsvTemplate('whiteboard');
   }
 
-  // ── PDF AI Import (Claude) ──────────────────────────────────────────────────────────────────
-  async function fileToBase64(file: File): Promise<string> {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => {
-        const result = reader.result as string;
-        // strip 'data:application/pdf;base64,'
-        const base64 = result.split(',')[1] ?? '';
-        resolve(base64);
-      };
-      reader.onerror = () => reject(reader.error);
-      reader.readAsDataURL(file);
-    });
-  }
-
-  async function importPdfWods(file: File) {
-    if (!boxId) return;
-    try {
-      setPdfAnalyzing(true);
-      const pdfBase64 = await fileToBase64(file);
-      const defaultStart = toISO(weekDates[0]);
-      // Direct fetch to Edge Function so we can read non-2xx error body
-      const { data: { session } } = await supabase.auth.getSession();
-      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-      const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-      const res = await fetch(`${supabaseUrl}/functions/v1/parse-wod-pdf`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session?.access_token ?? anonKey}`,
-          'apikey': anonKey,
-        },
-        body: JSON.stringify({ box_id: boxId, pdf_base64: pdfBase64, default_start_date: defaultStart }),
-      });
-      const json = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        throw new Error(json?.error ?? `HTTP ${res.status}`);
-      }
-      const parsed = json?.wods as ParsedPdfWOD[] | undefined;
-      if (!parsed || parsed.length === 0) {
-        setImportResult({ ok: 0, errors: ['Aucun WOD détecté dans le PDF.'] });
-        return;
-      }
-      setPdfPreview({ wods: parsed, selected: parsed.map(() => true), inserting: false });
-      setPdfDestGroups([]);
-      setPdfDestPrograms([]);
-    } catch (e: any) {
-      setImportResult({ ok: 0, errors: [`Erreur IA : ${e?.message ?? 'analyse PDF impossible'}`] });
-    } finally {
-      setPdfAnalyzing(false);
-    }
-  }
-
-  async function confirmPdfImport() {
-    if (!pdfPreview || !boxId || !userId) return;
-    const selected = pdfPreview.wods.filter((_, i) => pdfPreview.selected[i]);
-    if (selected.length === 0) return;
-    setPdfPreview(p => p ? { ...p, inserting: true } : p);
-    const payloads = selected.map((w, i) => ({
-      box_id: boxId,
-      created_by: userId,
-      title: w.title,
-      description: w.description,
-      wod_type: w.wod_type,
-      scheduled_date: w.scheduled_date,
-      time_cap_seconds: w.time_cap_seconds,
-      rounds: w.rounds,
-      notes: w.notes,
-      block_name: w.block_name,
-      is_published: true,
-      leaderboard_enabled: true,
-      sort_order: i,
-    }));
-    const { data: inserted, error } = await supabase.from('box_wods').insert(payloads).select('id');
-    if (error) {
-      setImportResult({ ok: 0, errors: [error.message] });
-      setPdfPreview(null);
-      return;
-    }
-
-    const ids = (inserted ?? []).map(r => r.id);
-    const notes: string[] = [];
-    const errors: string[] = [];
-    if (ids.length > 0 && (pdfDestGroups.length > 0 || pdfDestPrograms.length > 0)) {
-      try {
-        await assignRestrictions(ids, pdfDestGroups, pdfDestPrograms, 'ajouter');
-        notes.push(libelleAssignation(ids.length, {
-          groupes: pdfDestGroups.map(id => refGroups.find(g => g.id === id)?.name ?? id),
-          programmes: pdfDestPrograms.map(id => refPrograms.find(p => p.id === id)?.name ?? id),
-        }, 'ajouter'));
-      } catch (e) {
-        errors.push(`WOD importés, mais l'assignation a échoué : ${e instanceof Error ? e.message : String(e)}`);
-      }
-    } else if (ids.length > 0) {
-      notes.push('Aucune restriction choisie : ces WOD sont visibles par toute la box. Sélectionne-les et utilise « Assigner à… » pour les restreindre.');
-    }
-
-    setImportResult({ ok: selected.length, errors, notes });
-    setPdfPreview(null);
-    void load();
-  }
-
   // ── CSV / JSON / PDF Import ──────────────────────────────────────────────────────────────
   async function handleImport(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -520,7 +401,7 @@ export default function WODsPage() {
     const nom = file.name.toLowerCase();
 
     if (file.type === 'application/pdf' || nom.endsWith('.pdf')) {
-      await importPdfWods(file);
+      setPdfFile(file);
       return;
     }
     if (!nom.endsWith('.csv') && !nom.endsWith('.json')) {
@@ -817,18 +698,6 @@ export default function WODsPage() {
         />
       )}
 
-      {/* PDF AI loading overlay */}
-      {pdfAnalyzing && (
-        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center">
-          <div className="bg-[#111111] border border-white/10 rounded-2xl p-8 max-w-sm text-center">
-            <Loader2 size={40} className="animate-spin text-white mx-auto mb-3" />
-            <h3 className="text-lg font-bold text-white mb-1">Analyse IA en cours…</h3>
-            <p className="text-sm text-gray-400">Claude lit ton PDF et extrait les WODs.</p>
-            <p className="text-xs text-gray-500 mt-3">Cela peut prendre 10 à 30 secondes.</p>
-          </div>
-        </div>
-      )}
-
       {/* Confirm dialog (custom — replaces native confirm() which can be blocked by browser) */}
       {confirmDialog && (
         <div className="fixed inset-0 z-[60] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
@@ -864,140 +733,17 @@ export default function WODsPage() {
         </div>
       )}
 
-      {/* PDF AI preview modal */}
-      {pdfPreview && (
-        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-[#0a0a0a] border border-white/10 rounded-2xl w-full max-w-3xl max-h-[90vh] flex flex-col">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-white/8">
-              <div>
-                <h3 className="text-lg font-bold text-white">WODs détectés</h3>
-                <p className="text-xs text-gray-400 mt-0.5">
-                  {pdfPreview.wods.length} WOD(s) — coche ceux à importer
-                </p>
-              </div>
-              <button
-                onClick={() => !pdfPreview.inserting && setPdfPreview(null)}
-                disabled={pdfPreview.inserting}
-                className="text-gray-500 hover:text-white disabled:opacity-40"
-              >
-                <X size={18} />
-              </button>
-            </div>
-
-            <div className="flex-1 overflow-y-auto px-6 py-4 space-y-2">
-              {pdfPreview.wods.map((wod, i) => {
-                const tc = TYPE_COLOR[wod.wod_type] ?? '#6B7280';
-                const checked = pdfPreview.selected[i];
-                return (
-                  <button
-                    key={i}
-                    onClick={() => {
-                      setPdfPreview(p => p ? {
-                        ...p,
-                        selected: p.selected.map((s, idx) => idx === i ? !s : s),
-                      } : p);
-                    }}
-                    className={`w-full text-left flex items-stretch bg-[#111111] border rounded-xl overflow-hidden transition-all ${
-                      checked ? 'border-white/15' : 'border-white/5 opacity-50'
-                    }`}
-                  >
-                    <div className="w-1.5" style={{ backgroundColor: tc }} />
-                    <div className="flex-1 px-4 py-3">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="text-[10px] font-extrabold tracking-wider" style={{ color: tc }}>
-                          {wod.wod_type.toUpperCase()}
-                        </span>
-                        <span className="text-[11px] text-gray-400 font-bold">{wod.scheduled_date}</span>
-                        {wod.block_name && (
-                          <span className="text-[9px] font-bold text-gray-500 bg-white/5 px-1.5 py-0.5 rounded">
-                            {wod.block_name}
-                          </span>
-                        )}
-                      </div>
-                      <p className="text-sm font-bold text-white truncate">{wod.title}</p>
-                      {wod.description && (
-                        <p className="text-xs text-gray-400 line-clamp-3 mt-1 whitespace-pre-line">{wod.description}</p>
-                      )}
-                      <div className="flex gap-3 mt-2">
-                        {wod.time_cap_seconds != null && (
-                          <span className="text-[11px] text-gray-500 font-bold">⏱ {formatCap(wod.time_cap_seconds)}</span>
-                        )}
-                        {wod.rounds != null && (
-                          <span className="text-[11px] text-gray-500 font-bold">🔁 {wod.rounds} rounds</span>
-                        )}
-                      </div>
-                    </div>
-                    <div className="px-4 flex items-center">
-                      <div className={`w-5 h-5 rounded border-2 flex items-center justify-center ${
-                        checked ? 'bg-white border-white' : 'border-gray-600'
-                      }`}>
-                        {checked && <span className="text-black text-xs font-black">✓</span>}
-                      </div>
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-
-            <div className="px-6 py-3 border-t border-white/8 space-y-2">
-              <p className="text-xs font-black uppercase tracking-wider text-gray-500">Qui verra ces WOD</p>
-              <div className="flex flex-wrap gap-2">
-                {refGroups.map(g => (
-                  <button
-                    key={g.id}
-                    onClick={() => setPdfDestGroups(prev => prev.includes(g.id) ? prev.filter(x => x !== g.id) : [...prev, g.id])}
-                    className={`text-xs font-semibold px-2.5 py-1.5 rounded-full border transition-colors ${
-                      pdfDestGroups.includes(g.id) ? 'border-white/40 text-white' : 'border-white/10 text-gray-400'
-                    }`}
-                    style={pdfDestGroups.includes(g.id) ? { backgroundColor: `${g.color}25` } : undefined}
-                  >
-                    Groupe : {g.name}
-                  </button>
-                ))}
-                {refPrograms.map(p => (
-                  <button
-                    key={p.id}
-                    onClick={() => setPdfDestPrograms(prev => prev.includes(p.id) ? prev.filter(x => x !== p.id) : [...prev, p.id])}
-                    className={`text-xs font-semibold px-2.5 py-1.5 rounded-full border transition-colors ${
-                      pdfDestPrograms.includes(p.id) ? 'border-white/40 text-white' : 'border-white/10 text-gray-400'
-                    }`}
-                    style={pdfDestPrograms.includes(p.id) ? { backgroundColor: `${p.color}25` } : undefined}
-                  >
-                    Programme : {p.name}
-                  </button>
-                ))}
-                {refGroups.length === 0 && refPrograms.length === 0 && (
-                  <p className="text-xs text-gray-600">Aucun groupe ni programme dans cette box.</p>
-                )}
-              </div>
-              <p className="text-[11px] text-gray-500">
-                Rien de coché : les WOD importés seront visibles par toute la box. Tu pourras les restreindre après coup avec « Assigner à… ».
-              </p>
-            </div>
-
-            <div className="flex items-center gap-3 px-6 py-4 border-t border-white/8">
-              <button
-                onClick={() => {
-                  if (!pdfPreview) return;
-                  const allSelected = pdfPreview.selected.every(Boolean);
-                  setPdfPreview({ ...pdfPreview, selected: pdfPreview.selected.map(() => !allSelected) });
-                }}
-                className="px-4 py-2.5 rounded-xl text-xs font-bold border border-white/10 text-gray-300 hover:text-white hover:border-white/20 transition-colors"
-              >
-                {pdfPreview.selected.every(Boolean) ? 'Tout décocher' : 'Tout cocher'}
-              </button>
-              <button
-                onClick={confirmPdfImport}
-                disabled={pdfPreview.inserting || pdfPreview.selected.filter(Boolean).length === 0}
-                className="flex-1 px-4 py-2.5 rounded-xl text-sm font-bold bg-white text-black hover:bg-[#b89222] disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
-              >
-                {pdfPreview.inserting
-                  ? <><Loader2 size={14} className="animate-spin" /> Import…</>
-                  : <>Importer {pdfPreview.selected.filter(Boolean).length} WOD(s)</>}
-              </button>
-            </div>
-          </div>
-        </div>
+      {pdfFile && boxId && userId && (
+        <PdfImportModal
+          file={pdfFile}
+          boxId={boxId}
+          userId={userId}
+          defaultWeekStart={toISO(weekDates[0])}
+          groups={refGroups}
+          programs={refPrograms}
+          onClose={() => setPdfFile(null)}
+          onDone={r => { setPdfFile(null); setImportResult(r); void load(); }}
+        />
       )}
 
       {/* Import result */}
