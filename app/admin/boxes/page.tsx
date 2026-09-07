@@ -13,6 +13,7 @@ interface BoxItem {
   city: string | null;
   plan: string;
   expired_at: string | null;
+  offered: boolean;
   is_active: boolean;
   created_at: string;
   owner_name: string;
@@ -41,6 +42,7 @@ export default function AdminBoxesPage() {
         city: b.city,
         plan: b.plan_tier ?? FREE_TIER,
         expired_at: b.expired_at ?? null,
+        offered: b.offered === true,
         is_active: b.is_active,
         created_at: b.created_at,
         owner_name: owner?.username ?? 'Inconnu',
@@ -277,6 +279,9 @@ export default function AdminBoxesPage() {
                 <div className="flex items-center gap-2">
                   {box.expired_at && (
                     <span className="text-[10px] text-orange-400/80">{formatExpiredSince(box.expired_at)}</span>
+                  )}
+                  {box.offered && (
+                    <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-lg text-emerald-400 bg-emerald-500/10">offert</span>
                   )}
                   <span className={`text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-lg ${planTierClasses(box.plan)}`}>
                     {box.plan}

@@ -29,7 +29,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
 
   const { data: subs } = await supabase
     .from('box_subscriptions')
-    .select('box_id, status, plan_tier, current_period_end')
+    .select('*')
     .eq('box_id', id);
 
   // Members

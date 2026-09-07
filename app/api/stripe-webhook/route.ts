@@ -1,7 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { createServiceClient } from '@/lib/supabase/server';
-import { boxSubscriptionSync, getPlatformStripe, type StripeSubscriptionLike } from '@/lib/stripeSubscription';
+import {
+  boxSubscriptionSync,
+  getPlatformStripe,
+  isSyncableStripeStatus,
+  STRIPE_BILLING_SOURCE,
+  type StripeSubscriptionLike,
+} from '@/lib/stripeSubscription';
+
+// Toute écriture pilotée par Stripe filtre sur billing_source = 'stripe' :
+// une ligne offerte (manual) n'est jamais touchée, quel que soit l'événement.
 
 export async function POST(req: NextRequest) {
   const stripe = getPlatformStripe();
@@ -44,6 +53,7 @@ export async function POST(req: NextRequest) {
             status: ownerSub.status === 'trialing' ? 'trialing' : 'active',
             stripe_customer_id: customerId,
             stripe_subscription_id: subscriptionId,
+            billing_source: STRIPE_BILLING_SOURCE,
             ...(current_period_end ? { current_period_end } : {}),
             updated_at: new Date().toISOString(),
           }, { onConflict: 'owner_id' });
@@ -61,6 +71,7 @@ export async function POST(req: NextRequest) {
           .update({
             stripe_customer_id: customerId,
             stripe_subscription_id: subscriptionId,
+            billing_source: STRIPE_BILLING_SOURCE,
             plan_tier: 'complete',
             ...sync,
             status: subscription.status === 'trialing' ? 'trialing' : 'active',
@@ -74,17 +85,27 @@ export async function POST(req: NextRequest) {
       case 'customer.subscription.updated': {
         const subscription = event.data.object as unknown as StripeSubscriptionLike & { customer: string };
         const customerId = subscription.customer;
+
+        // incomplete / incomplete_expired / paused : rien n'est écrit.
+        if (!isSyncableStripeStatus(subscription.status)) {
+          console.log(`Subscription ${subscription.status} ignored for ${customerId}`);
+          break;
+        }
+
+        // past_due conservé tel quel ; unpaid → canceled (mapStripeStatus).
         const { status, current_period_end, trial_ends_at } = boxSubscriptionSync(subscription);
         const periodPatch = current_period_end ? { current_period_end } : {};
 
         await supabase.from('box_subscriptions')
           .update({ status, ...periodPatch, trial_ends_at })
-          .eq('stripe_customer_id', customerId);
+          .eq('stripe_customer_id', customerId)
+          .eq('billing_source', STRIPE_BILLING_SOURCE);
 
         // Owner-level subscription mirrors the same status transitions.
         await supabase.from('owner_subscriptions')
           .update({ status, ...periodPatch, updated_at: new Date().toISOString() })
-          .eq('stripe_customer_id', customerId);
+          .eq('stripe_customer_id', customerId)
+          .eq('billing_source', STRIPE_BILLING_SOURCE);
 
         break;
       }
@@ -95,11 +116,13 @@ export async function POST(req: NextRequest) {
 
         await supabase.from('box_subscriptions')
           .update({ status: 'canceled', stripe_subscription_id: null })
-          .eq('stripe_customer_id', customerId);
+          .eq('stripe_customer_id', customerId)
+          .eq('billing_source', STRIPE_BILLING_SOURCE);
 
         await supabase.from('owner_subscriptions')
           .update({ status: 'canceled', stripe_subscription_id: null, updated_at: new Date().toISOString() })
-          .eq('stripe_customer_id', customerId);
+          .eq('stripe_customer_id', customerId)
+          .eq('billing_source', STRIPE_BILLING_SOURCE);
 
         break;
       }
@@ -110,11 +133,35 @@ export async function POST(req: NextRequest) {
 
         await supabase.from('box_subscriptions')
           .update({ status: 'past_due' })
-          .eq('stripe_customer_id', customerId);
+          .eq('stripe_customer_id', customerId)
+          .eq('billing_source', STRIPE_BILLING_SOURCE);
 
         await supabase.from('owner_subscriptions')
           .update({ status: 'past_due', updated_at: new Date().toISOString() })
-          .eq('stripe_customer_id', customerId);
+          .eq('stripe_customer_id', customerId)
+          .eq('billing_source', STRIPE_BILLING_SOURCE);
+
+        break;
+      }
+
+      // Paiement de rattrapage après un échec : la ligne past_due redevient
+      // active. Les autres statuts (trialing, première facture) ne bougent pas —
+      // c'est customer.subscription.updated qui fait foi.
+      case 'invoice.paid': {
+        const invoice = event.data.object as Stripe.Invoice;
+        const customerId = invoice.customer as string;
+
+        await supabase.from('box_subscriptions')
+          .update({ status: 'active' })
+          .eq('stripe_customer_id', customerId)
+          .eq('status', 'past_due')
+          .eq('billing_source', STRIPE_BILLING_SOURCE);
+
+        await supabase.from('owner_subscriptions')
+          .update({ status: 'active', updated_at: new Date().toISOString() })
+          .eq('stripe_customer_id', customerId)
+          .eq('status', 'past_due')
+          .eq('billing_source', STRIPE_BILLING_SOURCE);
 
         break;
       }

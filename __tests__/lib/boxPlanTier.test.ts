@@ -28,11 +28,12 @@ describe('activePlanTier', () => {
     expect(activePlanTier([{ box_id: 'a', status: 'active', plan_tier: 'complete' }])).toBe('complete');
   });
 
-  it('ignore les lignes non actives (trialing, canceled)', () => {
+  it('ignore les lignes non actives (canceled, expired) ; un essai en cours devient « essai »', () => {
     expect(activePlanTier([
-      { box_id: 'a', status: 'trialing', plan_tier: 'complete' },
+      { box_id: 'a', status: 'expired', plan_tier: 'complete' },
       { box_id: 'a', status: 'canceled', plan_tier: 'multi' },
     ])).toBe(FREE_TIER);
+    expect(activePlanTier([{ box_id: 'a', status: 'trialing', plan_tier: 'complete' }])).toBe('essai');
   });
 
   it('free sans aucune ligne', () => {
@@ -42,5 +43,40 @@ describe('activePlanTier', () => {
 
   it('free si la ligne active n\'a pas de plan_tier', () => {
     expect(activePlanTier([{ box_id: 'a', status: 'active', plan_tier: null }])).toBe(FREE_TIER);
+  });
+});
+
+describe('boxPlanInfo — badges essai / impayé / offert', () => {
+  const now = new Date('2026-09-07T12:00:00Z');
+
+  it('trialing en cours → « essai » (RAW PERFORMANCE)', () => {
+    const info = boxPlanInfo([{ box_id: 'raw', status: 'trialing', plan_tier: 'complete', current_period_end: '2026-09-16T14:12:00Z', trial_ends_at: '2026-09-16T14:12:00Z' }], now);
+    expect(info).toEqual({ plan_tier: 'essai', expired_at: null, offered: false });
+  });
+
+  it('trialing dont l\'essai est fini → free', () => {
+    expect(boxPlanInfo([{ box_id: 'a', status: 'trialing', plan_tier: 'trial', trial_ends_at: '2026-01-01T00:00:00Z' }], now).plan_tier).toBe(FREE_TIER);
+  });
+
+  it('trialing sans date de fin → « essai » (Crossfit AX)', () => {
+    expect(boxPlanInfo([{ box_id: 'ax', status: 'trialing', plan_tier: 'trial', current_period_end: null, trial_ends_at: null }], now).plan_tier).toBe('essai');
+  });
+
+  it('past_due → « impayé »', () => {
+    expect(boxPlanInfo([{ box_id: 'a', status: 'past_due', plan_tier: 'complete' }], now).plan_tier).toBe('impayé');
+  });
+
+  it('active manual → palier + offert (AthleX Fitness)', () => {
+    const info = boxPlanInfo([{ box_id: 'fit', status: 'active', plan_tier: 'complete', billing_source: 'manual', current_period_end: '2027-09-06T00:00:00Z' }], now);
+    expect(info).toEqual({ plan_tier: 'complete', expired_at: null, offered: true });
+  });
+
+  it('active stripe → palier sans mention offert (NBS2)', () => {
+    const info = boxPlanInfo([{ box_id: 'nbs2', status: 'active', plan_tier: 'complete', billing_source: 'stripe', current_period_end: '2026-09-12T19:16:33Z' }], now);
+    expect(info).toEqual({ plan_tier: 'complete', expired_at: null, offered: false });
+  });
+
+  it('canceled seule → free', () => {
+    expect(boxPlanInfo([{ box_id: 'a', status: 'canceled', plan_tier: 'complete' }], now).plan_tier).toBe(FREE_TIER);
   });
 });

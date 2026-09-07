@@ -129,6 +129,7 @@ export default function BoxDetailPage() {
 
   const planTier: string = box.plan_tier ?? FREE_TIER;
   const planExpiredAt: string | null = box.expired_at ?? null;
+  const planOffered: boolean = box.offered === true;
 
   const levelColor = (l: string) =>
     l === 'pro' ? 'text-red-400' : l === 'gx' ? 'text-purple-400' :
@@ -171,6 +172,9 @@ export default function BoxDetailPage() {
                 <span className={`text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-lg border ${planTierClasses(planTier)}`}>
                   {planTier}
                 </span>
+                {planOffered && (
+                  <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-lg text-emerald-400 bg-emerald-500/10">offert</span>
+                )}
                 {planExpiredAt && (
                   <span className="text-[10px] text-orange-400/80">{formatExpiredSince(planExpiredAt)}</span>
                 )}
