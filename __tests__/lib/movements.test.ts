@@ -25,6 +25,21 @@ describe('movements catalog', () => {
     expect(isWeightedMovement('Run')).toBe(false);
   });
 
+  it('catalogue haltéro élargi : douze mouvements en reps', () => {
+    const twelve = [
+      'Snatch Balance', 'Snatch High Pull', 'Clean Pull', 'Tall Clean', 'Power Jerk',
+      'Split Jerk', 'Back Rack Split Jerk', 'Strict Press', 'DB Strict Press',
+      'Bench Press', 'Zercher Squat', 'Wall Walk',
+    ];
+    for (const name of twelve) {
+      expect(MOVEMENT_CATALOG.some(m => m.name === name)).toBe(true);
+      expect(defaultUnitFor(name)).toBe('reps');
+      expect(isCardioMovement(name)).toBe(false);
+    }
+    expect(isWeightedMovement('Bench Press')).toBe(true);
+    expect(isWeightedMovement('Wall Walk')).toBe(false);
+  });
+
   it('has no duplicate movement names', () => {
     const names = MOVEMENT_CATALOG.map(m => m.name);
     expect(new Set(names).size).toBe(names.length);

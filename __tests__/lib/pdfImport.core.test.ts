@@ -60,6 +60,20 @@ describe('resolveMovementName (§7)', () => {
     ['thrusters', 'Thruster'],
     ['Ski', 'SkiErg'],
     ['Power Cleans', 'Power Clean'],
+    ['Bench press', 'Bench Press'],
+    ['bench', 'Bench Press'],
+    ['Shoulder Press', 'Strict Press'],
+    ['Strict Press', 'Strict Press'],
+    ['WW', 'Wall Walk'],
+    ['Wall Walk', 'Wall Walk'],
+    ['Jerk', 'Split Jerk'],
+    ['Split jerk', 'Split Jerk'],
+    ['Snatch Pull', 'Snatch High Pull'],
+    ['Snatch High Pull', 'Snatch High Pull'],
+    ['Back Rack Split Jerk', 'Back Rack Split Jerk'],
+    ['DB Strict Press', 'DB Strict Press'],
+    ['Tall Clean', 'Tall Clean'],
+    ['Zercher Squat', 'Zercher Squat'],
   ])('%s → %s (resolved)', (raw, expected) => {
     expect(resolveMovementName(raw, kplusPerf.synonyms)).toEqual({ name: expected, resolved: true });
   });

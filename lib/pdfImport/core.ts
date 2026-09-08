@@ -446,7 +446,11 @@ export function buildEntry(draft: EntryDraft, profile: SourceProfile, weekStart:
         const s = parseStrengthLine(line, { synonyms: profile.synonyms, typoFixes: profile.typoFixes, defaultSets: format.rounds });
         if (s) {
           // `- 6X1 @RPE9` sous `3) TALL CLEAN` : l'exercice est le titre du sous-bloc.
-          if (!s.exercise) s.exercise = lastExercise || titleCaseExercise(subTitle);
+          if (!s.exercise) {
+            const res = resolveMovementName(lastExercise || titleCaseExercise(subTitle), profile.synonyms);
+            s.exercise = res.name;
+            s.resolved = res.resolved;
+          }
           if (s.exercise) lastExercise = s.exercise;
           musculation.push(s);
           continue;

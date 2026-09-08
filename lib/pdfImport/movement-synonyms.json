@@ -113,5 +113,15 @@
   "push jerks": "Push Jerk",
   "squat snatches": "Squat Snatch",
   "squat cleans": "Squat Clean",
-  "clusters": "Cluster"
+  "clusters": "Cluster",
+  "bench": "Bench Press",
+  "developpe couche": "Bench Press",
+  "shoulder press": "Strict Press",
+  "military press": "Strict Press",
+  "db shoulder press": "DB Strict Press",
+  "dumbbell strict press": "DB Strict Press",
+  "ww": "Wall Walk",
+  "wall walks": "Wall Walk",
+  "jerk": "Split Jerk",
+  "snatch pull": "Snatch High Pull"
 }
