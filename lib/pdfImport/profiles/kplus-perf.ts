@@ -152,7 +152,7 @@ export const kplusPerf: SourceProfile = {
     'tirage bûcherons': 'Tirage bûcherons',
     'snatch high pull': 'Snatch High Pull',
     'clean pull': 'Clean Pull',
-    'snatch pull': 'Snatch Pull',
+    'snatch pull': 'Snatch High Pull',
     'squat snatch': 'Squat Snatch',
     'power snatch': 'Power Snatch',
     'squat clean': 'Squat Clean',
