@@ -109,9 +109,18 @@ describe('lignes cardio — unité m/cal et split ♂/♀', () => {
     expect(parseMovementRow('30 kcal Echo Bike')).toMatchObject({ reps: 30, unit: 'cal', name: 'Echo Bike' });
   });
 
-  it('une ligne historique sans unité reste en reps', () => {
-    expect(parseMovementRow('20 Row')).toMatchObject({ reps: 20, unit: 'reps', name: 'Row' });
+  it('une ligne sans unité sur un mouvement cardio du catalogue prend l’unité par défaut', () => {
+    expect(parseMovementRow('20 Row')).toMatchObject({ reps: 20, unit: 'cal', name: 'Row' });
+    expect(parseMovementRow('20/15 Bike Erg')).toMatchObject({ reps: 20, repsWomen: 15, unit: 'cal', name: 'Bike Erg' });
+    expect(parseMovementRow('15 Echo Bike')).toMatchObject({ reps: 15, unit: 'cal', name: 'Echo Bike' });
+    expect(parseMovementRow('20 skierg')).toMatchObject({ reps: 20, unit: 'cal', name: 'skierg' });
+    expect(parseMovementRow('800 Run')).toMatchObject({ reps: 800, unit: 'm', name: 'Run' });
+    expect(parseMovementRow('500m Ski')).toMatchObject({ reps: 500, unit: 'm', name: 'Ski' });
+  });
+
+  it('une ligne historique sans unité hors cardio reste en reps', () => {
     expect(parseMovementRow('10/8 Pull-ups')).toMatchObject({ reps: 10, repsWomen: 8, unit: 'reps', name: 'Pull-ups' });
+    expect(parseMovementRow('21 Thruster (43 kg)')).toMatchObject({ reps: 21, unit: 'reps' });
   });
 
   it('aller-retour sérialisation → parse', () => {

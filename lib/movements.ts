@@ -129,7 +129,8 @@ export interface ParsedMovementRow {
 // of legacy free-text like "7 reps — Sumo Deadlift High Pull @ 42.5/30 kg").
 // A "men/women" pair ("43/30 kg") splits into weightKg (men) + weightKgWomen (women).
 // Cardio lines carry their unit ("20 cal Row", "20/15 cal Row", "500 m Run",
-// "400m Course") ; a bare number is reps.
+// "400m Course") ; a bare number is reps, except on a catalogue cardio movement
+// where it takes the catalogue default unit ("20 Row" → 20 cal, "800 Run" → 800 m).
 export function parseMovementRow(line: string): ParsedMovementRow {
   let s = (line ?? '').trim();
   // weight: "(43 kg)" / "(43/30 kg)" or "@ 43kg" / "@ 42.5/30 kg"
@@ -157,11 +158,12 @@ export function parseMovementRow(line: string): ParsedMovementRow {
   // leading reps, tolerating a "reps"/"rep"/"x" word and a "—"/"-" separator
   const m = s.match(/^(\d+)(?:\s*\/\s*(\d+))?\s*(?:reps?|x)?\s*[—\-:]?\s*(.+)$/i);
   if (m) {
+    const name = m[3].trim();
     return {
       reps: parseInt(m[1], 10),
       repsWomen: m[2] != null ? parseInt(m[2], 10) : null,
-      unit: 'reps',
-      name: m[3].trim(),
+      unit: defaultUnitFor(name),
+      name,
       weightKg, weightKgWomen,
     };
   }
