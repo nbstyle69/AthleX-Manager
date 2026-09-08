@@ -59,3 +59,27 @@ describe('cohabitation dans la même description', () => {
     expect(isStrengthLine('21 Thruster (43 kg)')).toBe(false);
   });
 });
+
+describe('strengthBlock — charge libre', () => {
+  it('sérialise `charge …` après le tempo et le relit', () => {
+    const e = { name: 'Back Squat', sets: 5, reps: 3, load: null, unit: 'kg' as const, restSec: 120, tempo: null, loadNote: 'RPE 9' };
+    const line = serializeStrength(e);
+    expect(line).toBe('Back Squat — 5 × 3 — repos 2:00 — charge RPE 9');
+    expect(parseStrengthLine(line)).toMatchObject({ name: 'Back Squat', sets: 5, reps: 3, load: null, loadNote: 'RPE 9' });
+  });
+
+  it('une ligne sans load mais avec charge reste une ligne force, pas un mouvement metcon', () => {
+    expect(isStrengthLine('Deadlift — 3 × 5 — charge RM du jour')).toBe(true);
+    expect(parseStrengthLine('Deadlift — 3 × 5 — charge +2,5 kg')?.loadNote).toBe('+2,5 kg');
+  });
+
+  it('charge numérique et charge libre coexistent', () => {
+    const line = serializeStrength({ name: 'Bench', sets: 4, reps: 6, load: 80, unit: '%1RM', restSec: null, tempo: '30X1', loadNote: 'ou RPE 8' });
+    expect(line).toBe('Bench — 4 × 6 @ 80 %1RM — tempo 30X1 — charge ou RPE 8');
+    expect(parseStrengthLine(line)).toMatchObject({ load: 80, unit: '%1RM', tempo: '30X1', loadNote: 'ou RPE 8' });
+  });
+
+  it('sans charge libre, la ligne parsée ne porte pas de clé loadNote', () => {
+    expect(parseStrengthLine('Back Squat — 5 × 3 @ 80 %1RM')).not.toHaveProperty('loadNote');
+  });
+});

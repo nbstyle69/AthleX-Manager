@@ -1,16 +1,26 @@
 'use client';
 
 import { Dispatch, SetStateAction, useState } from 'react';
-import { Plus, Trash2, X, Loader2, Video, Dumbbell } from 'lucide-react';
-import { MOVEMENT_CATALOG } from '@/lib/movements';
+import { Plus, Trash2, X, Loader2, Video, Dumbbell, HeartPulse } from 'lucide-react';
+import { CARDIO_UNITS, MOVEMENT_CATALOG, MovementUnit } from '@/lib/movements';
 import {
   EMPTY_MOVEMENT_ROW,
   MovementRow,
+  movementRowShowsUnit,
   movementRowShowsWeight,
   movementRowsFromLines,
   serializeMovementRows,
   updateMovementRow,
 } from '@/lib/wodMovementRows';
+import {
+  CardioEntry,
+  CardioUnit,
+  EMPTY_CARDIO_ENTRY,
+  isCardioLine,
+  parseCardioLine,
+  serializeCardio,
+  splitCardioLines,
+} from '@/lib/cardioBlock';
 import {
   EMPTY_STRENGTH_ENTRY,
   StrengthEntry,
@@ -35,10 +45,12 @@ import { BLOCKS, DAY_LABELS, WOD_TYPES, WodFormState } from '@/lib/wodFields';
  * time cap, rounds, notes, vidéo, EMOM/Tabata, classement) est identique dans
  * les deux contextes.
  *
- * Les deux blocs vivent dans la même `description` mais dans deux formes
- * distinctes : « reps d'abord » pour le metcon (crédité en badges), « nom
- * d'abord » pour la force (jamais crédité, cf. `lib/strengthBlock.ts`). Les
- * lignes de force sont écrites en tête — la séance se lit force puis metcon.
+ * Les trois blocs vivent dans la même `description` mais dans trois formes
+ * distinctes : « quantité d'abord » pour le metcon (crédité en badges, en reps
+ * ou en m/cal pour le cardio), « nom d'abord » avec `—` pour la force (jamais
+ * crédité, cf. `lib/strengthBlock.ts`) et avec `~` pour le cardio structuré
+ * (crédité en m/cal, cf. `lib/cardioBlock.ts`). Les lignes de force puis de
+ * cardio sont écrites en tête — la séance se lit force, cardio, puis metcon.
  */
 export interface WodEditorGroup { id: string; name: string; color: string }
 export interface WodEditorProgram { id: string; title: string; type: string }
@@ -87,18 +99,29 @@ export default function WodEditor({
       .filter((e): e is StrengthEntry => e !== null),
   );
 
+  const [cardioRows, setCardioRows] = useState<CardioEntry[]>(
+    () => splitCardioLines(movements)
+      .cardio
+      .map(l => parseCardioLine(l))
+      .filter((e): e is CardioEntry => e !== null),
+  );
+
   // Même principe pour le metcon : les lignes sont éditées structurées et
   // sérialisées à l'écriture seulement (cf. `lib/wodMovementRows.ts`).
   const [wodRows, setWodRows] = useState<MovementRow[]>(
-    () => movementRowsFromLines(movements.filter(l => !isStrengthLine(l))),
+    () => movementRowsFromLines(movements.filter(l => !isStrengthLine(l) && !isCardioLine(l))),
   );
 
-  const commit = (wod: MovementRow[], strength: StrengthEntry[]) =>
-    setMovements([...strength.map(serializeStrength).filter(Boolean), ...serializeMovementRows(wod)]);
+  const commit = (wod: MovementRow[], strength: StrengthEntry[], cardio: CardioEntry[]) =>
+    setMovements([
+      ...strength.map(serializeStrength).filter(Boolean),
+      ...cardio.map(serializeCardio).filter(Boolean),
+      ...serializeMovementRows(wod),
+    ]);
 
   const setWod = (rows: MovementRow[]) => {
     setWodRows(rows);
-    commit(rows, strengthRows);
+    commit(rows, strengthRows, cardioRows);
   };
   const addMovement = () => setWod([...wodRows, { ...EMPTY_MOVEMENT_ROW }]);
   const removeMovement = (i: number) => setWod(wodRows.filter((_, idx) => idx !== i));
@@ -106,12 +129,23 @@ export default function WodEditor({
 
   const setStrength = (rows: StrengthEntry[]) => {
     setStrengthRows(rows);
-    commit(wodRows, rows);
+    commit(wodRows, rows, cardioRows);
   };
   const addStrength = () => setStrength([...strengthRows, { ...EMPTY_STRENGTH_ENTRY }]);
   const removeStrength = (i: number) => setStrength(strengthRows.filter((_, idx) => idx !== i));
   const updateStrength = (i: number, patch: Partial<StrengthEntry>) =>
     setStrength(strengthRows.map((e, idx) => (idx === i ? { ...e, ...patch } : e)));
+
+  const setCardio = (rows: CardioEntry[]) => {
+    setCardioRows(rows);
+    commit(wodRows, strengthRows, rows);
+  };
+  const addCardio = () => setCardio([...cardioRows, { ...EMPTY_CARDIO_ENTRY }]);
+  const removeCardio = (i: number) => setCardio(cardioRows.filter((_, idx) => idx !== i));
+  const updateCardio = (i: number, patch: Partial<CardioEntry>) =>
+    setCardio(cardioRows.map((e, idx) => (idx === i ? { ...e, ...patch } : e)));
+
+  const cardioCatalog = MOVEMENT_CATALOG.filter(mv => mv.unit === 'm' || mv.unit === 'cal');
 
   const canSubmit = !!form.title.trim() && !saving && (!isWhiteboard || !!form.date);
 
@@ -328,13 +362,40 @@ export default function WodEditor({
             <div className="space-y-2">
               {wodRows.map((parsed, i) => {
                 const showWeight = movementRowShowsWeight(parsed);
+                const showUnit = movementRowShowsUnit(parsed);
                 return (
                   <div key={i} className="flex flex-wrap sm:flex-nowrap gap-2 items-center">
-                    <input type="number" min={0} inputMode="numeric"
-                      className={`${inp} !w-20 shrink-0 text-center px-2`}
-                      value={parsed.reps ?? ''}
-                      onChange={e => patchMovement(i, { reps: e.target.value === '' ? null : parseInt(e.target.value, 10) })}
-                      placeholder="Reps" aria-label="Répétitions" />
+                    {showUnit ? (
+                      <>
+                        <div className="relative w-24 shrink-0">
+                          <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-semibold text-gray-400 pointer-events-none">♂</span>
+                          <input type="number" min={0} inputMode="numeric"
+                            className={`${inp} !px-0 !pl-7 !pr-2 text-center`}
+                            value={parsed.reps ?? ''}
+                            onChange={e => patchMovement(i, { reps: e.target.value === '' ? null : parseInt(e.target.value, 10) })}
+                            placeholder="H" aria-label="Quantité hommes" />
+                        </div>
+                        <div className="relative w-24 shrink-0">
+                          <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-semibold text-gray-400 pointer-events-none">♀</span>
+                          <input type="number" min={0} inputMode="numeric"
+                            className={`${inp} !px-0 !pl-7 !pr-2 text-center`}
+                            value={parsed.repsWomen ?? ''}
+                            onChange={e => patchMovement(i, { repsWomen: e.target.value === '' ? null : parseInt(e.target.value, 10) })}
+                            placeholder="F" aria-label="Quantité femmes" />
+                        </div>
+                        <select className={`${inp} !w-20 shrink-0 px-2`} value={parsed.unit === 'reps' ? 'm' : parsed.unit}
+                          onChange={e => patchMovement(i, { unit: e.target.value as MovementUnit })}
+                          aria-label="Unité de la quantité">
+                          {CARDIO_UNITS.map(u => <option key={u.value} value={u.value} className="text-black">{u.label}</option>)}
+                        </select>
+                      </>
+                    ) : (
+                      <input type="number" min={0} inputMode="numeric"
+                        className={`${inp} !w-20 shrink-0 text-center px-2`}
+                        value={parsed.reps ?? ''}
+                        onChange={e => patchMovement(i, { reps: e.target.value === '' ? null : parseInt(e.target.value, 10) })}
+                        placeholder="Reps" aria-label="Répétitions" />
+                    )}
                     <input list="box-movement-catalog"
                       className={`${inp} flex-1 min-w-0`}
                       value={parsed.name}
@@ -380,6 +441,7 @@ export default function WodEditor({
               )}
               <p className="text-[11px] text-gray-600 pt-1">
                 Reps + exercice (liste officielle) + charges ♂ hommes / ♀ femmes : garantit le comptage des badges de mouvement des athlètes.
+                Les exercices cardio (Row, Bike, SkiErg, Run…) se comptent en mètres ou calories, avec une quantité ♂/♀ séparée si besoin.
               </p>
             </div>
           </div>
@@ -443,6 +505,11 @@ export default function WodEditor({
                       value={e.tempo ?? ''}
                       onChange={ev => updateStrength(i, { tempo: ev.target.value || null })}
                       placeholder="Tempo (30X1)" aria-label="Tempo" />
+                    <input type="text"
+                      className={`${inp} flex-1 min-w-0`}
+                      value={e.loadNote ?? ''}
+                      onChange={ev => updateStrength(i, { loadNote: ev.target.value || null })}
+                      placeholder="Charge libre (RPE 9, RM du jour…)" aria-label="Charge libre" />
                   </div>
                   <p className="text-[11px] text-gray-600">{serializeStrength(e) || 'Nomme l’exercice pour enregistrer cette série.'}</p>
                 </div>
@@ -456,6 +523,124 @@ export default function WodEditor({
               <p className="text-[11px] text-gray-600 pt-1">
                 Une charge en %1RM s’affiche en kilos chez l’athlète, calculée sur son propre 1RM.
                 Ces séries ne comptent pas de reps de badge : ce n’est pas du metcon.
+              </p>
+            </div>
+          </div>
+
+          {/* Bloc Cardio — séries × quantité (m ou cal) × cible watts ou allure */}
+          <div>
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider flex items-center gap-1.5">
+                <HeartPulse size={13} /> Cardio <span className="text-gray-600 normal-case tracking-normal">(optionnel)</span>
+              </label>
+              <button type="button" onClick={addCardio} className="text-xs text-white font-semibold flex items-center gap-1 hover:opacity-80">
+                <Plus size={12} /> Ajouter une série cardio
+              </button>
+            </div>
+            <div className="space-y-2">
+              {cardioRows.map((e, i) => {
+                const targetMode = e.pace ? 'pace' : 'watts';
+                const paceRef = e.pace?.per ?? (/run|course/i.test(e.name) ? 'km' : '500 m');
+                return (
+                  <div key={i} className="bg-white/5 border border-white/10 rounded-xl p-3 space-y-2">
+                    <div className="flex gap-2 items-center">
+                      <select className={`${inp} flex-1 min-w-0`} value={e.name}
+                        onChange={ev => {
+                          const name = ev.target.value;
+                          const cat = cardioCatalog.find(mv => mv.name === name);
+                          updateCardio(i, { name, unit: (cat?.unit as CardioUnit | undefined) ?? e.unit });
+                        }}
+                        aria-label="Exercice cardio">
+                        <option value="" className="text-black">— Exercice —</option>
+                        {cardioCatalog.map(mv => <option key={mv.name} value={mv.name} className="text-black">{mv.name}</option>)}
+                      </select>
+                      <button type="button" onClick={() => removeCardio(i)} className="p-3 rounded-xl bg-white/5 border border-white/10 text-gray-500 hover:text-red-400 transition-colors">
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                    <div className="flex gap-2 items-center">
+                      <input type="number" min={1} inputMode="numeric"
+                        className={`${inp} !w-20 shrink-0 text-center px-2`}
+                        value={e.sets}
+                        onChange={ev => updateCardio(i, { sets: parseInt(ev.target.value, 10) || 1 })}
+                        placeholder="2" aria-label="Séries cardio" />
+                      <span className="text-gray-500 text-sm">×</span>
+                      <input type="number" min={1} inputMode="numeric"
+                        className={`${inp} !w-24 shrink-0 text-center px-2`}
+                        value={e.quantity}
+                        onChange={ev => updateCardio(i, { quantity: parseInt(ev.target.value, 10) || 1 })}
+                        placeholder="500" aria-label="Quantité par série" />
+                      <select className={`${inp} !w-20 shrink-0 px-2`} value={e.unit}
+                        onChange={ev => updateCardio(i, { unit: ev.target.value as CardioUnit })}
+                        aria-label="Unité cardio">
+                        {CARDIO_UNITS.map(u => <option key={u.value} value={u.value} className="text-black">{u.label}</option>)}
+                      </select>
+                    </div>
+                    <div className="flex gap-2 items-center">
+                      <select className={`${inp} !w-28 shrink-0 px-2`} value={targetMode}
+                        onChange={ev => (ev.target.value === 'pace'
+                          ? updateCardio(i, { watts: null, pace: { mmss: '', per: paceRef } })
+                          : updateCardio(i, { pace: null }))}
+                        aria-label="Type de cible">
+                        <option value="watts" className="text-black">Watts</option>
+                        <option value="pace" className="text-black">Allure</option>
+                      </select>
+                      {targetMode === 'watts' ? (
+                        <div className="relative flex-1 min-w-0">
+                          <input type="number" min={0} inputMode="numeric"
+                            className={`${inp} !pr-8`}
+                            value={e.watts ?? ''}
+                            onChange={ev => updateCardio(i, { watts: ev.target.value === '' ? null : parseInt(ev.target.value, 10) })}
+                            placeholder="Cible (250)" aria-label="Cible en watts" />
+                          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-gray-500 pointer-events-none">W</span>
+                        </div>
+                      ) : (
+                        <>
+                          <input type="text" inputMode="numeric"
+                            className={`${inp} flex-1 min-w-0`}
+                            value={e.pace?.mmss ?? ''}
+                            onChange={ev => updateCardio(i, { pace: { mmss: ev.target.value, per: paceRef } })}
+                            placeholder="mm:ss (2:00)" aria-label="Allure cible" />
+                          <select className={`${inp} !w-24 shrink-0 px-2`} value={paceRef}
+                            onChange={ev => updateCardio(i, { pace: { mmss: e.pace?.mmss ?? '', per: ev.target.value as '500 m' | 'km' } })}
+                            aria-label="Référence d’allure">
+                            <option value="500 m" className="text-black">/500 m</option>
+                            <option value="km" className="text-black">/km</option>
+                          </select>
+                        </>
+                      )}
+                    </div>
+                    <div className="flex gap-2 items-center">
+                      <input type="text"
+                        className={`${inp} flex-1 min-w-0`}
+                        value={e.restSec != null ? `${Math.floor(e.restSec / 60)}:${String(e.restSec % 60).padStart(2, '0')}` : ''}
+                        onChange={ev => {
+                          const raw = ev.target.value.trim();
+                          const mmss = raw.match(/^(\d+):(\d{1,2})$/);
+                          const sec = raw.match(/^(\d+)$/);
+                          updateCardio(i, {
+                            restSec: mmss ? parseInt(mmss[1], 10) * 60 + parseInt(mmss[2], 10) : sec ? parseInt(sec[1], 10) : null,
+                          });
+                        }}
+                        placeholder="Repos (mm:ss)" aria-label="Repos entre séries cardio" />
+                      <input type="text"
+                        className={`${inp} flex-1 min-w-0`}
+                        value={e.rpe ?? ''}
+                        onChange={ev => updateCardio(i, { rpe: ev.target.value || null })}
+                        placeholder="RPE (6)" aria-label="RPE" />
+                    </div>
+                    <p className="text-[11px] text-gray-600">{serializeCardio(e) || 'Choisis l’exercice pour enregistrer cette série.'}</p>
+                  </div>
+                );
+              })}
+              {cardioRows.length === 0 && (
+                <button type="button" onClick={addCardio}
+                  className="w-full py-3 rounded-xl border border-dashed border-white/10 text-xs text-gray-600 hover:border-white/30 hover:text-white/60 transition-colors">
+                  + Ajouter une série cardio
+                </button>
+              )}
+              <p className="text-[11px] text-gray-600 pt-1">
+                Les mètres et calories de ces séries comptent dans les badges cardio de l’athlète.
               </p>
             </div>
           </div>

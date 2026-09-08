@@ -1,6 +1,9 @@
 // ── Canonical movement catalog (mirrors the WOD generator) ───────────
 // `weighted` = the movement takes an external load (barbell / DB / KB / med ball).
-export interface CatalogMovement { name: string; weighted: boolean; cardio?: boolean; }
+// `unit` = quantité par défaut d'une ligne : des reps, sauf pour les machines
+// cardio (`m` ou `cal`) dont la quantité se mesure en mètres ou calories.
+export type MovementUnit = 'reps' | 'm' | 'cal';
+export interface CatalogMovement { name: string; weighted: boolean; cardio?: boolean; unit?: MovementUnit; }
 
 export const MOVEMENT_CATALOG: CatalogMovement[] = [
   { name: 'Thruster', weighted: true },
@@ -46,11 +49,11 @@ export const MOVEMENT_CATALOG: CatalogMovement[] = [
   { name: 'Push-ups', weighted: false },
   { name: 'Sit-ups', weighted: false },
   { name: 'Air Squats', weighted: false },
-  { name: 'Row', weighted: false, cardio: true },
-  { name: 'Bike Erg', weighted: false, cardio: true },
-  { name: 'Echo Bike', weighted: false, cardio: true },
-  { name: 'SkiErg', weighted: false, cardio: true },
-  { name: 'Run', weighted: false, cardio: true },
+  { name: 'Row', weighted: false, cardio: true, unit: 'cal' },
+  { name: 'Bike Erg', weighted: false, cardio: true, unit: 'cal' },
+  { name: 'Echo Bike', weighted: false, cardio: true, unit: 'cal' },
+  { name: 'SkiErg', weighted: false, cardio: true, unit: 'cal' },
+  { name: 'Run', weighted: false, cardio: true, unit: 'm' },
   { name: 'Double-unders', weighted: false },
   { name: 'Lunges', weighted: false },
   { name: 'V-ups', weighted: false },
@@ -63,35 +66,72 @@ export function isWeightedMovement(name: string): boolean {
   return false;
 }
 
+function findCatalog(name: string): CatalogMovement | undefined {
+  const n = name.toLowerCase().trim();
+  return MOVEMENT_CATALOG.find(m => m.name.toLowerCase() === n);
+}
+
+/** Un mouvement dont la quantité se mesure en mètres ou calories. */
+export function isCardioMovement(name: string): boolean {
+  const u = findCatalog(name)?.unit;
+  return u === 'm' || u === 'cal';
+}
+
+/** Unité par défaut du catalogue ; `reps` pour tout mouvement inconnu. */
+export function defaultUnitFor(name: string): MovementUnit {
+  return findCatalog(name)?.unit ?? 'reps';
+}
+
+export const CARDIO_UNITS: { value: Exclude<MovementUnit, 'reps'>; label: string }[] = [
+  { value: 'm', label: 'm' },
+  { value: 'cal', label: 'cal' },
+];
+
 // Serialize a structured movement row into a parseable line.
-// reps + name (+ optional men/women loads). Cardio distance movements keep the number as-is.
+// reps + name (+ optional men/women loads). Une quantité cardio porte son unité
+// et un éventuel split ♂/♀, même convention que les kg.
 //   { reps: 21, name: 'Thruster', weightKg: 43 }                  -> "21 Thruster (43 kg)"
 //   { reps: 21, name: 'Thruster', weightKg: 43, weightKgW: 30 }   -> "21 Thruster (43/30 kg)"
 //   { reps: 12, name: 'Pull-ups' }                                -> "12 Pull-ups"
+//   { reps: 20, name: 'Row', unit: 'cal', repsWomen: 15 }         -> "20/15 cal Row"
+//   { reps: 500, name: 'Run', unit: 'm' }                         -> "500 m Run"
 export function serializeMovement(
   reps: number,
   name: string,
   weightKg?: number | null,
   weightKgWomen?: number | null,
+  unit: MovementUnit = 'reps',
+  repsWomen?: number | null,
 ): string {
-  const base = `${reps} ${name.trim()}`.trim();
-  const men = weightKg != null && weightKg > 0 ? weightKg : null;
-  const women = weightKgWomen != null && weightKgWomen > 0 ? weightKgWomen : null;
-  if (men != null && women != null) return `${base} (${men}/${women} kg)`;
-  if (men != null) return `${base} (${men} kg)`;
-  if (women != null) return `${base} (${women} kg)`;
+  const women = repsWomen != null && repsWomen > 0 && repsWomen !== reps ? `/${repsWomen}` : '';
+  const qty = unit === 'reps' ? `${reps}${women}` : `${reps}${women} ${unit}`;
+  const base = `${qty} ${name.trim()}`.trim();
+  const menKg = weightKg != null && weightKg > 0 ? weightKg : null;
+  const womenKg = weightKgWomen != null && weightKgWomen > 0 ? weightKgWomen : null;
+  if (menKg != null && womenKg != null) return `${base} (${menKg}/${womenKg} kg)`;
+  if (menKg != null) return `${base} (${menKg} kg)`;
+  if (womenKg != null) return `${base} (${womenKg} kg)`;
   return base;
+}
+
+export interface ParsedMovementRow {
+  /** Quantité ♂ (ou unique) dans `unit`. */
+  reps: number | null;
+  name: string;
+  weightKg: number | null;
+  weightKgWomen: number | null;
+  unit: MovementUnit;
+  /** Quantité ♀ d'un split `20/15` ; `null` = même valeur pour tous. */
+  repsWomen: number | null;
 }
 
 // Parse a stored movement line back into structured parts (best-effort, tolerant
 // of legacy free-text like "7 reps — Sumo Deadlift High Pull @ 42.5/30 kg").
 // A "men/women" pair ("43/30 kg") splits into weightKg (men) + weightKgWomen (women).
-export function parseMovementRow(line: string): {
-  reps: number | null;
-  name: string;
-  weightKg: number | null;
-  weightKgWomen: number | null;
-} {
+// Cardio lines carry their unit ("20 cal Row", "20/15 cal Row", "500 m Run",
+// "400m Course") ; a bare number is reps, except on a catalogue cardio movement
+// where it takes the catalogue default unit ("20 Row" → 20 cal, "800 Run" → 800 m).
+export function parseMovementRow(line: string): ParsedMovementRow {
   let s = (line ?? '').trim();
   // weight: "(43 kg)" / "(43/30 kg)" or "@ 43kg" / "@ 42.5/30 kg"
   let weightKg: number | null = null;
@@ -105,12 +145,29 @@ export function parseMovementRow(line: string): {
     if (w[2] != null) weightKgWomen = parseFloat(w[2]);
   }
   s = s.replace(/\((?:[^)]*)\)/g, '').replace(/@.*$/, '').trim();
-  // leading reps, tolerating a "reps"/"rep"/"x" word and a "—"/"-" separator
-  const m = s.match(/^(\d+)\s*(?:reps?|x)?\s*[—\-:]?\s*(.+)$/i);
-  if (m) {
-    return { reps: parseInt(m[1], 10), name: m[2].trim(), weightKg, weightKgWomen };
+  const cardio = s.match(/^(\d+)(?:\s*\/\s*(\d+))?\s*(m|cals?|kcal)\b\.?\s+(.+)$/i);
+  if (cardio) {
+    return {
+      reps: parseInt(cardio[1], 10),
+      repsWomen: cardio[2] != null ? parseInt(cardio[2], 10) : null,
+      unit: cardio[3].toLowerCase() === 'm' ? 'm' : 'cal',
+      name: cardio[4].trim(),
+      weightKg, weightKgWomen,
+    };
   }
-  return { reps: null, name: s, weightKg, weightKgWomen };
+  // leading reps, tolerating a "reps"/"rep"/"x" word and a "—"/"-" separator
+  const m = s.match(/^(\d+)(?:\s*\/\s*(\d+))?\s*(?:reps?|x)?\s*[—\-:]?\s*(.+)$/i);
+  if (m) {
+    const name = m[3].trim();
+    return {
+      reps: parseInt(m[1], 10),
+      repsWomen: m[2] != null ? parseInt(m[2], 10) : null,
+      unit: defaultUnitFor(name),
+      name,
+      weightKg, weightKgWomen,
+    };
+  }
+  return { reps: null, repsWomen: null, unit: 'reps', name: s, weightKg, weightKgWomen };
 }
 
 // ── AMRAP / Max Reps score helpers ────────────────────────────────────────

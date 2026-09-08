@@ -25,10 +25,16 @@ export interface StrengthEntry {
   unit: StrengthLoadUnit;
   restSec: number | null;
   tempo: string | null;
+  /**
+   * Charge libre (`RPE 9`, `RM du jour`, `+2,5 kg`) quand un nombre ne suffit
+   * pas ; sérialisée en `charge …`. Une ligne sans `load` mais avec `charge`
+   * reste un bloc de force.
+   */
+  loadNote?: string | null;
 }
 
 export const EMPTY_STRENGTH_ENTRY: StrengthEntry = {
-  name: '', sets: 5, reps: 5, load: null, unit: 'kg', restSec: null, tempo: null,
+  name: '', sets: 5, reps: 5, load: null, unit: 'kg', restSec: null, tempo: null, loadNote: null,
 };
 
 const SEP = ' — ';
@@ -65,6 +71,8 @@ export function serializeStrength(e: StrengthEntry): string {
   if (e.restSec != null && e.restSec > 0) out += `${SEP}repos ${formatRest(e.restSec)}`;
   const tempo = (e.tempo ?? '').trim();
   if (tempo) out += `${SEP}tempo ${tempo}`;
+  const loadNote = (e.loadNote ?? '').trim().replace(/\s+[—–-]\s+/g, ' ');
+  if (loadNote) out += `${SEP}charge ${loadNote}`;
   return out;
 }
 
@@ -84,11 +92,14 @@ export function parseStrengthLine(line: string): StrengthEntry | null {
 
   let restSec: number | null = null;
   let tempo: string | null = null;
+  let loadNote: string | null = null;
   for (const tail of parts.slice(2)) {
     const rest = tail.match(/^repos\s+(.+)$/i);
     if (rest) { restSec = parseRest(rest[1]); continue; }
     const tp = tail.match(/^tempo\s+(.+)$/i);
-    if (tp) tempo = tp[1].trim();
+    if (tp) { tempo = tp[1].trim(); continue; }
+    const ch = tail.match(/^charge\s+(.+)$/i);
+    if (ch) loadNote = ch[1].trim();
   }
 
   return {
@@ -99,6 +110,7 @@ export function parseStrengthLine(line: string): StrengthEntry | null {
     unit: load == null ? 'kg' : unit,
     restSec,
     tempo,
+    ...(loadNote ? { loadNote } : {}),
   };
 }
 

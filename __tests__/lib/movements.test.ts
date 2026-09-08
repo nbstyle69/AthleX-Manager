@@ -8,6 +8,8 @@ import {
   roundsRepsToTotal,
   formatAmrapScore,
   isRepsScoredType,
+  defaultUnitFor,
+  isCardioMovement,
 } from '@/lib/movements';
 
 describe('movements catalog', () => {
@@ -55,17 +57,19 @@ describe('serializeMovement', () => {
 
 describe('parseMovementRow', () => {
   it('round-trips the serialized format', () => {
-    expect(parseMovementRow('21 Thruster (43 kg)')).toEqual({ reps: 21, name: 'Thruster', weightKg: 43, weightKgWomen: null });
-    expect(parseMovementRow('12 Pull-ups')).toEqual({ reps: 12, name: 'Pull-ups', weightKg: null, weightKgWomen: null });
+    expect(parseMovementRow('21 Thruster (43 kg)')).toEqual({ reps: 21, repsWomen: null, unit: 'reps', name: 'Thruster', weightKg: 43, weightKgWomen: null });
+    expect(parseMovementRow('12 Pull-ups')).toEqual({ reps: 12, repsWomen: null, unit: 'reps', name: 'Pull-ups', weightKg: null, weightKgWomen: null });
   });
 
   it('round-trips the men/women load format', () => {
-    expect(parseMovementRow('21 Thruster (43/30 kg)')).toEqual({ reps: 21, name: 'Thruster', weightKg: 43, weightKgWomen: 30 });
+    expect(parseMovementRow('21 Thruster (43/30 kg)')).toEqual({ reps: 21, repsWomen: null, unit: 'reps', name: 'Thruster', weightKg: 43, weightKgWomen: 30 });
   });
 
   it('tolerates legacy "N reps — Name @ kg" free-text and splits men/women', () => {
     expect(parseMovementRow('7 reps — Sumo Deadlift High Pull @ 42.5/30 kg')).toEqual({
       reps: 7,
+      repsWomen: null,
+      unit: 'reps',
       name: 'Sumo Deadlift High Pull',
       weightKg: 42.5,
       weightKgWomen: 30,
@@ -73,7 +77,56 @@ describe('parseMovementRow', () => {
   });
 
   it('returns null reps for a name-only line', () => {
-    expect(parseMovementRow('Handstand Walk')).toEqual({ reps: null, name: 'Handstand Walk', weightKg: null, weightKgWomen: null });
+    expect(parseMovementRow('Handstand Walk')).toEqual({ reps: null, repsWomen: null, unit: 'reps', name: 'Handstand Walk', weightKg: null, weightKgWomen: null });
+  });
+});
+
+describe('lignes cardio — unité m/cal et split ♂/♀', () => {
+  it('le catalogue porte une unité par défaut pour les machines cardio', () => {
+    expect(defaultUnitFor('Row')).toBe('cal');
+    expect(defaultUnitFor('Bike Erg')).toBe('cal');
+    expect(defaultUnitFor('SkiErg')).toBe('cal');
+    expect(defaultUnitFor('Run')).toBe('m');
+    expect(defaultUnitFor('Thruster')).toBe('reps');
+    expect(defaultUnitFor('Inconnu')).toBe('reps');
+    expect(isCardioMovement('row')).toBe(true);
+    expect(isCardioMovement('Burpees')).toBe(false);
+  });
+
+  it('sérialise quantité + unité, split ♀ seulement si différent', () => {
+    expect(serializeMovement(20, 'Row', null, null, 'cal')).toBe('20 cal Row');
+    expect(serializeMovement(20, 'Row', null, null, 'cal', 15)).toBe('20/15 cal Row');
+    expect(serializeMovement(20, 'Row', null, null, 'cal', 20)).toBe('20 cal Row');
+    expect(serializeMovement(500, 'Run', null, null, 'm')).toBe('500 m Run');
+    expect(serializeMovement(21, 'Thruster', 43, 30, 'reps')).toBe('21 Thruster (43/30 kg)');
+  });
+
+  it('parse « 20 cal Row », « 20/15 cal Row », « 500 m Run (RPE 7) » et « 400m Course »', () => {
+    expect(parseMovementRow('20 cal Row')).toMatchObject({ reps: 20, repsWomen: null, unit: 'cal', name: 'Row' });
+    expect(parseMovementRow('20/15 cal Row')).toMatchObject({ reps: 20, repsWomen: 15, unit: 'cal', name: 'Row' });
+    expect(parseMovementRow('500 m Run (RPE 7)')).toMatchObject({ reps: 500, unit: 'm', name: 'Run' });
+    expect(parseMovementRow('400m Course')).toMatchObject({ reps: 400, unit: 'm', name: 'Course' });
+    expect(parseMovementRow('30 kcal Echo Bike')).toMatchObject({ reps: 30, unit: 'cal', name: 'Echo Bike' });
+  });
+
+  it('une ligne sans unité sur un mouvement cardio du catalogue prend l’unité par défaut', () => {
+    expect(parseMovementRow('20 Row')).toMatchObject({ reps: 20, unit: 'cal', name: 'Row' });
+    expect(parseMovementRow('20/15 Bike Erg')).toMatchObject({ reps: 20, repsWomen: 15, unit: 'cal', name: 'Bike Erg' });
+    expect(parseMovementRow('15 Echo Bike')).toMatchObject({ reps: 15, unit: 'cal', name: 'Echo Bike' });
+    expect(parseMovementRow('20 skierg')).toMatchObject({ reps: 20, unit: 'cal', name: 'skierg' });
+    expect(parseMovementRow('800 Run')).toMatchObject({ reps: 800, unit: 'm', name: 'Run' });
+    expect(parseMovementRow('500m Ski')).toMatchObject({ reps: 500, unit: 'm', name: 'Ski' });
+  });
+
+  it('une ligne historique sans unité hors cardio reste en reps', () => {
+    expect(parseMovementRow('10/8 Pull-ups')).toMatchObject({ reps: 10, repsWomen: 8, unit: 'reps', name: 'Pull-ups' });
+    expect(parseMovementRow('21 Thruster (43 kg)')).toMatchObject({ reps: 21, unit: 'reps' });
+  });
+
+  it('aller-retour sérialisation → parse', () => {
+    const line = serializeMovement(20, 'Row', null, null, 'cal', 15);
+    const p = parseMovementRow(line);
+    expect(serializeMovement(p.reps!, p.name, p.weightKg, p.weightKgWomen, p.unit, p.repsWomen)).toBe(line);
   });
 });
 
