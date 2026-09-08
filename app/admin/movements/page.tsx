@@ -4,8 +4,12 @@ import { useEffect, useState, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { Dumbbell, Search, TrendingUp, Users } from 'lucide-react';
 
+type MovementUnit = 'reps' | 'm' | 'cal';
+
 interface MovementStat {
   movement: string;
+  unit: MovementUnit;
+  /** Total dans `unit` (reps, mètres ou calories). */
   total_reps: number;
   athlete_count: number;
   best_weight: number | null;
@@ -15,6 +19,7 @@ interface AthleteMovement {
   user_id: string;
   username: string;
   movement: string;
+  unit: MovementUnit;
   total_reps: number;
   best_weight: number | null;
 }
@@ -24,7 +29,7 @@ export default function AdminMovementsPage() {
   const [athletes, setAthletes] = useState<AthleteMovement[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [selectedMovement, setSelectedMovement] = useState<string | null>(null);
+  const [selected, setSelected] = useState<{ movement: string; unit: MovementUnit } | null>(null);
   const supabase = createClient();
 
   const load = useCallback(async () => {
@@ -33,35 +38,37 @@ export default function AdminMovementsPage() {
     // Fetch all movement stats
     const { data: rawStats } = await supabase
       .from('user_movement_stats')
-      .select('movement, total_reps, best_weight, user_id')
+      .select('movement, unit, total_reps, best_weight, user_id')
       .order('total_reps', { ascending: false });
 
-    // Aggregate by movement
-    const movMap = new Map<string, { total_reps: number; athlete_count: number; best_weight: number | null }>();
+    // Aggregate by movement × unit (les mètres et calories d'un Row sont deux compteurs)
+    const movMap = new Map<string, { movement: string; unit: MovementUnit; total_reps: number; athlete_count: number; best_weight: number | null }>();
     (rawStats ?? []).forEach((r: any) => {
-      const existing = movMap.get(r.movement) ?? { total_reps: 0, athlete_count: 0, best_weight: null };
+      const unit: MovementUnit = r.unit ?? 'reps';
+      const key = `${r.movement}|${unit}`;
+      const existing = movMap.get(key) ?? { movement: r.movement, unit, total_reps: 0, athlete_count: 0, best_weight: null };
       existing.total_reps += Number(r.total_reps);
       existing.athlete_count += 1;
       if (r.best_weight && (!existing.best_weight || r.best_weight > existing.best_weight)) {
         existing.best_weight = r.best_weight;
       }
-      movMap.set(r.movement, existing);
+      movMap.set(key, existing);
     });
 
-    const aggregated: MovementStat[] = Array.from(movMap.entries())
-      .map(([movement, s]) => ({ movement, ...s }))
+    const aggregated: MovementStat[] = Array.from(movMap.values())
       .sort((a, b) => b.total_reps - a.total_reps);
 
     setStats(aggregated);
     setLoading(false);
   }, []);
 
-  const loadAthletes = useCallback(async (movement: string) => {
-    setSelectedMovement(movement);
+  const loadAthletes = useCallback(async (movement: string, unit: MovementUnit) => {
+    setSelected({ movement, unit });
     const { data } = await supabase
       .from('user_movement_stats')
-      .select('user_id, movement, total_reps, best_weight')
+      .select('user_id, movement, unit, total_reps, best_weight')
       .eq('movement', movement)
+      .eq('unit', unit)
       .order('total_reps', { ascending: false })
       .limit(50);
 
@@ -89,7 +96,8 @@ export default function AdminMovementsPage() {
     s.movement.toLowerCase().includes(search.toLowerCase())
   );
 
-  const totalReps = stats.reduce((s, m) => s + m.total_reps, 0);
+  const totalReps = stats.filter(m => m.unit === 'reps').reduce((s, m) => s + m.total_reps, 0);
+  const unitLabel = (u: MovementUnit) => (u === 'reps' ? 'reps' : u);
 
   return (
     <div className="space-y-6">
@@ -129,7 +137,7 @@ export default function AdminMovementsPage() {
                   <tr className="bg-white/[0.03] text-left">
                     <th className="px-5 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">#</th>
                     <th className="px-5 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Mouvement</th>
-                    <th className="px-5 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Total Reps</th>
+                    <th className="px-5 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Total</th>
                     <th className="px-5 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Athlètes</th>
                     <th className="px-5 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Meilleure charge</th>
                   </tr>
@@ -137,10 +145,10 @@ export default function AdminMovementsPage() {
                 <tbody className="divide-y divide-white/[0.04]">
                   {filtered.map((m, i) => (
                     <tr
-                      key={m.movement}
-                      onClick={() => loadAthletes(m.movement)}
+                      key={`${m.movement}|${m.unit}`}
+                      onClick={() => loadAthletes(m.movement, m.unit)}
                       className={`cursor-pointer transition-colors ${
-                        selectedMovement === m.movement
+                        selected?.movement === m.movement && selected?.unit === m.unit
                           ? 'bg-emerald-500/10'
                           : 'hover:bg-white/[0.02]'
                       }`}
@@ -148,9 +156,13 @@ export default function AdminMovementsPage() {
                       <td className="px-5 py-3 text-gray-600 font-mono text-xs">{i + 1}</td>
                       <td className="px-5 py-3">
                         <span className="font-bold text-white">{m.movement}</span>
+                        {m.unit !== 'reps' && (
+                          <span className="ml-2 px-1.5 py-0.5 rounded-md bg-sky-500/15 text-sky-300 text-[10px] font-bold uppercase">{m.unit}</span>
+                        )}
                       </td>
                       <td className="px-5 py-3">
                         <span className="font-black text-emerald-400">{m.total_reps.toLocaleString()}</span>
+                        <span className="ml-1 text-xs text-gray-500">{unitLabel(m.unit)}</span>
                       </td>
                       <td className="px-5 py-3">
                         <div className="flex items-center gap-1.5">
@@ -174,14 +186,14 @@ export default function AdminMovementsPage() {
           </div>
 
           {/* Athlete leaderboard for selected movement */}
-          {selectedMovement && (
+          {selected && (
             <div className="w-80 shrink-0">
               <div className="bg-[#111111] border border-white/[0.06] rounded-2xl p-5 sticky top-6">
                 <div className="flex items-center gap-2 mb-4">
                   <TrendingUp size={16} className="text-emerald-400" />
                   <h2 className="text-sm font-black text-white">Top athlètes</h2>
                 </div>
-                <p className="text-xs text-gray-500 mb-4">{selectedMovement}</p>
+                <p className="text-xs text-gray-500 mb-4">{selected.movement} · {unitLabel(selected.unit)}</p>
                 <div className="space-y-2">
                   {athletes.map((a, i) => (
                     <div
@@ -199,7 +211,7 @@ export default function AdminMovementsPage() {
                           <p className="text-[10px] text-gray-500">max {a.best_weight} kg</p>
                         )}
                       </div>
-                      <span className="text-sm font-black text-emerald-400">{a.total_reps.toLocaleString()}</span>
+                      <span className="text-sm font-black text-emerald-400">{a.total_reps.toLocaleString()} <span className="text-[10px] text-gray-500 font-normal">{unitLabel(a.unit)}</span></span>
                     </div>
                   ))}
                   {athletes.length === 0 && (
