@@ -198,6 +198,21 @@ export function csvSeances(wods: ProgramWod[]): string {
   return [headers.join(','), ...rows].join('\n');
 }
 
+/**
+ * Ligne CSV (format « programming » : `week,day,title,type,…`) → séance.
+ * Même chemin que le formulaire : `colonnesSeance`, donc même `description`.
+ */
+export function seanceDepuisLigneCsv(
+  row: { title: string; type: string; description: string; timeCap: string; rounds: string; notes: string; block: string; week: number; day: number },
+): ProgramWodPayload {
+  return colonnesSeance({
+    ...EMPTY_WOD_FORM,
+    title: row.title, description: row.description, wod_type: row.type, block: row.block,
+    timeCap: row.timeCap, rounds: row.rounds, notes: row.notes,
+    week: row.week, dayOfWeek: row.day, published: true,
+  }, row.description ? row.description.split('\n') : []);
+}
+
 // ── Accès base ────────────────────────────────────────────────────────────────
 
 /** Toutes les séances d'un programme (relatives d'abord, datées ensuite). */
@@ -257,6 +272,23 @@ export async function createProgramWod(
     throw erreurLien;
   }
   return wodId;
+}
+
+/**
+ * Rattache un lot de séances déjà insérées au programme courant. Si le
+ * rattachement échoue, le lot entier est retiré : même garde que
+ * `createProgramWod`, appliquée à l'import.
+ */
+export async function rattacherAuProgramme(ids: string[], programId: string): Promise<void> {
+  if (ids.length === 0) return;
+  const supabase = createClient();
+  const { error } = await supabase
+    .from('wod_program_access')
+    .insert(ids.map(wod_id => ({ wod_id, program_id: programId })));
+  if (error) {
+    await supabase.from('box_wods').delete().in('id', ids);
+    throw error;
+  }
 }
 
 export async function updateProgramWod(wodId: string, payload: ProgramWodPayload): Promise<void> {
