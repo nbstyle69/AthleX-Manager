@@ -40,6 +40,10 @@ import { BLOCKS, DAY_LABELS, WOD_TYPES, WodFormState } from '@/lib/wodFields';
  * - `programming` : le WOD est écrit dans une programmation vendue à d'autres
  *   boxs — semaine × jour, aucune notion d'accès ni de publication : l'accès se
  *   décide à l'application de la semaine par la box abonnée.
+ * - `program` : la séance d'un programme athlète payant de la box — semaine ×
+ *   jour relatifs au démarrage de l'athlète, programme verrouillé (chip non
+ *   modifiable, pas de groupe : la visibilité est celle des acheteurs),
+ *   publication oui/non sans heure (il n'y a pas de date).
  *
  * Le contenu (mouvements du catalogue officiel, bloc Musculation, type, block,
  * time cap, rounds, notes, vidéo, EMOM/Tabata, classement) est identique dans
@@ -61,8 +65,10 @@ function nomsJoints(noms: string[]): string {
   return `${noms.slice(0, -1).join(', ')} ou ${noms[noms.length - 1]}`;
 }
 
+export type WodEditorMode = 'whiteboard' | 'programming' | 'program';
+
 interface WodEditorProps {
-  mode: 'whiteboard' | 'programming';
+  mode: WodEditorMode;
   heading: string;
   submitLabel: string;
   form: WodFormState;
@@ -77,8 +83,12 @@ interface WodEditorProps {
   groups?: WodEditorGroup[];
   /** Contexte Whiteboard : programmes de la box. */
   programs?: WodEditorProgram[];
-  /** Contexte Programmation : nombre de semaines de l'offre. */
+  /** Contextes Programmation et Programme : nombre de semaines proposées. */
   weeksCount?: number;
+  /** Contexte Programme : le programme courant, seul destinataire possible. */
+  lockedProgram?: WodEditorProgram;
+  /** Contexte Programme : jours d'entraînement par semaine (au-delà = repos). */
+  daysPerWeek?: number;
 }
 
 const inp = 'w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-white transition-colors';
@@ -86,8 +96,10 @@ const inp = 'w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-
 export default function WodEditor({
   mode, heading, submitLabel, form, setForm, movements, setMovements,
   saving, error, onClose, onSubmit, groups = [], programs = [], weeksCount = 1,
+  lockedProgram, daysPerWeek = 7,
 }: WodEditorProps) {
   const isWhiteboard = mode === 'whiteboard';
+  const isProgram = mode === 'program';
 
   // Les lignes de force sont éditées structurées ; `movements` ne reçoit que
   // leur sérialisation. Le tampon local garde une ligne vide affichable (que la
@@ -240,6 +252,26 @@ export default function WodEditor({
             </p>
           )}
 
+          {/* Programme verrouillé — contexte Programme uniquement : la séance
+              appartient au programme de la page, et à lui seul. */}
+          {isProgram && lockedProgram && (
+            <div data-testid="programme-verrouille">
+              <label className="block text-xs font-semibold text-gray-400 mb-2 uppercase tracking-wider">Programme</label>
+              <span
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold border cursor-default"
+                style={{
+                  backgroundColor: `${lockedProgram.type === 'fixed' ? '#3B82F6' : '#8B5CF6'}25`,
+                  color: lockedProgram.type === 'fixed' ? '#3B82F6' : '#8B5CF6',
+                  borderColor: `${lockedProgram.type === 'fixed' ? '#3B82F6' : '#8B5CF6'}50`,
+                }}
+              >
+                <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: lockedProgram.type === 'fixed' ? '#3B82F6' : '#8B5CF6' }} />
+                {lockedProgram.title}
+              </span>
+              <p className="text-[11px] text-gray-500 mt-1.5">Visible par les acheteurs de ce programme uniquement — pas de groupe, pas d&apos;autre programme.</p>
+            </div>
+          )}
+
           {isWhiteboard ? (
             <div className="grid grid-cols-2 gap-4">
               <div>
@@ -273,7 +305,9 @@ export default function WodEditor({
                   <select className={inp} value={form.dayOfWeek}
                     onChange={e => setForm(f => ({ ...f, dayOfWeek: parseInt(e.target.value, 10) }))}>
                     {DAY_LABELS.map((d, i) => (
-                      <option key={d} value={i + 1} className="text-black">{d}</option>
+                      <option key={d} value={i + 1} className="text-black">
+                        {d}{isProgram && i + 1 > daysPerWeek ? ' — repos' : ''}
+                      </option>
                     ))}
                   </select>
                 </div>
@@ -672,14 +706,15 @@ export default function WodEditor({
               placeholder="https://www.youtube.com/watch?v=..." />
           </div>
 
-          {/* Publication — Whiteboard uniquement : une programmation n'a pas de
-              date de publication, elle est révélée à l'application par la box. */}
-          {isWhiteboard && (
+          {/* Publication — Whiteboard et Programme : une programmation vendue
+              n'a pas de date de publication, elle est révélée à l'application
+              par la box. L'heure programmée n'existe que datée (Whiteboard). */}
+          {(isWhiteboard || isProgram) && (
             <div className="space-y-3">
               <div className="flex items-center justify-between bg-white/5 rounded-xl px-4 py-3">
                 <div>
                   <p className="text-sm font-semibold text-white">Publier</p>
-                  <p className="text-xs text-gray-500">Visible par les athlètes de la box</p>
+                  <p className="text-xs text-gray-500">{isProgram ? 'Visible par les acheteurs du programme' : 'Visible par les athlètes de la box'}</p>
                 </div>
                 <button
                   type="button"
@@ -689,31 +724,30 @@ export default function WodEditor({
                   <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${form.published ? 'translate-x-5' : 'translate-x-0.5'}`} />
                 </button>
               </div>
-
-              {form.published && (
-                <div className="bg-white/5 rounded-xl px-4 py-3 space-y-3">
-                  <div className="flex gap-2">
-                    {(['now', 'scheduled'] as const).map(mode2 => (
-                      <button key={mode2} type="button"
-                        onClick={() => setForm(f => ({ ...f, publishMode: mode2 }))}
-                        className={`flex-1 py-2 rounded-lg text-xs font-bold transition-colors ${form.publishMode === mode2 ? 'bg-white/20 text-white border border-white/40' : 'bg-white/5 text-gray-400 border border-white/10 hover:text-white'}`}>
-                        {mode2 === 'now' ? 'Maintenant' : 'Programmer'}
-                      </button>
-                    ))}
-                  </div>
-                  {form.publishMode === 'scheduled' && (
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs text-gray-500">Heure :</span>
-                      <input type="number" min={0} max={23} value={form.publishHour}
-                        onChange={e => setForm(f => ({ ...f, publishHour: e.target.value }))}
-                        className="w-14 bg-[#0A0A0A] border border-white/10 rounded-lg px-2 py-1.5 text-xs text-white text-center focus:outline-none focus:border-white/50" />
-                      <span className="text-gray-500 font-bold">:</span>
-                      <input type="number" min={0} max={59} value={form.publishMin}
-                        onChange={e => setForm(f => ({ ...f, publishMin: e.target.value }))}
-                        className="w-14 bg-[#0A0A0A] border border-white/10 rounded-lg px-2 py-1.5 text-xs text-white text-center focus:outline-none focus:border-white/50" />
-                      <span className="text-[10px] text-gray-600 ml-1">Le WOD sera visible à cette heure le jour programmé</span>
-                    </div>
-                  )}
+            </div>
+          )}
+          {isWhiteboard && form.published && (
+            <div className="bg-white/5 rounded-xl px-4 py-3 space-y-3">
+              <div className="flex gap-2">
+                {(['now', 'scheduled'] as const).map(mode2 => (
+                  <button key={mode2} type="button"
+                    onClick={() => setForm(f => ({ ...f, publishMode: mode2 }))}
+                    className={`flex-1 py-2 rounded-lg text-xs font-bold transition-colors ${form.publishMode === mode2 ? 'bg-white/20 text-white border border-white/40' : 'bg-white/5 text-gray-400 border border-white/10 hover:text-white'}`}>
+                    {mode2 === 'now' ? 'Maintenant' : 'Programmer'}
+                  </button>
+                ))}
+              </div>
+              {form.publishMode === 'scheduled' && (
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-gray-500">Heure :</span>
+                  <input type="number" min={0} max={23} value={form.publishHour}
+                    onChange={e => setForm(f => ({ ...f, publishHour: e.target.value }))}
+                    className="w-14 bg-[#0A0A0A] border border-white/10 rounded-lg px-2 py-1.5 text-xs text-white text-center focus:outline-none focus:border-white/50" />
+                  <span className="text-gray-500 font-bold">:</span>
+                  <input type="number" min={0} max={59} value={form.publishMin}
+                    onChange={e => setForm(f => ({ ...f, publishMin: e.target.value }))}
+                    className="w-14 bg-[#0A0A0A] border border-white/10 rounded-lg px-2 py-1.5 text-xs text-white text-center focus:outline-none focus:border-white/50" />
+                  <span className="text-[10px] text-gray-600 ml-1">Le WOD sera visible à cette heure le jour programmé</span>
                 </div>
               )}
             </div>
@@ -733,7 +767,14 @@ export default function WodEditor({
             </button>
           </div>
 
-          {!isWhiteboard && (
+          {isProgram && (
+            <p className="text-[11px] text-gray-500">
+              Une séance de programme n&apos;a pas de date : chaque acheteur la reçoit la semaine {form.week},
+              le {DAY_LABELS[form.dayOfWeek - 1] ?? ''}, comptés depuis son propre démarrage — en plus des WOD du Whiteboard de la box.
+            </p>
+          )}
+
+          {mode === 'programming' && (
             <p className="text-[11px] text-gray-500">
               Une programmation n&apos;a ni date ni accès : la box abonnée choisit la semaine
               calendaire et les groupes au moment où elle applique la semaine sur son Whiteboard.
