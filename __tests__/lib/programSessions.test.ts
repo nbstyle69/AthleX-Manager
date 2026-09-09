@@ -4,7 +4,7 @@ import { EMPTY_WOD_FORM, sharedWodColumns } from '@/lib/wodFields';
 import {
   ProgramWod,
   caseVoisine, colonnesSeance, csvSeances, estJourRepos, estSeanceRelative, formulaireDepuisSeance,
-  jourIsoDe, nombreSemaines, seancesDatees, seancesDeCase, seancesDeSemaine, semaineSuivante,
+  jourIsoDe, nombreSemaines, reposDeSemaine, seancesDatees, seancesDeCase, seancesDeSemaine, semaineSuivante,
 } from '@/lib/programContent';
 
 jest.mock('@/lib/supabase/client', () => ({ createClient: () => { throw new Error('pas de réseau en test'); } }));
@@ -59,11 +59,23 @@ describe('mapping semaine × jour', () => {
     expect(jourIsoDe('2026-04-19')).toBe(7);
   });
 
-  it('les jours au-delà de Nj/sem sont en repos', () => {
-    expect(estJourRepos(5, 5)).toBe(false);
-    expect(estJourRepos(6, 5)).toBe(true);
-    expect(estJourRepos(7, 7)).toBe(false);
-    expect(estJourRepos(2, 1)).toBe(true);
+  it('un repos est une marque explicite du coach, par semaine et par jour — jamais déduit de Nj/sem', () => {
+    const repos = [{ program_week: 1, program_day: 3 }, { program_week: 2, program_day: 7 }];
+    expect(estJourRepos(repos, 1, 3)).toBe(true);
+    expect(estJourRepos(repos, 2, 3)).toBe(false);
+    expect(estJourRepos(repos, 2, 7)).toBe(true);
+    // Sam/Dim sans marque : jours vides, pas des repos.
+    expect(estJourRepos(repos, 1, 6)).toBe(false);
+    expect(estJourRepos(repos, 1, 7)).toBe(false);
+    expect(estJourRepos([], 1, 7)).toBe(false);
+    expect(reposDeSemaine(repos, 2)).toEqual([{ program_week: 2, program_day: 7 }]);
+  });
+
+  it('une séance de programme ne porte jamais de leaderboard (pas d’ELO)', () => {
+    const form = { ...EMPTY_WOD_FORM, title: 'X', week: 1, dayOfWeek: 1, leaderboard: true };
+    expect(colonnesSeance(form, []).leaderboard_enabled).toBe(false);
+    const w = seance({ leaderboard_enabled: true });
+    expect(formulaireDepuisSeance(w, 1).leaderboard).toBe(false);
   });
 
   it('déplacer d’un jour reste dans la semaine', () => {

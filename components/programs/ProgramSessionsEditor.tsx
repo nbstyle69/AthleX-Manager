@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ArrowLeft, ArrowRight, CheckSquare, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Copy,
-  Download, Dumbbell, Eye, EyeOff, LayoutGrid, List, Loader2, Pencil, Plus, Square, Trash2, Video, X,
+  Download, Dumbbell, Eye, EyeOff, LayoutGrid, List, Loader2, Moon, Pencil, Plus, Square, Trash2, Video, X,
 } from 'lucide-react';
 import WodEditor from '@/components/wods/WodEditor';
 import {
@@ -13,6 +13,7 @@ import {
   CaseProgramme, ProgramWod,
   caseVoisine, colonnesSeance, createProgramWod, csvSeances, deleteProgramWod, deleteProgramWods,
   duplicateProgramWeek, estJourRepos, estSeanceRelative, formulaireDepuisSeance, listProgramWods,
+  listProgramRestDays, reposDeSemaine, setProgramRestDay, RestDay,
   moveProgramWod, nombreSemaines, seancesDatees, seancesDeCase, seancesDeSemaine, setProgramWodPublished,
   updateProgramWod,
 } from '@/lib/programContent';
@@ -75,10 +76,14 @@ export default function ProgramSessionsEditor({ program, userId, onClose, onChan
     title: string; message: string; confirmLabel: string; onConfirm: () => Promise<void>;
   } | null>(null);
 
+  const [restDays, setRestDays] = useState<RestDay[]>([]);
+
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      setWods(await listProgramWods(program.id));
+      const [w, r] = await Promise.all([listProgramWods(program.id), listProgramRestDays(program.id)]);
+      setWods(w);
+      setRestDays(r);
     } catch (e) {
       setNotice({ ok: false, text: `Impossible de charger les séances : ${msg(e)}` });
     }
@@ -97,7 +102,21 @@ export default function ProgramSessionsEditor({ program, userId, onClose, onChan
   const apresEcriture = async () => { await load(); onChanged?.(); };
 
   // ── Formulaire partagé ─────────────────────────────────────────────────────
+  async function toggleRepos(day: number) {
+    const repos = !estJourRepos(restDays, week, day);
+    if (repos && seancesDeCase(wods, week, day).length > 0) {
+      setNotice({ ok: false, text: 'Ce jour contient des séances : déplacez-les ou supprimez-les avant de le passer en repos.' });
+      return;
+    }
+    setRestDays(prev => repos
+      ? [...prev, { program_week: week, program_day: day }]
+      : prev.filter(r => !(r.program_week === week && r.program_day === day)));
+    try { await setProgramRestDay(program.id, { week, day }, repos); onChanged?.(); }
+    catch (e) { setNotice({ ok: false, text: msg(e) }); await load(); }
+  }
+
   function openCreate(day: number) {
+    if (estJourRepos(restDays, week, day)) return;
     setEditWod(null);
     setForm({ ...EMPTY_WOD_FORM, week, dayOfWeek: day, published: true });
     setMovements([]);
@@ -117,6 +136,11 @@ export default function ProgramSessionsEditor({ program, userId, onClose, onChan
     if (!form.title.trim()) return;
     setSaving(true); setFormError(null);
     const payload = colonnesSeance(form, movements);
+    if (estJourRepos(restDays, payload.program_week, payload.program_day)) {
+      setFormError(`Le ${DAY_LABELS[payload.program_day - 1]} de la semaine ${payload.program_week} est un jour de repos.`);
+      setSaving(false);
+      return;
+    }
     try {
       if (editWod) {
         await updateProgramWod(editWod.id, payload);
@@ -197,6 +221,10 @@ export default function ProgramSessionsEditor({ program, userId, onClose, onChan
     if (!estSeanceRelative(w)) return;
     const cible = caseVoisine({ week: w.program_week as number, day: w.program_day as number }, sens);
     if (!cible) return;
+    if (estJourRepos(restDays, cible.week, cible.day)) {
+      setNotice({ ok: false, text: `Le ${DAY_LABELS[cible.day - 1]} est un jour de repos cette semaine.` });
+      return;
+    }
     const rang = seancesDeCase(wods, cible.week, cible.day).length;
     setWods(prev => prev.map(x => (x.id === w.id ? { ...x, program_week: cible.week, program_day: cible.day, sort_order: rang } : x)));
     try { await moveProgramWod(w.id, cible, rang); }
@@ -204,14 +232,16 @@ export default function ProgramSessionsEditor({ program, userId, onClose, onChan
   }
 
   async function duplicateWeek() {
-    if (semaine.length === 0) { setNotice({ ok: false, text: 'Aucune séance cette semaine.' }); return; }
+    const reposSemaine = reposDeSemaine(restDays, week);
+    if (semaine.length === 0 && reposSemaine.length === 0) { setNotice({ ok: false, text: 'Aucune séance ni repos cette semaine.' }); return; }
     if (isFixed && week >= totalSemaines) {
       setNotice({ ok: false, text: `Le programme dure ${totalSemaines} semaine${totalSemaines > 1 ? 's' : ''} : il n'y a pas de semaine ${week + 1}.` });
       return;
     }
     try {
-      const n = await duplicateProgramWeek(program.id, program.box_id, userId, semaine);
-      setNotice({ ok: true, text: `${n} séance${n > 1 ? 's' : ''} recopiée${n > 1 ? 's' : ''} en semaine ${week + 1}.` });
+      const n = await duplicateProgramWeek(program.id, program.box_id, userId, semaine, reposSemaine);
+      const r = reposSemaine.length;
+      setNotice({ ok: true, text: `${n} séance${n > 1 ? 's' : ''}${r > 0 ? ` et ${r} jour${r > 1 ? 's' : ''} de repos` : ''} recopié${n + r > 1 ? 's' : ''} en semaine ${week + 1}.` });
       setWeek(week + 1);
       await apresEcriture();
     } catch (e) { setNotice({ ok: false, text: `Duplication impossible : ${msg(e)}` }); }
@@ -388,7 +418,7 @@ export default function ProgramSessionsEditor({ program, userId, onClose, onChan
               Semaine {week}{isFixed ? ` / ${totalSemaines}` : ''}
             </p>
             <p className="text-[11px] text-gray-500 mt-0.5">
-              {semaine.length} séance{semaine.length > 1 ? 's' : ''} · {program.days_per_week} jour{program.days_per_week > 1 ? 's' : ''} d&apos;entraînement, {7 - program.days_per_week} de repos
+              {semaine.length} séance{semaine.length > 1 ? 's' : ''} · {reposDeSemaine(restDays, week).length} jour{reposDeSemaine(restDays, week).length > 1 ? 's' : ''} de repos · {program.days_per_week}j/sem annoncés
             </p>
           </div>
           <button onClick={() => setWeek(w => w + 1)} disabled={!peutAvancer} className="p-2 rounded-xl hover:bg-white/5 text-gray-400 hover:text-white disabled:opacity-30 transition-colors" title="Semaine suivante">
@@ -402,16 +432,25 @@ export default function ProgramSessionsEditor({ program, userId, onClose, onChan
           <div className="grid grid-cols-7 gap-2 min-h-[400px]">
             {DAY_LABELS.map((label, i) => {
               const day = i + 1;
-              const repos = estJourRepos(day, program.days_per_week);
+              const repos = estJourRepos(restDays, week, day);
               const c = { week, day };
               const dayWods = seancesDeCase(wods, week, day);
               return (
                 <div key={day} className={`border rounded-2xl overflow-hidden flex flex-col ${repos ? 'bg-white/[0.01] border-white/[0.03]' : 'bg-[#111111] border-white/8'}`}>
-                  <div className="text-center px-2 py-3">
+                  <div className="text-center px-2 py-3 relative">
                     <p className={`text-xs font-black ${repos ? 'text-gray-600' : 'text-gray-400'}`}>{label}</p>
                     {repos
                       ? <p className="text-[9px] font-black text-gray-600 mt-0.5 tracking-wider">REPOS</p>
                       : <p className="text-[10px] font-bold text-gray-500 mt-0.5">Jour {day}</p>}
+                    <button
+                      onClick={() => void toggleRepos(day)}
+                      className={`absolute top-1.5 right-1.5 p-1 rounded-md transition-colors ${repos ? 'text-white bg-white/10' : 'text-gray-600 hover:text-gray-300 hover:bg-white/5'}`}
+                      title={repos ? 'Retirer le repos' : 'Marquer ce jour en repos'}
+                      aria-pressed={repos}
+                      aria-label={`Repos ${label}`}
+                    >
+                      <Moon size={11} />
+                    </button>
                   </div>
                   <div className="flex-1 border-t border-white/5 p-2 space-y-2 min-h-[120px]">
                     {dayWods.length === 0 ? (
@@ -460,7 +499,7 @@ export default function ProgramSessionsEditor({ program, userId, onClose, onChan
           <div className="space-y-3">
             {DAY_LABELS.map((label, i) => {
               const day = i + 1;
-              const repos = estJourRepos(day, program.days_per_week);
+              const repos = estJourRepos(restDays, week, day);
               const c = { week, day };
               const dayWods = seancesDeCase(wods, week, day);
               return (
@@ -473,11 +512,21 @@ export default function ProgramSessionsEditor({ program, userId, onClose, onChan
                         : <span className="text-xs text-gray-500">Jour {day}</span>}
                       <span className="text-xs text-gray-600">{dayWods.length > 0 ? `${dayWods.length} séance${dayWods.length > 1 ? 's' : ''}` : ''}</span>
                     </div>
-                    {!repos && (
-                      <button onClick={() => openCreate(day)} className="flex items-center gap-1.5 text-xs text-white font-semibold transition-colors">
-                        <Plus size={14} /> Ajouter
+                    <div className="flex items-center gap-3">
+                      <button
+                        onClick={() => void toggleRepos(day)}
+                        className={`flex items-center gap-1 text-[11px] font-semibold px-2 py-1 rounded-lg transition-colors ${repos ? 'text-white bg-white/10' : 'text-gray-500 hover:text-gray-300 hover:bg-white/5'}`}
+                        aria-pressed={repos}
+                        aria-label={`Repos ${label}`}
+                      >
+                        <Moon size={12} /> Repos
                       </button>
-                    )}
+                      {!repos && (
+                        <button onClick={() => openCreate(day)} className="flex items-center gap-1.5 text-xs text-white font-semibold transition-colors">
+                          <Plus size={14} /> Ajouter
+                        </button>
+                      )}
+                    </div>
                   </div>
                   {dayWods.length === 0 ? (
                     repos ? null : (
@@ -596,7 +645,7 @@ export default function ProgramSessionsEditor({ program, userId, onClose, onChan
           onSubmit={save}
           weeksCount={isFixed ? totalSemaines : Math.max(totalSemaines, form.week) + 12}
           lockedProgram={{ id: program.id, title: program.title, type: program.type }}
-          daysPerWeek={program.days_per_week}
+          restDays={restDays}
         />
       )}
     </div>
