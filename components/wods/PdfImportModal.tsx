@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { X, Loader2, AlertTriangle, Plus, Trash2, RefreshCw } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
+import { messageErreur } from '@/lib/erreurs';
 import { BLOCKS, DAY_LABELS, WOD_TYPES, TYPE_COLOR } from '@/lib/wodFields';
 import { PROFILES } from '@/lib/pdfImport/profiles';
 import { entryToBoxWod, validateEntry, hasUnstructuredStrength } from '@/lib/pdfImport/serialize';
@@ -229,7 +230,7 @@ export default function PdfImportModal({ file, boxId, userId, target, onClose, o
           programmes: destPrograms.map(id => programs.find(p => p.id === id)?.name ?? id),
         }, 'ajouter'));
       } catch (e) {
-        errors.push(`WOD importés, mais l'assignation a échoué : ${e instanceof Error ? e.message : String(e)}`);
+        errors.push(`WOD importés, mais l'assignation a échoué : ${messageErreur(e)}`);
       }
     } else if (ids.length) {
       notes.push('Aucune restriction choisie : ces WOD sont visibles par toute la box.');
@@ -269,7 +270,7 @@ export default function PdfImportModal({ file, boxId, userId, target, onClose, o
       await rattacherAuProgramme(ids, t.program.id);
     } catch (e) {
       setInserting(false);
-      setError(`Rattachement au programme refusé (séances retirées) : ${e instanceof Error ? e.message : String(e)}`);
+      setError(`Rattachement au programme refusé (séances retirées) : ${messageErreur(e)}`);
       return;
     }
     const notes = [`${ids.length} séance(s) rattachée(s) à « ${t.program.title} », semaine(s) ${semainesCouvertes(selected).join(', ')}.`];

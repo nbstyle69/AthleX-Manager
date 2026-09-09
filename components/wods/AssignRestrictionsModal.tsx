@@ -1,5 +1,6 @@
 'use client';
 
+import { messageErreur } from '@/lib/erreurs';
 import { useState } from 'react';
 import { Loader2, X } from 'lucide-react';
 import { AssignMode, assignRestrictions, libelleAssignation } from '@/lib/wodAssignment';
@@ -43,7 +44,7 @@ export default function AssignRestrictionsModal({
         programmes: programIds.map(id => programs.find(p => p.id === id)?.name ?? id),
       }, mode));
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
+      setError(messageErreur(e));
       setSaving(false);
     }
   }
