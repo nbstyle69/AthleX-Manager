@@ -11,7 +11,7 @@ import {
 } from '@/lib/pdfImport/programme';
 import type { ImportEntry, ImportResult, ImportWarning, ParsedMovement, ParsedStrength } from '@/lib/pdfImport/types';
 import { assignRestrictions, libelleAssignation } from '@/lib/wodAssignment';
-import { rattacherAuProgramme } from '@/lib/programContent';
+import { RestDay, estJourRepos, rattacherAuProgramme } from '@/lib/programContent';
 
 /**
  * Import PDF de programmation hebdo (spec v2) : le PDF est analysé côté
@@ -34,7 +34,8 @@ export type PdfImportTarget =
       /** Semaine affichée sur la page Séances : semaine cible par défaut. */
       defaultWeek: number;
       weeksCount: number;
-      daysPerWeek: number;
+      /** Jours marqués « Repos » par le coach : signalés dans la preview. */
+      restDays: readonly RestDay[];
     };
 
 interface Props {
@@ -370,14 +371,14 @@ export default function PdfImportModal({ file, boxId, userId, target, onClose, o
                     <input type="date" value={e.date} onChange={ev => patch(e.key, { date: ev.target.value })} className={INPUT} />
                   ) : (() => {
                     const c = caseDepuisDate(e.date);
-                    const repos = c.day > target.daysPerWeek;
+                    const repos = estJourRepos(target.restDays, c.week, c.day);
                     return (
                       <>
                         <select value={c.week} onChange={ev => patch(e.key, { date: dateFictive(parseInt(ev.target.value, 10), c.day) })} className={INPUT} title="Semaine du programme">
                           {semainesProposees.map(w => <option key={w} value={w}>S{w}</option>)}
                         </select>
                         <select value={c.day} onChange={ev => patch(e.key, { date: dateFictive(c.week, parseInt(ev.target.value, 10)) })} className={`${INPUT} ${repos ? ORANGE : ''}`} title={repos ? 'Jour de repos du programme' : 'Jour du programme'}>
-                          {DAY_LABELS.map((d, i) => <option key={d} value={i + 1}>{d}{i + 1 > target.daysPerWeek ? ' (repos)' : ''}</option>)}
+                          {DAY_LABELS.map((d, i) => <option key={d} value={i + 1}>{d}{estJourRepos(target.restDays, c.week, i + 1) ? ' (repos)' : ''}</option>)}
                         </select>
                       </>
                     );
