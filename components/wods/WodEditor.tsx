@@ -31,6 +31,7 @@ import {
   splitStrengthLines,
 } from '@/lib/strengthBlock';
 import { BLOCKS, DAY_LABELS, WOD_TYPES, WodFormState } from '@/lib/wodFields';
+import { RestDay, estJourRepos } from '@/lib/programContent';
 
 /**
  * Éditeur de WOD unique, deux contextes :
@@ -87,8 +88,8 @@ interface WodEditorProps {
   weeksCount?: number;
   /** Contexte Programme : le programme courant, seul destinataire possible. */
   lockedProgram?: WodEditorProgram;
-  /** Contexte Programme : jours d'entraînement par semaine (au-delà = repos). */
-  daysPerWeek?: number;
+  /** Contexte Programme : jours marqués « Repos » par le coach (par semaine). */
+  restDays?: readonly RestDay[];
 }
 
 const inp = 'w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-white transition-colors';
@@ -96,7 +97,7 @@ const inp = 'w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-
 export default function WodEditor({
   mode, heading, submitLabel, form, setForm, movements, setMovements,
   saving, error, onClose, onSubmit, groups = [], programs = [], weeksCount = 1,
-  lockedProgram, daysPerWeek = 7,
+  lockedProgram, restDays = [],
 }: WodEditorProps) {
   const isWhiteboard = mode === 'whiteboard';
   const isProgram = mode === 'program';
@@ -306,7 +307,7 @@ export default function WodEditor({
                     onChange={e => setForm(f => ({ ...f, dayOfWeek: parseInt(e.target.value, 10) }))}>
                     {DAY_LABELS.map((d, i) => (
                       <option key={d} value={i + 1} className="text-black">
-                        {d}{isProgram && i + 1 > daysPerWeek ? ' — repos' : ''}
+                        {d}{isProgram && estJourRepos(restDays, form.week, i + 1) ? ' — repos' : ''}
                       </option>
                     ))}
                   </select>

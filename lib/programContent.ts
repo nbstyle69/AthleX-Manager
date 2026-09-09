@@ -104,9 +104,18 @@ export function nombreSemaines(
   return Math.max(1, max + 1);
 }
 
-/** Un jour au-delà de `days_per_week` est un jour de repos : pas de séance. */
-export function estJourRepos(day: number, daysPerWeek: number): boolean {
-  return day > Math.min(7, Math.max(0, daysPerWeek));
+/**
+ * Jour marqué « Repos » par le coach (`program_rest_days`). `days_per_week`
+ * est purement informatif : il ne décide plus de la grille.
+ */
+export interface RestDay { program_week: number; program_day: number }
+
+export function estJourRepos(restDays: readonly RestDay[], week: number, day: number): boolean {
+  return restDays.some(r => r.program_week === week && r.program_day === day);
+}
+
+export function reposDeSemaine(restDays: readonly RestDay[], week: number): RestDay[] {
+  return restDays.filter(r => r.program_week === week);
 }
 
 /** Cible d'une séance déplacée d'un jour (bornée à la semaine ; `null` si impossible). */
@@ -138,7 +147,7 @@ export function formulaireDepuisSeance(w: ProgramWod, semaineAffichee: number): 
     rounds: w.rounds ? String(w.rounds) : '',
     notes: w.notes ?? '',
     videoUrl: w.video_url ?? '',
-    leaderboard: w.leaderboard_enabled ?? true,
+    leaderboard: false,
     published: w.is_published ?? true,
     emomInterval: w.emom_interval_minutes ? String(w.emom_interval_minutes) : '1',
     tabataWork: w.tabata_work_seconds ? String(w.tabata_work_seconds) : '20',
@@ -168,6 +177,9 @@ export function colonnesSeance(form: WodFormState, movements: string[]): Program
     program_week: week,
     program_day: day,
     is_published: form.published,
+    // Pas de classement ni d'ELO sur une séance de programme : chaque athlète
+    // la vit à sa propre date, il n'y a rien à comparer.
+    leaderboard_enabled: false,
   };
 }
 
@@ -320,14 +332,41 @@ export async function deleteProgramWods(ids: string[]): Promise<void> {
   if (error) throw error;
 }
 
-/** Recopie une semaine de séances relatives sur la semaine suivante. */
+export async function listProgramRestDays(programId: string): Promise<RestDay[]> {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from('program_rest_days')
+    .select('program_week, program_day')
+    .eq('program_id', programId);
+  if (error) throw error;
+  return (data ?? []) as RestDay[];
+}
+
+export async function setProgramRestDay(programId: string, c: CaseProgramme, repos: boolean): Promise<void> {
+  const supabase = createClient();
+  const { error } = repos
+    ? await supabase
+        .from('program_rest_days')
+        .upsert({ program_id: programId, program_week: c.week, program_day: c.day }, { onConflict: 'program_id,program_week,program_day' })
+    : await supabase
+        .from('program_rest_days')
+        .delete()
+        .eq('program_id', programId).eq('program_week', c.week).eq('program_day', c.day);
+  if (error) throw error;
+}
+
+/** Recopie une semaine (séances relatives + jours de repos) sur la semaine suivante. */
 export async function duplicateProgramWeek(
   programId: string,
   boxId: string,
   userId: string | null,
   wods: ProgramWod[],
+  restDays: readonly RestDay[] = [],
 ): Promise<number> {
   let copies = 0;
+  for (const r of restDays) {
+    await setProgramRestDay(programId, semaineSuivante({ week: r.program_week, day: r.program_day }), true);
+  }
   for (const w of wods) {
     if (!estSeanceRelative(w)) continue;
     const cible = semaineSuivante({ week: w.program_week as number, day: w.program_day as number });
@@ -338,6 +377,7 @@ export async function duplicateProgramWeek(
       program_week: cible.week,
       program_day: cible.day,
       is_published: is_published ?? true,
+      leaderboard_enabled: false,
       sort_order: w.sort_order,
     });
     copies += 1;
