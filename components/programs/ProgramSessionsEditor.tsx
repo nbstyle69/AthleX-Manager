@@ -1,11 +1,14 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ArrowLeft, ArrowRight, CheckSquare, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Copy,
-  Download, Dumbbell, Eye, EyeOff, LayoutGrid, List, Loader2, Moon, Pencil, Plus, Square, Trash2, Video, X,
+  Download, Dumbbell, Eye, EyeOff, FileText, LayoutGrid, List, Loader2, Pencil, Plus, Square, Trash2, Upload, Video, X,
+  Moon,
 } from 'lucide-react';
 import WodEditor from '@/components/wods/WodEditor';
+import PdfImportModal from '@/components/wods/PdfImportModal';
+import { downloadWodCsvTemplate, parseWodImportFile } from '@/lib/wodImport';
 import {
   BLOCK_COLOR, BLOCK_LABEL, DAY_LABELS, EMPTY_WOD_FORM, TYPE_COLOR, WodFormState, formatCap, movementLines,
 } from '@/lib/wodFields';
@@ -14,8 +17,8 @@ import {
   caseVoisine, colonnesSeance, createProgramWod, csvSeances, deleteProgramWod, deleteProgramWods,
   duplicateProgramWeek, estJourRepos, estSeanceRelative, formulaireDepuisSeance, listProgramWods,
   listProgramRestDays, reposDeSemaine, setProgramRestDay, RestDay,
-  moveProgramWod, nombreSemaines, seancesDatees, seancesDeCase, seancesDeSemaine, setProgramWodPublished,
-  updateProgramWod,
+  moveProgramWod, nombreSemaines, seanceDepuisLigneCsv, seancesDatees, seancesDeCase, seancesDeSemaine,
+  setProgramWodPublished, updateProgramWod,
 } from '@/lib/programContent';
 
 /**
@@ -68,6 +71,10 @@ export default function ProgramSessionsEditor({ program, userId, onClose, onChan
   const [movements, setMovements] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+
+  const [pdfFile, setPdfFile] = useState<File | null>(null);
+  const [importing, setImporting] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [selectMode, setSelectMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -256,6 +263,44 @@ export default function ProgramSessionsEditor({ program, userId, onClose, onChan
     a.click(); URL.revokeObjectURL(url);
   }
 
+  /**
+   * Import : PDF (même cœur et même preview que le Whiteboard, destination
+   * verrouillée sur ce programme) ou CSV/JSON au format « programming »
+   * (`week,day,title,…`). Tout passe par la sérialisation du formulaire.
+   */
+  async function importFile(file: File) {
+    const nom = file.name.toLowerCase();
+    if (file.type === 'application/pdf' || nom.endsWith('.pdf')) { setPdfFile(file); return; }
+    if (!nom.endsWith('.csv') && !nom.endsWith('.json')) {
+      setNotice({ ok: false, text: `Type de fichier non supporté : « ${file.name} ». L'import accepte PDF, CSV et JSON.` });
+      return;
+    }
+    setImporting(true);
+    const { rows, errors } = parseWodImportFile(await file.text(), file.name, 'programming', isFixed ? totalSemaines : 52);
+    if (rows.length === 0) {
+      setNotice({ ok: false, text: errors[0] ?? 'Aucune séance trouvée dans le fichier.' });
+      setImporting(false);
+      return;
+    }
+    let ok = 0;
+    const rangs: Record<string, number> = {};
+    for (const row of rows) {
+      const payload = seanceDepuisLigneCsv(row);
+      const cle = `${payload.program_week}-${payload.program_day}`;
+      const rang = seancesDeCase(wods, payload.program_week, payload.program_day).length + (rangs[cle] ?? 0);
+      rangs[cle] = (rangs[cle] ?? 0) + 1;
+      try {
+        await createProgramWod(program.id, program.box_id, userId, { ...payload, sort_order: rang });
+        ok += 1;
+      } catch (e) {
+        errors.push(`« ${row.title} » (S${row.week} J${row.day}) : ${msg(e)}`);
+      }
+    }
+    setNotice({ ok: errors.length === 0, text: `${ok} séance${ok > 1 ? 's' : ''} importée${ok > 1 ? 's' : ''}${errors.length ? ` — ${errors.join(' · ')}` : ''}` });
+    setImporting(false);
+    await apresEcriture();
+  }
+
   const toggleSelected = (id: string) =>
     setSelectedIds(prev => (prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]));
 
@@ -336,10 +381,22 @@ export default function ProgramSessionsEditor({ program, userId, onClose, onChan
             </p>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
+            <button onClick={() => downloadWodCsvTemplate('programming')} title="Modèle CSV (week,day,title,…)"
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold border border-white/10 text-gray-400 hover:text-white hover:border-white/20 transition-colors">
+              <FileText size={13} /> Modèle CSV
+            </button>
             <button onClick={exportCSV} disabled={semaine.length === 0}
               className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold border border-white/10 text-gray-400 hover:text-white hover:border-white/20 disabled:opacity-40 transition-colors">
               <Download size={13} /> Exporter
             </button>
+            <button onClick={() => fileInputRef.current?.click()} disabled={importing} title="Importer un PDF de programmation ou un CSV/JSON"
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold border border-white/10 text-gray-400 hover:text-white hover:border-white/20 disabled:opacity-40 transition-colors">
+              {importing ? <Loader2 size={13} className="animate-spin" /> : <Upload size={13} />} Importer
+            </button>
+            <input
+              ref={fileInputRef} type="file" accept=".csv,.json,.pdf" className="hidden"
+              onChange={e => { const f = e.target.files?.[0]; e.target.value = ''; if (f) void importFile(f); }}
+            />
             <button
               onClick={() => { setSelectMode(m => !m); setSelectedIds([]); }}
               className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold border transition-colors ${selectMode ? 'border-white/40 text-white bg-white/10' : 'border-white/10 text-gray-400 hover:text-white hover:border-white/20'}`}
@@ -626,6 +683,27 @@ export default function ProgramSessionsEditor({ program, userId, onClose, onChan
             </div>
           </div>
         </div>
+      )}
+
+      {pdfFile && userId && (
+        <PdfImportModal
+          file={pdfFile}
+          boxId={program.box_id}
+          userId={userId}
+          target={{
+            kind: 'program',
+            program: { id: program.id, title: program.title, type: program.type },
+            defaultWeek: week,
+            weeksCount: totalSemaines,
+            restDays,
+          }}
+          onClose={() => setPdfFile(null)}
+          onDone={r => {
+            setPdfFile(null);
+            setNotice({ ok: r.errors.length === 0, text: [`${r.ok} séance${r.ok > 1 ? 's' : ''} importée${r.ok > 1 ? 's' : ''}.`, ...(r.notes ?? []), ...r.errors].join(' ') });
+            void apresEcriture();
+          }}
+        />
       )}
 
       {modal && (

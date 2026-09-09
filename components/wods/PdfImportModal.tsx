@@ -3,27 +3,46 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { X, Loader2, AlertTriangle, Plus, Trash2, RefreshCw } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
-import { BLOCKS, WOD_TYPES, TYPE_COLOR } from '@/lib/wodFields';
+import { BLOCKS, DAY_LABELS, WOD_TYPES, TYPE_COLOR } from '@/lib/wodFields';
 import { PROFILES } from '@/lib/pdfImport/profiles';
 import { entryToBoxWod, validateEntry, hasUnstructuredStrength } from '@/lib/pdfImport/serialize';
+import {
+  ANCRE_IMPORT_PROGRAMME, caseDepuisDate, dateFictive, entryToProgramWod, rangsParCase, recalerSurSemaine, semainesCouvertes,
+} from '@/lib/pdfImport/programme';
 import type { ImportEntry, ImportResult, ImportWarning, ParsedMovement, ParsedStrength } from '@/lib/pdfImport/types';
 import { assignRestrictions, libelleAssignation } from '@/lib/wodAssignment';
+import { RestDay, estJourRepos, rattacherAuProgramme } from '@/lib/programContent';
 
 /**
  * Import PDF de programmation hebdo (spec v2) : le PDF est analysé côté
  * serveur (`/api/wods/import-pdf`), la preview structurée est éditable carte
  * par carte, puis tout est inséré en un seul lot dans `box_wods`.
+ *
+ * Deux destinations, une seule preview :
+ * - `whiteboard` : daté à partir du lundi choisi, groupes / programmes au choix ;
+ * - `program` : semaine × jour relatifs du programme courant, qui est le seul
+ *   destinataire possible (pas de groupe, pas d'autre programme).
  */
 
 interface Ref { id: string; name: string; color: string }
+
+export type PdfImportTarget =
+  | { kind: 'whiteboard'; defaultWeekStart: string; groups: Ref[]; programs: Ref[] }
+  | {
+      kind: 'program';
+      program: { id: string; title: string; type: 'fixed' | 'ongoing' };
+      /** Semaine affichée sur la page Séances : semaine cible par défaut. */
+      defaultWeek: number;
+      weeksCount: number;
+      /** Jours marqués « Repos » par le coach : signalés dans la preview. */
+      restDays: readonly RestDay[];
+    };
 
 interface Props {
   file: File;
   boxId: string;
   userId: string;
-  defaultWeekStart: string;
-  groups: Ref[];
-  programs: Ref[];
+  target: PdfImportTarget;
   onClose: () => void;
   onDone: (r: { ok: number; errors: string[]; notes?: string[] }) => void;
 }
@@ -83,9 +102,14 @@ function emptyStrength(): ParsedStrength {
   return { exercise: '', resolved: false, sets: null, reps: null, percent: null, rpe: null, charge_note: null, tempo: null, rest: null };
 }
 
-export default function PdfImportModal({ file, boxId, userId, defaultWeekStart, groups, programs, onClose, onDone }: Props) {
+export default function PdfImportModal({ file, boxId, userId, target, onClose, onDone }: Props) {
   const supabase = createClient();
-  const [weekStart, setWeekStart] = useState(defaultWeekStart);
+  const isProgram = target.kind === 'program';
+  const groups = target.kind === 'whiteboard' ? target.groups : [];
+  const programs = target.kind === 'whiteboard' ? target.programs : [];
+  // Programme : le lundi envoyé au cœur est un ancrage fictif, relu en semaine × jour.
+  const [weekStart, setWeekStart] = useState(target.kind === 'whiteboard' ? target.defaultWeekStart : ANCRE_IMPORT_PROGRAMME);
+  const [semaineCible, setSemaineCible] = useState(target.kind === 'program' ? target.defaultWeek : 1);
   const [forcedProfile, setForcedProfile] = useState<string>('');
   const [analyzing, setAnalyzing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -114,7 +138,7 @@ export default function PdfImportModal({ file, boxId, userId, defaultWeekStart, 
       if (!res.ok) throw new Error(json?.error ?? `HTTP ${res.status}`);
       const r = json as ApiResult;
       setResult(r);
-      setEntries(r.entries);
+      setEntries(isProgram ? recalerSurSemaine(r.entries, semaineCible) : r.entries);
       setKeep(Object.fromEntries(r.entries.map(e => [e.key, true])));
       setForcedProfile(r.source_profile);
       setFieldErrors({});
@@ -149,10 +173,28 @@ export default function PdfImportModal({ file, boxId, userId, defaultWeekStart, 
     }));
   }
 
+  /** Programme : changer la semaine cible décale toutes les cartes d'un bloc. */
+  function changerSemaineCible(next: number) {
+    const cible = Math.max(1, next);
+    const delta = cible - semaineCible;
+    setSemaineCible(cible);
+    if (delta !== 0) {
+      setEntries(prev => prev.map(e => {
+        const c = caseDepuisDate(e.date);
+        return { ...e, date: dateFictive(Math.max(1, c.week + delta), c.day) };
+      }));
+    }
+  }
+
   const selected = entries.filter(e => keep[e.key]);
   const isGeneric = result?.source_profile === 'generic';
+  const semaines = isProgram ? semainesCouvertes(entries) : [];
+  const semainesProposees = target.kind === 'program'
+    ? Array.from({ length: Math.max(target.weeksCount, ...semaines, semaineCible) + (target.program.type === 'ongoing' ? 12 : 0) }, (_, i) => i + 1)
+    : [];
 
   async function insertAll() {
+    if (target.kind === 'program') { await insertProgramme(target); return; }
     if (!result || selected.length === 0) return;
     const errs: Record<string, string[]> = {};
     for (const e of selected) {
@@ -198,6 +240,45 @@ export default function PdfImportModal({ file, boxId, userId, defaultWeekStart, 
     onDone({ ok: ids.length, errors, notes });
   }
 
+  async function insertProgramme(t: Extract<PdfImportTarget, { kind: 'program' }>) {
+    if (!result || selected.length === 0) return;
+    const errs: Record<string, string[]> = {};
+    for (const e of selected) {
+      const v = validateEntry(e);
+      if (v.length) errs[e.key] = v;
+    }
+    setFieldErrors(errs);
+    if (Object.keys(errs).length) { setError(`${Object.keys(errs).length} carte(s) à corriger avant insertion.`); return; }
+    if (t.program.type === 'fixed' && selected.some(e => caseDepuisDate(e.date).week > t.weeksCount)) {
+      setError(`Le programme dure ${t.weeksCount} semaine(s) : une carte vise une semaine au-delà.`);
+      return;
+    }
+
+    setInserting(true);
+    setError(null);
+    const rangs = rangsParCase(selected);
+    const rows = selected.map((e, i) => entryToProgramWod(e, { boxId, userId, sourcePdfUrl: result.source_pdf_url, sortOrder: rangs[i] }));
+    const { data: inserted, error: insErr } = await supabase.from('box_wods').insert(rows).select('id');
+    if (insErr) {
+      setInserting(false);
+      setError(`Insertion refusée (aucune séance créée) : ${insErr.message}`);
+      return;
+    }
+    const ids = (inserted ?? []).map(r => r.id as string);
+    try {
+      await rattacherAuProgramme(ids, t.program.id);
+    } catch (e) {
+      setInserting(false);
+      setError(`Rattachement au programme refusé (séances retirées) : ${e instanceof Error ? e.message : String(e)}`);
+      return;
+    }
+    const notes = [`${ids.length} séance(s) rattachée(s) à « ${t.program.title} », semaine(s) ${semainesCouvertes(selected).join(', ')}.`];
+    if (result.unresolved_movements.length) {
+      notes.push(`Mouvements hors catalogue conservés tels quels : ${result.unresolved_movements.join(', ')}.`);
+    }
+    onDone({ ok: ids.length, errors: [], notes });
+  }
+
   return (
     <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
       <div className="bg-[#0a0a0a] border border-white/10 rounded-2xl w-full max-w-5xl max-h-[92vh] flex flex-col">
@@ -206,10 +287,19 @@ export default function PdfImportModal({ file, boxId, userId, defaultWeekStart, 
           <div className="flex-1 min-w-0">
             <h3 className="text-lg font-bold text-white truncate">Import PDF — {file.name}</h3>
             <div className="flex flex-wrap items-center gap-3 mt-2">
-              <label className="text-xs text-gray-400 flex items-center gap-2">
-                Lundi de la semaine
-                <input type="date" value={weekStart} onChange={e => setWeekStart(e.target.value)} className={INPUT} disabled={analyzing || inserting} />
-              </label>
+              {target.kind === 'whiteboard' ? (
+                <label className="text-xs text-gray-400 flex items-center gap-2">
+                  Lundi de la semaine
+                  <input type="date" value={weekStart} onChange={e => setWeekStart(e.target.value)} className={INPUT} disabled={analyzing || inserting} />
+                </label>
+              ) : (
+                <label className="text-xs text-gray-400 flex items-center gap-2">
+                  Semaine cible
+                  <select value={semaineCible} onChange={e => changerSemaineCible(parseInt(e.target.value, 10))} className={INPUT} disabled={analyzing || inserting} data-testid="semaine-cible">
+                    {semainesProposees.map(w => <option key={w} value={w}>Semaine {w}{target.program.type === 'fixed' ? ` / ${target.weeksCount}` : ''}</option>)}
+                  </select>
+                </label>
+              )}
               <label className="text-xs text-gray-400 flex items-center gap-2">
                 Source
                 <select value={forcedProfile} onChange={e => setForcedProfile(e.target.value)} className={INPUT} disabled={analyzing || inserting}>
@@ -248,6 +338,12 @@ export default function PdfImportModal({ file, boxId, userId, defaultWeekStart, 
               Source non reconnue : découpage générique, ordre des charges H/F incertain — vérifie chaque carte avant d&apos;insérer.
             </div>
           )}
+          {isProgram && result && semaines.length > 1 && (
+            <div className="text-xs text-gray-300 bg-white/[0.03] border border-white/8 rounded-lg px-3 py-2">
+              Le document couvre {semaines.length} semaines : elles sont posées en semaines {semaines.join(', ')} du programme
+              (semaine cible = première semaine du document). Ajuste la semaine et le jour carte par carte si besoin.
+            </div>
+          )}
           {result?.week_notes && (
             <div className="text-xs text-gray-300 bg-white/[0.03] border border-white/8 rounded-lg px-3 py-2 whitespace-pre-line">
               <span className="text-[10px] font-black uppercase tracking-wider text-gray-500 block mb-1">Notes de la semaine</span>
@@ -271,7 +367,22 @@ export default function PdfImportModal({ file, boxId, userId, defaultWeekStart, 
               <div key={e.key} className={`rounded-xl border ${errs.length ? 'border-red-500/60' : orange ? 'border-orange-500/50' : 'border-white/10'} ${checked ? '' : 'opacity-50'} bg-[#111111]`}>
                 <div className="flex items-center gap-2 px-3 py-2 border-b border-white/5">
                   <input type="checkbox" checked={checked} onChange={ev => setKeep(k => ({ ...k, [e.key]: ev.target.checked }))} className="accent-white" />
-                  <input type="date" value={e.date} onChange={ev => patch(e.key, { date: ev.target.value })} className={INPUT} />
+                  {target.kind === 'whiteboard' ? (
+                    <input type="date" value={e.date} onChange={ev => patch(e.key, { date: ev.target.value })} className={INPUT} />
+                  ) : (() => {
+                    const c = caseDepuisDate(e.date);
+                    const repos = estJourRepos(target.restDays, c.week, c.day);
+                    return (
+                      <>
+                        <select value={c.week} onChange={ev => patch(e.key, { date: dateFictive(parseInt(ev.target.value, 10), c.day) })} className={INPUT} title="Semaine du programme">
+                          {semainesProposees.map(w => <option key={w} value={w}>S{w}</option>)}
+                        </select>
+                        <select value={c.day} onChange={ev => patch(e.key, { date: dateFictive(c.week, parseInt(ev.target.value, 10)) })} className={`${INPUT} ${repos ? ORANGE : ''}`} title={repos ? 'Jour de repos du programme' : 'Jour du programme'}>
+                          {DAY_LABELS.map((d, i) => <option key={d} value={i + 1}>{d}{estJourRepos(target.restDays, c.week, i + 1) ? ' (repos)' : ''}</option>)}
+                        </select>
+                      </>
+                    );
+                  })()}
                   <input value={e.title} onChange={ev => patch(e.key, { title: ev.target.value })} className={`${INPUT} flex-1 font-bold`} placeholder="Titre" />
                   <select value={e.block ?? ''} onChange={ev => patch(e.key, { block: (ev.target.value || null) as ImportEntry['block'] })} className={INPUT}>
                     <option value="">Block…</option>
@@ -354,8 +465,20 @@ export default function PdfImportModal({ file, boxId, userId, defaultWeekStart, 
           })}
         </div>
 
-        {/* Destinataires */}
-        {result && (
+        {/* Destinataires — Programme : verrouillé sur le programme courant. */}
+        {result && target.kind === 'program' && (
+          <div className="px-6 py-3 border-t border-white/8 space-y-2" data-testid="destinataire-verrouille">
+            <p className="text-xs font-black uppercase tracking-wider text-gray-500">Qui verra ces séances</p>
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-xs font-semibold px-2.5 py-1.5 rounded-full border border-white/40 text-white cursor-default"
+                style={{ backgroundColor: `${target.program.type === 'fixed' ? '#3B82F6' : '#8B5CF6'}25` }}>
+                Programme : {target.program.title}
+              </span>
+              <span className="text-[11px] text-gray-500">Les acheteurs du programme, à la semaine × jour indiqués depuis leur démarrage — pas de groupe, pas d&apos;autre programme.</span>
+            </div>
+          </div>
+        )}
+        {result && target.kind === 'whiteboard' && (
           <div className="px-6 py-3 border-t border-white/8 space-y-2">
             <p className="text-xs font-black uppercase tracking-wider text-gray-500">Qui verra ces WOD</p>
             <div className="flex flex-wrap gap-2">
@@ -392,7 +515,7 @@ export default function PdfImportModal({ file, boxId, userId, defaultWeekStart, 
             disabled={inserting || analyzing || selected.length === 0}
             className="flex-1 px-4 py-2.5 rounded-xl text-sm font-bold bg-white text-black hover:bg-[#b89222] disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           >
-            {inserting ? <><Loader2 size={14} className="animate-spin" /> Insertion…</> : <>Insérer {selected.length} WOD(s)</>}
+            {inserting ? <><Loader2 size={14} className="animate-spin" /> Insertion…</> : <>Insérer {selected.length} {isProgram ? 'séance(s)' : 'WOD(s)'}</>}
           </button>
         </div>
       </div>

@@ -738,9 +738,7 @@ export default function WODsPage() {
           file={pdfFile}
           boxId={boxId}
           userId={userId}
-          defaultWeekStart={toISO(weekDates[0])}
-          groups={refGroups}
-          programs={refPrograms}
+          target={{ kind: 'whiteboard', defaultWeekStart: toISO(weekDates[0]), groups: refGroups, programs: refPrograms }}
           onClose={() => setPdfFile(null)}
           onDone={r => { setPdfFile(null); setImportResult(r); void load(); }}
         />
