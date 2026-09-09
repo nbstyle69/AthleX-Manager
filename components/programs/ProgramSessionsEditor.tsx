@@ -9,6 +9,7 @@ import {
 import WodEditor from '@/components/wods/WodEditor';
 import PdfImportModal from '@/components/wods/PdfImportModal';
 import { downloadWodCsvTemplate, parseWodImportFile } from '@/lib/wodImport';
+import { messageErreur } from '@/lib/erreurs';
 import {
   BLOCK_COLOR, BLOCK_LABEL, DAY_LABELS, EMPTY_WOD_FORM, TYPE_COLOR, WodFormState, formatCap, movementLines,
 } from '@/lib/wodFields';
@@ -50,7 +51,7 @@ interface Props {
 type Layout = 'columns' | 'rows';
 const LAYOUT_KEY = 'bo_program_sessions_layout';
 
-const msg = (e: unknown) => (e instanceof Error ? e.message : String(e));
+const msg = messageErreur;
 
 export default function ProgramSessionsEditor({ program, userId, onClose, onChanged }: Props) {
   const [wods, setWods] = useState<ProgramWod[]>([]);
