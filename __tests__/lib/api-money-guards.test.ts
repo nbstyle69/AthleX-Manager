@@ -54,6 +54,7 @@ const CLASSIFICATION: Record<string, Classe> = {
   'box/dunning': 'owner_admin',
   'box/invite-code': 'owner_admin',
   'cancel-membership': 'self_service',
+  'cancel-programming-subscription': 'owner_admin',
   'cancellation-doc': 'owner_admin',
   'cancellation-request': 'self_service',
   'cancellation-request/review': 'owner_admin',
