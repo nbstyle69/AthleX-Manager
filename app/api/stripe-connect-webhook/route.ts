@@ -387,7 +387,18 @@ export async function POST(req: NextRequest) {
         await supabase.from('program_members')
           .update({ status: 'cancelled' })
           .eq('stripe_subscription_id', sub.id);
-        // Abonnement programmation box→box résilié → stoppe la matérialisation.
+        // Abonnement programmation box→box résilié → `unsubscribe_programming`
+        // (backend) passe le statut à canceled et retire les cartes reçues à
+        // partir du lundi suivant si le gérant l'a demandé (remove_future_on_cancel).
+        const { data: progSubs } = await supabase.from('box_programming_subscriptions')
+          .select('id')
+          .eq('stripe_subscription_id', sub.id);
+        for (const row of (progSubs ?? []) as { id: string }[]) {
+          const { error: unsubErr } = await supabase.rpc('unsubscribe_programming', {
+            p_subscription_id: row.id, p_remove_future: null,
+          });
+          if (unsubErr) console.error(`unsubscribe_programming failed (${row.id}):`, unsubErr.message);
+        }
         await supabase.from('box_programming_subscriptions')
           .update({ status: 'canceled' })
           .eq('stripe_subscription_id', sub.id);

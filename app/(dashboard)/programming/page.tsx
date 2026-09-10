@@ -91,6 +91,9 @@ interface Subscription {
   current_period_end: string | null;
   color: string | null;
   week_anchor: string | null;
+  stripe_subscription_id?: string | null;
+  cancel_requested_at?: string | null;
+  remove_future_on_cancel?: boolean;
 }
 
 /** Même condition que list_applicable_programmings / apply_program_week côté serveur. */
@@ -507,7 +510,95 @@ function SubscriptionOptions({
         </span>
       </button>
       {error && <p className="text-[10px] text-red-400 mt-1">{error}</p>}
+      <UnsubscribeLink subscriptions={subscriptions} onChanged={onChanged} />
     </div>
+  );
+}
+
+/**
+ * « Se désabonner » avec confirmation. Gratuit / paiement unique : immédiat.
+ * Abonnement Stripe : résiliation à fin de période, le webhook conclut. La
+ * case « retirer les séances futures » ne touche jamais la semaine en cours ni
+ * le passé (scores et ELO) — c'est la RPC `unsubscribe_programming` qui borne.
+ */
+function UnsubscribeLink({
+  subscriptions, onChanged,
+}: {
+  subscriptions: Subscription[]; onChanged: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [removeFuture, setRemoveFuture] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const pending = subscriptions.filter((s) => s.cancel_requested_at);
+  if (pending.length === subscriptions.length) {
+    const end = pending[0]?.current_period_end;
+    return (
+      <p className="text-[10px] text-amber-400 text-center">
+        Résiliation demandée{end ? ` — effective le ${new Date(end).toLocaleDateString('fr-FR')}` : ' — effective à la fin de la période'}
+      </p>
+    );
+  }
+
+  async function confirm() {
+    setSaving(true);
+    setError(null);
+    for (const s of subscriptions) {
+      const res = await fetch('/api/cancel-programming-subscription', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ subscription_id: s.id, remove_future: removeFuture }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setSaving(false);
+        setError(json.error ?? 'Désabonnement impossible');
+        return;
+      }
+    }
+    setSaving(false);
+    setOpen(false);
+    onChanged();
+  }
+
+  const paid = subscriptions.some((s) => s.stripe_subscription_id);
+
+  return (
+    <>
+      <button type="button" onClick={() => setOpen(true)}
+        className="w-full text-[11px] text-gray-500 hover:text-red-400 underline underline-offset-2 text-center">
+        Se désabonner
+      </button>
+      {open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4" onClick={() => !saving && setOpen(false)}>
+          <div className="w-full max-w-md rounded-2xl bg-[#111] border border-white/10 p-6" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-lg font-black text-white mb-2">Se désabonner de cette programmation ?</h3>
+            <p className="text-sm text-gray-400 mb-4">
+              {paid
+                ? 'L\u2019abonnement Stripe sera résilié à la fin de la période en cours ; jusque-là les semaines continuent de se poser.'
+                : 'Plus aucune semaine ne se posera dans ton Whiteboard. Tu pourras te réabonner plus tard, ta couleur sera conservée.'}
+            </p>
+            <label className="flex items-start gap-2 text-sm text-gray-200 cursor-pointer mb-2">
+              <input type="checkbox" checked={removeFuture} onChange={(e) => setRemoveFuture(e.target.checked)} className="mt-0.5" />
+              <span>Retirer aussi les séances déjà posées dans mon Whiteboard à partir de la semaine prochaine</span>
+            </label>
+            <p className="text-[11px] text-gray-500 mb-5">
+              Les semaines passées et la semaine en cours ne sont jamais supprimées : les scores et l&apos;ELO enregistrés sont conservés.
+            </p>
+            {error && <p className="text-xs text-red-400 mb-3">{error}</p>}
+            <div className="flex gap-2 justify-end">
+              <button type="button" disabled={saving} onClick={() => setOpen(false)}
+                className="px-4 py-2 rounded-lg text-sm font-semibold text-gray-300 hover:text-white">Annuler</button>
+              <button type="button" disabled={saving} onClick={confirm}
+                className="px-4 py-2 rounded-lg bg-red-500 text-white text-sm font-bold hover:bg-red-400 disabled:opacity-50 flex items-center gap-2">
+                {saving && <Loader2 size={14} className="animate-spin" />} Se désabonner
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
 
