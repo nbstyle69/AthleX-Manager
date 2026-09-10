@@ -1,7 +1,7 @@
 'use client';
 
-import { Dispatch, SetStateAction, useState } from 'react';
-import { Plus, Trash2, X, Loader2, Video, Dumbbell, HeartPulse } from 'lucide-react';
+import { Dispatch, SetStateAction, useEffect, useState } from 'react';
+import { Plus, Trash2, X, Loader2, Video, Dumbbell, HeartPulse, ChevronDown, ChevronRight, Info } from 'lucide-react';
 import { CARDIO_UNITS, MOVEMENT_CATALOG, MovementUnit } from '@/lib/movements';
 import {
   EMPTY_MOVEMENT_ROW,
@@ -32,12 +32,16 @@ import {
 } from '@/lib/strengthBlock';
 import { BLOCKS, DAY_LABELS, WOD_TYPES, WodFormState } from '@/lib/wodFields';
 import { RestDay, estJourRepos } from '@/lib/programContent';
+import {
+  AUDIENCES, AUDIENCE_LABEL, Audience, isoDow, offerWeekStorageKey, recapLine,
+} from '@/lib/audience';
 
 /**
  * Éditeur de WOD unique, deux contextes :
  *
- * - `whiteboard` : le WOD est posé sur le calendrier d'une box — date, groupes
- *   autorisés, programmes assignés, publication immédiate ou programmée.
+ * - `whiteboard` : le WOD est posé sur le calendrier d'une box — date, bloc
+ *   « Qui reçoit ce WOD ? » (audience explicite, programmes athlètes, copie
+ *   dans une offre Marketplace), publication immédiate ou programmée.
  * - `programming` : le WOD est écrit dans une programmation vendue à d'autres
  *   boxs — semaine × jour, aucune notion d'accès ni de publication : l'accès se
  *   décide à l'application de la semaine par la box abonnée.
@@ -59,12 +63,7 @@ import { RestDay, estJourRepos } from '@/lib/programContent';
  */
 export interface WodEditorGroup { id: string; name: string; color: string }
 export interface WodEditorProgram { id: string; title: string; type: string }
-
-/** « A », « A ou B », « A, B ou C ». */
-function nomsJoints(noms: string[]): string {
-  if (noms.length <= 1) return noms[0] ?? '';
-  return `${noms.slice(0, -1).join(', ')} ou ${noms[noms.length - 1]}`;
-}
+export interface WodEditorOffer { id: string; title: string; weeksCount: number }
 
 export type WodEditorMode = 'whiteboard' | 'programming' | 'program';
 
@@ -90,6 +89,8 @@ interface WodEditorProps {
   lockedProgram?: WodEditorProgram;
   /** Contexte Programme : jours marqués « Repos » par le coach (par semaine). */
   restDays?: readonly RestDay[];
+  /** Contexte Whiteboard : offres Marketplace de la box (absent = pas de ligne). */
+  offers?: WodEditorOffer[];
 }
 
 const inp = 'w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-white transition-colors';
@@ -97,7 +98,7 @@ const inp = 'w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-
 export default function WodEditor({
   mode, heading, submitLabel, form, setForm, movements, setMovements,
   saving, error, onClose, onSubmit, groups = [], programs = [], weeksCount = 1,
-  lockedProgram, restDays = [],
+  lockedProgram, restDays = [], offers = [],
 }: WodEditorProps) {
   const isWhiteboard = mode === 'whiteboard';
   const isProgram = mode === 'program';
@@ -160,7 +161,9 @@ export default function WodEditor({
 
   const cardioCatalog = MOVEMENT_CATALOG.filter(mv => mv.unit === 'm' || mv.unit === 'cal');
 
-  const canSubmit = !!form.title.trim() && !saving && (!isWhiteboard || !!form.date);
+  const audienceChosen = !isWhiteboard || form.audience !== '';
+  const groupsChosen = !isWhiteboard || form.audience !== 'groups' || form.groupIds.length > 0;
+  const canSubmit = !!form.title.trim() && !saving && (!isWhiteboard || !!form.date) && audienceChosen && groupsChosen;
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm p-4">
@@ -177,80 +180,17 @@ export default function WodEditor({
             <div className="bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3 text-sm text-red-400">{error}</div>
           )}
 
-          {/* Group access — Whiteboard uniquement */}
-          {isWhiteboard && groups.length > 0 && (
-            <div>
-              <label className="block text-xs font-semibold text-gray-400 mb-2 uppercase tracking-wider">Groupes autorisés <span className="text-gray-600 normal-case tracking-normal">(vide = tous les membres)</span></label>
-              <div className="flex flex-wrap gap-2">
-                {groups.map(g => {
-                  const selected = form.groupIds.includes(g.id);
-                  return (
-                    <button key={g.id} type="button"
-                      onClick={() => setForm(f => ({
-                        ...f,
-                        groupIds: selected ? f.groupIds.filter(id => id !== g.id) : [...f.groupIds, g.id],
-                      }))}
-                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all border ${
-                        selected
-                          ? 'border-transparent scale-105'
-                          : 'border-white/10 text-gray-400 hover:text-white hover:border-white/20'
-                      }`}
-                      style={selected ? { backgroundColor: `${g.color}25`, color: g.color, borderColor: `${g.color}50` } : {}}
-                    >
-                      <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: g.color }} />
-                      {g.name}
-                    </button>
-                  );
-                })}
-              </div>
-              {form.groupIds.length > 0 && form.programIds.length === 0 && (
-                <p className="text-[11px] text-gray-500 mt-1.5">Seuls les membres de ces groupes verront ce WOD.</p>
-              )}
-            </div>
-          )}
-
-          {/* Program access — Whiteboard uniquement */}
-          {isWhiteboard && programs.length > 0 && (
-            <div>
-              <label className="block text-xs font-semibold text-gray-400 mb-2 uppercase tracking-wider">Programmes assignés <span className="text-gray-600 normal-case tracking-normal">(vide = aucun programme)</span></label>
-              <div className="flex flex-wrap gap-2">
-                {programs.map(p => {
-                  const selected = form.programIds.includes(p.id);
-                  const pColor = p.type === 'fixed' ? '#3B82F6' : '#8B5CF6';
-                  return (
-                    <button key={p.id} type="button"
-                      onClick={() => setForm(f => ({
-                        ...f,
-                        programIds: selected ? f.programIds.filter(id => id !== p.id) : [...f.programIds, p.id],
-                      }))}
-                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all border ${
-                        selected
-                          ? 'border-transparent scale-105'
-                          : 'border-white/10 text-gray-400 hover:text-white hover:border-white/20'
-                      }`}
-                      style={selected ? { backgroundColor: `${pColor}25`, color: pColor, borderColor: `${pColor}50` } : {}}
-                    >
-                      <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: pColor }} />
-                      {p.title}
-                    </button>
-                  );
-                })}
-              </div>
-              {form.programIds.length > 0 && form.groupIds.length === 0 && (
-                <p className="text-[11px] text-gray-500 mt-1.5">Ce WOD apparaîtra dans le whiteboard des membres de ces programmes.</p>
-              )}
-            </div>
-          )}
-
-          {/* Deux restrictions posees separement se combinent en OU, jamais en ET :
-              l'enoncer evite de croire qu'on a restreint deux fois. */}
-          {isWhiteboard && form.programIds.length > 0 && form.groupIds.length > 0 && (
-            <p className="text-[11px] text-amber-400/90 bg-amber-500/5 border border-amber-500/20 rounded-xl px-3 py-2">
-              Visible par : les acheteurs de{' '}
-              {nomsJoints(programs.filter(p => form.programIds.includes(p.id)).map(p => p.title))}
-              {' '}ou les membres de{' '}
-              {nomsJoints(groups.filter(g => form.groupIds.includes(g.id)).map(g => g.name))}
-            </p>
+          {/* Qui reçoit ce WOD ? — Whiteboard uniquement (le mode `program`
+              garde la visibilité des acheteurs, le mode `programming` n'a pas
+              d'accès : la box abonnée le décide à l'application). */}
+          {isWhiteboard && (
+            <AudienceBlock
+              form={form}
+              setForm={setForm}
+              groups={groups}
+              programs={programs}
+              offers={offers}
+            />
           )}
 
           {/* Programme verrouillé — contexte Programme uniquement : la séance
@@ -782,6 +722,26 @@ export default function WodEditor({
             </p>
           )}
 
+          {isWhiteboard && (
+            <p
+              data-testid="recap-visibilite"
+              className={`text-xs rounded-xl px-3 py-2 border ${
+                form.audience === ''
+                  ? 'text-amber-300 bg-amber-500/5 border-amber-500/20'
+                  : 'text-gray-300 bg-white/5 border-white/10'
+              }`}
+            >
+              {recapLine({
+                audience: form.audience,
+                groupNames: groups.filter(g => form.groupIds.includes(g.id)).map(g => g.name),
+                programNames: programs.filter(p => form.programIds.includes(p.id)).map(p => p.title),
+                offers: offers
+                  .filter(o => form.offerWeeks[o.id] !== undefined)
+                  .map(o => ({ title: o.title, week: form.offerWeeks[o.id] })),
+              }) ?? 'Choisis qui voit ce WOD'}
+            </p>
+          )}
+
           <div className="flex gap-3 pt-2">
             <button onClick={onClose}
               className="flex-1 py-3 rounded-xl border border-white/10 text-sm text-gray-400 hover:text-white transition-colors">
@@ -798,6 +758,208 @@ export default function WodEditor({
           </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+const chip = (selected: boolean, color: string) => ({
+  className: `flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all border ${
+    selected ? 'border-transparent scale-105' : 'border-white/10 text-gray-400 hover:text-white hover:border-white/20'
+  }`,
+  style: selected ? { backgroundColor: `${color}25`, color, borderColor: `${color}50` } : {},
+});
+
+function Tip({ text }: { text: string }) {
+  return <Info size={12} className="text-gray-500 shrink-0 cursor-help" aria-label={text} />;
+}
+
+/**
+ * « Qui reçoit ce WOD ? » — trois lignes, dans l'ordre où le coach y pense :
+ * sa box (audience obligatoire, aucune valeur par défaut), ses programmes
+ * athlètes (repliés, s'ajoutent à l'audience), ses offres Marketplace (copie
+ * synchronisée dans une semaine d'offre, exige une date pour connaître le jour).
+ */
+function AudienceBlock({
+  form, setForm, groups, programs, offers,
+}: {
+  form: WodFormState;
+  setForm: Dispatch<SetStateAction<WodFormState>>;
+  groups: WodEditorGroup[];
+  programs: WodEditorProgram[];
+  offers: WodEditorOffer[];
+}) {
+  const [programsOpen, setProgramsOpen] = useState(form.programIds.length > 0);
+  const [offersOpen, setOffersOpen] = useState(Object.keys(form.offerWeeks).length > 0);
+
+  useEffect(() => {
+    if (form.programIds.length > 0) setProgramsOpen(true);
+  }, [form.programIds.length]);
+
+  const setAudience = (a: Audience) => setForm(f => ({
+    ...f,
+    audience: a,
+    groupIds: a === 'groups' ? f.groupIds : [],
+  }));
+
+  const toggleOffer = (o: WodEditorOffer) => setForm(f => {
+    const next = { ...f.offerWeeks };
+    if (next[o.id] !== undefined) {
+      delete next[o.id];
+    } else {
+      let week = 1;
+      if (typeof window !== 'undefined') {
+        const saved = parseInt(window.localStorage.getItem(offerWeekStorageKey(o.id)) ?? '', 10);
+        if (saved >= 1 && saved <= o.weeksCount) week = saved;
+      }
+      next[o.id] = week;
+    }
+    return { ...f, offerWeeks: next };
+  });
+
+  const setOfferWeek = (o: WodEditorOffer, week: number) => {
+    if (typeof window !== 'undefined') window.localStorage.setItem(offerWeekStorageKey(o.id), String(week));
+    setForm(f => ({ ...f, offerWeeks: { ...f.offerWeeks, [o.id]: week } }));
+  };
+
+  const selectedOffers = offers.filter(o => form.offerWeeks[o.id] !== undefined);
+  const dayLabel = form.date ? DAY_LABELS[isoDow(form.date) - 1] : null;
+
+  return (
+    <div className="space-y-4 bg-white/[0.03] border border-white/10 rounded-2xl p-4" data-testid="qui-recoit">
+      <p className="text-xs font-semibold text-gray-300 uppercase tracking-wider">Qui reçoit ce WOD ?</p>
+
+      {/* 1. Dans ma box */}
+      <div>
+        <div className="flex items-center gap-1.5 mb-2">
+          <label className="text-xs font-semibold text-gray-400">Dans ma box</label>
+          <Tip text="Qui voit ce WOD dans le Whiteboard de la box. Sans choix, le WOD ne s'enregistre pas." />
+        </div>
+        <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Dans ma box">
+          {AUDIENCES.map(a => {
+            const selected = form.audience === a;
+            const disabled = a === 'groups' && groups.length === 0;
+            return (
+              <button key={a} type="button" role="radio" aria-checked={selected} disabled={disabled}
+                onClick={() => setAudience(a)}
+                title={disabled ? 'Aucun groupe dans cette box' : undefined}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-colors disabled:opacity-40 ${
+                  selected ? 'bg-white text-black border-white' : 'bg-white/5 text-gray-400 border-white/10 hover:text-white'
+                }`}>
+                {AUDIENCE_LABEL[a]}
+              </button>
+            );
+          })}
+        </div>
+        {form.audience === 'groups' && (
+          <div className="flex flex-wrap gap-2 mt-2">
+            {groups.map(g => {
+              const selected = form.groupIds.includes(g.id);
+              return (
+                <button key={g.id} type="button" {...chip(selected, g.color)}
+                  onClick={() => setForm(f => ({
+                    ...f,
+                    groupIds: selected ? f.groupIds.filter(id => id !== g.id) : [...f.groupIds, g.id],
+                  }))}>
+                  <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: g.color }} />
+                  {g.name}
+                </button>
+              );
+            })}
+            {form.groupIds.length === 0 && (
+              <p className="text-[11px] text-amber-300 w-full">Coche au moins un groupe.</p>
+            )}
+          </div>
+        )}
+        {form.audience === 'none' && (
+          <p className="text-[11px] text-gray-500 mt-1.5">Personne dans la box ne le voit pour l&apos;instant ; tu pourras l&apos;ouvrir plus tard.</p>
+        )}
+      </div>
+
+      {/* 2. Mes programmes athlètes */}
+      {programs.length > 0 && (
+        <div>
+          <button type="button" onClick={() => setProgramsOpen(o => !o)}
+            className="flex items-center gap-1.5 text-xs font-semibold text-gray-400 hover:text-white">
+            {programsOpen ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
+            Mes programmes athlètes
+            {form.programIds.length > 0 && <span className="text-gray-500">({form.programIds.length})</span>}
+          </button>
+          {programsOpen && (
+            <div className="mt-2">
+              <div className="flex items-center gap-1.5 mb-2">
+                <p className="text-[11px] text-gray-500">Les membres actifs de ces programmes reçoivent ce WOD en plus, quel que soit le choix ci-dessus.</p>
+                <Tip text="S'ajoute à la visibilité dans la box : un WOD « Personne encore » reste visible par les membres du programme coché." />
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {programs.map(p => {
+                  const selected = form.programIds.includes(p.id);
+                  const pColor = p.type === 'fixed' ? '#3B82F6' : '#8B5CF6';
+                  return (
+                    <button key={p.id} type="button" {...chip(selected, pColor)}
+                      onClick={() => setForm(f => ({
+                        ...f,
+                        programIds: selected ? f.programIds.filter(id => id !== p.id) : [...f.programIds, p.id],
+                      }))}>
+                      <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: pColor }} />
+                      {p.title}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* 3. Mes offres Marketplace */}
+      {offers.length > 0 && (
+        <div>
+          <button type="button" onClick={() => setOffersOpen(o => !o)}
+            className="flex items-center gap-1.5 text-xs font-semibold text-gray-400 hover:text-white">
+            {offersOpen ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
+            Mes offres Marketplace
+            {selectedOffers.length > 0 && <span className="text-gray-500">({selectedOffers.length})</span>}
+          </button>
+          {offersOpen && (
+            <div className="mt-2 space-y-2">
+              <div className="flex items-center gap-1.5">
+                <p className="text-[11px] text-gray-500">Copie ce WOD dans la semaine choisie de l&apos;offre ; le jour vient de la date. Tes modifications suivent, les box abonnées gardent ce qu&apos;elles ont déjà reçu.</p>
+                <Tip text="La copie reste liée à ce WOD : titre, contenu et notes se mettent à jour dans l'offre. Décocher retire la copie." />
+              </div>
+              {!form.date && (
+                <p className="text-[11px] text-amber-300">Choisis d&apos;abord une date : la copie a besoin du jour de la semaine.</p>
+              )}
+              <div className="flex flex-wrap gap-2">
+                {offers.map(o => {
+                  const selected = form.offerWeeks[o.id] !== undefined;
+                  return (
+                    <button key={o.id} type="button" {...chip(selected, '#38BDF8')} disabled={!form.date}
+                      onClick={() => toggleOffer(o)}>
+                      {o.title}
+                    </button>
+                  );
+                })}
+              </div>
+              {selectedOffers.map(o => (
+                <div key={o.id} className="flex items-center gap-2 text-xs text-gray-300">
+                  <span className="truncate">{o.title}</span>
+                  <select
+                    value={form.offerWeeks[o.id]}
+                    onChange={e => setOfferWeek(o, parseInt(e.target.value, 10))}
+                    className="bg-[#0A0A0A] border border-white/10 rounded-lg px-2 py-1 text-xs text-white"
+                    aria-label={`Semaine dans ${o.title}`}
+                  >
+                    {Array.from({ length: Math.max(1, o.weeksCount) }, (_, i) => i + 1).map(w => (
+                      <option key={w} value={w} className="text-black">Semaine {w}</option>
+                    ))}
+                  </select>
+                  {dayLabel && <span className="text-gray-500">· {dayLabel}</span>}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

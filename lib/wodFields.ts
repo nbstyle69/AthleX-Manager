@@ -3,6 +3,8 @@
 // (`box_programming_wods`). Les deux tables portent les mêmes colonnes ; seul
 // l'ancrage diffère — une date d'un côté, semaine × jour de l'autre.
 
+import type { Audience } from '@/lib/audience';
+
 export type WodType = 'for-time' | 'amrap' | 'emom' | 'tabata' | 'strength' | 'custom';
 
 export const WOD_TYPES: { value: WodType; label: string; color: string }[] = [
@@ -73,8 +75,12 @@ export interface WodFormState {
   publishMode: 'now' | 'scheduled';
   publishHour: string;
   publishMin: string;
+  /** Vide tant que le gérant n'a pas choisi « Toute la box / Ces groupes / Personne encore ». */
+  audience: Audience | '';
   groupIds: string[];
   programIds: string[];
+  /** Offres Marketplace de la box dans lesquelles copier ce WOD : programming_id → semaine. */
+  offerWeeks: Record<string, number>;
   // Contexte Programmation uniquement : semaine × jour.
   week: number;
   dayOfWeek: number;
@@ -86,7 +92,7 @@ export const EMPTY_WOD_FORM: WodFormState = {
   leaderboard: true,
   emomInterval: '1', tabataWork: '20', tabataRest: '10',
   date: '', published: true, publishMode: 'now', publishHour: '06', publishMin: '00',
-  groupIds: [], programIds: [],
+  audience: '', groupIds: [], programIds: [], offerWeeks: {},
   week: 1, dayOfWeek: 1,
 };
 

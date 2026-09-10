@@ -178,9 +178,9 @@ describe('verrouillage sur le programme courant', () => {
 
   it('le mode « program » affiche le programme en chip non modifiable et ne propose ni groupe ni date', () => {
     expect(wodEditor).toContain('data-testid="programme-verrouille"');
-    // Les groupes et la multi-sélection de programmes sont derrière `isWhiteboard`.
-    expect(wodEditor).toMatch(/\{isWhiteboard && groups\.length > 0 &&/);
-    expect(wodEditor).toMatch(/\{isWhiteboard && programs\.length > 0 &&/);
+    // Le bloc « Qui reçoit ce WOD ? » (audience box, groupes, programmes, offres)
+    // est derrière `isWhiteboard` : le mode program n'en montre rien.
+    expect(wodEditor).toMatch(/\{isWhiteboard && \(\s*<AudienceBlock/);
     expect(wodEditor).toMatch(/\{isWhiteboard \? \([\s\S]{0,400}Date \*/);
   });
 

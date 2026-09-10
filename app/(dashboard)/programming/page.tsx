@@ -4,8 +4,9 @@ import { useEffect, useState, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import {
   Store, Plus, Pencil, Trash2, X, Check, Loader2, Search, Package,
-  Globe, Lock, Video, Upload,
+  Globe, Lock, Video, Upload, Info, AlertTriangle,
 } from 'lucide-react';
+import { SUBSCRIPTION_COLORS, SUBSCRIPTION_COLOR_HEX, subscriptionColorHex } from '@/lib/audience';
 import WodEditor from '@/components/wods/WodEditor';
 import { ACTIVE_BOX_COOKIE, getMyAdminBoxes } from '@/lib/getMyBox';
 import ProgWodImportModal from '@/components/wods/ProgWodImportModal';
@@ -44,6 +45,21 @@ interface Programming {
   currency: string;
   is_published: boolean;
   publisher_name?: string;
+  goal: string | null;
+  target_audience: string | null;
+  equipment: string | null;
+  /** Enrichissement `list_programming_catalog` (catalogue seulement). */
+  wods_total?: number;
+  wods_per_week?: number[];
+  preview_week1?: { day: number; titles: string[] }[];
+}
+
+interface CatalogRow {
+  programming_id: string; title: string; description: string | null; discipline: string | null; level: string | null;
+  days_per_week: number | null; weeks_count: number; billing: Programming['billing']; price_cents: number; currency: string;
+  publisher_box_id: string; publisher_box_name: string | null; goal: string | null; target_audience: string | null;
+  equipment: string | null; wods_total: number; wods_per_week: number[] | null;
+  preview_week1: { day: number; titles: string[] }[] | null; subscribed: boolean;
 }
 
 interface ProgWod {
@@ -73,6 +89,8 @@ interface Subscription {
   status: string;
   auto_apply_weekly: boolean;
   current_period_end: string | null;
+  color: string | null;
+  week_anchor: string | null;
 }
 
 /** Même condition que list_applicable_programmings / apply_program_week côté serveur. */
@@ -84,7 +102,7 @@ function isLiveSub(s: Subscription): boolean {
 const EMPTY_OFFER = {
   title: '', description: '', discipline: 'crossfit', level: 'all',
   days_per_week: '5', weeks_count: '4', billing: 'free' as const,
-  price: '',
+  price: '', goal: '', target_audience: '', equipment: '',
 };
 
 export default function ProgrammingPage() {
@@ -128,16 +146,22 @@ export default function ProgrammingPage() {
     setActiveBoxId(active);
     const myBoxIds = boxes.map((b) => b.id);
 
-    // Catalogue: published offers (RLS lets a managing box see them). Enrich with publisher name.
-    const { data: cat, error: catError } = await supabase
-      .from('box_programming')
-      .select('*, boxes:publisher_box_id(name)')
-      .eq('is_published', true)
-      .order('created_at', { ascending: false });
-    if (catError) setLoadError(catError.message);
-    setCatalogue(((cat ?? []) as (Programming & { boxes: { name: string } | null })[]).map((p) => ({
-      ...p, publisher_name: p.boxes?.name ?? 'Box',
-    })));
+    // Catalogue : offres publiées par d'autres box, enrichies côté serveur
+    // (compte de WOD par semaine, aperçu de la semaine 1, objectif, public, matériel).
+    if (active) {
+      const { data: cat, error: catError } = await supabase.rpc('list_programming_catalog', { p_box_id: active });
+      if (catError) setLoadError(catError.message);
+      setCatalogue(((cat ?? []) as CatalogRow[]).map((r) => ({
+        id: r.programming_id, publisher_box_id: r.publisher_box_id, title: r.title, description: r.description,
+        discipline: r.discipline, level: r.level, days_per_week: r.days_per_week, weeks_count: r.weeks_count,
+        billing: r.billing, price_cents: r.price_cents, currency: r.currency, is_published: true,
+        publisher_name: r.publisher_box_name ?? 'Box', goal: r.goal, target_audience: r.target_audience,
+        equipment: r.equipment, wods_total: r.wods_total, wods_per_week: r.wods_per_week ?? [],
+        preview_week1: r.preview_week1 ?? [],
+      })));
+    } else {
+      setCatalogue([]);
+    }
 
     // My subscriptions (across my boxes) + my own offers.
     if (myBoxIds.length) {
@@ -221,17 +245,21 @@ function Catalogue({
   onChanged: () => void;
 }) {
   const [subModal, setSubModal] = useState<Programming | null>(null);
+  const [detail, setDetail] = useState<Programming | null>(null);
+
+  const subscribedProgIds = new Set(subs.filter(isLiveSub).map((s) => s.programming_id));
 
   const visible = catalogue.filter((p) => {
     if (myBoxIds.has(p.publisher_box_id)) return false; // don't subscribe to your own offers
+    // Une offre sans WOD n'a rien à vendre : absente du catalogue, sauf si on y
+    // est déjà abonné (il faut pouvoir voir pourquoi rien n'arrive).
+    if ((p.wods_total ?? 0) === 0 && !subscribedProgIds.has(p.id)) return false;
     if (q && !p.title.toLowerCase().includes(q.toLowerCase())) return false;
     if (fDiscipline && p.discipline !== fDiscipline) return false;
     if (fLevel && p.level !== fLevel) return false;
     if (fFree && p.billing !== 'free') return false;
     return true;
   });
-
-  const subscribedProgIds = new Set(subs.filter(isLiveSub).map((s) => s.programming_id));
 
   return (
     <div>
@@ -264,31 +292,46 @@ function Catalogue({
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {visible.map((p) => {
             const subscribed = subscribedProgIds.has(p.id);
+            const liveSubs = subs.filter((s) => s.programming_id === p.id && isLiveSub(s));
+            const perWeek = p.wods_per_week ?? [];
+            const filled = perWeek.filter((n) => n > 0).length;
+            const cardColor = subscribed ? subscriptionColorHex(liveSubs[0]?.color) : null;
             return (
-              <div key={p.id} className="rounded-2xl bg-white/[0.03] border border-white/10 p-5 flex flex-col">
+              <div
+                key={p.id}
+                className={`rounded-2xl bg-white/[0.03] border p-5 flex flex-col ${cardColor ? 'border-2' : 'border-white/10'}`}
+                style={cardColor ? { borderColor: cardColor } : undefined}
+              >
                 <div className="flex items-start justify-between gap-2 mb-2">
-                  <h3 className="font-bold text-white text-base leading-tight">{p.title}</h3>
+                  <button onClick={() => setDetail(p)} className="text-left font-bold text-white text-base leading-tight hover:underline">{p.title}</button>
                   {p.billing === 'free'
                     ? <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400">Gratuit</span>
                     : <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded bg-white/10 text-white">{(p.price_cents / 100).toFixed(0)}€{p.billing === 'monthly' ? '/mois' : ''}</span>}
                 </div>
                 <p className="text-xs text-gray-500 mb-1">par {p.publisher_name}</p>
-                {p.description && <p className="text-sm text-gray-400 mb-3 line-clamp-3">{p.description}</p>}
+                {p.goal
+                  ? <p className="text-sm text-gray-300 mb-1 line-clamp-1" title={p.goal}>Objectif : {p.goal}</p>
+                  : p.description && <p className="text-sm text-gray-400 mb-1 line-clamp-2">{p.description}</p>}
+                <p className="text-xs text-gray-500 mb-3">
+                  {(p.wods_total ?? 0) === 0
+                    ? <span className="text-amber-400 flex items-center gap-1"><AlertTriangle size={11} /> Aucun WOD pour l&apos;instant</span>
+                    : `${p.wods_total} WOD · ${filled}/${p.weeks_count} semaine${p.weeks_count > 1 ? 's' : ''} remplie${filled > 1 ? 's' : ''}`}
+                </p>
                 <div className="flex flex-wrap gap-1.5 mb-4 mt-auto">
                   {p.discipline && <Tag>{disciplineLabel(p.discipline)}</Tag>}
                   {p.level && <Tag>{LEVEL_LABEL[p.level] ?? p.level}</Tag>}
                   {p.days_per_week && <Tag>{p.days_per_week} j/sem</Tag>}
                   <Tag>{p.weeks_count} sem</Tag>
                 </div>
+                <button onClick={() => setDetail(p)} className="mb-2 text-xs font-semibold text-gray-400 hover:text-white flex items-center gap-1">
+                  <Info size={12} /> Voir le détail
+                </button>
                 {subscribed ? (
                   <div className="space-y-2">
                     <div className="flex items-center justify-center gap-2 py-2 rounded-lg bg-emerald-500/10 text-emerald-400 text-sm font-bold">
                       <Check size={15} /> Abonné
                     </div>
-                    <AutoApplyOption
-                      subscriptions={subs.filter((s) => s.programming_id === p.id && isLiveSub(s))}
-                      onChanged={onChanged}
-                    />
+                    <SubscriptionOptions subscriptions={liveSubs} onChanged={onChanged} />
                   </div>
                 ) : (
                   <button onClick={() => setSubModal(p)}
@@ -302,6 +345,15 @@ function Catalogue({
         </div>
       )}
 
+      {detail && (
+        <OfferDetailPanel
+          programming={detail}
+          subscribed={subscribedProgIds.has(detail.id)}
+          onClose={() => setDetail(null)}
+          onSubscribe={() => { setSubModal(detail); setDetail(null); }}
+        />
+      )}
+
       {subModal && (
         <SubscribeModal
           programming={subModal} myBoxes={myBoxes} subs={subs}
@@ -312,12 +364,88 @@ function Catalogue({
   );
 }
 
+/* ────────────────────── Fiche détaillée d'une offre ────────────────────── */
+function OfferDetailPanel({ programming: p, subscribed, onClose, onSubscribe }: {
+  programming: Programming; subscribed: boolean; onClose: () => void; onSubscribe: () => void;
+}) {
+  const perWeek = p.wods_per_week ?? [];
+  const preview = p.preview_week1 ?? [];
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4" onClick={onClose}>
+      <div className="w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl bg-[#111] border border-white/10 p-6" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-start justify-between gap-3 mb-1">
+          <div>
+            <h3 className="text-lg font-black text-white">{p.title}</h3>
+            <p className="text-xs text-gray-500">par {p.publisher_name}</p>
+          </div>
+          <button onClick={onClose} className="text-gray-500 hover:text-white"><X size={18} /></button>
+        </div>
+        <div className="flex flex-wrap gap-1.5 my-3">
+          {p.discipline && <Tag>{disciplineLabel(p.discipline)}</Tag>}
+          {p.level && <Tag>{LEVEL_LABEL[p.level] ?? p.level}</Tag>}
+          {p.days_per_week && <Tag>{p.days_per_week} j/sem</Tag>}
+          <Tag>{p.weeks_count} sem</Tag>
+          <Tag>{p.billing === 'free' ? 'Gratuit' : `${(p.price_cents / 100).toFixed(0)}€${p.billing === 'monthly' ? '/mois' : ''}`}</Tag>
+          <Tag>{p.wods_total ?? 0} WOD</Tag>
+        </div>
+
+        {p.description && <p className="text-sm text-gray-300 whitespace-pre-line mb-4">{p.description}</p>}
+
+        <dl className="grid sm:grid-cols-3 gap-3 mb-4">
+          {([['Objectif', p.goal], ['Public visé', p.target_audience], ['Matériel', p.equipment]] as const).map(([k, v]) => (
+            <div key={k} className="rounded-xl bg-white/[0.03] border border-white/10 p-3">
+              <dt className="text-[10px] font-black uppercase tracking-wider text-gray-500 mb-1">{k}</dt>
+              <dd className="text-sm text-gray-200">{v || <span className="text-gray-600">Non renseigné</span>}</dd>
+            </div>
+          ))}
+        </dl>
+
+        <p className="text-[10px] font-black uppercase tracking-wider text-gray-500 mb-1.5">WOD par semaine</p>
+        <div className="flex flex-wrap gap-1.5 mb-4">
+          {perWeek.map((n, i) => (
+            <span key={i} className={`px-2 py-1 rounded-lg text-xs font-bold border ${n > 0 ? 'bg-white/5 text-white border-white/10' : 'bg-amber-500/5 text-amber-400 border-amber-500/20'}`}>
+              S{i + 1} : {n > 0 ? `${n} WOD` : 'vide'}
+            </span>
+          ))}
+        </div>
+
+        <p className="text-[10px] font-black uppercase tracking-wider text-gray-500 mb-1.5">Aperçu de la semaine 1</p>
+        {preview.length === 0 ? (
+          <p className="text-xs text-gray-500 mb-4">La semaine 1 est vide.</p>
+        ) : (
+          <div className="space-y-1.5 mb-4">
+            {preview.map((d) => (
+              <div key={d.day} className="flex gap-3 text-sm">
+                <span className="w-20 shrink-0 text-[11px] font-black uppercase text-gray-400 pt-0.5">{DAY_LABELS[d.day - 1] ?? `J${d.day}`}</span>
+                <ul className="text-gray-200">
+                  {d.titles.map((t, i) => <li key={i}>{t}</li>)}
+                </ul>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <p className="text-[11px] text-gray-500 mb-4">
+          Avec l&apos;application automatique, la semaine 1 se pose dans ton Whiteboard le dimanche suivant à 18h ; tu peux aussi la poser tout de suite depuis le Whiteboard (« Programmation »). Le contenu reçu n&apos;est pas modifiable, mais tu choisis qui le voit.
+        </p>
+
+        {subscribed ? (
+          <div className="flex items-center justify-center gap-2 py-2 rounded-lg bg-emerald-500/10 text-emerald-400 text-sm font-bold"><Check size={15} /> Abonné</div>
+        ) : (
+          <button onClick={onSubscribe} className="w-full py-2.5 rounded-lg bg-white text-black text-sm font-bold hover:bg-gray-200">S&apos;abonner</button>
+        )}
+      </div>
+    </div>
+  );
+}
+
 /**
- * Option de la souscription : l'application automatique de la semaine due par le
- * cron du dimanche 18h. Désactivée par défaut — sinon le contenu se pose seul sur
- * le calendrier d'un gérant qui vient d'appliquer une autre semaine à la main.
+ * Options de la souscription : couleur (contour des cartes reçues dans le
+ * Whiteboard) et application automatique de la semaine due par le cron du
+ * dimanche 18h. Celle-ci reste désactivée par défaut — sinon le contenu se pose
+ * seul sur le calendrier d'un gérant qui vient d'appliquer une autre semaine.
  */
-function AutoApplyOption({
+function SubscriptionOptions({
   subscriptions, onChanged,
 }: {
   subscriptions: Subscription[]; onChanged: () => void;
@@ -328,6 +456,7 @@ function AutoApplyOption({
 
   if (subscriptions.length === 0) return null;
   const on = subscriptions.every((s) => s.auto_apply_weekly);
+  const color = subscriptions[0].color ?? 'sky';
 
   async function toggle() {
     setSaving(true);
@@ -341,8 +470,29 @@ function AutoApplyOption({
     onChanged();
   }
 
+  async function setColor(c: string) {
+    setSaving(true);
+    setError(null);
+    const { error: err } = await supabase
+      .from('box_programming_subscriptions')
+      .update({ color: c })
+      .in('id', subscriptions.map((s) => s.id));
+    setSaving(false);
+    if (err) { setError(err.message); return; }
+    onChanged();
+  }
+
   return (
-    <div>
+    <div className="space-y-2">
+      <div className="flex items-center gap-1.5" role="radiogroup" aria-label="Couleur de l'abonnement">
+        <span className="text-[10px] font-semibold text-gray-500 mr-1">Couleur</span>
+        {SUBSCRIPTION_COLORS.map((c) => (
+          <button key={c} type="button" role="radio" aria-checked={c === color} disabled={saving}
+            onClick={() => setColor(c)} title={c}
+            className={`w-4 h-4 rounded-full border-2 transition-transform ${c === color ? 'border-white scale-110' : 'border-transparent opacity-70 hover:opacity-100'}`}
+            style={{ backgroundColor: SUBSCRIPTION_COLOR_HEX[c] }} />
+        ))}
+      </div>
       <button onClick={toggle} disabled={saving}
         className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-[11px] font-bold border transition-colors ${
           on ? 'bg-white/10 text-white border-white/20' : 'bg-white/[0.02] text-gray-400 border-white/10 hover:text-white'}`}>
@@ -352,7 +502,7 @@ function AutoApplyOption({
         <span className="text-left leading-tight">
           Application automatique chaque semaine
           <span className="block text-[10px] font-semibold text-gray-500 normal-case">
-            {on ? 'La semaine due se pose seule le dimanche 18h.' : 'Tu appliques les semaines depuis le Whiteboard.'}
+            {on ? 'La semaine due se pose seule le dimanche 18h (semaine 1 le premier dimanche).' : 'Tu poses les semaines depuis le Whiteboard, « Programmation ».'}
           </span>
         </span>
       </button>
@@ -474,7 +624,7 @@ function SubscribeModal({
           Confirmer l&apos;abonnement
         </button>
         <p className="text-[11px] text-gray-500 mt-3 text-center">
-          Les WOD apparaîtront dans le Whiteboard de chaque box, révélés le dimanche 18h (comme pour les athlètes).
+          Rien ne se pose tout seul tant que l&apos;application automatique n&apos;est pas cochée. Cochée, la semaine 1 arrive dans le Whiteboard le dimanche suivant à 18h ; sinon tu la poses quand tu veux depuis le Whiteboard (« Programmation »), en choisissant qui la voit.
         </p>
       </div>
     </div>
@@ -487,9 +637,18 @@ function MyOffers({ offers, activeBoxId, onChanged }: {
 }) {
   const supabase = createClient();
   const [editing, setEditing] = useState<Programming | 'new' | null>(null);
+  const [publishError, setPublishError] = useState<{ id: string; message: string } | null>(null);
+  const [publishing, setPublishing] = useState<string | null>(null);
 
+  // La publication passe par `publish_programming` : le serveur refuse une
+  // offre sans description, objectif, public visé, ou avec une semaine vide.
+  // Son message est affiché tel quel — c'est lui qui dit ce qui manque.
   async function togglePublish(o: Programming) {
-    await supabase.from('box_programming').update({ is_published: !o.is_published }).eq('id', o.id);
+    setPublishing(o.id);
+    setPublishError(null);
+    const { error } = await supabase.rpc('publish_programming', { p_id: o.id, p_publish: !o.is_published });
+    setPublishing(null);
+    if (error) { setPublishError({ id: o.id, message: error.message }); return; }
     onChanged();
   }
   async function remove(o: Programming) {
@@ -531,11 +690,17 @@ function MyOffers({ offers, activeBoxId, onChanged }: {
                   <p className="text-xs text-gray-500">
                     {o.discipline ? disciplineLabel(o.discipline) : ''} · {LEVEL_LABEL[o.level ?? 'all']} · {o.weeks_count} sem · {o.billing === 'free' ? 'Gratuit' : `${(o.price_cents / 100).toFixed(0)}€${o.billing === 'monthly' ? '/mois' : ''}`}
                   </p>
+                  {publishError?.id === o.id && (
+                    <div className="mt-2 text-xs text-amber-300 bg-amber-500/10 border border-amber-500/20 rounded-lg px-3 py-2">
+                      <p className="font-semibold">Publication refusée : {publishError.message}</p>
+                      <p className="text-amber-300/70 mt-1">Remplis les semaines vides depuis le Whiteboard (« Copier vers une offre » ou la case « Mes offres Marketplace » du formulaire WOD), ou ici via le crayon.</p>
+                    </div>
+                  )}
                 </div>
                 <div className="flex items-center gap-1.5 shrink-0">
-                  <button onClick={() => togglePublish(o)} title={o.is_published ? 'Dépublier' : 'Publier'}
-                    className="px-2.5 py-1.5 rounded-lg bg-white/5 border border-white/10 text-xs font-semibold text-gray-300 hover:text-white">
-                    {o.is_published ? 'Dépublier' : 'Publier'}
+                  <button onClick={() => togglePublish(o)} disabled={publishing === o.id} title={o.is_published ? 'Dépublier' : 'Publier'}
+                    className="px-2.5 py-1.5 rounded-lg bg-white/5 border border-white/10 text-xs font-semibold text-gray-300 hover:text-white disabled:opacity-50">
+                    {publishing === o.id ? <Loader2 size={12} className="animate-spin" /> : o.is_published ? 'Dépublier' : 'Publier'}
                   </button>
                   <button onClick={() => setEditing(o)} className="p-2 rounded-lg bg-white/5 border border-white/10 text-gray-400 hover:text-white"><Pencil size={14} /></button>
                   <button onClick={() => remove(o)} className="p-2 rounded-lg bg-white/5 border border-white/10 text-gray-400 hover:text-red-400"><Trash2 size={14} /></button>
@@ -568,6 +733,7 @@ function OfferEditor({ offer, publisherBoxId, onClose, onSaved }: {
     title: offer.title, description: offer.description ?? '', discipline: offer.discipline ?? 'crossfit',
     level: offer.level ?? 'all', days_per_week: String(offer.days_per_week ?? 5),
     weeks_count: String(offer.weeks_count), billing: offer.billing, price: offer.price_cents ? String(offer.price_cents / 100) : '',
+    goal: offer.goal ?? '', target_audience: offer.target_audience ?? '', equipment: offer.equipment ?? '',
   } : { ...EMPTY_OFFER });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -606,6 +772,9 @@ function OfferEditor({ offer, publisherBoxId, onClose, onSaved }: {
       weeks_count: Number(form.weeks_count) || 1,
       billing: form.billing,
       price_cents: form.billing === 'free' ? 0 : Math.round(Number(form.price || 0) * 100),
+      goal: form.goal.trim() || null,
+      target_audience: form.target_audience.trim() || null,
+      equipment: form.equipment.trim() || null,
       updated_at: new Date().toISOString(),
     };
     if (offerId) {
@@ -706,8 +875,23 @@ function OfferEditor({ offer, publisherBoxId, onClose, onSaved }: {
           </Field>
           <Field label="Description">
             <textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })}
-              rows={2} className={INPUT_CLS} placeholder="À qui s'adresse cette prog, objectifs…" />
+              rows={2} className={INPUT_CLS} placeholder="Ce que contient cette prog, comment elle est construite…" />
           </Field>
+          <div className="grid sm:grid-cols-3 gap-3">
+            <Field label="Objectif">
+              <input value={form.goal} onChange={(e) => setForm({ ...form, goal: e.target.value })}
+                className={INPUT_CLS} placeholder="Ex. Force + capacité aérobie" />
+            </Field>
+            <Field label="Public visé">
+              <input value={form.target_audience} onChange={(e) => setForm({ ...form, target_audience: e.target.value })}
+                className={INPUT_CLS} placeholder="Ex. Intermédiaires, 1 an de pratique" />
+            </Field>
+            <Field label="Matériel">
+              <input value={form.equipment} onChange={(e) => setForm({ ...form, equipment: e.target.value })}
+                className={INPUT_CLS} placeholder="Ex. Barre, rameur, box" />
+            </Field>
+          </div>
+          <p className="text-[11px] text-gray-500">Description, objectif et public visé sont exigés à la publication, ainsi qu&apos;au moins un WOD par semaine annoncée.</p>
           <div className="grid grid-cols-2 gap-3">
             <Field label="Discipline">
               <select value={form.discipline} onChange={(e) => setForm({ ...form, discipline: e.target.value })} className={INPUT_CLS}>
@@ -753,11 +937,18 @@ function OfferEditor({ offer, publisherBoxId, onClose, onSaved }: {
           <div className="border-t border-white/10 pt-4">
             <div className="flex items-center gap-2 mb-3 flex-wrap">
               <span className="text-sm font-bold text-white mr-1">Semaine :</span>
-              {Array.from({ length: weeksCount }, (_, i) => i + 1).map((w) => (
-                <button key={w} onClick={() => setWeek(w)}
-                  className={`w-8 h-8 rounded-lg text-sm font-bold ${week === w ? 'bg-white text-black' : 'bg-white/5 text-gray-400 border border-white/10'}`}>{w}</button>
-              ))}
+              {Array.from({ length: weeksCount }, (_, i) => i + 1).map((w) => {
+                const n = wods.filter((x) => x.week_number === w).length;
+                return (
+                  <button key={w} onClick={() => setWeek(w)} title={n ? `${n} WOD` : 'Semaine vide'}
+                    className={`relative w-8 h-8 rounded-lg text-sm font-bold ${week === w ? 'bg-white text-black' : n ? 'bg-white/5 text-gray-400 border border-white/10' : 'bg-amber-500/5 text-amber-400 border border-amber-500/20'}`}>
+                    {w}
+                    {n > 0 && <span className="absolute -top-1 -right-1 text-[9px] leading-none px-1 py-0.5 rounded-full bg-white/20 text-white">{n}</span>}
+                  </button>
+                );
+              })}
             </div>
+            <p className="text-[11px] text-gray-500 mb-3">Tu peux aussi remplir cette offre depuis le Whiteboard : « Copier vers une offre » pour une semaine entière, ou la case « Mes offres Marketplace » dans le formulaire d&apos;un WOD (la copie suit ensuite tes modifications).</p>
             <div className="space-y-2 mb-3">
               {weekWods.length === 0 && <p className="text-xs text-gray-500">Aucun WOD pour la semaine {week}. Ajoutez-en un jour ci-dessous.</p>}
               {weekWods.map((w) => (

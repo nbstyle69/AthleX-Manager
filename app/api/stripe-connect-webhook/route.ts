@@ -298,15 +298,22 @@ export async function POST(req: NextRequest) {
           const createdBy = session.metadata.created_by ?? null;
           if (!programmingId || !subscriberBoxId) break;
 
-          // Ancre = lundi de la semaine courante (Europe/Paris) → base de la
-          // rotation des semaines dans materialize_box_programming.
+          // Ancre = lundi SUIVANT (Europe/Paris), comme le DEFAULT de la colonne
+          // et subscribe_free_programming : la semaine 1 est celle que le cron
+          // du dimanche 18h pose en premier. `date_trunc('week', now() at time
+          // zone 'Europe/Paris')::date + 7`, recalculé ici car l'upsert réécrit
+          // la ligne d'un réabonnement.
           const nowParis = new Date(
             new Date().toLocaleString('en-US', { timeZone: 'Europe/Paris' }),
           );
           const isoDow = nowParis.getDay() === 0 ? 7 : nowParis.getDay();
           const monday = new Date(nowParis);
-          monday.setDate(nowParis.getDate() - isoDow + 1);
-          const weekAnchor = monday.toISOString().split('T')[0];
+          monday.setDate(nowParis.getDate() - isoDow + 1 + 7);
+          const weekAnchor = [
+            monday.getFullYear(),
+            String(monday.getMonth() + 1).padStart(2, '0'),
+            String(monday.getDate()).padStart(2, '0'),
+          ].join('-');
 
           const { error: subErr } = await supabase
             .from('box_programming_subscriptions')
