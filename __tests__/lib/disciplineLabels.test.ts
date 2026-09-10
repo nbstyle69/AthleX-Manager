@@ -25,6 +25,7 @@ describe('Programmation : libellés Functional / Hybrid, valeurs internes inchan
     expect(SRC).not.toMatch(/<option key=\{d\} value=\{d\}>\{d\}<\/option>/);
     expect(SRC).not.toMatch(/<Tag>\{p\.discipline\}<\/Tag>/);
     expect(SRC).not.toMatch(/\{o\.discipline\} ·/);
-    expect((SRC.match(/disciplineLabel\(/g) ?? []).length).toBe(4);
+    // filtre, carte catalogue, fiche détaillée, ligne « Mes offres », select de l'éditeur
+    expect((SRC.match(/disciplineLabel\(/g) ?? []).length).toBe(5);
   });
 });

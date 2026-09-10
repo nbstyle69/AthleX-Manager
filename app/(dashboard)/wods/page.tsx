@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/client';
 import {
   Plus, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, ArrowLeft, ArrowRight, Pencil, Trash2,
   Eye, EyeOff, X, Loader2, Dumbbell, Upload, Download, FileText, Calendar, LayoutGrid, List, Video,
-  CalendarPlus, BookmarkPlus, CheckSquare, Square,
+  CalendarPlus, BookmarkPlus, CheckSquare, Square, Copy, Lock,
 } from 'lucide-react';
 import { getMyBox } from '@/lib/getMyBox';
 import WodEditor from '@/components/wods/WodEditor';
@@ -14,6 +14,10 @@ import { RestrictionBadges, programColor } from '@/components/wods/RestrictionBa
 import AssignRestrictionsModal from '@/components/wods/AssignRestrictionsModal';
 import { assignRestrictions, libelleAssignation } from '@/lib/wodAssignment';
 import SaveWeekAsTemplateModal from '@/components/wods/SaveWeekAsTemplateModal';
+import CopyWeekToOfferModal, { CopySource } from '@/components/wods/CopyWeekToOfferModal';
+import SubscriptionBanner, { BannerSubscription } from '@/components/wods/SubscriptionBanner';
+import { WodEditorOffer } from '@/components/wods/WodEditor';
+import { Audience, isAudience, subscriptionColorHex } from '@/lib/audience';
 import PdfImportModal from '@/components/wods/PdfImportModal';
 import { applyWeekNotes } from '@/lib/programWeek';
 import {
@@ -35,7 +39,12 @@ interface BoxWOD {
   emom_interval_minutes: number | null;
   tabata_work_seconds: number | null;
   tabata_rest_seconds: number | null;
+  audience: Audience;
+  source_programming_id: string | null;
 }
+
+/** Provenance d'une carte reçue d'une offre Marketplace (autre box). */
+interface ReceivedInfo { title: string; color: string }
 
 function getWeekDates(offset = 0): Date[] {
   const today = new Date();
@@ -100,8 +109,15 @@ export default function WODsPage() {
   } | null>(null);
   const [groups, setGroups] = useState<{ id: string; name: string; color: string }[]>([]);
   const [wodGroupMap, setWodGroupMap] = useState<Record<string, string[]>>({});
-  const [applyModal, setApplyModal] = useState(false);
+  const [applyModal, setApplyModal] = useState<{ subscriptionId?: string; week?: number } | null>(null);
   const [templateModal, setTemplateModal] = useState(false);
+  const [copySource, setCopySource] = useState<CopySource | null>(null);
+  const [subscriptions, setSubscriptions] = useState<BannerSubscription[]>([]);
+  const [offers, setOffers] = useState<WodEditorOffer[]>([]);
+  /** programming_id → provenance, pour les cartes reçues d'une autre box. */
+  const [receivedMap, setReceivedMap] = useState<Record<string, ReceivedInfo>>({});
+  /** Copies d'offre liées au WOD en édition (programming_id → semaine), état initial. */
+  const [editOfferWeeks, setEditOfferWeeks] = useState<Record<string, number>>({});
   const [boxPrograms, setBoxPrograms] = useState<{ id: string; title: string; type: string }[]>([]);
   const [wodProgramMap, setWodProgramMap] = useState<Record<string, string[]>>({});
   const [dragOver, setDragOver] = useState(false);
@@ -134,9 +150,41 @@ export default function WODsPage() {
         setGroups(g ?? []);
         const { data: progs } = await supabase.from('programs').select('id, title, type').eq('box_id', box.id).eq('is_active', true).order('title');
         setBoxPrograms((progs ?? []) as any[]);
+        await loadMarketplace(box.id);
       }
     })();
   }, []);
+
+  interface RawApplicable {
+    subscription_id: string; programming_id: string; title: string | null; publisher_box_name: string | null;
+    weeks_count: number | null; auto_apply_weekly: boolean | null; color: string | null;
+    week_anchor: string | null; wod_counts: number[] | null;
+  }
+
+  /** Abonnements actifs (bannière, provenance, couleur) et offres publiées par la box (copie depuis le formulaire). */
+  async function loadMarketplace(bid: string) {
+    const [subs, offs] = await Promise.all([
+      supabase.rpc('list_applicable_programmings', { p_box_id: bid }),
+      supabase.from('box_programming').select('id, title, weeks_count').eq('publisher_box_id', bid).eq('is_template', false).order('created_at', { ascending: false }),
+    ]);
+    const rows = ((subs.data ?? []) as RawApplicable[]).map(r => {
+      const n = Math.max(r.weeks_count ?? 1, 1);
+      return {
+        subscriptionId: r.subscription_id,
+        programmingId: r.programming_id,
+        title: r.title ?? 'Programmation',
+        publisherBoxName: r.publisher_box_name,
+        weeksCount: n,
+        autoApplyWeekly: !!r.auto_apply_weekly,
+        color: r.color,
+        weekAnchor: r.week_anchor,
+        wodCounts: Array.from({ length: n }, (_, i) => r.wod_counts?.[i] ?? 0),
+      };
+    });
+    setSubscriptions(rows);
+    setOffers(((offs.data ?? []) as { id: string; title: string; weeks_count: number | null }[])
+      .map(o => ({ id: o.id, title: o.title, weeksCount: Math.max(o.weeks_count ?? 1, 1) })));
+  }
 
   const load = useCallback(async () => {
     if (!boxId) return;
@@ -148,8 +196,34 @@ export default function WODsPage() {
       .lte('scheduled_date', toISO(weekDates[6]))
       .order('scheduled_date')
       .order('sort_order');
-    const wodsArr = (data ?? []) as BoxWOD[];
+    const wodsArr = ((data ?? []) as BoxWOD[]).map(w => ({ ...w, audience: isAudience(w.audience) ? w.audience : 'all' }));
     setWods(wodsArr);
+
+    // Provenance des cartes reçues : une carte dont l'offre source n'est pas
+    // éditée par cette box vient d'un abonnement (actif ou passé) — le serveur
+    // la verrouille, l'UI le montre.
+    const srcIds = [...new Set(wodsArr.map(w => w.source_programming_id).filter((x): x is string => !!x))];
+    if (srcIds.length > 0) {
+      const [{ data: progs }, { data: subRows }] = await Promise.all([
+        supabase.from('box_programming').select('id, title, publisher_box_id').in('id', srcIds),
+        supabase.from('box_programming_subscriptions').select('programming_id, color').eq('subscriber_box_id', boxId).in('programming_id', srcIds),
+      ]);
+      const colorBy: Record<string, string | null> = {};
+      ((subRows ?? []) as { programming_id: string; color: string | null }[]).forEach(s => { colorBy[s.programming_id] = s.color; });
+      const progRows = (progs ?? []) as { id: string; title: string; publisher_box_id: string }[];
+      const mine = new Set(progRows.filter(p => p.publisher_box_id === boxId).map(p => p.id));
+      const titleBy: Record<string, string> = {};
+      progRows.forEach(p => { titleBy[p.id] = p.title; });
+      // Une offre source illisible (dépubliée depuis) reste une carte reçue :
+      // le verrou serveur s'applique, le titre seul manque.
+      const map: Record<string, ReceivedInfo> = {};
+      srcIds.filter(id => !mine.has(id)).forEach(id => {
+        map[id] = { title: titleBy[id] ?? 'programmation Marketplace', color: subscriptionColorHex(colorBy[id]) };
+      });
+      setReceivedMap(map);
+    } else {
+      setReceivedMap({});
+    }
     // Load group access for all WODs
     const ids = wodsArr.map(w => w.id);
     if (ids.length > 0) {
@@ -186,6 +260,7 @@ export default function WODsPage() {
 
   function openCreate(date: string) {
     setEditWOD(null);
+    setEditOfferWeeks({});
     setForm({ ...EMPTY_WOD_FORM, date });
     setMovements([]);
     setFormError(null);
@@ -197,11 +272,20 @@ export default function WODsPage() {
     return (data ?? []).map((r: any) => r.group_id);
   }
 
+  const isReceived = (wod: BoxWOD) => !!wod.source_programming_id && !!receivedMap[wod.source_programming_id];
+
   async function openEdit(wod: BoxWOD) {
+    if (isReceived(wod)) return;
     setEditWOD(wod);
     const gIds = await loadWodGroups(wod.id);
-    const { data: pRows } = await supabase.from('wod_program_access').select('program_id').eq('wod_id', wod.id);
+    const [{ data: pRows }, { data: copies }] = await Promise.all([
+      supabase.from('wod_program_access').select('program_id').eq('wod_id', wod.id),
+      supabase.from('box_programming_wods').select('programming_id, week_number').eq('origin_box_wod_id', wod.id),
+    ]);
     const pIds = (pRows ?? []).map((r: any) => r.program_id);
+    const offerWeeks: Record<string, number> = {};
+    ((copies ?? []) as { programming_id: string; week_number: number }[]).forEach(c => { offerWeeks[c.programming_id] = c.week_number; });
+    setEditOfferWeeks(offerWeeks);
     setForm({
       ...EMPTY_WOD_FORM,
       title: wod.title, description: wod.description ?? '',
@@ -211,8 +295,10 @@ export default function WODsPage() {
       rounds: wod.rounds ? String(wod.rounds) : '',
       notes: wod.notes ?? '', videoUrl: wod.video_url ?? '', published: wod.is_published,
       leaderboard: (wod as any).leaderboard_enabled ?? true,
-      groupIds: gIds,
+      audience: wod.audience,
+      groupIds: wod.audience === 'groups' ? gIds : [],
       programIds: pIds,
+      offerWeeks,
       publishMode: wod.publish_at ? 'scheduled' : 'now',
       publishHour: wod.publish_at ? new Date(wod.publish_at).getHours().toString().padStart(2, '0') : '06',
       publishMin: wod.publish_at ? new Date(wod.publish_at).getMinutes().toString().padStart(2, '0') : '00',
@@ -226,12 +312,14 @@ export default function WODsPage() {
   }
 
   async function saveWOD() {
-    if (!form.title.trim() || !form.date || !boxId || !userId) return;
+    if (!form.title.trim() || !form.date || !boxId || !userId || form.audience === '') return;
+    if (form.audience === 'groups' && form.groupIds.length === 0) return;
     setSaving(true); setFormError(null);
     const payload = {
       ...sharedWodColumns(form, movements),
       box_id: boxId, created_by: userId,
       scheduled_date: form.date,
+      audience: form.audience,
       is_published: form.published,
       publish_at: form.published && form.publishMode === 'scheduled'
         ? `${form.date}T${form.publishHour.padStart(2,'0')}:${form.publishMin.padStart(2,'0')}:00`
@@ -254,9 +342,12 @@ export default function WODsPage() {
     // fenêtre se ferme sur un enregistrement qui n'a pas eu lieu.
     if (wodId) {
       const echecs: string[] = [];
+      // « Toute la box » / « Personne encore » purgent les groupes : une ligne
+      // résiduelle ferait re-basculer le WOD en 'groups' (trigger) et le
+      // cacherait côté athlète.
       const gDel = await supabase.from('wod_group_access').delete().eq('wod_id', wodId);
       if (gDel.error) echecs.push(`groupes (retrait) : ${gDel.error.message}`);
-      if (form.groupIds.length > 0) {
+      if (form.audience === 'groups' && form.groupIds.length > 0) {
         const gIns = await supabase.from('wod_group_access').insert(
           form.groupIds.map(gid => ({ wod_id: wodId, group_id: gid }))
         );
@@ -270,9 +361,28 @@ export default function WODsPage() {
         );
         if (pIns.error) echecs.push(`programmes : ${pIns.error.message}`);
       }
+      // Le trigger AFTER INSERT repasse un WOD 'all' en 'groups' ; on réaffirme
+      // la colonne après les lignes pour que l'état final soit celui choisi.
+      if (form.audience === 'groups') {
+        const aUpd = await supabase.from('box_wods').update({ audience: 'groups' }).eq('id', wodId);
+        if (aUpd.error) echecs.push(`visibilité : ${aUpd.error.message}`);
+      }
+
+      // Copies dans mes offres Marketplace : sync pour chaque offre cochée,
+      // unsync pour celles décochées depuis l'ouverture.
+      for (const [pid, week] of Object.entries(form.offerWeeks)) {
+        const { error: sErr } = await supabase.rpc('sync_wod_to_offer', { p_box_wod_id: wodId, p_programming_id: pid, p_week: week });
+        if (sErr) echecs.push(`offre ${offers.find(o => o.id === pid)?.title ?? pid} : ${sErr.message}`);
+      }
+      for (const pid of Object.keys(editOfferWeeks)) {
+        if (form.offerWeeks[pid] !== undefined) continue;
+        const { error: uErr } = await supabase.rpc('unsync_wod_from_offer', { p_box_wod_id: wodId, p_programming_id: pid });
+        if (uErr) echecs.push(`retrait de l'offre ${offers.find(o => o.id === pid)?.title ?? pid} : ${uErr.message}`);
+      }
+
       if (echecs.length > 0) {
         setSaving(false);
-        setFormError(`WOD enregistré, mais les restrictions n'ont pas été posées — ${echecs.join(' ; ')}`);
+        setFormError(`WOD enregistré, mais tout n'a pas été posé — ${echecs.join(' ; ')}`);
         load();
         return;
       }
@@ -606,11 +716,11 @@ export default function WODsPage() {
             <Trash2 size={13} /> Tout supprimer
           </button>
           <button
-            onClick={() => setApplyModal(true)}
-            title="Poser une semaine type ou une programmation souscrite sur le calendrier"
+            onClick={() => setApplyModal({})}
+            title="Poser une semaine type ou une programmation Marketplace"
             className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold border border-white/10 text-gray-400 hover:text-white hover:border-white/20 transition-colors"
           >
-            <CalendarPlus size={13} /> Appliquer une semaine
+            <CalendarPlus size={13} /> Programmation
           </button>
           <button
             onClick={() => setTemplateModal(true)}
@@ -619,6 +729,14 @@ export default function WODsPage() {
             className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold border border-white/10 text-gray-400 hover:text-white hover:border-white/20 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
           >
             <BookmarkPlus size={13} /> Enregistrer comme semaine type
+          </button>
+          <button
+            onClick={() => boxId && setCopySource({ kind: 'whiteboard', boxId, monday: toISO(weekDates[0]) })}
+            disabled={!wods.length || offers.length === 0}
+            title={offers.length === 0 ? 'Crée d’abord une offre dans Marketplace → Mes offres' : 'Copier la semaine affichée dans une semaine d’une de tes offres Marketplace'}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold border border-white/10 text-gray-400 hover:text-white hover:border-white/20 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          >
+            <Copy size={13} /> Copier vers une offre
           </button>
           <button
             onClick={() => openCreate(todayISO)}
@@ -666,17 +784,49 @@ export default function WODsPage() {
         />
       )}
 
-      {/* Appliquer une programmation souscrite sur la semaine affichée */}
+      {boxId && (
+        <SubscriptionBanner
+          subscriptions={subscriptions}
+          displayedMonday={toISO(weekDates[0])}
+          onApplyNow={(subscriptionId, week) => setApplyModal({ subscriptionId, week })}
+        />
+      )}
+
+      {/* Poser une semaine type ou une programmation Marketplace sur la semaine affichée */}
       {applyModal && boxId && (
         <ApplyProgramWeekModal
           boxId={boxId}
           defaultMonday={toISO(weekDates[0])}
           groups={groups}
-          onClose={() => setApplyModal(false)}
+          initialSubscriptionId={applyModal.subscriptionId}
+          initialWeek={applyModal.week}
+          onClose={() => setApplyModal(null)}
           onApplied={(summary) => {
-            setApplyModal(false);
+            setApplyModal(null);
             setImportResult({ ok: summary.inserted, errors: [], notes: applyWeekNotes(summary) });
             void load();
+            void loadMarketplace(boxId);
+          }}
+          onTemplateDeleted={() => setImportResult({ ok: 0, errors: [], notes: ['Semaine type supprimée. Les semaines déjà posées sur le Whiteboard restent.'] })}
+          onCopyTemplateToOffer={offers.length > 0 ? (t) => {
+            setApplyModal(null);
+            setCopySource({ kind: 'template', boxId, templateId: t.id, templateTitle: t.title });
+          } : undefined}
+        />
+      )}
+
+      {copySource && (
+        <CopyWeekToOfferModal
+          source={copySource}
+          onClose={() => setCopySource(null)}
+          onCopied={({ offerTitle, week, copied, replaced }) => {
+            setCopySource(null);
+            setImportResult({
+              ok: 0,
+              errors: [],
+              notes: [`${copied} WOD copié${copied > 1 ? 's' : ''} dans « ${offerTitle} », semaine ${week}${replaced ? ` (${replaced} remplacé${replaced > 1 ? 's' : ''})` : ''}. Publie l’offre depuis Marketplace → Mes offres quand toutes ses semaines sont remplies.`],
+            });
+            if (boxId) void loadMarketplace(boxId);
           }}
         />
       )}
@@ -692,7 +842,7 @@ export default function WODsPage() {
             setImportResult({
               ok: 0,
               errors: [],
-              notes: [`Semaine type « ${title} » ${updated ? 'mise à jour' : 'enregistrée'} : ${n} WOD sur ${days} jour(s). Applique-la depuis « Appliquer une semaine ».`],
+              notes: [`Semaine type « ${title} » ${updated ? 'mise à jour' : 'enregistrée'} : ${n} WOD sur ${days} jour(s). Applique-la depuis « Programmation ».`],
             });
           }}
         />
@@ -844,8 +994,19 @@ export default function WODsPage() {
                       {dayWODs.map((wod, wi) => {
                         const wt = wod.wod_type ?? '';
                         const color = TYPE_COLOR[wt] ?? '#6B7280';
+                        const received = wod.source_programming_id ? receivedMap[wod.source_programming_id] : undefined;
                         return (
-                          <div key={wod.id} className={`rounded-xl p-2.5 border border-white/5 bg-white/[0.02] hover:bg-white/[0.04] transition-colors ${!wod.is_published ? 'opacity-50' : ''}`}>
+                          <div
+                            key={wod.id}
+                            data-received={received ? 'true' : undefined}
+                            className={`rounded-xl p-2.5 border bg-white/[0.02] hover:bg-white/[0.04] transition-colors ${received ? 'border-2' : 'border-white/5'} ${!wod.is_published ? 'opacity-50' : ''}`}
+                            style={received ? { borderColor: received.color } : undefined}
+                          >
+                            {received && (
+                              <p className="text-[9px] font-bold truncate mb-1 flex items-center gap-1" style={{ color: received.color }} title={`Reçu de la programmation « ${received.title} »`}>
+                                <Lock size={8} /> Prog : {received.title}
+                              </p>
+                            )}
                             <div className="flex items-center gap-1.5 mb-1 flex-wrap">
                               {wod.block_name && <span className="text-[8px] font-black tracking-wider px-1 py-0.5 rounded" style={{ backgroundColor: `${BLOCK_COLOR[wod.block_name]}20`, color: BLOCK_COLOR[wod.block_name] }}>{BLOCK_LABEL[wod.block_name]}</span>}
                               {wt && <><div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: color }} /><span className="text-[9px] font-black tracking-wider truncate" style={{ color }}>{wt.toUpperCase()}</span></>}
@@ -867,6 +1028,7 @@ export default function WODsPage() {
                             <div className="mt-1">
                               <RestrictionBadges
                                 compact
+                                audience={wod.audience}
                                 groupIds={wodGroupMap[wod.id] ?? []}
                                 programIds={wodProgramMap[wod.id] ?? []}
                                 groups={refGroups}
@@ -893,7 +1055,12 @@ export default function WODsPage() {
                               <button onClick={() => togglePublish(wod)} className="p-1 rounded-lg hover:bg-white/10 transition-colors" title={wod.is_published ? 'Dépublier' : 'Publier'}>
                                 {wod.is_published ? <Eye size={11} className="text-emerald-400" /> : <EyeOff size={11} className="text-gray-500" />}
                               </button>
-                              <button onClick={() => openEdit(wod)} className="p-1 rounded-lg hover:bg-white/10 transition-colors">
+                              <button
+                                onClick={() => openEdit(wod)}
+                                disabled={!!received}
+                                title={received ? 'Programmation Marketplace, non modifiable' : 'Modifier'}
+                                className="p-1 rounded-lg hover:bg-white/10 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                              >
                                 <Pencil size={11} className="text-white" />
                               </button>
                               <button onClick={() => deleteWOD(wod)} className="p-1 rounded-lg hover:bg-red-500/10 transition-colors">
@@ -958,8 +1125,14 @@ export default function WODsPage() {
                     {dayWODs.map((wod, wi) => {
                       const wt = wod.wod_type ?? '';
                       const color = TYPE_COLOR[wt] ?? '#6B7280';
+                      const received = wod.source_programming_id ? receivedMap[wod.source_programming_id] : undefined;
                       return (
-                        <div key={wod.id} className={`flex items-center gap-4 px-5 py-3.5 ${!wod.is_published ? 'opacity-60' : ''}`}>
+                        <div
+                          key={wod.id}
+                          data-received={received ? 'true' : undefined}
+                          className={`flex items-center gap-4 px-5 py-3.5 ${received ? 'border-2 rounded-xl my-1 mx-1' : ''} ${!wod.is_published ? 'opacity-60' : ''}`}
+                          style={received ? { borderColor: received.color } : undefined}
+                        >
                           <div className="flex flex-col gap-0.5 shrink-0">
                             <button onClick={() => moveWod(iso, wi, 'up')} disabled={wi === 0 || dayWODs.length < 2} className="p-1 rounded-lg hover:bg-white/10 transition-colors disabled:opacity-25" title="Monter">
                               <ChevronUp size={14} className="text-gray-400" />
@@ -1006,7 +1179,13 @@ export default function WODsPage() {
                                   Brouillon
                                 </span>
                               )}
+                              {received && (
+                                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded flex items-center gap-1" style={{ color: received.color, backgroundColor: `${received.color}20` }} title={`Reçu de la programmation « ${received.title} »`}>
+                                  <Lock size={9} /> Prog : {received.title}
+                                </span>
+                              )}
                               <RestrictionBadges
+                                audience={wod.audience}
                                 groupIds={wodGroupMap[wod.id] ?? []}
                                 programIds={wodProgramMap[wod.id] ?? []}
                                 groups={refGroups}
@@ -1031,7 +1210,12 @@ export default function WODsPage() {
                                 ? <Eye size={15} className="text-emerald-400" />
                                 : <EyeOff size={15} className="text-gray-500" />}
                             </button>
-                            <button onClick={() => openEdit(wod)} className="p-2 rounded-xl hover:bg-white/5 transition-colors">
+                            <button
+                              onClick={() => openEdit(wod)}
+                              disabled={!!received}
+                              title={received ? 'Programmation Marketplace, non modifiable' : 'Modifier'}
+                              className="p-2 rounded-xl hover:bg-white/5 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                            >
                               <Pencil size={14} className="text-white" />
                             </button>
                             <button onClick={() => deleteWOD(wod)} className="p-2 rounded-xl hover:bg-red-500/10 transition-colors">
@@ -1064,6 +1248,7 @@ export default function WODsPage() {
           onSubmit={saveWOD}
           groups={groups}
           programs={boxPrograms}
+          offers={offers}
         />
       )}
     </div>
