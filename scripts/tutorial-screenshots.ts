@@ -237,6 +237,25 @@ async function anonymize(page: Page): Promise<void> {
   }, BASE_URL);
 }
 
+/**
+ * Les modales sont posées sur un voile flouté et translucide : la page qui est
+ * derrière reste lisible à travers la capture. On rend le voile et la modale
+ * opaques pour ne garder que la modale à l'image.
+ */
+async function opaqueOverlays(page: Page): Promise<void> {
+  await page.evaluate(() => {
+    document.querySelectorAll<HTMLElement>('.fixed.inset-0.z-50').forEach((overlay) => {
+      overlay.style.backdropFilter = 'none';
+      overlay.style.backgroundColor = '#0A0A0A';
+      const panel = overlay.firstElementChild as HTMLElement | null;
+      if (panel) {
+        panel.style.backdropFilter = 'none';
+        panel.style.backgroundColor = '#111111';
+      }
+    });
+  });
+}
+
 async function capture(page: Page, shot: Shot): Promise<void> {
   await page.goto(`${BASE_URL}${shot.route}`, { waitUntil: 'networkidle' });
   // Les pages client affichent un spinner tant que la box n'est pas chargée :
@@ -251,6 +270,7 @@ async function capture(page: Page, shot: Shot): Promise<void> {
     .catch(() => undefined);
   await page.waitForTimeout(1200);
   if (shot.prepare) await shot.prepare(page);
+  await opaqueOverlays(page);
   await anonymize(page);
 
   const dir = path.join(OUT, shot.slug);
@@ -263,8 +283,23 @@ async function capture(page: Page, shot: Shot): Promise<void> {
       : shot.area
         ? page.locator(shot.area).first()
         : null;
-  if (target) await target.screenshot({ path: file });
-  else await page.screenshot({ path: file });
+  if (target) {
+    // Une capture d'élément conserve l'alpha du fond translucide des modales :
+    // on découpe donc le viewport, qui est opaque.
+    const box = await target.boundingBox();
+    if (!box) throw new Error('zone introuvable');
+    await page.screenshot({
+      path: file,
+      clip: {
+        x: Math.max(0, box.x),
+        y: Math.max(0, box.y),
+        width: Math.min(box.width, VIEWPORT.width - Math.max(0, box.x)),
+        height: Math.min(box.height, VIEWPORT.height - Math.max(0, box.y)),
+      },
+    });
+  } else {
+    await page.screenshot({ path: file });
+  }
 
   if (shot.cleanup) await shot.cleanup(page);
 }
