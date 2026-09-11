@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import { getMyBox } from '@/lib/getMyBox';
 import { writeFailure } from '@/lib/writeGuard';
+import HelpButton from '@/components/help/HelpButton';
 import { SITE_URL } from '@/lib/site-url';
 import { RETRAIT_COMPTOIR_CONFIRMATION, MENTION_ACCES_STRIPE } from '@/lib/programAccessCopy';
 import {
@@ -775,7 +776,10 @@ export default function BoxOwnerProgramsPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-2xl font-black text-white">Programmes athlètes</h1>
+        <div className="flex items-center gap-3">
+          <h1 className="text-2xl font-black text-white">Programmes athlètes</h1>
+          <HelpButton />
+        </div>
         <p className="text-sm text-gray-500 mt-1">Offres vendues ou assignées à tes membres</p>
       </div>
 

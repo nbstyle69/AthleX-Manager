@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { Plus, Users2 } from 'lucide-react';
 import { formatDate } from '@/lib/utils';
+import HelpDock from '@/components/help/HelpDock';
 
 export default async function GroupsPage() {
   const supabase = await createClient();
@@ -19,7 +20,10 @@ export default async function GroupsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-black text-white">Groupes</h1>
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl font-black text-white">Groupes</h1>
+            <HelpDock page="groups" />
+          </div>
           <p className="text-sm text-gray-400 mt-1">{groups?.length ?? 0} groupe(s)</p>
         </div>
         <Link href="/groups/new"

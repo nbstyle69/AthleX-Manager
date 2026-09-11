@@ -1,0 +1,32 @@
+---
+slug: blocs-force-musculation-cardio
+title: Blocs Musculation et Cardio
+summary: Ajouter des séries de force et des séries cardio à un WOD, et savoir ce qui compte dans les badges.
+role: coach
+pages: [whiteboard]
+tags: [musculation, force, cardio, series, badges, wod]
+order: 22
+---
+
+## Avant de commencer
+
+L'éditeur de WOD contient trois zones : **Programme / Mouvements** (le metcon), **Musculation** (optionnel) et **Cardio** (optionnel). Les deux blocs optionnels s'écrivent en séries, pas en reps libres.
+
+## Étapes
+
+1. Ouvre un WOD sur le Whiteboard et repère le bloc **Musculation (optionnel)**.
+2. Clique **Ajouter une série** puis remplis l'exercice, les séries, les reps et la charge — en kilos, en **%1RM**, ou en note libre du type `RPE 9` si la charge dépend du jour. Un **Tempo** (`30X1`) et un **Repos** peuvent compléter la ligne. <Screenshot src="/tutorials/blocs-force-musculation-cardio/1.png" alt="Bloc Musculation avec une série, charge et tempo" />
+3. Descends sur le bloc **Cardio (optionnel)** et clique **Ajouter une série cardio** : choisis le mouvement (Row, SkiErg, Run…), le nombre de séries et la quantité en mètres ou en calories.
+4. Ajoute une cible d'intensité si tu en veux une : **Watts** ou **Allure**, jamais les deux sur la même ligne. Le repos entre séries s'écrit en `mm:ss`.
+5. Publie le WOD : les trois blocs arrivent ensemble dans l'application de l'athlète, dans l'ordre où tu les as écrits.
+
+## Erreurs fréquentes
+
+- **Les séries de force ne créditent aucun badge.** C'est le comportement attendu : les séries du bloc Musculation ne comptent pas de reps de badge, ce n'est pas du metcon → mets au metcon ce qui doit compter.
+- **Une série cardio n'est pas créditée.** Le bloc Cardio, lui, est bien crédité en `séries × quantité`, mais seulement si le mouvement vient du catalogue → choisis Row, SkiErg, Run… dans la liste.
+- **Une cible d'allure est ignorée.** Des watts ET une allure ont été saisis sur la même ligne → n'en garde qu'un des deux.
+- **La charge « RPE 9 » disparaît du champ kilos.** Une charge non numérique n'est pas un poids : elle se saisit en note de charge → utilise le champ de note libre.
+
+## Y aller
+
+<GoTo page="whiteboard" />

@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { getMyBox } from '@/lib/getMyBox';
 import WodEditor from '@/components/wods/WodEditor';
+import HelpButton from '@/components/help/HelpButton';
 import ApplyProgramWeekModal from '@/components/wods/ApplyProgramWeekModal';
 import { RestrictionBadges, programColor } from '@/components/wods/RestrictionBadges';
 import AssignRestrictionsModal from '@/components/wods/AssignRestrictionsModal';
@@ -673,7 +674,10 @@ export default function WODsPage() {
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h1 className="text-2xl font-black text-white">Whiteboard</h1>
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl font-black text-white">Whiteboard</h1>
+            <HelpButton />
+          </div>
           <p className="text-sm text-gray-500 mt-0.5">Calendrier des WODs de la semaine</p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">

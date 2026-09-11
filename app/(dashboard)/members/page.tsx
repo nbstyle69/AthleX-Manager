@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Users, Search, SlidersHorizontal, X, Loader2, ChevronDown, ChevronUp, Check, Trash2, CreditCard, ShieldCheck, Crown } from 'lucide-react';
 import { getMyBox } from '@/lib/getMyBox';
+import HelpButton from '@/components/help/HelpButton';
 import { getMemberEmails } from '@/lib/memberEmails';
 import AthleteSheet from '@/components/dashboard/AthleteSheet';
 import {
@@ -450,7 +451,10 @@ export default function MembersPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-black text-white">Membres</h1>
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl font-black text-white">Membres</h1>
+            <HelpButton />
+          </div>
           <p className="text-sm text-gray-400 mt-1">{filtered.length} / {members.length} membre(s)</p>
         </div>
         <button onClick={() => setShowPlans(v => !v)}

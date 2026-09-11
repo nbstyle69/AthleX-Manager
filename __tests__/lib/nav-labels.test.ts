@@ -101,9 +101,9 @@ describe('libellés des deux rubriques de programmation', () => {
 });
 
 describe('phrase de refus coach', () => {
-  it('énumère exactement le périmètre, y compris les Créneaux types', () => {
+  it('énumère exactement le périmètre, y compris les Créneaux types et l’Aide', () => {
     expect(coachPerimeterSentence()).toBe(
-      'Whiteboard, Horaires, Créneaux types et Messages',
+      'Whiteboard, Horaires, Créneaux types, Messages et Aide',
     );
   });
 

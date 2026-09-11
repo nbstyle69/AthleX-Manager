@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { Users, FolderOpen, MessageSquare, LayoutDashboard, LogOut, Dumbbell, Sun, Moon, CalendarClock, CalendarDays, Newspaper, BarChart3, Trophy, Settings, BookOpen, CreditCard, LifeBuoy, Inbox, Store, UserPlus, MailPlus, ChevronDown, UserCircle } from 'lucide-react';
+import { Users, FolderOpen, MessageSquare, LayoutDashboard, LogOut, Dumbbell, Sun, Moon, CalendarClock, CalendarDays, Newspaper, BarChart3, Trophy, Settings, BookOpen, CreditCard, CircleHelp, LifeBuoy, Inbox, Store, UserPlus, MailPlus, ChevronDown, UserCircle } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { cn } from '@/lib/utils';
 import { useTheme } from '@/components/ThemeProvider';
@@ -63,6 +63,11 @@ const PINNED: NavItem[] = [
   { href: '/support',  label: 'Support',  icon: LifeBuoy },
   { href: '/settings', label: 'Réglages', icon: Settings },
 ];
+
+// Les tutoriels sont écrits pour les deux casquettes : l'entrée est épinglée
+// pour tout le monde, coach compris, et `/help` est nommée dans le périmètre
+// coach pour que la garde serveur et la barre latérale disent la même chose.
+const HELP: NavItem = { href: '/help', label: 'Aide', icon: CircleHelp };
 
 // La nav du coach est dérivée du même périmètre que la garde serveur
 // (`COACH_HREFS`) : masquer un lien n'est pas refuser l'accès, mais les deux ne
@@ -262,6 +267,7 @@ export default function Sidebar({ box, email, unreadCount = 0, supportUnread = 0
       {/* Épinglés + footer */}
       <div className="px-3 pt-3 border-t border-white/[0.06] space-y-0.5">
         {isOwnerAdmin && PINNED.map(navLink)}
+        {navLink(HELP)}
         {isSupportAdmin && (
           <Link href="/support/admin" className={linkClass(pathname.startsWith('/support/admin'))}>
             <Inbox size={17} className={pathname.startsWith('/support/admin') ? 'text-white' : ''} />
