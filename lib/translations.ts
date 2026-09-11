@@ -426,6 +426,11 @@ export const translations = {
         submitting: 'Mise à jour…',
         tooShort: 'Le mot de passe doit contenir au moins 6 caractères.',
         mismatch: 'Les deux mots de passe ne correspondent pas.',
+        errors: {
+          incomplete: 'Ce lien est incomplet ou mal recopié.',
+          expired: 'Ce lien a expiré ou a déjà été utilisé.',
+          invalid: "Ce lien de réinitialisation n'est plus valide.",
+        },
       },
       confirmed: {
         header: 'E-mail confirmé',
@@ -1064,6 +1069,11 @@ export const translations = {
         submitting: 'Updating…',
         tooShort: 'The password must be at least 6 characters long.',
         mismatch: 'The two passwords do not match.',
+        errors: {
+          incomplete: 'This link is incomplete or was not copied in full.',
+          expired: 'This link has expired or has already been used.',
+          invalid: 'This reset link is no longer valid.',
+        },
       },
       confirmed: {
         header: 'Email confirmed',

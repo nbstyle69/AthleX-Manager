@@ -2,8 +2,10 @@
  * Liens e-mail Supabase Auth : chaque flux porte sa page, aucun routage par
  * `type` côté web.
  *
- * Partie 1 (toujours jouée) — garde de source : la page de mot de passe écoute
- * PASSWORD_RECOVERY et ne lit plus `type` ; la page confirmée n'écoute rien.
+ * Partie 1 (toujours jouée) — garde de source : la page de mot de passe ne
+ * consomme aucun jeton d'URL (la session vient des cookies posés par
+ * `/auth/confirm`, seul endroit où le lien est vérifié) et ne lit pas `type` ;
+ * la page confirmée n'écoute rien.
  *
  * Partie 2 (pile jetable d'athlex-app) — vraie forme du lien : GoTrue génère
  * le lien tel qu'il part dans l'e-mail (`verify?token=…&type=…&redirect_to=…`),
@@ -21,11 +23,21 @@ const ROOT = path.join(__dirname, '..', '..');
 const read = (p: string) => fs.readFileSync(path.join(ROOT, p), 'utf8');
 
 describe('pages de retour auth — aucun routage par type', () => {
-  it('update-password écoute PASSWORD_RECOVERY et ne lit pas `type`', () => {
+  it('update-password ne consomme aucun jeton d\'URL et ne lit pas `type`', () => {
     const src = read('app/(auth)/update-password/page.tsx');
-    expect(src).toMatch(/onAuthStateChange\([^)]*=>[\s\S]*?'PASSWORD_RECOVERY'/);
+    // Consommer le jeton dans la page, c'est exiger le navigateur d'origine :
+    // le `code_verifier` PKCE n'existe nulle part ailleurs, et le lien ouvert
+    // depuis un webmail ou un téléphone échouait là-dessus.
+    expect(src).not.toMatch(/exchangeCodeForSession|setSession|verifyOtp/);
+    expect(src).toMatch(/getSession\(\)/);
     expect(src).not.toMatch(/get\(['"]type['"]\)/);
     expect(src).not.toMatch(/authReturn/);
+  });
+
+  it('la vérification du lien vit dans la route serveur /auth/confirm', () => {
+    const src = read('app/auth/confirm/route.ts');
+    expect(src).toMatch(/verifyOtp\(\{ type, token_hash: tokenHash \}\)/);
+    expect(src).toMatch(/createServerClient/);
   });
 
   it("email-confirme n'écoute aucun événement auth et ne consomme aucun jeton", () => {
@@ -49,9 +61,13 @@ const EMAIL_CONFIRMED_URL = `${SITE_URL}/email-confirme`;
 const landing = (loc: string) => loc.split(/[#?]/)[0];
 
 d('vraie forme du lien GoTrue → redirection réelle', () => {
-  const admin = createClient(URL_!, KEY!, { auth: { persistSession: false, autoRefreshToken: false } });
+  // Construit à l'exécution : le corps d'un `describe.skip` est quand même
+  // évalué, et un client créé ici faisait échouer la suite entière quand la
+  // pile jetable n'est pas lancée.
+  const admin = () =>
+    createClient(URL_!, KEY!, { auth: { persistSession: false, autoRefreshToken: false } });
   const created: string[] = [];
-  afterAll(async () => { for (const id of created) await admin.auth.admin.deleteUser(id); });
+  afterAll(async () => { for (const id of created) await admin().auth.admin.deleteUser(id); });
 
   async function follow(link: string) {
     const res = await fetch(link, { redirect: 'manual' });
@@ -60,10 +76,10 @@ d('vraie forme du lien GoTrue → redirection réelle', () => {
 
   it('recovery + redirectTo /update-password → 303 vers /update-password#…&type=recovery', async () => {
     const email = `a4.mgr.recovery.${Date.now()}@athlex.test`;
-    const { data: u, error: e0 } = await admin.auth.admin.createUser({ email, password: 'Passw0rd!a4', email_confirm: true });
+    const { data: u, error: e0 } = await admin().auth.admin.createUser({ email, password: 'Passw0rd!a4', email_confirm: true });
     expect(e0).toBeNull();
     created.push(u.user!.id);
-    const { data, error } = await admin.auth.admin.generateLink({ type: 'recovery', email, options: { redirectTo: UPDATE_PASSWORD_URL } });
+    const { data, error } = await admin().auth.admin.generateLink({ type: 'recovery', email, options: { redirectTo: UPDATE_PASSWORD_URL } });
     expect(error).toBeNull();
     const link = data.properties!.action_link;
     expect(link).toMatch(/\/auth\/v1\/verify\?token=.+&type=recovery&redirect_to=/);
@@ -76,7 +92,7 @@ d('vraie forme du lien GoTrue → redirection réelle', () => {
 
   it('signup + emailRedirectTo /email-confirme → 303 vers /email-confirme#…&type=signup', async () => {
     const email = `a4.mgr.signup.${Date.now()}@athlex.test`;
-    const { data, error } = await admin.auth.admin.generateLink({
+    const { data, error } = await admin().auth.admin.generateLink({
       type: 'signup', email, password: 'Passw0rd!a4', options: { redirectTo: EMAIL_CONFIRMED_URL },
     });
     expect(error).toBeNull();
