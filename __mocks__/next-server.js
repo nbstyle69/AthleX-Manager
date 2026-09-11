@@ -35,7 +35,20 @@ NextResponse.json = jest.fn((data, init) => {
     json: async () => data,
   };
 });
-NextResponse.redirect = jest.fn((url) => ({ _redirect: url, status: 302 }));
+// Une redirection peut aussi porter des cookies (session ouverte par la route
+// puis rendue au navigateur) : le bocal est observable dans les tests.
+NextResponse.redirect = jest.fn((url) => {
+  const jar = new Map();
+  return {
+    _redirect: url,
+    status: 302,
+    cookies: {
+      set: (cookie) => jar.set(cookie.name, cookie),
+      get: (name) => jar.get(name),
+      getAll: () => [...jar.values()],
+    },
+  };
+});
 NextResponse.next = jest.fn(() => ({ _next: true, status: 200 }));
 
 class NextRequest {

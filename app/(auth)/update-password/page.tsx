@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { Loader2, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
+import { isRecoveryError } from '@/lib/auth/recovery';
 import { useLanguage } from '@/components/language-provider';
 
 type Phase = 'checking' | 'ready' | 'invalid' | 'done';
@@ -22,58 +23,28 @@ export default function UpdatePasswordPage() {
   if (clientRef.current === null) clientRef.current = createClient();
   const supabase = clientRef.current;
 
-  // Seul un lien « Reset password » (redirectTo) atterrit ici : la page n'a
-  // pas à deviner le type du lien. Le client Supabase émet PASSWORD_RECOVERY
-  // quand il consomme le jeton de l'URL ; on l'écoute, et on consomme aussi
-  // nous-mêmes le fragment implicite (#access_token=…) ou le ?code= PKCE pour
-  // ouvrir la session contre laquelle updateUser() s'exécute.
+  // La session de récupération est déjà ouverte quand on arrive ici : elle a
+  // été posée dans les cookies par `/auth/confirm`, qui a vérifié le
+  // `token_hash` du lien côté serveur. La page ne consomme donc aucun jeton
+  // d'URL — c'est ce qui permet d'ouvrir le lien depuis un autre navigateur
+  // que celui de la demande. Sans session : lien expiré, déjà utilisé, ou
+  // incomplet, et on le dit dans la langue du visiteur.
   useEffect(() => {
-    const { data: sub } = supabase.auth.onAuthStateChange(event => {
-      if (event === 'PASSWORD_RECOVERY') setPhase(p => (p === 'checking' ? 'ready' : p));
-    });
     (async () => {
-      try {
-        const hash = new URLSearchParams(window.location.hash.replace(/^#/, ''));
-        const query = new URLSearchParams(window.location.search);
-
-        if (hash.get('error') || query.get('error')) {
-          setError(hash.get('error_description') || query.get('error_description') || u.invalidFallback);
-          setPhase('invalid');
-          return;
-        }
-
-        const accessToken = hash.get('access_token');
-        const refreshToken = hash.get('refresh_token');
-        const code = query.get('code');
-
-        if (accessToken && refreshToken) {
-          const { error: e } = await supabase.auth.setSession({
-            access_token: accessToken,
-            refresh_token: refreshToken,
-          });
-          if (e) throw e;
-          window.history.replaceState(null, '', window.location.pathname);
-          setPhase('ready');
-          return;
-        }
-
-        if (code) {
-          const { error: e } = await supabase.auth.exchangeCodeForSession(code);
-          if (e) throw e;
-          window.history.replaceState(null, '', window.location.pathname);
-          setPhase('ready');
-          return;
-        }
-
-        // No token in the URL but maybe detectSessionInUrl already stored one.
-        const { data } = await supabase.auth.getSession();
-        setPhase(p => (p === 'checking' ? (data.session ? 'ready' : 'invalid') : p));
-      } catch (err: unknown) {
-        setError(err instanceof Error ? err.message : u.invalidFallback);
+      const reason = new URLSearchParams(window.location.search).get('error');
+      if (reason) {
+        setError(isRecoveryError(reason) ? u.errors[reason] : u.invalidFallback);
         setPhase('invalid');
+        return;
       }
+      const { data } = await supabase.auth.getSession();
+      if (data.session) {
+        setPhase('ready');
+        return;
+      }
+      setError(u.errors.expired);
+      setPhase('invalid');
     })();
-    return () => sub.subscription.unsubscribe();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -86,8 +57,11 @@ export default function UpdatePasswordPage() {
     try {
       const { error: authError } = await supabase.auth.updateUser({ password });
       if (authError) { setError(authError.message); setLoading(false); return; }
-      // Sign out so the recovery session isn't left lingering; user logs in fresh.
+      // La session de récupération ne doit pas survivre au changement : on la
+      // ferme des deux côtés (navigateur et cookies serveur), l'utilisateur se
+      // reconnecte avec son nouveau mot de passe.
       await supabase.auth.signOut();
+      await fetch('/api/auth/clear-session', { method: 'POST' }).catch(() => {});
       setPhase('done');
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : t.funnel.common.networkError);
