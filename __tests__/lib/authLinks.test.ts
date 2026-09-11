@@ -46,6 +46,23 @@ describe('pages de retour auth — aucun routage par type', () => {
     expect(src).not.toMatch(/get\(['"]type['"]\)/);
   });
 
+  it("chaque envoi impose sa cible : aucun e-mail ne dépend du « Site URL »", () => {
+    // Le « Site URL » du projet Supabase porte un chemin (`…/email-confirme`),
+    // hérité par tout lien construit sur `{{ .SiteURL }}`.
+    expect(read('app/api/auth/signup/route.ts')).toMatch(
+      /emailRedirectTo: `\$\{SITE_URL\}\/email-confirme`/,
+    );
+    expect(read('app/api/invitations/accept/route.ts')).toMatch(
+      /emailRedirectTo: `\$\{SITE_URL\}\/email-confirme`/,
+    );
+  });
+
+  it('les liens déjà envoyés sous /email-confirme/auth/* retombent sur /auth/*', () => {
+    expect(read('next.config.mjs')).toMatch(
+      /source: '\/email-confirme\/auth\/:path\*', destination: '\/auth\/:path\*'/,
+    );
+  });
+
   it('lib/authReturn (routage par type) a disparu', () => {
     expect(fs.existsSync(path.join(ROOT, 'lib', 'authReturn.ts'))).toBe(false);
   });

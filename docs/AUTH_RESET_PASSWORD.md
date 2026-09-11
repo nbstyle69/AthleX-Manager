@@ -16,7 +16,7 @@ Deux réglages sont à appliquer **dans le dashboard Supabase** (aucune migratio
 Le lien expire après une heure et ne fonctionne qu'une fois.</p>
 
 <p>
-  <a href="{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=recovery&next={{ .RedirectTo }}">
+  <a href="https://athlexapp.eu/auth/confirm?token_hash={{ .TokenHash }}&type=recovery&next={{ .RedirectTo }}">
     Choisir un nouveau mot de passe
   </a>
 </p>
@@ -39,14 +39,27 @@ Points importants :
   sienne : un `redirectTo` étranger retombe sur `/update-password`.
 - Si `next` est absent, la route redirige vers `/update-password` : le template
   fonctionne aussi sans ce paramètre.
+- **Le domaine est écrit en clair, pas `{{ .SiteURL }}`.** Le « Site URL » du
+  projet vaut aujourd'hui `https://athlexapp.eu/email-confirme` : un lien bâti
+  sur `{{ .SiteURL }}` hérite de ce chemin et donne
+  `https://athlexapp.eu/email-confirme/auth/confirm?token_hash=…`, donc un 404
+  — la vérification vit sous `/auth/*`. Aucune règle du dépôt ne réécrit
+  `/auth/*` : le préfixe vient de ce réglage.
 
 ## 2. Authentication → URL Configuration
 
-- **Site URL** : `https://athlexapp.eu` (c'est le `{{ .SiteURL }}` du lien).
+- **Site URL** : `https://athlexapp.eu`, **sans `/email-confirme`**. Le suffixe
+  n'a plus d'utilité : chaque envoi impose sa cible
+  (`emailRedirectTo: ${SITE_URL}/email-confirme` dans `app/api/auth/signup` et
+  `app/api/invitations/accept`, `UPDATE_PASSWORD_URL` côté mobile), donc la
+  confirmation d'inscription atterrit toujours sur `/email-confirme`.
 - **Redirect URLs** : conserver `https://athlexapp.eu/update-password` et
   `https://athlexapp.eu/email-confirme`, et ajouter
   `https://athlexapp.eu/auth/confirm` (plus, si les previews doivent être
   testées, `https://*.vercel.app/auth/confirm`).
+- Les liens déjà partis avec le chemin hérité restent utilisables :
+  `/email-confirme/auth/*` est redirigé vers `/auth/*`, paramètres intacts
+  (`next.config.mjs`).
 
 ## 3. Protocole de test en production
 
