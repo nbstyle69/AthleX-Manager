@@ -1,0 +1,32 @@
+---
+slug: importer-un-pdf-de-programmation
+title: Import a programming PDF
+summary: Turn a weekly PDF into WODs or program sessions, reviewing the preview screen first.
+role: coach
+pages: [whiteboard, programs]
+tags: [pdf, import, programming, preview, coach notes]
+order: 24
+---
+
+## Before you start
+
+The PDF import reads a programming document and proposes ready-to-insert sessions: on the **Whiteboard** for the box week, or in the session editor of an athlete program. The analysis is a proposal, never a direct save.
+
+## Steps
+
+1. From the Whiteboard, open the import and drop your file — you can also drag it onto the page, which shows "Lâche ton fichier pour l'importer".
+2. Wait for the analysis to finish. The preview screen lists every detected session with its movements, its **Musculation** block and its **Notes coach**. <Screenshot src="/tutorials/importer-un-pdf-de-programmation/1.png" alt="PDF import preview with the detected sessions" />
+3. Review it line by line. Highlighted fields carry the warning "Mouvement hors catalogue" (movement out of catalogue): fix them by picking the exercise from the list, or knowingly keep the raw name.
+4. Pick the audience under **Qui verra ces WOD** (or **Qui verra ces séances** for an athlete program): the whole box, some groups, or nobody for now.
+5. Confirm the insertion. Sessions land on the detected days and stay editable like any other WOD.
+
+## Common mistakes
+
+- **"Aucun WOD détecté dans ce PDF." (no WOD detected).** The document is a scanned image or a layout the analysis does not recognise → type the week in by hand, or use a text PDF.
+- **RPE or percentage-of-RM loads vanished from the weight fields.** A non-numeric load is not a kilo: it becomes a load note or coach notes → check it in the preview before inserting.
+- **Some movements are highlighted in orange.** They are out of catalogue and will be kept as is, so without badges → replace them with a list entry.
+- **Imported sessions are visible to nobody.** The audience chosen in the preview was "nobody yet" → reopen each session and set its audience.
+
+## Go there
+
+<GoTo page="whiteboard" />

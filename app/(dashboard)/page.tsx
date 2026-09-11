@@ -4,6 +4,7 @@ import { cookies } from 'next/headers';
 import Link from 'next/link';
 import { Trophy, Users, Clock, MessageSquare, ChevronRight, CheckCircle, XCircle } from 'lucide-react';
 import { formatDateTime, statusBadge } from '@/lib/utils';
+import HelpDock from '@/components/help/HelpDock';
 import LogoUploadWidget from '@/components/dashboard/LogoUploadWidget';
 import InviteCodeWidget from '@/components/dashboard/InviteCodeWidget';
 
@@ -84,7 +85,10 @@ export default async function DashboardPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-2xl font-black text-white">Dashboard</h1>
+        <div className="flex items-center gap-3">
+          <h1 className="text-2xl font-black text-white">Dashboard</h1>
+          <HelpDock page="dashboard" />
+        </div>
         <p className="text-sm text-gray-400 mt-1">Bienvenue dans AthleX Manager — {box.name}</p>
       </div>
 

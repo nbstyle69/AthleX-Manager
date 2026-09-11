@@ -3,6 +3,9 @@
  * Whiteboard, Horaires, Modèles de créneaux, Messages. Le mobile a déjà tranché
  * cette frontière ; on ne la réinvente pas ici.
  *
+ * `help` (les tutoriels) est nommée ici pour la même raison : le contenu
+ * s'adresse aux owners ET aux coachs, et une route non nommée est refusée.
+ *
  * Lot 6 : `templates` (la grille de créneaux récurrents) entre dans le
  * périmètre. Le coach détient déjà côté serveur les quatre gestes de
  * programmation et la génération des créneaux depuis les modèles — l'écran
@@ -17,7 +20,7 @@
  * Module sans dépendance sur `next/*` : la garde serveur, la barre latérale et
  * le contrôle mécanique des routes lisent tous cette source unique.
  */
-export const COACH_ROUTE_SEGMENTS = ['wods', 'schedules', 'templates', 'messages'] as const;
+export const COACH_ROUTE_SEGMENTS = ['wods', 'schedules', 'templates', 'messages', 'help'] as const;
 
 export const COACH_HREFS: readonly string[] = COACH_ROUTE_SEGMENTS.map((s) => `/${s}`);
 
@@ -34,9 +37,10 @@ export const COACH_ROUTE_LABELS: Record<(typeof COACH_ROUTE_SEGMENTS)[number], s
   schedules: 'Horaires',
   templates: 'Créneaux types',
   messages: 'Messages',
+  help: 'Aide',
 };
 
-/** « Whiteboard, Horaires, Créneaux types et Messages » */
+/** « Whiteboard, Horaires, Créneaux types, Messages et Aide » */
 export function coachPerimeterSentence(): string {
   const labels = COACH_ROUTE_SEGMENTS.map((s) => COACH_ROUTE_LABELS[s]);
   return `${labels.slice(0, -1).join(', ')} et ${labels[labels.length - 1]}`;

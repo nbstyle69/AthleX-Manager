@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import HelpButton from '@/components/help/HelpButton';
 import {
   Store, Plus, Pencil, Trash2, X, Check, Loader2, Search, Package,
   Globe, Lock, Video, Upload, Info, AlertTriangle,
@@ -199,6 +200,7 @@ export default function ProgrammingPage() {
       <div className="flex items-center gap-3 mb-1">
         <Store className="text-white" size={26} />
         <h1 className="text-2xl font-black text-white">Marketplace</h1>
+        <HelpButton />
       </div>
       <p className="text-sm text-gray-400 mb-6">
         Achète ou vends des programmations entre box. Ce que tu reçois arrive dans ton Whiteboard ; réservé au gérant et aux coachs.

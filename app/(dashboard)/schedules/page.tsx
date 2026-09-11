@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { getMemberEmails } from '@/lib/memberEmails';
 import TemplatesDrawer from '@/components/TemplatesDrawer';
+import HelpButton from '@/components/help/HelpButton';
 import {
   Plus, ChevronLeft, ChevronRight, Pencil, Trash2,
   Users, X, Loader2, Clock, Timer, CalendarCheck, LayoutTemplate, UserMinus,
@@ -545,7 +546,10 @@ export default function SchedulesPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-black text-white">Horaires & Créneaux</h1>
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl font-black text-white">Horaires & Créneaux</h1>
+            <HelpButton />
+          </div>
           <p className="text-sm text-gray-400 mt-1">Gérez les créneaux de cours de votre box</p>
         </div>
         <div className="flex items-center gap-3">

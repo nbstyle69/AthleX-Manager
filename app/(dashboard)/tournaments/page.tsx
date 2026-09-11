@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { Plus, Trophy, Users, Clock, ChevronRight, Archive } from 'lucide-react';
 import { formatDate, tournamentStatusInfo } from '@/lib/utils';
 import TopEloCard from '@/components/stats/TopEloCard';
+import HelpDock from '@/components/help/HelpDock';
 
 export default async function TournamentsPage() {
   const supabase = await createClient();
@@ -93,7 +94,10 @@ export default async function TournamentsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-black text-white">Tournois</h1>
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl font-black text-white">Tournois</h1>
+            <HelpDock page="tournaments" />
+          </div>
           <p className="text-sm text-gray-400 mt-1">{tournaments?.length ?? 0} tournoi(s) créé(s)</p>
         </div>
         <Link href="/tournaments/new"

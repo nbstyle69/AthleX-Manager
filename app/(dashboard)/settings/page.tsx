@@ -4,6 +4,7 @@ import { useEffect, useState, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { getMyBox } from '@/lib/getMyBox';
 import { writeFailure } from '@/lib/writeGuard';
+import HelpButton from '@/components/help/HelpButton';
 import { Upload, ImageIcon, Trash2, CheckCircle, Phone, MapPin, Calendar, User, Users, FileText, Mail, Download, Loader2 } from 'lucide-react';
 
 type GeoResult = {
@@ -467,7 +468,10 @@ export default function SettingsPage() {
   return (
     <div className="space-y-8 max-w-2xl">
       <div>
-        <h1 className="text-2xl font-black text-white">Réglages</h1>
+        <div className="flex items-center gap-3">
+          <h1 className="text-2xl font-black text-white">Réglages</h1>
+          <HelpButton />
+        </div>
         <p className="text-sm text-gray-400 mt-1">Personnalisez votre box — {box.name}</p>
       </div>
 
