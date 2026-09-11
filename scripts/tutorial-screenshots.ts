@@ -31,7 +31,7 @@
 
 import fs from 'fs';
 import path from 'path';
-import { chromium, type Browser, type Page } from 'playwright';
+import { chromium, type Browser, type Locator, type Page } from 'playwright';
 
 const BASE_URL = (process.env.BASE_URL ?? 'http://localhost:3000').replace(/\/$/, '');
 const DEMO_EMAIL = process.env.DEMO_EMAIL ?? '';
@@ -50,19 +50,20 @@ interface Shot {
   /** Route à ouvrir avant la capture. */
   route: string;
   /** Zone capturée. Absent = viewport entier. */
-  area?: string;
+  area?: string | ((page: Page) => Locator);
   /** Amène la page dans l'état voulu (ouvrir une modale, etc.). */
   prepare?: (page: Page) => Promise<void>;
   /** Remet la page dans son état initial (aucune donnée laissée derrière). */
   cleanup?: (page: Page) => Promise<void>;
 }
 
-const MAIN = 'main';
+/** Panneau des modales du Manager : un overlay plein écran et son unique enfant. */
+const MODAL = '.fixed.inset-0.z-50 > div';
 
 /** Ferme une modale sans enregistrer : rien ne doit rester dans la box. */
 const escape = async (page: Page) => {
   await page.keyboard.press('Escape');
-  await page.waitForTimeout(300);
+  await page.goto(`${BASE_URL}/`, { waitUntil: 'domcontentloaded' });
 };
 
 const click = (label: string | RegExp) => async (page: Page) => {
@@ -71,15 +72,15 @@ const click = (label: string | RegExp) => async (page: Page) => {
 };
 
 const SHOTS: Shot[] = [
-  { slug: 'premiers-pas', n: 1, route: '/', area: MAIN },
-  { slug: 'creer-un-wod', n: 1, route: '/wods', area: MAIN },
+  { slug: 'premiers-pas', n: 1, route: '/' },
+  { slug: 'creer-un-wod', n: 1, route: '/wods' },
   {
     slug: 'creer-un-wod',
     n: 2,
     route: '/wods',
     prepare: click(/Nouveau WOD/i),
     cleanup: escape,
-    area: '[role="dialog"]',
+    area: MODAL,
   },
   {
     slug: 'visibilite-d-un-wod',
@@ -91,7 +92,8 @@ const SHOTS: Shot[] = [
       await page.waitForTimeout(400);
     },
     cleanup: escape,
-    area: '[role="dialog"]',
+    area: (page) =>
+      page.getByText(/Qui reçoit ce WOD/i).first().locator('xpath=ancestor::div[1]'),
   },
   {
     slug: 'blocs-force-musculation-cardio',
@@ -99,38 +101,74 @@ const SHOTS: Shot[] = [
     route: '/wods',
     prepare: async (page) => {
       await click(/Nouveau WOD/i)(page);
-      await page.getByText(/Musculation/i).first().scrollIntoViewIfNeeded();
+      // La modale défile dans sa propre boîte : sans scroll forcé, la capture
+      // s'arrête avant les séries de musculation et de cardio.
+      await page.locator(MODAL).first().evaluate((el) => {
+        el.scrollTop = 500;
+      });
       await page.waitForTimeout(400);
     },
     cleanup: escape,
-    area: '[role="dialog"]',
+    area: MODAL,
   },
-  { slug: 'mouvements-et-badges', n: 1, route: '/wods', area: MAIN },
-  { slug: 'importer-un-pdf-de-programmation', n: 1, route: '/wods', area: MAIN },
+  {
+    slug: 'mouvements-et-badges',
+    n: 1,
+    route: '/wods',
+    prepare: async (page) => {
+      await click(/Nouveau WOD/i)(page);
+      await click(/Ajouter un mouvement/i)(page);
+      await page.waitForTimeout(600);
+    },
+    cleanup: escape,
+    area: MODAL,
+  },
+  // « Importer » est un label sur un input fichier caché : le cliquer ouvrirait
+  // le sélecteur de fichiers de l'OS, donc on capture la barre d'outils.
+  {
+    slug: 'importer-un-pdf-de-programmation',
+    n: 1,
+    route: '/wods',
+    area: (page) =>
+      page.getByText(/Template CSV/i).first().locator('xpath=ancestor::div[1]'),
+  },
   {
     slug: 'semaines-types',
     n: 1,
     route: '/wods',
     prepare: click(/Enregistrer comme semaine type/i),
     cleanup: escape,
-    area: '[role="dialog"]',
+    area: MODAL,
   },
-  { slug: 'groupes-de-membres', n: 1, route: '/groups', area: MAIN },
-  { slug: 'membres-et-formules', n: 1, route: '/members', area: MAIN },
-  { slug: 'creneaux-et-reservations', n: 1, route: '/schedules', area: MAIN },
-  { slug: 'programmes-athletes-seances', n: 1, route: '/programs', area: MAIN },
-  { slug: 'programmes-athletes-vente', n: 1, route: '/programs', area: MAIN },
-  { slug: 'marketplace-s-abonner-a-une-programmation', n: 1, route: '/programming', area: MAIN },
-  { slug: 'marketplace-publier-une-offre', n: 1, route: '/programming', area: MAIN },
+  { slug: 'groupes-de-membres', n: 1, route: '/groups' },
+  { slug: 'membres-et-formules', n: 1, route: '/members' },
+  { slug: 'creneaux-et-reservations', n: 1, route: '/schedules' },
+  { slug: 'programmes-athletes-seances', n: 1, route: '/programs' },
+  {
+    slug: 'programmes-athletes-vente',
+    n: 1,
+    route: '/programs',
+    prepare: async (page) => {
+      await page.evaluate(() => window.scrollBy(0, 900));
+      await page.waitForTimeout(400);
+    },
+  },
+  { slug: 'marketplace-s-abonner-a-une-programmation', n: 1, route: '/programming' },
+  {
+    slug: 'marketplace-publier-une-offre',
+    n: 1,
+    route: '/programming',
+    prepare: click(/^Mes offres$/i),
+  },
   {
     slug: 'marketplace-appliquer-au-whiteboard',
     n: 1,
     route: '/wods',
     prepare: click(/^Programmation$/i),
     cleanup: escape,
-    area: '[role="dialog"]',
+    area: MODAL,
   },
-  { slug: 'tournois', n: 1, route: '/tournaments', area: MAIN },
+  { slug: 'tournois', n: 1, route: '/tournaments' },
 ];
 
 async function openBrowser(): Promise<Browser> {
@@ -139,7 +177,13 @@ async function openBrowser(): Promise<Browser> {
 }
 
 async function signIn(page: Page) {
-  await page.goto(`${BASE_URL}/login/box`, { waitUntil: 'domcontentloaded' });
+  await page.goto(`${BASE_URL}/login/box`, { waitUntil: 'networkidle' });
+  // Sans hydratation, le clic déclenche l'envoi natif du formulaire (GET) et
+  // la page se recharge sans jamais appeler Supabase.
+  await page.waitForFunction(() => {
+    const form = document.querySelector('form');
+    return !!form && Object.keys(form).some((k) => k.startsWith('__react'));
+  }, undefined, { timeout: 30_000 });
   await page.locator('input[type="email"]').fill(DEMO_EMAIL);
   await page.locator('input[type="password"]').fill(DEMO_PASSWORD);
   await page.locator('button[type="submit"]').click();
@@ -157,16 +201,60 @@ async function assertDemoBox(page: Page) {
   }
 }
 
+/**
+ * Neutralise ce qui ne doit pas finir dans une capture publique : l'adresse du
+ * gérant, le code d'invitation de la box et l'origine de capture (une preview
+ * ou un poste local n'a rien à faire dans un tutoriel).
+ */
+async function anonymize(page: Page): Promise<void> {
+  await page.evaluate((origin) => {
+    const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+    const email = /[\w.+-]+@[\w-]+\.[\w.]+/g;
+    let node: Node | null = walker.nextNode();
+    while (node) {
+      const text = node.nodeValue ?? '';
+      let next = text;
+      if (email.test(next)) next = next.replace(email, 'gerant@exemple.fr');
+      email.lastIndex = 0;
+      next = next.split(origin).join('https://athlexapp.eu');
+      if (next !== text) node.nodeValue = next;
+      node = walker.nextNode();
+    }
+
+    const label = Array.from(document.querySelectorAll('*')).find(
+      (el) => el.children.length === 0 && /code d'invitation box/i.test(el.textContent ?? ''),
+    );
+    const code = label?.nextElementSibling;
+    if (code && /^[\s\w]+$/.test(code.textContent ?? '')) code.textContent = 'ABC123';
+  }, BASE_URL);
+}
+
 async function capture(page: Page, shot: Shot): Promise<void> {
   await page.goto(`${BASE_URL}${shot.route}`, { waitUntil: 'networkidle' });
-  await page.waitForTimeout(800);
+  // Les pages client affichent un spinner tant que la box n'est pas chargée :
+  // sans cette attente, la capture ne montre que le spinner.
+  await page
+    .waitForFunction(() => !document.querySelector('.animate-spin'), undefined, { timeout: 30_000 })
+    .catch(() => undefined);
+  await page
+    .waitForFunction(() => !/Chargement/.test(document.body.innerText), undefined, {
+      timeout: 30_000,
+    })
+    .catch(() => undefined);
+  await page.waitForTimeout(1200);
   if (shot.prepare) await shot.prepare(page);
+  await anonymize(page);
 
   const dir = path.join(OUT, shot.slug);
   fs.mkdirSync(dir, { recursive: true });
   const file = path.join(dir, `${shot.n}.png`);
 
-  const target = shot.area ? page.locator(shot.area).first() : null;
+  const target =
+    typeof shot.area === 'function'
+      ? shot.area(page)
+      : shot.area
+        ? page.locator(shot.area).first()
+        : null;
   if (target) await target.screenshot({ path: file });
   else await page.screenshot({ path: file });
 
