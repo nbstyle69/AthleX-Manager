@@ -158,7 +158,15 @@ const SHOTS: Shot[] = [
     slug: 'marketplace-publier-une-offre',
     n: 1,
     route: '/programming',
-    prepare: click(/^Mes offres$/i),
+    // Publier une vraie offre polluerait le catalogue public des autres box :
+    // on montre le formulaire de création, jamais une offre publiée.
+    prepare: async (page) => {
+      await click(/^Mes offres$/i)(page);
+      await click(/Nouvelle programmation/i)(page);
+      await page.waitForTimeout(600);
+    },
+    cleanup: escape,
+    area: MODAL,
   },
   {
     slug: 'marketplace-appliquer-au-whiteboard',
