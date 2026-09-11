@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 import { createServiceClient } from '@/lib/supabase/server';
+import { SITE_URL } from '@/lib/site-url';
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
@@ -53,7 +54,12 @@ export async function POST(request: NextRequest) {
   const { data, error } = await anon.auth.signUp({
     email: cleanEmail,
     password,
-    options: { data: { username: finalUsername, level: 'inter', gender: gender || null } },
+    options: {
+      // Cible explicite du lien de confirmation : sans elle, GoTrue retombe sur
+      // le « Site URL » du projet, partagé par tous les e-mails d'authentification.
+      emailRedirectTo: `${SITE_URL}/email-confirme`,
+      data: { username: finalUsername, level: 'inter', gender: gender || null },
+    },
   });
   if (error) {
     // Seul conflit encore possible ici : l'e-mail. L'unicité du pseudo est

@@ -19,6 +19,16 @@ const nextConfig = {
       './node_modules/@napi-rs/canvas-linux-x64-gnu/**',
     ],
   },
+  // Les liens d'authentification construits sur `{{ .SiteURL }}` héritent du
+  // chemin porté par ce réglage Supabase (`…/email-confirme`), d'où des URL
+  // `/email-confirme/auth/confirm?token_hash=…` en 404. La vérification vit
+  // sous `/auth/*` : on y renvoie, requête et paramètres intacts, pour que les
+  // liens déjà envoyés restent utilisables.
+  async redirects() {
+    return [
+      { source: '/email-confirme/auth/:path*', destination: '/auth/:path*', permanent: false },
+    ];
+  },
   images: {
     remotePatterns: [
       { protocol: 'https', hostname: '*.supabase.co' },
