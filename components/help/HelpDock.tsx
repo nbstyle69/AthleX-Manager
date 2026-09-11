@@ -12,14 +12,21 @@ import type { PageId } from '@/lib/tutorials/pages';
  */
 function itemsForPage(page: PageId): HelpSheetItems {
   const items: HelpSheetItems = {};
-  for (const locale of LOCALES) {
-    items[locale] = getTutorialsForPage(locale, page).map((t) => ({
-      slug: t.slug,
-      title: t.title,
-      summary: t.summary,
-      role: t.role,
-      content: <TutorialBody locale={t.locale} body={t.body} />,
-    }));
+  try {
+    for (const locale of LOCALES) {
+      items[locale] = getTutorialsForPage(locale, page).map((t) => ({
+        slug: t.slug,
+        title: t.title,
+        summary: t.summary,
+        role: t.role,
+        content: <TutorialBody locale={t.locale} body={t.body} />,
+      }));
+    }
+  } catch (err) {
+    // L'aide est secondaire : une page du back-office ne tombe jamais parce
+    // qu'un tutoriel est illisible, elle s'affiche sans bouton « ? ».
+    console.error(`[help] tutoriels indisponibles pour « ${page} »`, err);
+    return {};
   }
   return items;
 }

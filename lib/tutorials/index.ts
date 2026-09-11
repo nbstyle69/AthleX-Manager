@@ -1,15 +1,15 @@
-import fs from 'fs';
-import path from 'path';
+import { RAW_TUTORIALS } from './content.generated';
 import { parseFrontmatter, tutorialFrontmatterSchema, type TutorialFrontmatter } from './schema';
 import { LOCALES, themeForOrder, type Locale, type ThemeId } from './i18n';
 import { countSteps, extractHeadings, toPlainText, type Heading } from './text';
 import type { PageId } from './pages';
 
 /**
- * Chargement des tutoriels depuis `content/tutorials/{fr,en}` : lecture disque,
- * validation zod, tri par `order`. Aucun appel réseau, aucune table Supabase —
- * le contenu est versionné avec le code, donc il suit les PR de l'UI qu'il
- * décrit.
+ * Chargement des tutoriels de `content/tutorials/{fr,en}` : validation zod, tri
+ * par `order`. Aucun appel réseau, aucune table Supabase, et aucun accès disque
+ * à la requête — le MDX est embarqué dans le bundle au build par
+ * `scripts/generate-tutorials-content.mjs`, car le dossier `content/` n'est pas
+ * déployé avec les fonctions serverless.
  */
 
 export interface TutorialMeta extends TutorialFrontmatter {
@@ -25,22 +25,10 @@ export interface Tutorial extends TutorialMeta {
   headings: Heading[];
 }
 
-const CONTENT_DIR = path.join(process.cwd(), 'content', 'tutorials');
-
-function localeDir(locale: Locale): string {
-  return path.join(CONTENT_DIR, locale);
-}
-
 const cache = new Map<Locale, Tutorial[]>();
 
 export function listSlugs(locale: Locale): string[] {
-  const dir = localeDir(locale);
-  if (!fs.existsSync(dir)) return [];
-  return fs
-    .readdirSync(dir)
-    .filter((f) => f.endsWith('.mdx'))
-    .map((f) => f.replace(/\.mdx$/, ''))
-    .sort();
+  return Object.keys(RAW_TUTORIALS[locale] ?? {}).sort();
 }
 
 function load(locale: Locale): Tutorial[] {
@@ -48,7 +36,7 @@ function load(locale: Locale): Tutorial[] {
   if (cached && process.env.NODE_ENV === 'production') return cached;
 
   const tutorials = listSlugs(locale).map((slug) => {
-    const raw = fs.readFileSync(path.join(localeDir(locale), `${slug}.mdx`), 'utf8');
+    const raw = RAW_TUTORIALS[locale][slug];
     let front: TutorialFrontmatter;
     let body: string;
     try {

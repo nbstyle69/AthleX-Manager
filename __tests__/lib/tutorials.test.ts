@@ -1,3 +1,4 @@
+import { execFileSync } from 'child_process';
 import fs from 'fs';
 import path from 'path';
 
@@ -50,6 +51,16 @@ describe('tutoriels — chargement et front matter', () => {
   it('expose les 16 slugs attendus, sans doublon', () => {
     expect(allSlugs().sort()).toEqual([...EXPECTED_SLUGS].sort());
     expect(new Set(allSlugs()).size).toBe(EXPECTED_SLUGS.length);
+  });
+
+  it('embarque exactement le contenu de content/tutorials (fichier généré à jour)', () => {
+    const generated = path.join(process.cwd(), 'lib', 'tutorials', 'content.generated.ts');
+    const before = fs.readFileSync(generated, 'utf8');
+    execFileSync(process.execPath, ['scripts/generate-tutorials-content.mjs'], {
+      cwd: process.cwd(),
+      stdio: 'ignore',
+    });
+    expect(fs.readFileSync(generated, 'utf8')).toBe(before);
   });
 
   it('garde la parité FR/EN sur les slugs', () => {

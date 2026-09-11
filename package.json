@@ -4,6 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "gen:tutorials": "node scripts/generate-tutorials-content.mjs",
+    "prebuild": "node scripts/generate-tutorials-content.mjs",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",

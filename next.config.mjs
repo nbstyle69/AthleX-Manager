@@ -12,11 +12,6 @@ const nextConfig = {
   // Chargements dynamiques invisibles au file tracing : `@napi-rs/canvas` (createRequire dans un
   // try/catch) et le worker `pdf.worker.mjs` (import() à l'exécution). On les embarque explicitement.
   outputFileTracingIncludes: {
-    // Les tutoriels sont lus sur le disque au rendu : sans cette inclusion, le
-    // file tracing ne voit pas des chemins construits à l'exécution et la page
-    // Aide arrive vide en production.
-    '/(dashboard)/help/**': ['./content/tutorials/**/*.mdx'],
-    '/(dashboard)/**': ['./content/tutorials/**/*.mdx'],
     '/api/wods/import-pdf': [
       './node_modules/pdf-parse/dist/**',
       './node_modules/pdfjs-dist/legacy/build/**',
