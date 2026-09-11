@@ -1,15 +1,18 @@
-import { MDXRemote } from 'next-mdx-remote/rsc';
 import { helpMdxComponents } from './mdx';
+import { TUTORIAL_COMPONENTS } from '@/lib/tutorials/components.generated';
 import type { Locale } from '@/lib/tutorials/i18n';
 
 /**
- * Rendu du corps MDX en Server Component : le contenu part au navigateur déjà
- * rendu, sans compilateur MDX dans le bundle client ni appel réseau.
+ * Rendu du corps d'un tutoriel en Server Component. Le MDX est compilé au
+ * build (imports statiques), donc aucun compilateur ni lecture disque à la
+ * requête et un seul runtime JSX.
  */
-export default function TutorialBody({ locale, body }: { locale: Locale; body: string }) {
+export default function TutorialBody({ locale, slug }: { locale: Locale; slug: string }) {
+  const Body = TUTORIAL_COMPONENTS[locale]?.[slug];
+  if (!Body) return null;
   return (
     <div className="text-sm text-gray-300">
-      <MDXRemote source={body} components={helpMdxComponents(locale)} />
+      <Body components={helpMdxComponents(locale)} />
     </div>
   );
 }

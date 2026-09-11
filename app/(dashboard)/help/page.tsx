@@ -1,16 +1,26 @@
 import HelpBrowser from '@/components/help/HelpBrowser';
-import { getTutorialIndex } from '@/lib/tutorials';
+import { getTutorialIndex, type TutorialMeta } from '@/lib/tutorials';
+import { LOCALES, type Locale } from '@/lib/tutorials/i18n';
 
-/**
- * Page Aide : les deux index de langue sont rendus côté serveur puis remis au
- * navigateur, qui filtre et cherche sans aucun appel réseau (§6).
- */
 export const metadata = { title: 'Aide · AthleX Manager' };
+
+/** Un index illisible donne une liste vide, pas une erreur de rendu. */
+function indexes(): Record<Locale, TutorialMeta[]> {
+  const built = { fr: [], en: [] } as Record<Locale, TutorialMeta[]>;
+  for (const locale of LOCALES) {
+    try {
+      built[locale] = getTutorialIndex(locale);
+    } catch (err) {
+      console.error(`[help] index indisponible (${locale})`, err);
+    }
+  }
+  return built;
+}
 
 export default function HelpPage() {
   return (
     <div className="mx-auto max-w-5xl px-6 py-8 md:px-8">
-      <HelpBrowser indexes={{ fr: getTutorialIndex('fr'), en: getTutorialIndex('en') }} />
+      <HelpBrowser indexes={indexes()} />
     </div>
   );
 }

@@ -40,3 +40,26 @@ export const RAW_TUTORIALS: Record<Locale, Record<string, string>> = {
     "visibilite-d-un-wod": "---\nslug: visibilite-d-un-wod\ntitle: WOD visibility\nsummary: Understand the whole box, selected groups and \"nobody yet\", and know who will see a session.\nrole: both\npages: [whiteboard]\ntags: [visibility, audience, groups, nobody yet, whiteboard]\norder: 21\n---\n\n## Before you start\n\nEvery WOD carries an audience, set in the **Qui reçoit ce WOD ?** block of the editor. It is the only thing that decides what a member sees in the app.\n\n## Steps\n\n1. On the Whiteboard, open the WOD and scroll to **Qui reçoit ce WOD ?**. <Screenshot src=\"/tutorials/visibilite-d-un-wod/1.png\" alt=\"Audience block with its three options\" />\n2. Pick **Toute la box** (whole box) for shared programming: every active member sees the session at the time you set.\n3. Pick **Ces groupes** (these groups) and tick the groups for a session reserved to one level, time slot or program.\n4. Keep **Personne encore** (nobody yet) for a draft: the session stays visible to you only, in the back-office.\n5. Save. The Whiteboard card shows the chosen audience — check it at a glance before the class starts.\n\n## Common mistakes\n\n- **\"My athletes see nothing although the WOD is there.\"** The WOD is set to \"Personne encore\": no member ever sees it → change the audience.\n- **Weeks received from the Marketplace do not appear on the athlete side.** Automatic placements arrive as \"Personne encore\" by design, so you decide who gets them → open each received session and set its audience.\n- **A member of the group still does not see the session.** They are not in the ticked group, or are no longer an active member → check their member record.\n- **The session shows up late.** The WOD time is the publication time → move it earlier if athletes should have it in the morning.\n\n## Go there\n\n<GoTo page=\"whiteboard\" />\n",
   },
 };
+
+/** Captures livrées dans `public/tutorials` au moment du build. */
+export const SCREENSHOTS: readonly string[] = [
+  "/tutorials/blocs-force-musculation-cardio/1.png",
+  "/tutorials/creer-un-wod/1.png",
+  "/tutorials/creer-un-wod/2.png",
+  "/tutorials/creneaux-et-reservations/1.png",
+  "/tutorials/groupes-de-membres/1.png",
+  "/tutorials/importer-un-pdf-de-programmation/1.png",
+  "/tutorials/marketplace-appliquer-au-whiteboard/1.png",
+  "/tutorials/marketplace-publier-une-offre/1.png",
+  "/tutorials/marketplace-s-abonner-a-une-programmation/1.png",
+  "/tutorials/marketplace-s-abonner-a-une-programmation/2.png",
+  "/tutorials/marketplace-s-abonner-a-une-programmation/3.png",
+  "/tutorials/membres-et-formules/1.png",
+  "/tutorials/mouvements-et-badges/1.png",
+  "/tutorials/premiers-pas/1.png",
+  "/tutorials/programmes-athletes-seances/1.png",
+  "/tutorials/programmes-athletes-vente/1.png",
+  "/tutorials/semaines-types/1.png",
+  "/tutorials/tournois/1.png",
+  "/tutorials/visibilite-d-un-wod/1.png",
+];

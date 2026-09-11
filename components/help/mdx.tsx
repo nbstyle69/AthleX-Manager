@@ -1,16 +1,16 @@
-import fs from 'fs';
-import path from 'path';
 import Link from 'next/link';
 import { ArrowUpRight, ImageOff, Info, TriangleAlert } from 'lucide-react';
 import { HELP_STRINGS, type Locale } from '@/lib/tutorials/i18n';
 import { helpPage, isPageId } from '@/lib/tutorials/pages';
 import { slugifyHeading } from '@/lib/tutorials/text';
+import { SCREENSHOTS } from '@/lib/tutorials/content.generated';
 import type { ReactNode } from 'react';
 
 /**
  * Composants autorisés dans les tutoriels (§7) : `Screenshot`, `GoTo`,
- * `Callout`, plus le balisage Markdown de base. Rendus en Server Components —
- * `Screenshot` a besoin du disque pour ne jamais afficher d'image cassée.
+ * `Callout`, plus le balisage Markdown de base. Rendus en Server Components ;
+ * `Screenshot` s'appuie sur l'inventaire des captures relevé au build pour ne
+ * jamais afficher d'image cassée.
  */
 
 function nodeText(node: ReactNode): string {
@@ -22,14 +22,9 @@ function nodeText(node: ReactNode): string {
   return '';
 }
 
-/** Le `src` est-il réellement présent dans `public/` ? */
+/** La capture était-elle livrée dans `public/` au moment du build ? */
 function hasImage(src: string | undefined): src is string {
-  if (!src || !src.startsWith('/')) return false;
-  try {
-    return fs.existsSync(path.join(process.cwd(), 'public', src.replace(/^\//, '')));
-  } catch {
-    return false;
-  }
+  return Boolean(src) && SCREENSHOTS.includes(src as string);
 }
 
 function Screenshot({ src, alt, locale }: { src?: string; alt: string; locale: Locale }) {

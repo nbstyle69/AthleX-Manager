@@ -19,7 +19,7 @@ function itemsForPage(page: PageId): HelpSheetItems {
         title: t.title,
         summary: t.summary,
         role: t.role,
-        content: <TutorialBody locale={t.locale} body={t.body} />,
+        content: <TutorialBody locale={t.locale} slug={t.slug} />,
       }));
     }
   } catch (err) {

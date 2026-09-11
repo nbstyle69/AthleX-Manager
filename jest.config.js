@@ -11,6 +11,8 @@ module.exports = {
     '^next/headers$': '<rootDir>/__mocks__/next-headers.js',
     '^next/cache$': '<rootDir>/__mocks__/noop.js',
     '^react$': '<rootDir>/__mocks__/react-shim.js',
+    // Le MDX est compilé par webpack au build, pas par Jest.
+    '\\.mdx$': '<rootDir>/__mocks__/noop.js',
   },
   transform: {
     '^.+\\.tsx?$': ['ts-jest', {
