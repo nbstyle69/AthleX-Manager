@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { Users, FolderOpen, MessageSquare, LayoutDashboard, LogOut, Dumbbell, Sun, Moon, CalendarClock, CalendarDays, Newspaper, BarChart3, Trophy, Settings, BookOpen, CreditCard, CircleHelp, LifeBuoy, Inbox, Store, UserPlus, MailPlus, ChevronDown, UserCircle } from 'lucide-react';
+import { Users, FolderOpen, MessageSquare, LayoutDashboard, LogOut, Dumbbell, Sun, Moon, CalendarClock, CalendarDays, Newspaper, BarChart3, Trophy, Settings, Tag, CreditCard, CircleHelp, LifeBuoy, Inbox, Store, UserPlus, MailPlus, ChevronDown, UserCircle } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { cn } from '@/lib/utils';
 import { useTheme } from '@/components/ThemeProvider';
@@ -36,6 +36,7 @@ const GROUPS: NavGroup[] = [
       { href: '/prospects',   label: 'Prospects',   icon: UserPlus },
       { href: '/invitations', label: 'Invitations', icon: MailPlus },
       { href: '/members',     label: 'Membres',     icon: Users },
+      { href: '/plans',       label: 'Formules',    icon: Tag },
       { href: '/subscribers', label: 'Abonnés',     icon: CreditCard },
       { href: '/groups',      label: 'Groupes',     icon: FolderOpen },
     ],
@@ -50,11 +51,10 @@ const GROUPS: NavGroup[] = [
     ],
   },
   {
-    key: 'business',
-    label: 'Business',
+    key: 'pilotage',
+    label: 'Pilotage',
     items: [
-      { href: '/programs', label: 'Programmes athlètes', icon: BookOpen },
-      { href: '/stats',    label: 'Statistiques',        icon: BarChart3 },
+      { href: '/stats', label: 'Statistiques', icon: BarChart3 },
     ],
   },
 ];

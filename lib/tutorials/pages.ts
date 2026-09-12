@@ -17,8 +17,10 @@ export const PAGE_IDS = [
   'members',
   'groups',
   'schedule',
+  'plans',
   'programs',
   'marketplace',
+  'marketplace-offers',
   'tournaments',
   'settings',
 ] as const;
@@ -38,8 +40,10 @@ export const HELP_PAGES: readonly HelpPage[] = [
   { id: 'members',     route: '/members',      labelKey: 'page.members' },
   { id: 'groups',      route: '/groups',       labelKey: 'page.groups' },
   { id: 'schedule',    route: '/schedules',    labelKey: 'page.schedule' },
-  { id: 'programs',    route: '/programs',     labelKey: 'page.programs' },
+  { id: 'plans',       route: '/plans',        labelKey: 'page.plans' },
+  { id: 'programs',    route: '/programming/athletes', labelKey: 'page.programs' },
   { id: 'marketplace', route: '/programming',  labelKey: 'page.marketplace' },
+  { id: 'marketplace-offers', route: '/programming/offers', labelKey: 'page.marketplaceOffers' },
   { id: 'tournaments', route: '/tournaments',  labelKey: 'page.tournaments' },
   { id: 'settings',    route: '/settings',     labelKey: 'page.settings' },
 ];

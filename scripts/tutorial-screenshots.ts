@@ -143,11 +143,11 @@ const SHOTS: Shot[] = [
   { slug: 'groupes-de-membres', n: 1, route: '/groups' },
   { slug: 'membres-et-formules', n: 1, route: '/members' },
   { slug: 'creneaux-et-reservations', n: 1, route: '/schedules' },
-  { slug: 'programmes-athletes-seances', n: 1, route: '/programs' },
+  { slug: 'programmes-athletes-seances', n: 1, route: '/programming/athletes' },
   {
     slug: 'programmes-athletes-vente',
     n: 1,
-    route: '/programs',
+    route: '/programming/athletes',
     prepare: async (page) => {
       await page.evaluate(() => window.scrollBy(0, 900));
       await page.waitForTimeout(400);

@@ -5,6 +5,8 @@ import { createClient } from '@/lib/supabase/client';
 import { getMyBox } from '@/lib/getMyBox';
 import { writeFailure } from '@/lib/writeGuard';
 import HelpButton from '@/components/help/HelpButton';
+import PublicPageSection from '@/components/settings/PublicPageSection';
+import BoxPaymentsSection from '@/components/settings/BoxPaymentsSection';
 import { Upload, ImageIcon, Trash2, CheckCircle, Phone, MapPin, Calendar, User, Users, FileText, Mail, Download, Loader2 } from 'lucide-react';
 
 type GeoResult = {
@@ -474,6 +476,10 @@ export default function SettingsPage() {
         </div>
         <p className="text-sm text-gray-400 mt-1">Personnalisez votre box — {box.name}</p>
       </div>
+
+      <PublicPageSection boxId={box.id} />
+
+      <BoxPaymentsSection boxId={box.id} />
 
       {/* Logo section */}
       <div className="bg-[#111111] border border-white/[0.06] rounded-2xl p-6 space-y-5">

@@ -7,11 +7,11 @@ import {
 } from '@/lib/authz/coach-perimeter';
 
 /**
- * Contrôle mécanique des deux rubriques quasi homonymes : `/programming` est la
- * « Marketplace » (vente box→box), `/programs` les « Programmes athlètes »
- * (offres aux membres). Les routes ne changent pas ; ce sont les libellés qui
- * doivent rester d'accord entre la barre latérale, le titre de page et le
- * sous-titre.
+ * Contrôle mécanique des rubriques quasi homonymes : Marketplace regroupe le
+ * catalogue box→box (`/programming`), les offres publiées (`/programming/offers`)
+ * et les « Programmes athlètes » vendus aux membres (`/programming/athletes`) ;
+ * les formules d'accès vivent à part sous « Formules » (`/plans`). Les libellés
+ * doivent rester d'accord entre la barre latérale, les onglets et les titres.
  *
  * Sans ce contrôle, la famille du « Back-Office » orphelin recommence : un
  * libellé revient à l'ancien nom dans une seule surface, et plus rien ne le dit.
@@ -41,8 +41,10 @@ function sidebarLabels(): Map<string, string> {
 
 const EXPECTED = {
   '/programming': { label: 'Marketplace', title: 'Marketplace' },
-  '/programs': { label: 'Programmes athlètes', title: 'Programmes athlètes' },
+  '/plans': { label: 'Formules', title: 'Formules' },
 } as const;
+
+const MARKETPLACE_SHELL = read('components', 'marketplace', 'MarketplaceShell.tsx');
 
 describe('libellés des deux rubriques de programmation', () => {
   const labels = sidebarLabels();
@@ -57,16 +59,48 @@ describe('libellés des deux rubriques de programmation', () => {
     expect(labels.get(href)).toBe(exp.label);
   });
 
-  it('le titre et le sous-titre de la Marketplace nomment le circuit box→box', () => {
-    const page = read('app', '(dashboard)', 'programming', 'page.tsx');
-    expect(page).toContain(`>${EXPECTED['/programming'].title}</h1>`);
-    expect(page).toContain('Achète ou vends des programmations entre box');
+  it('le titre et les onglets de la Marketplace nomment les trois circuits', () => {
+    expect(MARKETPLACE_SHELL).toContain(`>${EXPECTED['/programming'].title}</h1>`);
+    for (const [href, label] of [
+      ['/programming', 'Catalogue'],
+      ['/programming/offers', 'Mes offres'],
+      ['/programming/athletes', 'Programmes athlètes'],
+    ] as const) {
+      expect(MARKETPLACE_SHELL).toContain(`href: '${href}'`);
+      expect(MARKETPLACE_SHELL).toContain(`label: '${label}'`);
+    }
+  });
+
+  it('les trois onglets ont chacun une route adressable', () => {
+    for (const segments of [
+      ['programming'],
+      ['programming', 'offers'],
+      ['programming', 'athletes'],
+    ]) {
+      const page = read('app', '(dashboard)', ...segments, 'page.tsx');
+      expect(page).toContain('MarketplaceShell');
+    }
   });
 
   it('le titre et le sous-titre des Programmes athlètes nomment les membres', () => {
-    const page = read('app', '(dashboard)', 'programs', 'page.tsx');
-    expect(page).toContain(`>${EXPECTED['/programs'].title}</h1>`);
-    expect(page).toContain('Offres vendues ou assignées à tes membres');
+    const workspace = read('components', 'programs', 'AthleteProgramsWorkspace.tsx');
+    expect(workspace).toContain('>Programmes athlètes</h2>');
+    expect(workspace).toContain('Offres vendues ou assignées à tes membres');
+  });
+
+  it('les formules et les codes promo ont quitté la Marketplace pour /plans', () => {
+    const workspace = read('components', 'programs', 'AthleteProgramsWorkspace.tsx');
+    expect(workspace).not.toContain('membership_plans');
+    expect(workspace).not.toContain('promo-codes');
+    const plans = read('components', 'plans', 'PlansWorkspace.tsx');
+    expect(plans).toContain('MembershipPlansSection');
+    expect(plans).toContain('PromoCodesSection');
+  });
+
+  it('la section Pilotage ne porte plus que les Statistiques', () => {
+    expect(SIDEBAR).toContain("label: 'Pilotage'");
+    expect(SIDEBAR).not.toContain("label: 'Business'");
+    expect(labels.has('/programs')).toBe(false);
   });
 
   it('aucune entrée de la barre latérale ne s’appelle encore « Programmation »', () => {

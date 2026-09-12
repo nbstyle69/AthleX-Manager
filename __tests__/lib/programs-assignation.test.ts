@@ -15,7 +15,7 @@ import { MENTION_ACCES_STRIPE } from '@/lib/programAccessCopy';
 const RACINE = process.cwd();
 const lire = (p: string) => fs.readFileSync(path.join(RACINE, p), 'utf8');
 
-const PAGE = 'app/(dashboard)/programs/page.tsx';
+const PAGE = 'components/programs/AthleteProgramsWorkspace.tsx';
 const CONTENU = 'lib/programContent.ts';
 
 describe('assignation d’un programme à un membre (lot 5-C)', () => {

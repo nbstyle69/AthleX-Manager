@@ -166,7 +166,7 @@ describe('verrouillage sur le programme courant', () => {
   const editeur = lire('components/programs/ProgramSessionsEditor.tsx');
   const contenu = lire('lib/programContent.ts');
   const wodEditor = lire('components/wods/WodEditor.tsx');
-  const page = lire('app/(dashboard)/programs/page.tsx');
+  const page = lire('components/programs/AthleteProgramsWorkspace.tsx');
 
   it('la page Séances utilise le formulaire partagé du Whiteboard en mode « program »', () => {
     expect(editeur).toContain('<WodEditor');
