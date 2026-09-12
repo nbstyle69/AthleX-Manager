@@ -1,12 +1,12 @@
 import { HelpDockProvider } from '@/components/help/HelpDock';
 import MarketplaceShell from '@/components/marketplace/MarketplaceShell';
-import MarketplaceWorkspace from '@/components/marketplace/MarketplaceWorkspace';
+import AthleteProgramsWorkspace from '@/components/programs/AthleteProgramsWorkspace';
 
 export default function Page() {
   return (
-    <HelpDockProvider page="marketplace">
-      <MarketplaceShell tab="catalogue">
-        <MarketplaceWorkspace tab="catalogue" />
+    <HelpDockProvider page="programs">
+      <MarketplaceShell tab="athletes">
+        <AthleteProgramsWorkspace />
       </MarketplaceShell>
     </HelpDockProvider>
   );

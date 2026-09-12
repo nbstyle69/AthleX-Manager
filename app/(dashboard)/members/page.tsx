@@ -472,7 +472,7 @@ export default function MembersPage() {
               <h3 className="text-sm font-bold text-white">Contrats / Abonnements</h3>
               <p className="text-xs text-gray-500 mt-1">Assignez une formule à un membre et gérez les groupes associés. La <strong className="text-gray-300">création et l'édition des formules</strong> se font désormais dans <strong className="text-gray-300">Offres &amp; Programmes</strong>.</p>
             </div>
-            <Link href="/programs" className="flex items-center gap-1.5 shrink-0 px-3 py-2 rounded-lg bg-white/10 hover:bg-white/15 text-white text-xs font-bold transition-colors whitespace-nowrap">
+            <Link href="/plans" className="flex items-center gap-1.5 shrink-0 px-3 py-2 rounded-lg bg-white/10 hover:bg-white/15 text-white text-xs font-bold transition-colors whitespace-nowrap">
               <CreditCard size={13} /> Gérer les formules
             </Link>
           </div>

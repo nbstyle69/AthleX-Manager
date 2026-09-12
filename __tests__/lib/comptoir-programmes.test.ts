@@ -18,7 +18,7 @@ import { RETRAIT_COMPTOIR_CONFIRMATION } from '@/lib/programAccessCopy';
 const RACINE = process.cwd();
 const lire = (p: string) => fs.readFileSync(path.join(RACINE, p), 'utf8');
 
-const PAGE = 'app/(dashboard)/programs/page.tsx';
+const PAGE = 'components/programs/AthleteProgramsWorkspace.tsx';
 const ROUTE_REVENUS = 'app/api/box-revenue/route.ts';
 const CARTE = 'components/stats/MoneyBlock.tsx';
 const SIDEBAR = 'components/layout/Sidebar.tsx';

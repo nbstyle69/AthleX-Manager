@@ -2,7 +2,7 @@ import fs from 'fs';
 import path from 'path';
 
 const SRC = fs.readFileSync(
-  path.join(__dirname, '../../app/(dashboard)/programming/page.tsx'),
+  path.join(__dirname, '../../components/marketplace/MarketplaceWorkspace.tsx'),
   'utf8',
 );
 const LABELS_SRC = fs.readFileSync(

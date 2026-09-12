@@ -4,9 +4,9 @@ import MarketplaceWorkspace from '@/components/marketplace/MarketplaceWorkspace'
 
 export default function Page() {
   return (
-    <HelpDockProvider page="marketplace">
-      <MarketplaceShell tab="catalogue">
-        <MarketplaceWorkspace tab="catalogue" />
+    <HelpDockProvider page="marketplace-offers">
+      <MarketplaceShell tab="offers">
+        <MarketplaceWorkspace tab="mine" />
       </MarketplaceShell>
     </HelpDockProvider>
   );
