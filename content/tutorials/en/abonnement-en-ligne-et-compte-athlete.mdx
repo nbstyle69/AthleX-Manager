@@ -1,0 +1,41 @@
+---
+slug: abonnement-en-ligne-et-compte-athlete
+title: Subscribing online and managing your account
+summary: The journey of an athlete who pays by themselves from your public page, and what they can do afterwards in « Mon compte ».
+role: both
+pages: [subscribers, settings]
+tags: [subscription, stripe, checkout, account, cancellation, proration, sepa]
+order: 76
+---
+
+## Before you start
+
+This journey needs nothing from you: the athlete pays on your public page, Stripe collects, and they show up in **Abonnés**. It assumes **Stripe Connect** is connected in **Réglages → Paiements**, and that the plan is **Active** with a price above €0. On-screen labels are in French, so they are quoted as they appear.
+
+## Steps
+
+1. On `athlexapp.eu/box/<your-slug>`, section **Abonnements**, the athlete clicks **S'abonner** on the plan they want (the button carries the price). For a drop-in or a pack, in the **À la carte** section, the button reads **Acheter**. <Screenshot src="/tutorials/abonnement-en-ligne-et-compte-athlete/1.png" alt="Subscriptions section of the public page" />
+2. They read the **Récapitulatif du contrat** (contract summary): price including tax, commitment, sessions per week or unlimited access, description, and the **conditions / mentions** you typed on the plan. The link to your **Conditions générales (PDF)** appears there if it is uploaded in Réglages. <Screenshot src="/tutorials/abonnement-en-ligne-et-compte-athlete/2.png" alt="Contract summary before payment" />
+3. **Payer par carte** takes them to **Stripe Checkout**, where they enter their email and payment method: card everywhere, plus **SEPA** direct debit when the plan is priced in euros. The window warns them first: « Utilise l'e-mail de ton compte AthleX au paiement » — that address decides which account is credited, and if they have none yet, the subscription is attached when they sign up.
+4. After payment their access is attached to your box automatically, with no approval from you. You see them in **Abonnés**, filter **Salle**, with the amount actually charged and their next due date.
+5. They manage the rest from `athlexapp.eu/compte` — **Mon compte**, « Gère tes informations, ton abonnement et tes crédits de séances »: their plan, its status, the monthly amount and the **Prochaine échéance**, their **Drop-in & Carnets** with remaining credits and validity dates, and the programs they bought. <Screenshot src="/tutorials/abonnement-en-ligne-et-compte-athlete/3.png" alt="The athlete's account area" />
+6. **Changer de formule** (change plan) applies an **immediate proration**: they pick the new plan, **Confirmer**, and Stripe adjusts the invoice. **Résilier** keeps access « jusqu'à la fin de la période déjà payée », with no further charge.
+7. If their plan is still under **engagement**, the button becomes **Demander une résiliation**: a reason (**Déménagement** — moving, **Santé / blessure grave** — health, **Autre motif**), a message and a **justificatif (PDF ou image, max 10 Mo)** (supporting document). The request lands in **Abonnés**, where you accept or refuse it.
+
+<Callout>
+Pausing a subscription is decided **on the box side**, from **Abonnés** (**Geler** / **Reprendre**). The athlete sees « Abonnement en pause — reprise le … Contacte ta box pour le réactiver »; they cannot trigger it themselves.
+</Callout>
+
+## Common mistakes
+
+- **The S'abonner button is missing.** Stripe Connect is not connected, or the plan is inactive / priced at €0 → see **Réglages → Paiements** and **Formules**.
+- **The athlete paid with a different email address.** Their access went to another AthleX account: the payment email is what counts.
+- **They cannot see their subscription in « Mon compte ».** They are signed in with another account, or the bank has not confirmed the payment yet.
+- **They want to cancel but only see « Demander une résiliation ».** Their commitment is still running: early cancellation goes through your decision, with a supporting document.
+- **They say they were charged twice after changing plans.** Immediate proration generates an adjustment: the detail is in their billing history, visible in **Abonnés**.
+
+{/* TODO Nab : l'écran annonce « Nouvelle formule (prorata immédiat) » ; la spec parlait d'un prorata au premier du mois. Texte aligné sur l'écran. */}
+
+## Go there
+
+<GoTo page="subscribers" />

@@ -1,0 +1,46 @@
+---
+slug: inviter-un-membre
+title: Inviter un membre nominativement
+summary: Créer un lien personnel avec formule et mode de paiement, le transmettre par e-mail ou QR code, encaisser, relancer, révoquer.
+role: owner
+pages: [invitations]
+tags: [invitation, lien, qr code, rejoindre, encaissement, stripe, membres]
+order: 75
+---
+
+## Avant de commencer
+
+**Invitations** (Communauté → Invitations) sert à inscrire quelqu'un que tu connais : « il reçoit un lien personnel, choisit son pseudo et son mot de passe, et arrive dans ta box avec sa formule ». Une invitation vaut pour **une adresse e-mail** : le lien ne fonctionne qu'avec elle.
+
+## Étapes
+
+1. Bloc **Nouvelle invitation** : saisis **Prénom**, **Nom** et **E-mail** (seul l'e-mail est obligatoire). <Screenshot src="/tutorials/inviter-un-membre/1.png" alt="Formulaire Nouvelle invitation" />
+2. Choisis la formule dans la liste, ou laisse **Sans formule** si tu régleras ça plus tard. Les formules proposées sont celles de la page **Formules**, avec leur prix.
+3. Choisis le mode de paiement :
+   - **Encaissement box** — tu encaisses toi-même. Coche « Paiement déjà encaissé — le membre est actif dès qu'il crée son compte » si c'est déjà réglé ; sinon l'invitation reste marquée **À encaisser** et tu confirmeras avec **Encaissé**.
+   - **Paiement Stripe** — « Le membre créera son compte puis paiera par Stripe. Il ne sera actif qu'une fois le paiement confirmé. »
+4. Clique **Créer l'invitation**. La fenêtre **Lien d'invitation** s'ouvre avec le **QR code** et l'URL `…/rejoindre/<jeton>` : **Copier** pour l'envoyer toi-même, ou **Envoyer par e-mail** pour que l'invité le reçoive. Si l'e-mail ne part pas, l'écran l'annonce — « E-mail non parti — utilise le QR code ou le lien ». <Screenshot src="/tutorials/inviter-un-membre/2.png" alt="Fenêtre Lien d'invitation avec QR code" />
+5. Ce que voit l'invité : un écran **Invitation personnelle** avec le nom de ta box et le détail de sa formule, puis **Créer mon compte et rejoindre** (pseudo, mot de passe). S'il est déjà connecté avec l'adresse invitée, « un clic suffit » et **Rejoindre** le rattache directement. En mode Stripe, il finit par **Régler mon abonnement** (carte ou prélèvement SEPA). <Screenshot src="/tutorials/inviter-un-membre/3.png" alt="Page /rejoindre vue par l'invité" />
+6. Suis tes invitations dans la liste : **Valide jusqu'au …**, **Acceptée**, **Expirée** ou **Révoquée**, avec les badges **À encaisser**, **Stripe** et la date d'envoi de l'e-mail. Le filtre **À encaisser** isole celles qui attendent ton encaissement.
+7. Agis dessus tant qu'elles sont en attente : **Encaissé** (paiement reçu au comptoir), **Relancer** — qui régénère le lien, l'ancien devenant inutilisable — et **Révoquer** pour l'annuler.
+
+<Callout type="warning">
+**Le lien en clair n'est affiché qu'une fois** : « il n'est pas conservé en clair. Tu pourras en régénérer un avec "Relancer" ». Ferme la fenêtre seulement après avoir envoyé l'e-mail ou copié l'URL.
+</Callout>
+
+<Callout>
+**Invitation nominative ≠ code d'invitation de la box.** Le **lien nominatif** `/rejoindre/<jeton>` est rattaché à une adresse e-mail, transporte la formule et le mode de paiement, expire, se relance et se révoque. Le **Code d'invitation box** affiché sur le **Dashboard** est un code général que n'importe qui saisit dans l'application athlète : il rattache la personne à ta box **sans formule ni paiement**, et reste valable jusqu'à ce que tu en génères un autre. Pour faire payer quelqu'un, utilise l'invitation nominative.
+</Callout>
+
+## Erreurs fréquentes
+
+- **« Une invitation est déjà en attente pour cette adresse. »** Utilise **Relancer** sur l'invitation existante au lieu d'en créer une seconde.
+- **« Cette personne est déjà membre de ta box. »** Change sa formule depuis **Membres**, pas par une invitation.
+- **L'invité voit « Tu es connecté avec une autre adresse ».** Le lien est nominatif : il doit se déconnecter et utiliser l'adresse invitée.
+- **« Cette invitation a expiré. »** Le lien a une date de validité → **Relancer** en génère un nouveau.
+- **Le membre reste inactif après une invitation Stripe.** Le paiement n'est pas confirmé : son accès s'ouvre dès que la banque valide.
+- **Tu as beaucoup de monde à inscrire.** Le bloc **Importer mes adhérents (CSV)** fait le travail en série : **Télécharger le modèle CSV**, **Choisir un fichier** (colonnes prénom, nom, e-mail, formule facultative, 500 lignes maximum). « L'import ne crée aucun membre : chaque ligne devient une invitation, que l'adhérent accepte lui-même. »
+
+## Y aller
+
+<GoTo page="invitations" />

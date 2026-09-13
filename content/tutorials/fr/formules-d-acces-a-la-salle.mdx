@@ -1,0 +1,41 @@
+---
+slug: formules-d-acces-a-la-salle
+title: Formules d'accès à la salle
+summary: Abonnement, Drop-in, Carnet, Essai : créer tes offres, leurs conditions, leurs codes promo, et savoir ce que change une suppression.
+role: owner
+pages: [plans]
+tags: [formules, abonnement, drop-in, carnet, essai, code promo, prix, engagement]
+order: 72
+---
+
+## Avant de commencer
+
+**Formules** (Communauté → Formules) contient tout ce qu'un adhérent peut payer pour entrer dans la salle : quatre types d'offres, et les codes promo qui s'y rattachent. Les programmes de coaching ne sont pas ici : ils vivent dans **Marketplace → Programmes athlètes**.
+
+## Étapes
+
+1. Ouvre **Formules**, section **Offres d'accès à la salle**, puis **Nouvelle offre**. Le premier choix est le **Type d'offre**, et il commande tout le reste du formulaire. <Screenshot src="/tutorials/formules-d-acces-a-la-salle/1.png" alt="Liste des formules avec les filtres Abonnement, Drop-in, Carnet" />
+2. **Abonnement** — « Mensuel récurrent ». Renseigne le **Nom**, la **Description**, le **Prix (€/mois)**, les **Séances / semaine** (vide = illimité) et l'**Engagement** : c'est la durée minimale avant résiliation libre ; au-delà, l'adhérent peut résilier au mois. Les **Conditions / mentions (affichées à la souscription)** apparaissent dans le récapitulatif avant paiement.
+3. **Drop-in** — « 1 séance ». Un prix suffit : l'offre donne droit à **1 réservation, valable 14 jours après l'achat**. Paiement unique, aucun prélèvement récurrent.
+4. **Carnet** — « N séances / X mois ». Renseigne le **Prix (€)**, le nombre de **Séances** et la **Validité (mois)**. L'athlète consomme ses crédits en réservant des cours.
+5. **Essai** — « Gratuit · 1 séance découverte ». Une seule offre Essai par box, et son prix reste à 0 € : le formulaire refuse le reste. Ses **Conditions / mentions (affichées au visiteur)** s'affichent dans le tunnel de réservation public. Le parcours complet est détaillé dans « Séance d'essai gratuite ».
+6. Choisis une **Couleur** (elle identifie la formule dans le back-office), puis coche **Active (visible pour les athlètes)** : c'est cette case qui met l'offre sur ta page publique. Une formule non cochée s'affiche **Inactif** dans la liste, et les boutons **Activer** / **Désactiver** permettent de la retirer de la vente sans la supprimer. <Screenshot src="/tutorials/formules-d-acces-a-la-salle/2.png" alt="Formulaire d'une offre : type, prix, engagement, conditions, couleur" />
+7. Section **Codes promo** : renseigne le **Code** (3 à 30 caractères, lettres et chiffres sans espace), le **Type de remise** (**Pourcentage** ou **Montant fixe**), la valeur, la **Durée de la remise (abonnements)** — **1 fois**, **N mois** ou **À vie** —, les **Utilisations max** et une date d'expiration, puis **Créer le code**.
+
+<Callout type="warning">
+**Supprimer une formule ne libère pas les membres qui l'avaient : ils passent en illimité.** La confirmation le dit — « Les membres associés passeront en illimité ». Si tu veux juste arrêter d'en vendre, utilise **Désactiver**.
+</Callout>
+
+## Erreurs fréquentes
+
+- **« Cette box a déjà une offre Essai. »** L'unicité est garantie en base → modifie l'offre existante au lieu d'en créer une seconde.
+- **« Une offre Essai est gratuite : son prix doit rester à 0 €. »** Pour faire payer une séance découverte, crée un **Drop-in** à la place.
+- **« Une offre Drop-in / Carnet doit avoir un prix > 0. »** Un crédit gratuit ne se vend pas en ligne : passe par l'Essai, ou attribue l'accès à la main.
+- **Impossible de créer un code promo.** Les paiements ne sont pas activés : « Active d'abord les paiements (Stripe) dans Réglages → Paiements pour créer des codes. »
+- **Une formule active reste invisible sur la page publique.** Son prix est à 0 € : hors Essai, une offre gratuite n'est jamais affichée (voir « Ta page publique, ta vitrine »).
+
+{/* TODO Nab : l'ordre d'affichage des formules suit `sort_order` puis le prix, mais l'écran ne permet pas de le changer. À confirmer : veux-tu un réglage d'ordre dans l'interface ? */}
+
+## Y aller
+
+<GoTo page="plans" />

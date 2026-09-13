@@ -1,0 +1,46 @@
+---
+slug: inviter-un-membre
+title: Invite a member personally
+summary: Create a personal link carrying a plan and a payment mode, send it by email or QR code, collect payment, chase, revoke.
+role: owner
+pages: [invitations]
+tags: [invitation, link, qr code, join, cash collected, stripe, members]
+order: 75
+---
+
+## Before you start
+
+**Invitations** is how you sign up somebody you know: « il reçoit un lien personnel, choisit son pseudo et son mot de passe, et arrive dans ta box avec sa formule » (they get a personal link, pick a username and a password, and land in your box with their plan). One invitation is tied to **one email address**: the link only works with it. On-screen labels are in French, so they are quoted as they appear.
+
+## Steps
+
+1. **Nouvelle invitation** block: type **Prénom**, **Nom** and **E-mail** (only the email is required). <Screenshot src="/tutorials/inviter-un-membre/1.png" alt="New invitation form" />
+2. Pick the plan in the list, or leave **Sans formule** (no plan) if you will sort it out later. The plans offered are those of the **Formules** page, with their price.
+3. Choose the payment mode:
+   - **Encaissement box** (collected at the box) — you take the money yourself. Tick « Paiement déjà encaissé — le membre est actif dès qu'il crée son compte » if it is already paid; otherwise the invitation stays flagged **À encaisser** and you confirm later with **Encaissé**.
+   - **Paiement Stripe** — « Le membre créera son compte puis paiera par Stripe. Il ne sera actif qu'une fois le paiement confirmé. »
+4. Click **Créer l'invitation**. The **Lien d'invitation** window opens with the **QR code** and the URL `…/rejoindre/<token>`: **Copier** to send it yourself, or **Envoyer par e-mail** so the guest receives it. If the email fails, the screen says so — « E-mail non parti — utilise le QR code ou le lien ». <Screenshot src="/tutorials/inviter-un-membre/2.png" alt="Invitation link window with QR code" />
+5. What the guest sees: an **Invitation personnelle** screen with your box name and their plan details, then **Créer mon compte et rejoindre** (username, password). If they are already signed in with the invited address, « un clic suffit » and **Rejoindre** attaches them straight away. In Stripe mode they finish with **Régler mon abonnement** (card or SEPA direct debit). <Screenshot src="/tutorials/inviter-un-membre/3.png" alt="The /rejoindre page as the guest sees it" />
+6. Follow your invitations in the list: **Valide jusqu'au …**, **Acceptée**, **Expirée** or **Révoquée**, with the **À encaisser** and **Stripe** badges and the date the email was sent. The **À encaisser** filter isolates those waiting for your payment.
+7. Act on them while they are pending: **Encaissé** (paid at the counter), **Relancer** — which regenerates the link, making the old one useless — and **Révoquer** to cancel it.
+
+<Callout type="warning">
+**The plain link is shown only once**: « il n'est pas conservé en clair. Tu pourras en régénérer un avec "Relancer" ». Close the window only after sending the email or copying the URL.
+</Callout>
+
+<Callout>
+**Personal invitation ≠ box invitation code.** The **personal link** `/rejoindre/<token>` is tied to an email address, carries the plan and the payment mode, expires, can be re-sent and revoked. The **box invitation code** shown on the **Dashboard** is a general code anybody types into the athlete app: it attaches the person to your box **with no plan and no payment**, and stays valid until you generate a new one. To make somebody pay, use the personal invitation.
+</Callout>
+
+## Common mistakes
+
+- **« Une invitation est déjà en attente pour cette adresse. »** Use **Relancer** on the existing invitation instead of creating a second one.
+- **« Cette personne est déjà membre de ta box. »** Change their plan from **Membres**, not through an invitation.
+- **The guest sees « Tu es connecté avec une autre adresse ».** The link is personal: they must sign out and use the invited address.
+- **« Cette invitation a expiré. »** The link has a validity date → **Relancer** issues a new one.
+- **The member stays inactive after a Stripe invitation.** The payment is not confirmed yet: access opens as soon as the bank clears it.
+- **You have many people to sign up.** The **Importer mes adhérents (CSV)** block does it in bulk: **Télécharger le modèle CSV**, **Choisir un fichier** (columns: first name, last name, email, optional plan, 500 rows maximum). « L'import ne crée aucun membre : chaque ligne devient une invitation, que l'adhérent accepte lui-même. »
+
+## Go there
+
+<GoTo page="invitations" />

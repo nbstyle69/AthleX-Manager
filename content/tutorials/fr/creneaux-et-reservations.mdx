@@ -10,7 +10,7 @@ order: 32
 
 ## Avant de commencer
 
-**Horaires & Créneaux** (Entraînement → Horaires) contient les cours réservables de la box, jour par jour. Les modèles de semaine se gèrent à côté, dans Créneaux types.
+**Horaires & Créneaux** (Entraînement → Horaires) contient les cours réservables de la box, jour par jour. La grille récurrente qui les fabrique se gère à côté, dans **Créneaux types**.
 
 ## Étapes
 
@@ -20,12 +20,27 @@ order: 32
 4. Enregistre : le créneau devient réservable par les membres, dans la limite de la capacité.
 5. Le jour du cours, ouvre le créneau et clique **Faire l'appel** pour voir les inscrits et marquer les présences. Tu peux aussi **Ajouter un membre** à la main si quelqu'un arrive sans réservation.
 
+## Les Créneaux types, ta grille récurrente
+
+Saisir chaque cours à la main n'a pas de sens : **Créneaux types** est « la grille des créneaux récurrents de ta box, celle qui génère les cours des semaines à venir ».
+
+1. Depuis **Horaires & Créneaux**, clique **Créneaux types** : la grille s'affiche sur les sept jours de la semaine, chaque carte portant l'heure, le nom du cours, le coach et le nombre de places.
+2. **Nouveau créneau type** (ou **+ Ajouter** sous un jour) ouvre le formulaire : **Jour**, **Type de cours**, **Début**, **Coach**, **Capacité max** et **Description (optionnel)**, puis **Enregistrer**.
+3. Les icônes de la carte servent à **Désactiver** / **Activer** un modèle (un modèle inactif est grisé et ne génère plus rien), à le modifier ou à le supprimer.
+4. De retour dans **Horaires & Créneaux**, **Générer 8 semaines** crée les cours à partir des modèles actifs. L'opération ne double jamais un créneau déjà généré : « Tous les créneaux des 8 prochaines semaines sont déjà générés. »
+5. Ensuite la génération se prolonge chaque jour toute seule, et une bannière t'avertit quand il reste moins de 14 jours de créneaux — en rouge sous 7 jours.
+
+<Callout>
+Modifier un créneau type ne retouche pas les cours déjà générés : corrige-les dans **Horaires & Créneaux**, ou supprime les occurrences à venir avant de régénérer.
+</Callout>
+
 ## Erreurs fréquentes
 
 - **« Aucun coach assigné à cette box. »** Aucun coach n'est enregistré dans Réglages → ajoute-le, puis reviens assigner le créneau.
 - **Un membre ne peut pas réserver.** La capacité est atteinte, ou le créneau est passé → augmente la capacité ou ouvre un second créneau.
 - **« Aucun inscrit pour ce créneau » alors que le cours est plein.** Tu regardes un autre jour ou un autre créneau du même type → vérifie la date affichée en haut.
-- **Les créneaux de la semaine prochaine sont absents.** Ils se génèrent depuis les Créneaux types → ouvre cette page pour poser la grille récurrente.
+- **Les créneaux de la semaine prochaine sont absents.** Ils se génèrent depuis les **Créneaux types** → pose la grille récurrente, puis clique **Générer 8 semaines**.
+- **« Aucun modèle actif. »** Tes créneaux types sont tous désactivés (cartes grisées) → réactive-les avant de générer.
 
 ## Y aller
 

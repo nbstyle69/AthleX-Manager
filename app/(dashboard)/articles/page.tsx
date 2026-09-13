@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import HelpButton from '@/components/help/HelpButton';
 import { createClient } from '@/lib/supabase/client';
 import { Newspaper, Plus, Trash2, Loader2, X, Image as ImageIcon, MessageCircle, Heart } from 'lucide-react';
 import { getMyBox } from '@/lib/getMyBox';
@@ -123,7 +124,10 @@ export default function ArticlesPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-black text-white">Actualités</h1>
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl font-black text-white">Actualités</h1>
+            <HelpButton />
+          </div>
           <p className="text-sm text-gray-400 mt-1">{articles.length} article(s)</p>
         </div>
         <button onClick={openCreate}

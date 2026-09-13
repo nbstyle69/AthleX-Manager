@@ -1,0 +1,43 @@
+---
+slug: reglages-de-la-box
+title: Réglages de la box
+summary: Page publique, paiements Stripe, logo, bannière, CGV, informations, délai d'impayé, récapitulatif hebdomadaire et export de tes données.
+role: owner
+pages: [settings]
+tags: [réglages, stripe, paiements, logo, bannière, cgv, impayé, export, rgpd]
+order: 81
+---
+
+## Avant de commencer
+
+**Réglages** rassemble tout ce qui vaut pour la box entière. Depuis la refonte de la navigation, la **Page publique** et les **Paiements** y sont aussi : plus besoin de passer par la page des programmes. Les blocs se sauvegardent séparément — **Enregistrer** en bas du bloc **Informations de la box** ne valide que ce bloc.
+
+## Étapes
+
+1. **Page publique** — « L'adresse où les athlètes découvrent ta box et souscrivent tes offres » : **Modifier** pour changer le morceau d'adresse après `/box/`, puis **Enregistrer**. Ensuite **Voir ma page** ouvre la vitrine et **Copier le lien** te donne l'URL à diffuser. Seuls les lettres, chiffres et tirets sont acceptés. <Screenshot src="/tutorials/reglages-de-la-box/1.png" alt="Bloc Page publique dans Réglages" />
+2. **Paiements** : **Activer les paiements** lance la configuration Stripe, **Continuer la configuration** la reprend là où elle s'est arrêtée, et **Actualiser** rafraîchit l'état une fois le dossier validé. Tant que ce n'est pas terminé, aucune offre payante ne peut être vendue — ni formule, ni programme. <Screenshot src="/tutorials/reglages-de-la-box/2.png" alt="Bloc Paiements et état Stripe" />
+3. **Logo de la box** et **Bannière de la box** : **Uploader un logo** / **Uploader une bannière** (PNG, JPG ou WEBP), remplaçables ensuite par **Changer le logo** / **Changer la bannière**. Ce sont les images de ta page publique et de l'app.
+4. **Conditions générales (PDF)** : le document que l'athlète peut lire **avant le paiement**. Fichier PDF uniquement, **10 Mo maximum**.
+5. **Informations de la box** : nom (obligatoire), description affichée sur la page publique, adresse, site web et lien Google Maps (tous deux en `http://` ou `https://`), e-mail et téléphone de contact, et **Date d'ouverture de la salle**. **Enregistrer** valide le bloc.
+6. **Impayé : délai avant suspension (jours)**, entre 0 et 90 : « Passé ce délai après un prélèvement refusé, le membre ne peut plus réserver. L'accès est rétabli dès le paiement. 0 = suspension immédiate. »
+7. **Notifications** → **Récapitulatif hebdomadaire** : chaque lundi, un e-mail avec les nouveaux membres, les présences pointées, les membres à relancer et les impayés de la semaine. Le réglage vaut pour cette box uniquement.
+8. **Mes données** : un ZIP de CSV avec adhérents, abonnements, encaissements comptoir, réservations et présences, WOD et invitations — uniquement pour cette box. Plus bas, **Détails de la box** rappelle le **Propriétaire** et les **Coachs**.
+
+<Callout>
+Change ton adresse publique le moins souvent possible : les anciens liens, QR codes et publications qui pointaient vers l'ancienne adresse ne fonctionneront plus.
+</Callout>
+
+## Erreurs fréquentes
+
+- **« Le nom de la box est requis. »** Le bloc **Informations** ne s'enregistre pas sans nom.
+- **« Le site web doit commencer par http:// ou https:// »** — même règle pour le lien Google Maps.
+- **Le PDF est refusé.** Un seul format accepté (PDF) et 10 Mo au maximum ; pour les images, PNG, JPG ou WEBP.
+- **Le délai d'impayé n'est pas accepté.** Il doit être « un nombre de jours entre 0 et 90 ».
+- **Tu as tout rempli mais rien n'est enregistré.** Chaque bloc a son propre bouton : l'adresse publique et les images se valident indépendamment des informations.
+- **Les paiements restent inactifs après le dossier Stripe.** Clique **Actualiser** dans le bloc **Paiements** pour relire l'état du compte.
+
+{/* TODO Nab : le bloc Paiements annonce « commission AthleX 4 % » alors que le code des abonnements de salle applique 0 %. À confirmer : le texte du bloc vise-t-il seulement les programmes vendus ? */}
+
+## Y aller
+
+<GoTo page="settings" />

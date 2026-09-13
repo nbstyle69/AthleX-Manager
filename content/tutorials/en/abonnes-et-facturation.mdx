@@ -1,0 +1,40 @@
+---
+slug: abonnes-et-facturation
+title: Subscribers and billing
+summary: Read the Abonnés page, follow Stripe invoices and counter payments, handle failed payments, freezes and cancellation requests.
+role: owner
+pages: [subscribers, settings]
+tags: [subscribers, billing, stripe, unpaid, counter, cancellation, commission]
+order: 77
+---
+
+## Before you start
+
+**Abonnés** (subscribers) gathers « tous les membres qui paient (abonnements salle + programmes) » — every member who pays, gym subscriptions and programs alike. Three counters at the top: **Abonnements actifs**, **Revenu mensuel (salle)** and **Total lignes**. Online payments go through your **Stripe Connect** account (Réglages → Paiements); counter payments are recorded here. On-screen labels are in French, so they are quoted as they appear.
+
+## Steps
+
+1. Filter what you look at: **Tout** (all), **Salle** (gym access subscriptions) or **Programmes** (coaching programs sold to athletes). The search field accepts a member or a plan. <Screenshot src="/tutorials/abonnes-et-facturation/1.png" alt="Subscribers page: counters, filters, table" />
+2. Read the table: **Membre**, **Type**, **Formule / Programme**, **Inscrit le** (joined on), **Montant**, **Statut**, **Prochaine échéance** (next due date). The status is **Actif**, **Impayé** (unpaid), **Annulé** or **Remboursé** (refunded), and extra mentions appear where relevant: **En pause** (with « reprise le … »), **Résiliation prévue** (cancellation scheduled, with the end date), or « engagé jusqu'au … ».
+3. Open a row's detail with **Factures** (Stripe payments) or **Encaissements** (counter payments): the first lists the **Historique de facturation (montants réellement prélevés)**, the second the **Encaissements au comptoir (journal, non modifiable)** log, with **Comptoir · 1re échéance** on the first one. <Screenshot src="/tutorials/abonnes-et-facturation/2.png" alt="Row detail: billing history" />
+4. Member paying hand to hand: click **Encaissement reçu** (payment received). The amount is not typed, it is read from the member's plan, and the entry is **final** — an append-only log, never edited.
+5. Injury, absence, holiday: **Geler** suspends the Stripe subscription, **Reprendre** restarts it. The athlete sees the pause in their account but cannot trigger it themselves.
+6. Handle the **Demandes de résiliation** (cancellation requests) at the top of the page: the reason, the message, the **Justificatif** to open, then **Approuver** or **Refuser** (with an optional refusal reason). Those requests come from athletes still under commitment.
+7. A finished subscription drops into **Anciens membres** (former members), with its status (**Annulé**, **Remboursé**) and its end date.
+
+<Callout>
+**On gym access subscriptions AthleX takes no commission: you keep 100 % of the amount.** Stripe fees still apply, and programs sold on the Marketplace follow their own commission rule.
+</Callout>
+
+## Common mistakes
+
+- **A member turns « Impayé ».** Their debit failed. The grace period before their access is suspended is set in **Réglages** — « Impayé : délai avant suspension (jours) », with `0` suspending immediately.
+- **The « Encaissement reçu » button is missing.** It only applies to members without a Stripe subscription (paid at the box) who have not cancelled.
+- **« Geler » is missing on a row.** Freezing acts on a Stripe subscription: a member who pays at the counter has none.
+- **A refund does not show up.** Refunds are issued from your Stripe dashboard; the row then turns **Remboursé** here.
+- **Monthly revenue does not match your till.** The **Revenu mensuel (salle)** counter only counts gym access subscriptions: programs and one-off payments are elsewhere (see « Lire tes statistiques »).
+- **No online payment is possible.** Stripe Connect is not finished → **Réglages → Paiements**. Free offers stay available without Stripe.
+
+## Go there
+
+<GoTo page="subscribers" />

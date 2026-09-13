@@ -1,0 +1,41 @@
+---
+slug: formules-d-acces-a-la-salle
+title: Gym access plans
+summary: Subscription, drop-in, pack, trial: create your offers, their terms, their promo codes, and know what deleting one changes.
+role: owner
+pages: [plans]
+tags: [plans, subscription, drop-in, pack, trial, promo code, price, commitment]
+order: 72
+---
+
+## Before you start
+
+**Formules** (plans, `/plans`) holds everything a member can pay to get into the gym: four offer types, and the promo codes attached to them. Coaching programs are not here: they live in **Marketplace → Programmes athlètes**. On-screen labels are in French, so they are quoted as they appear.
+
+## Steps
+
+1. Open **Formules**, section **Offres d'accès à la salle**, then **Nouvelle offre**. The first choice is the **Type d'offre**, and it drives the whole rest of the form. <Screenshot src="/tutorials/formules-d-acces-a-la-salle/1.png" alt="Plan list with the subscription, drop-in and pack filters" />
+2. **Abonnement** (subscription) — « Mensuel récurrent ». Fill in the **Nom**, the **Description**, the **Prix (€/mois)**, the **Séances / semaine** (sessions per week, empty = unlimited) and the **Engagement**: the minimum term before the member may cancel freely; after that they can cancel monthly. The **Conditions / mentions (affichées à la souscription)** appear in the summary before payment.
+3. **Drop-in** — « 1 séance ». A price is enough: the offer grants **1 booking, valid 14 days after purchase**. One-off payment, no recurring debit.
+4. **Carnet** (pack) — « N séances / X mois ». Fill in the **Prix (€)**, the number of **Séances** and the **Validité (mois)** (validity in months). The athlete spends the credits by booking classes.
+5. **Essai** (trial) — « Gratuit · 1 séance découverte ». One trial offer per box only, and its price stays at €0: the form refuses anything else. Its **Conditions / mentions (affichées au visiteur)** are shown in the public booking flow. The whole journey is detailed in « Séance d'essai gratuite ».
+6. Pick a **Couleur** (it identifies the plan in the back-office), then tick **Active (visible pour les athlètes)**: that box is what puts the offer on your public page. An unticked plan reads **Inactif** in the list, and the **Activer** / **Désactiver** buttons pull it out of sale without deleting it. <Screenshot src="/tutorials/formules-d-acces-a-la-salle/2.png" alt="Offer form: type, price, commitment, terms, colour" />
+7. Section **Codes promo**: fill in the **Code** (3 to 30 characters, letters and digits, no space), the **Type de remise** (**Pourcentage** or **Montant fixe**), the value, the **Durée de la remise (abonnements)** — **1 fois**, **N mois** or **À vie** —, the **Utilisations max** and an expiry date, then **Créer le code**.
+
+<Callout type="warning">
+**Deleting a plan does not free the members who held it: they move to unlimited.** The confirmation says so — « Les membres associés passeront en illimité ». If you only want to stop selling it, use **Désactiver**.
+</Callout>
+
+## Common mistakes
+
+- **« Cette box a déjà une offre Essai. »** Uniqueness is enforced in the database → edit the existing trial instead of creating a second one.
+- **« Une offre Essai est gratuite : son prix doit rester à 0 €. »** To charge for a taster session, create a **Drop-in** instead.
+- **« Une offre Drop-in / Carnet doit avoir un prix > 0. »** A free credit cannot be sold online: use the trial, or grant access by hand.
+- **You cannot create a promo code.** Payments are not enabled: « Active d'abord les paiements (Stripe) dans Réglages → Paiements pour créer des codes. »
+- **An active plan stays invisible on the public page.** Its price is €0: apart from the trial, a free offer is never displayed (see « Ta page publique, ta vitrine »).
+
+{/* TODO Nab : l'ordre d'affichage des formules suit `sort_order` puis le prix, mais l'écran ne permet pas de le changer. À confirmer : veux-tu un réglage d'ordre dans l'interface ? */}
+
+## Go there
+
+<GoTo page="plans" />
