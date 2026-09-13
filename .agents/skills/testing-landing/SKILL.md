@@ -1,9 +1,9 @@
 ---
 name: testing-landing
-description: Test the public landing page (/landing) of TheHub end-to-end — AthleX logo, ELO leaderboard (athletes/boxes), FR/EN i18n, two-tier pricing, store links, and athlete /signup. Use when verifying landing/marketing UI or the public signup flow.
+description: Test the public landing page (/landing) of AthleX Manager end-to-end — AthleX logo, ELO leaderboard (athletes/boxes), FR/EN i18n, two-tier pricing, store links, and athlete /signup. Use when verifying landing/marketing UI or the public signup flow.
 ---
 
-# Testing TheHub landing (/landing)
+# Testing the AthleX Manager landing (/landing)
 
 Public marketing page + public athlete signup. Server-rendered leaderboard, client i18n.
 
@@ -11,7 +11,7 @@ Public marketing page + public athlete signup. Server-rendered leaderboard, clie
 - **Vercel preview URLs for this repo are behind Vercel Deployment Protection** (a Vercel login wall). `curl` returns 200 because it follows the redirect to the login page — do NOT trust that as "reachable". In the browser you'll hit `vercel.com/login`.
 - Workaround that works reliably: run the **PR build locally** and browse `http://localhost:3000/landing`.
   ```bash
-  cd /home/ubuntu/TheHub
+  cd /home/ubuntu/repos/AthleX-Manager   # or the checkout of the branch under test
   npx next build           # if not already built
   ( set -a && . ./.env.local && set +a && PORT=3000 npx next start > /tmp/next_start.log 2>&1 & )
   ```

@@ -15,14 +15,14 @@ order: 75
 ## Étapes
 
 1. Bloc **Nouvelle invitation** : saisis **Prénom**, **Nom** et **E-mail** (seul l'e-mail est obligatoire). <Screenshot src="/tutorials/inviter-un-membre/1.png" alt="Formulaire Nouvelle invitation" />
-2. Choisis la formule dans la liste, ou laisse **Sans formule** si tu régleras ça plus tard. Les formules proposées sont celles de la page **Formules**, avec leur prix.
+2. Choisis la formule dans la liste, ou laisse **Sans formule** si tu régleras ça plus tard. Les formules proposées sont celles de la page **Formules**, avec leur prix. <Screenshot src="/tutorials/inviter-un-membre/4.png" alt="Page Invitations : formulaire et liste des invitations" />
 3. Choisis le mode de paiement :
    - **Encaissement box** — tu encaisses toi-même. Coche « Paiement déjà encaissé — le membre est actif dès qu'il crée son compte » si c'est déjà réglé ; sinon l'invitation reste marquée **À encaisser** et tu confirmeras avec **Encaissé**.
-   - **Paiement Stripe** — « Le membre créera son compte puis paiera par Stripe. Il ne sera actif qu'une fois le paiement confirmé. »
+   - **Paiement Stripe** — « Le membre créera son compte puis paiera par Stripe. Il ne sera actif qu'une fois le paiement confirmé. » <Screenshot src="/tutorials/inviter-un-membre/5.png" alt="Mode Paiement Stripe sélectionné et liste des invitations avec leurs statuts" />
 4. Clique **Créer l'invitation**. La fenêtre **Lien d'invitation** s'ouvre avec le **QR code** et l'URL `…/rejoindre/<jeton>` : **Copier** pour l'envoyer toi-même, ou **Envoyer par e-mail** pour que l'invité le reçoive. Si l'e-mail ne part pas, l'écran l'annonce — « E-mail non parti — utilise le QR code ou le lien ». <Screenshot src="/tutorials/inviter-un-membre/2.png" alt="Fenêtre Lien d'invitation avec QR code" />
 5. Ce que voit l'invité : un écran **Invitation personnelle** avec le nom de ta box et le détail de sa formule, puis **Créer mon compte et rejoindre** (pseudo, mot de passe). S'il est déjà connecté avec l'adresse invitée, « un clic suffit » et **Rejoindre** le rattache directement. En mode Stripe, il finit par **Régler mon abonnement** (carte ou prélèvement SEPA). <Screenshot src="/tutorials/inviter-un-membre/3.png" alt="Page /rejoindre vue par l'invité" />
-6. Suis tes invitations dans la liste : **Valide jusqu'au …**, **Acceptée**, **Expirée** ou **Révoquée**, avec les badges **À encaisser**, **Stripe** et la date d'envoi de l'e-mail. Le filtre **À encaisser** isole celles qui attendent ton encaissement.
-7. Agis dessus tant qu'elles sont en attente : **Encaissé** (paiement reçu au comptoir), **Relancer** — qui régénère le lien, l'ancien devenant inutilisable — et **Révoquer** pour l'annuler.
+6. Suis tes invitations dans la liste, sous le formulaire : **Valide jusqu'au …**, **Acceptée**, **Expirée** ou **Révoquée**, avec les badges **À encaisser**, **Stripe** et la date d'envoi de l'e-mail. Le filtre **À encaisser** isole celles qui attendent ton encaissement (capture de l'étape 3).
+7. Agis dessus tant qu'elles sont en attente, avec les boutons de chaque ligne : **Encaissé** (paiement reçu au comptoir), **Relancer** — qui régénère le lien, l'ancien devenant inutilisable — et **Révoquer** pour l'annuler.
 
 <Callout type="warning">
 **Le lien en clair n'est affiché qu'une fois** : « il n'est pas conservé en clair. Tu pourras en régénérer un avec "Relancer" ». Ferme la fenêtre seulement après avoir envoyé l'e-mail ou copié l'URL.
