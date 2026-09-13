@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
+import HelpButton from '@/components/help/HelpButton';
 import { useRouter } from 'next/navigation';
 import QRCode from 'qrcode';
 import {
@@ -240,7 +241,10 @@ export default function InvitationsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-black text-white">Invitations</h1>
+        <div className="flex items-center gap-3">
+          <h1 className="text-2xl font-black text-white">Invitations</h1>
+          <HelpButton />
+        </div>
         <p className="text-sm text-gray-400 mt-1">
           Inscris un adhérent nominativement : il reçoit un lien personnel, choisit son pseudo et son mot de passe, et arrive dans ta box avec sa formule.
         </p>

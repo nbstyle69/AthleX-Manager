@@ -1,6 +1,7 @@
 'use client';
 
 import { Fragment, useState, useEffect, useCallback } from 'react';
+import HelpButton from '@/components/help/HelpButton';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
 import { CreditCard, Loader2, Search, Users, BookOpen, Pause, Play, FileText, Check, X, ChevronDown, ChevronRight, ExternalLink, Banknote } from 'lucide-react';
@@ -369,7 +370,10 @@ export default function SubscribersPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-black text-white">Abonnés</h1>
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl font-black text-white">Abonnés</h1>
+            <HelpButton />
+          </div>
           <p className="text-sm text-gray-400 mt-1">Tous les membres qui paient (abonnements salle + programmes)</p>
         </div>
       </div>

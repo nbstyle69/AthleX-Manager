@@ -1,9 +1,15 @@
 ---
 name: testing-back-office
-description: Test TheHub owner back-office (dashboard) flows end-to-end in the browser — login, settings (logo/cover/CGV PDF), /programs (membership plans), /members, /subscribers, and the public /box/[slug] subscribe modal + athlete /compte. Use when verifying back-office UI, membership/plan, or box-settings changes.
+description: Test AthleX Manager owner back-office (dashboard) flows end-to-end in the browser — login, settings (logo/cover/CGV PDF, Stripe), /plans (formules + codes promo), Marketplace (/programming, /programming/offers, /programming/athletes), /members, /subscribers, and the public /box/[slug] subscribe modal + athlete /compte. Use when verifying back-office UI, membership/plan, or box-settings changes.
 ---
 
-# Testing TheHub back-office
+# Testing the AthleX Manager back-office
+
+## Where writes are allowed (hard rule)
+- Tests that **write** run only on **AthleX Fitness** (the demo box) or on a **disposable box you create yourself**. Never on a box owned by a third party, in prod or anywhere else.
+- Never create an auth user + `box_members role='owner'` row to get into somebody else's box. If you need owner access to a box you do not own, ask for credentials instead.
+- A third-party box may only be used **read-only** (screens that write nothing, or reads through supabase-js / psql).
+- On AthleX Fitness, prefix disposable rows with `zz_`, delete them at the end, and leave the existing formules and the Essai offer untouched — the box is used by the Apple reviewer.
 
 ## Environment
 - App runs locally on `http://localhost:3000` (Next.js App Router). Root `/` redirects to `/landing` (307) for anon.
@@ -44,7 +50,7 @@ To detect: `select` the column with the anon key — a `42501 permission denied`
 - Adversarial: link must be **absent** before upload and **absent** after "Supprimer" (removal nulls the DB ref but leaves the Storage file — known limitation).
 
 ## Promo codes feature (PR #212) test path
-- Owner: `/programs` → section **"Codes promo"** → "Créer un code" (code A-Z0-9, %/€, durée once/N mois/forever, max, expiration). Codes are mirrored to a **Stripe coupon + promotion code on the box's connected account**; DB row stores `stripe_coupon_id` + `stripe_promotion_code_id`. Toggle/Delete via `/api/promo-codes/[id]`.
+- Owner: `/plans` → section **"Codes promo"** → "Créer un code" (code A-Z0-9, %/€, durée once/N mois/forever, max, expiration). Codes are mirrored to a **Stripe coupon + promotion code on the box's connected account**; DB row stores `stripe_coupon_id` + `stripe_promotion_code_id`. Toggle/Delete via `/api/promo-codes/[id]`.
 - Checkout proof (the key test): public `/box/[slug]` → "S'abonner" → email → **real Stripe Checkout**. `allow_promotion_codes:true` shows an **"Add promotion code"** link. Enter a **percentage** code and confirm the total drops (e.g. −20%). The subscription first invoice is **prorated** (billing_cycle_anchor = 1st of next month), so the "today" total is small, not the full plan price.
 - ⚠️ **Fixed-amount (€) codes fail at checkout when Stripe Adaptive Pricing is on.** If the Checkout shows a currency toggle (USD/EUR), `amount_off` coupons are rejected with "This code is invalid" (Stripe can't convert a fixed amount across currencies). Only **percentage** codes work in multi-currency checkouts. Test the discount-applies assertion with a **percent** code; treat fixed-€ at multi-currency checkout as a Stripe limitation, not a code bug.
 - ⚠️ **Stripe test-mode `coupons.del` may fail with "No such coupon"** even for a live coupon that was just redeemed (read/list/update/redeem still work). The app's DELETE wraps `coupons.del(...).catch(()=>{})`, so it silently leaves orphaned coupons in this case. To verify deletion, rely on UI card removed + DB row gone; note coupon removal may be unconfirmable in test mode. In cleanup, deactivate leftover promotion codes (`promotionCodes.update(id,{active:false})`) since `del` may be unavailable.
@@ -52,9 +58,9 @@ To detect: `select` the column with the anon key — a `42501 permission denied`
 
 ## Funnel C3 — Prospects (`/prospects`) + prospect `/suivi` (PR #220) test path
 - Seed: disposable owner+box, a **non-subscriber** member (`box_members` active, NO active sub), a **past** `class_schedules` + `class_reservations` with `attended=true`, and a `membership_plans` row (for the offer). Then run `select public.detect_trial_followups();` (service role) → creates one `session_followups` row `pending`.
-- Owner `/prospects`: **Pipeline** tab shows the prospect card in **« Essai réalisé »**. **Créneaux RDV** tab → fill date/time/capacity → « Ajouter le créneau ».
+- Owner `/prospects`: the **Adhérents** tab shows the prospect card in **« Essai réalisé »**. **Créneaux RDV** tab → fill date/time/capacity → « Ajouter le créneau ».
   - ⚠️ **Known UI refresh gap**: after adding a slot the "Créneaux à venir" list does NOT auto-refresh — **reload the page** to see it. The row IS in `box_appointment_slots` immediately (verify with the service role). Not a data bug.
-- Prospect (login the member via `/test-login`, then go to `/suivi`): feedback step (★ + comment) → "Envoyer mon avis" (`pending→responded`) → slot list appears → "Réserver" (`responded→meeting_booked`, shows "Ton RDV est réservé").
+- Prospect (login the member via `/login/athlete`, then go to `/suivi`): feedback step (★ + comment) → "Envoyer mon avis" (`pending→responded`) → slot list appears → "Réserver" (`responded→meeting_booked`, shows "Ton RDV est réservé").
 - Back on owner `/prospects`: prospect moved to « RDV pris », shows the stars+comment; slot shows `1/1 réservé`.
 - ⚠️ **VM clock caveat**: the box clock may be **far ahead of the env note's date** (e.g. env said June but VM was 2026-07-30). The slot list filters `starts_at >= now()-24h`, so always date test slots in the future relative to `date -u` on the box, not the stated date — otherwise slots silently vanish from the list (looks like a bug but isn't).
 - RLS note: `book_appointment_slot` / `submit_followup_feedback` are `SECURITY DEFINER`; the member only sees/acts on their own `session_followups` (member_id=auth.uid()); owner/coach via `manages_box_funnel(box_id)`.
@@ -67,9 +73,9 @@ Prove athlete access at the **RLS boundary** with the athlete's real JWT (anon c
 - To reproduce states without real Stripe time-advance, apply the exact webhook `box_members` UPDATE with the service role; cite the webhook lines in the report. Reservation `insert().select().single()` mirrors `ReservationScreen.toggleBooking`; a banned member's insert fails on the RETURNING SELECT (status='active' gate).
 
 ## Tunnel « Essai » (acquisition de prospects sans compte) — test path in PRODUCTION
-Verified end-to-end on `https://athlexapp.eu` (prod = the fastest way to prove freshly merged screens on real data; every write is real, so use a recognizable disposable identity and report the IDs instead of deleting).
-- **Owner access when no password exists for the real owner**: create a disposable Supabase auth user (`supabase.auth.admin.createUser`) + a `box_members` row `role='owner', status='active'` on the target box, then log in through `/login/box`. Report the account for revocation — it is *access*, not evidence. The box already having an active `box_subscriptions` row means no paywall overlay.
-- **Offer**: sidebar *Business → « Programmes athlètes »* (`/programs`) → « Créer une offre » → tile **Essai / « Gratuit · 1 séance découverte »**. Discriminating check: click **Abonnement** first (price field visible), then **Essai** — every price input must disappear and a yellow « Gratuite par construction » help block appears.
+Verified end-to-end on `https://athlexapp.eu` (prod = the fastest way to prove freshly merged screens on real data; every write is real, so run it on **AthleX Fitness** or a box you created, use a recognizable disposable identity, and report the IDs you leave behind).
+- **Owner access**: log in through `/login/box` with the owner credentials of AthleX Fitness (secret `ATHLEX_DEMO_OWNER_PASSWORD`) or of a box you created yourself. Never manufacture an owner row on a box you do not own (see « Where writes are allowed »). A box with an active `box_subscriptions` row shows no paywall overlay.
+- **Offer**: sidebar *Communauté → « Formules »* (`/plans`) → « Créer une offre » (la modale s’intitule « Nouvelle offre ») → tile **Essai / « Gratuit · 1 séance découverte »**. Discriminating check: click **Abonnement** first (price field visible), then **Essai** — every price input must disappear and a yellow « Gratuite par construction » help block appears.
 - **One-trial-per-box**: to actually exercise the trial constraint, retry with a **different name**. Same name hits `membership_plans_box_id_name_key` (« Une formule porte déjà ce nom ») and proves nothing. The trial index `membership_plans_une_offre_trial_par_box` is mapped in the UI to « Cette box a déjà une offre Essai. Modifie-la au lieu d'en créer une seconde. »
 - **Public funnel** (incognito): `/box/<slug>` → dedicated « Séance d'essai » block + CTA « Réserver mon essai » → form (only *prénom* + *e-mail* are required; nom/téléphone optional) → « Voir les cours » / « See the classes » → slot dialog.
 - **Slot dialog is day-first** (since PR #302, `app/box/[slug]/TrialBookingCta.tsx`): a « CHOISIS UN JOUR » / « PICK A DAY » chip row, then **only the active day's** cards. `FIRST_DAYS = 7` chips are shown; « Voir les dates suivantes » / « Show later dates » appears only when the server's 21-day answer contains **more than 7 open days**, and expands client-side with **no extra fetch** (`setAllDays(true)`), ending with « Toutes les dates ouvertes sont affichées. » / « All open dates are shown. ». Card head line is `HH:MM – HH:MM · <class name>` with seats at the right (« N places restantes » / « N seats left »); long date + coach on the sub-line.

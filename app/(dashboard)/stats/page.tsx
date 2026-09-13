@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import HelpButton from '@/components/help/HelpButton';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
 import { Users, Trophy, Dumbbell, TrendingUp, Loader2, CalendarCheck } from 'lucide-react';
@@ -185,7 +186,10 @@ export default function BoxStatsPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-2xl font-black text-white">Statistiques</h1>
+        <div className="flex items-center gap-3">
+          <h1 className="text-2xl font-black text-white">Statistiques</h1>
+          <HelpButton />
+        </div>
         <p className="text-sm text-gray-400 mt-1">Vue d&apos;ensemble de votre box</p>
       </div>
 

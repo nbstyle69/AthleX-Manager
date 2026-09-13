@@ -32,6 +32,18 @@ const EXPECTED_SLUGS = [
   'marketplace-appliquer-au-whiteboard',
   'marketplace-publier-une-offre',
   'tournois',
+  'parcours-d-un-nouveau-membre',
+  'page-publique-de-la-box',
+  'formules-d-acces-a-la-salle',
+  'essai-gratuit-et-reservation',
+  'prospects-et-conversion',
+  'inviter-un-membre',
+  'abonnement-en-ligne-et-compte-athlete',
+  'abonnes-et-facturation',
+  'ce-que-voient-les-membres-dans-l-app',
+  'actualites-et-messages',
+  'statistiques',
+  'reglages-de-la-box',
 ];
 
 const BANNED = [/crossfit/i, /hyrox/i, /thehub/i];
@@ -48,7 +60,7 @@ describe('tutoriels — chargement et front matter', () => {
     }
   });
 
-  it('expose les 16 slugs attendus, sans doublon', () => {
+  it('expose les 28 slugs attendus, sans doublon', () => {
     expect(allSlugs().sort()).toEqual([...EXPECTED_SLUGS].sort());
     expect(new Set(allSlugs()).size).toBe(EXPECTED_SLUGS.length);
   });
@@ -146,6 +158,18 @@ describe('tutoriels — contenu', () => {
     expect(normalize(fr('mouvements-et-badges'))).toContain('hors catalogue');
     expect(normalize(fr('marketplace-appliquer-au-whiteboard'))).toContain('realigne l');
   });
+
+  it('couvre les règles imposées par le lot 2', () => {
+    for (const locale of LOCALES) {
+      const plain = (slug: string) => normalize(getTutorial(locale, slug)!.plain);
+      // Une formule à 0 € n'est jamais publiée, sauf l'offre Essai.
+      expect(plain('page-publique-de-la-box')).toMatch(/(0 ?€|€ ?0)/);
+      expect(plain('page-publique-de-la-box')).toContain('essai');
+      // Invitation nominative ≠ code d'invitation de la box.
+      expect(plain('inviter-un-membre')).toContain('rejoindre/');
+      expect(plain('inviter-un-membre')).toMatch(/(code d.invitation|invitation code)/);
+    }
+  });
 });
 
 describe('registre de pages', () => {
@@ -168,6 +192,25 @@ describe('registre de pages', () => {
     expect(getTutorialsForPage('fr', 'whiteboard').length).toBeGreaterThan(3);
     expect(getTutorialsForPage('fr', 'tournaments').map((t) => t.slug)).toEqual(['tournois']);
   });
+
+  it('couvre par un tutoriel les pages du lot 2, et leur branche le bouton « ? »', () => {
+    const pages = [
+      'prospects',
+      'invitations',
+      'subscribers',
+      'settings',
+      'articles',
+      'messages',
+      'stats',
+    ] as const;
+    for (const id of pages) {
+      expect(getTutorialsForPage('fr', id).length).toBeGreaterThan(0);
+      expect(getTutorialsForPage('en', id).length).toBeGreaterThan(0);
+      const route = HELP_PAGES.find((p) => p.id === id)!.route;
+      const layout = path.join(process.cwd(), 'app', '(dashboard)', route.slice(1), 'layout.tsx');
+      expect(fs.readFileSync(layout, 'utf8')).toContain(`HelpDockProvider page="${id}"`);
+    }
+  });
 });
 
 describe('recherche', () => {
@@ -182,6 +225,23 @@ describe('recherche', () => {
   it('trouve un tutoriel par son sujet', () => {
     expect(searchSlugs(index, 'badge')).toContain('mouvements-et-badges');
     expect(searchSlugs(index, 'semaine type')).toContain('semaines-types');
+  });
+
+  it('trouve les tutoriels du lot 2 par les mots des owners', () => {
+    const first = (q: string) => searchSlugs(index, q)[0];
+    const essai = searchSlugs(index, 'essai');
+    expect(essai.indexOf('essai-gratuit-et-reservation')).toBeGreaterThanOrEqual(0);
+    expect(essai.indexOf('essai-gratuit-et-reservation')).toBeLessThan(
+      essai.indexOf('prospects-et-conversion'),
+    );
+    expect(first('drop-in')).toBe('formules-d-acces-a-la-salle');
+    // « formule » remonte aussi le tutoriel Membres, qui parle des mêmes objets.
+    expect(searchSlugs(index, 'formule').slice(0, 3)).toContain('formules-d-acces-a-la-salle');
+    expect(first('rejoindre')).toBe('inviter-un-membre');
+    // La résiliation se lit des deux côtés : l'athlète la demande, la box la traite.
+    expect(searchSlugs(index, 'résiliation').slice(0, 2)).toContain(
+      'abonnement-en-ligne-et-compte-athlete',
+    );
   });
 
   it('rend une liste vide sur une requête sans rapport', () => {
@@ -199,7 +259,8 @@ describe('navigation', () => {
   it('chaîne les tutoriels par ordre croissant', () => {
     expect(neighbours('fr', 'premiers-pas').previous).toBeNull();
     expect(neighbours('fr', 'premiers-pas').next?.slug).toBe('creer-un-wod');
-    expect(neighbours('fr', 'tournois').next).toBeNull();
+    expect(neighbours('fr', 'tournois').next?.slug).toBe('parcours-d-un-nouveau-membre');
+    expect(neighbours('fr', 'reglages-de-la-box').next).toBeNull();
   });
 
   it('rend null sur un slug inconnu', () => {
