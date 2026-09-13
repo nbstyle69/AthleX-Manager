@@ -1,0 +1,34 @@
+---
+slug: parcours-d-un-nouveau-membre
+title: The four ways into your box
+summary: Public trial, personal invitation, online subscription, box code: what the athlete sees, where they land in the Manager, and what you have to do.
+role: both
+pages: [prospects, invitations]
+tags: [journey, trial, invitation, subscription, invitation code, prospects]
+order: 70
+---
+
+## Before you start
+
+An athlete can enter your box through four routes, and they do not land in the same place in the back-office. This tutorial is the map: for each route it says what the athlete sees, which page you find them in, and the action that is yours. Detailed procedures live in the dedicated tutorials. On-screen labels are in French, so they are quoted as they appear.
+
+## Steps
+
+1. **Public trial — the visitor has no account.** On your public page `/box/<slug>`, the **Séance d'essai** (trial session) section asks for first name, last name, email, phone (optional), then a slot among the coming classes. You find them in **Prospects → Essais**, in the **Essai réservé** (trial booked) column, with their details and their slot. Your action: take attendance for the class in **Horaires**, which flips the card to **Venu** (showed up) or **Pas venu** by itself, then follow up. Detail in « Séance d'essai gratuite » and « Prospects : suivre et convertir ».
+2. **Personal invitation — you sign up somebody you know.** From **Invitations** you type their email, pick their plan and the payment mode. They receive a personal link `/rejoindre/<token>` (or you show them the QR code): they create their account there with the invited address, choose a username and a password, and land as a member of the box with their plan. You find them in **Invitations** (status **Acceptée**) and then in **Membres**. Your action: collect the first payment if you chose **Encaissement box** (collected at the box). Detail in « Inviter un membre nominativement ».
+3. **Online subscription — the athlete pays by themselves.** On your public page, section **Abonnements**, they click **S'abonner** (the button carries the price), read the **Récapitulatif du contrat** (contract summary), then **Payer par carte** takes them to Stripe (card, plus SEPA direct debit in euros). They then manage their subscription on `/compte`. You find them in **Abonnés**, filter **Salle**. Your action: none, unless a debit fails. Detail in « S'abonner en ligne et gérer son compte ».
+4. **Box invitation code — the athlete is already in the app.** The **code invitation** shown on the **Dashboard** lets them join your box from the athlete app. They become a member, with no plan and no payment. You find them in **Membres**. Your action: assign them a plan if they must pay, or send them a personal invitation instead.
+
+<Callout type="warning">
+The **box invitation code** and the **personal invitation link** do not do the same thing. The code is unique, shareable and carries no plan: it lets anybody into the box. The link is personal, carries a plan and a payment mode, and expires. See « Inviter un membre nominativement ».
+</Callout>
+
+## Common mistakes
+
+- **A booked trial does not show up in Membres.** That is expected: a trial prospect has no AthleX account, they live in **Prospects** until conversion.
+- **An athlete paid on the public page but you cannot see them in Membres.** Look at **Abonnés**: the payment created their subscription, and the membership is matched on the email used at payment. If they paid with an address other than their AthleX account, the match cannot happen.
+- **You send the box code to make a member pay.** The code grants no plan → go through **Invitations** with the plan pre-assigned.
+
+## Go there
+
+<GoTo page="prospects" />

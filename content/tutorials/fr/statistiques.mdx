@@ -1,0 +1,40 @@
+---
+slug: statistiques
+title: Lire tes statistiques
+summary: Argent, Assiduité, Croissance : ce que chaque chiffre mesure vraiment, sur quelle période, et quelle action il déclenche.
+role: owner
+pages: [stats]
+tags: [statistiques, mrr, assiduité, croissance, impayés, remplissage, pilotage]
+order: 80
+---
+
+## Avant de commencer
+
+**Statistiques** (Pilotage → Statistiques) — « Vue d'ensemble de votre box » — empile quatre étages : **Argent**, **Assiduité**, **Croissance**, puis les compteurs bruts et les graphiques. Les blocs **Argent** et **Croissance** ne s'affichent qu'aux propriétaires et administrateurs de la box ; un coach voit l'assiduité et les compteurs, pas les montants.
+
+## Étapes
+
+1. **Argent** — « comparaisons vs mois précédent » : **MRR abonnements** (avec le nombre d'abonnés, Stripe et comptoir), **Encaissé au comptoir** (encaissements d'adhésion du mois), **Programmes ce mois** (ventes Stripe et comptoir), **Nouveaux abonnés** et **Résiliations**. <Screenshot src="/tutorials/statistiques/1.png" alt="Bloc Argent des statistiques" />
+2. Sous ces cartes, deux listes qui appellent une action : **Impayés en cours** → **Relancer depuis Abonnés**, et **À encaisser au comptoir** → **Voir les invitations**. Ce sont des personnes nommées, pas des totaux.
+3. **Encaissé sur 6 mois** additionne factures Stripe, achats de programmes et encaissements comptoir d'adhésion. Sans compte Stripe connecté, le graphe le dit : « seuls les programmes et le comptoir apparaissent ». **Abonnés par formule** montre la répartition de tes abonnés.
+4. **Assiduité** — 30 derniers jours vs 30 jours précédents : **Remplissage des cours** (réservations / places ouvertes), **Présence réelle** (présents sur pointés) et **Taux de pointage** (appels faits sur réservations). <Screenshot src="/tutorials/statistiques/2.png" alt="Bloc Assiduité et heatmap" />
+5. Deux listes nominatives à dérouler : **Membres à risque** (« déjà venus, plus rien depuis 14 jours — à relancer ») et **Jamais venus via l'app** (« aucune réservation depuis l'inscription — à embarquer »), chacune avec son bouton de message. La heatmap **Quand la salle est pleine** situe les créneaux chargés par jour et par heure.
+6. **Croissance** suit l'entonnoir sur 30 jours : **Prospects** → **Invitations** → **Membres** → **Abonnés**, avec le taux de passage d'un étage à l'autre. Les **Abonnés** comptés sont ceux des « adhésions de la période », pas tous les abonnements actifs de la box.
+7. En bas, les compteurs de la box (**Total membres**, **Membres actifs** avec ses sous-totaux 7 et 30 jours, **Coachs**, **Bannis**, **Tournois créés**, **Tournois actifs**, **WODs publiés**), les courbes **Inscriptions membres** et **Réservations** (7 / 30 / 90 jours) et la **Composition** de la salle par niveau et par rôle.
+
+<Callout>
+Sur une petite cohorte, les taux de l'entonnoir laissent place à des effectifs bruts (« 3/7 ») : « sur de petites cohortes, un pourcentage varierait de dizaines de points pour une personne de plus ».
+</Callout>
+
+## Erreurs fréquentes
+
+- **Le bloc Argent n'apparaît pas.** Tu es connecté avec un compte coach : les montants sont réservés au propriétaire et aux administrateurs.
+- **« Présence réelle » affiche un tiret.** « Aucun appel fait sur la période » : sans pointage dans **Horaires**, ni la présence ni le taux de pointage ne veulent dire quelque chose.
+- **Le MRR est plus bas que ta caisse.** Il ne compte que les abonnements récurrents : les Drop-in, carnets et programmes sont dans les autres cartes.
+- **Les encaissements en espèces d'avant manquent.** « Le comptoir n'y figure que depuis la pose du journal » : les paiements antérieurs n'ont laissé ni montant ni date.
+- **Le remplissage est bas alors que la salle est pleine.** Il compare aux **places ouvertes** dans le planning : trop de capacité déclarée fait chuter le taux.
+- **L'entonnoir Croissance ne colle pas au nombre d'abonnés de la page Abonnés.** C'est voulu : il suit une cohorte de 30 jours, pas l'effectif total.
+
+## Y aller
+
+<GoTo page="stats" />

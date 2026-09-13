@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import HelpButton from '@/components/help/HelpButton';
 import { createClient } from '@/lib/supabase/client';
 import { getMyBox } from '@/lib/getMyBox';
 import { getMemberEmails } from '@/lib/memberEmails';
@@ -227,6 +228,7 @@ export default function ProspectsPage() {
         <div>
           <h1 className="text-2xl font-black text-white flex items-center gap-2">
             <UserPlus size={22} /> Prospects
+            <HelpButton />
           </h1>
           <p className="text-sm text-gray-400 mt-1">
             Suivi des essais &amp; Drop-in : feedback, RDV, conversion en abonnement.
@@ -280,7 +282,7 @@ function TrialPipeline({
         <Sparkles className="mx-auto text-white/20 mb-3" size={32} />
         <p className="text-gray-400 text-sm">
           Aucun essai réservé pour l&apos;instant. Publie une offre de type « Essai » dans
-          Programmes athlètes : elle apparaît sur la page publique de la box, et chaque
+          Formules : elle apparaît sur la page publique de la box, et chaque
           réservation arrive ici avec ses coordonnées et son créneau.
         </p>
       </div>

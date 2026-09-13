@@ -1,0 +1,34 @@
+---
+slug: parcours-d-un-nouveau-membre
+title: Les quatre façons d'entrer dans ta box
+summary: Essai public, invitation nominative, abonnement en ligne, code d'invitation : ce que voit l'athlète, où il arrive dans le Manager, et ce que tu as à faire.
+role: both
+pages: [prospects, invitations]
+tags: [parcours, essai, invitation, abonnement, code invitation, prospects]
+order: 70
+---
+
+## Avant de commencer
+
+Un athlète peut entrer dans ta box par quatre chemins, et ils n'atterrissent pas au même endroit dans le back-office. Ce tutoriel sert de carte : il dit pour chacun ce que voit l'athlète, dans quelle page tu le retrouves, et l'action qui t'incombe. Les procédures détaillées sont dans les tutoriels dédiés.
+
+## Étapes
+
+1. **Essai public — le visiteur n'a pas de compte.** Sur ta page publique `/box/<slug>`, la section **Séance d'essai** lui demande prénom, nom, e-mail, téléphone (optionnel), puis un créneau parmi les cours à venir. Tu le retrouves dans **Prospects → Essais**, colonne **Essai réservé**, avec ses coordonnées et son créneau. Ton action : pointer la présence du cours dans **Horaires**, ce qui bascule tout seul la carte en **Venu** ou **Pas venu**, puis le relancer. Détail dans « Séance d'essai gratuite » et « Prospects : suivre et convertir ».
+2. **Invitation nominative — tu inscris quelqu'un que tu connais.** Depuis **Invitations**, tu saisis son e-mail, tu choisis sa formule et le mode de paiement. Il reçoit un lien personnel `/rejoindre/<jeton>` (ou tu lui montres le QR code) : il y crée son compte avec l'adresse invitée, choisit pseudo et mot de passe, et arrive membre de la box avec sa formule. Tu le retrouves dans **Invitations** (statut **Acceptée**) puis dans **Membres**. Ton action : encaisser la première échéance si tu as choisi **Encaissement box**. Détail dans « Inviter un membre nominativement ».
+3. **Abonnement en ligne — l'athlète paie lui-même.** Sur ta page publique, section **Abonnements**, il clique **S'abonner** (le bouton porte le prix), lit le **Récapitulatif du contrat**, puis **Payer par carte** l'emmène sur Stripe (carte, et prélèvement SEPA en euros). Il gère ensuite son abonnement sur `/compte`. Tu le retrouves dans **Abonnés**, filtre **Salle**. Ton action : aucune, sauf si le prélèvement échoue. Détail dans « S'abonner en ligne et gérer son compte ».
+4. **Code d'invitation de la box — l'athlète est déjà sur l'application.** Le **code invitation** affiché sur le **Dashboard** lui permet de rejoindre ta box depuis l'application athlète. Il devient membre, sans formule et sans paiement. Tu le retrouves dans **Membres**. Ton action : lui attribuer une formule s'il doit payer, ou lui envoyer une invitation nominative à la place.
+
+<Callout type="warning">
+Le **code d'invitation de la box** et le **lien d'invitation nominative** ne font pas la même chose. Le code est unique, partageable et sans formule : il fait entrer n'importe qui dans la box. Le lien est personnel, porte une formule et un mode de paiement, et expire. Voir « Inviter un membre nominativement ».
+</Callout>
+
+## Erreurs fréquentes
+
+- **Un essai réservé n'apparaît pas dans Membres.** C'est normal : un prospect d'essai n'a pas de compte AthleX, il vit dans **Prospects** jusqu'à sa conversion.
+- **Un athlète a payé sur la page publique mais tu ne le vois pas dans Membres.** Regarde **Abonnés** : le paiement a créé son abonnement, l'adhésion se rattache à l'e-mail utilisé au paiement. S'il a payé avec une autre adresse que celle de son compte AthleX, le rattachement ne peut pas se faire.
+- **Tu envoies le code de la box pour faire payer un membre.** Le code n'attribue aucune formule → passe par **Invitations** avec la formule préassignée.
+
+## Y aller
+
+<GoTo page="prospects" />

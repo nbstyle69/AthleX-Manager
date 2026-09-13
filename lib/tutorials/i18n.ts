@@ -13,6 +13,7 @@ export const THEMES = [
   'getting-started',
   'wods',
   'members',
+  'acquisition',
   'programs',
   'marketplace',
   'tournaments',
@@ -26,7 +27,8 @@ export function themeForOrder(order: number): ThemeId {
   if (order < 40) return 'members';
   if (order < 50) return 'programs';
   if (order < 60) return 'marketplace';
-  return 'tournaments';
+  if (order < 70) return 'tournaments';
+  return 'acquisition';
 }
 
 interface HelpStrings {
@@ -73,6 +75,7 @@ export const HELP_STRINGS: Record<Locale, HelpStrings> = {
       'getting-started': 'Prise en main',
       wods: 'WODs & Whiteboard',
       members: 'Membres & planning',
+      acquisition: 'Acquisition & membres',
       programs: 'Programmes',
       marketplace: 'Marketplace',
       tournaments: 'Tournois',
@@ -84,9 +87,15 @@ export const HELP_STRINGS: Record<Locale, HelpStrings> = {
       'page.groups': 'Groupes',
       'page.schedule': 'Horaires & Créneaux',
       'page.plans': 'Formules',
+      'page.prospects': 'Prospects',
+      'page.invitations': 'Invitations',
+      'page.subscribers': 'Abonnés',
       'page.programs': 'Programmes athlètes',
       'page.marketplace': 'Marketplace — Catalogue',
       'page.marketplaceOffers': 'Marketplace — Mes offres',
+      'page.articles': 'Actualités',
+      'page.messages': 'Messages',
+      'page.stats': 'Statistiques',
       'page.tournaments': 'Tournois',
       'page.settings': 'Réglages',
     },
@@ -118,6 +127,7 @@ export const HELP_STRINGS: Record<Locale, HelpStrings> = {
       'getting-started': 'Getting started',
       wods: 'WODs & Whiteboard',
       members: 'Members & schedule',
+      acquisition: 'Acquisition & members',
       programs: 'Programs',
       marketplace: 'Marketplace',
       tournaments: 'Tournaments',
@@ -129,9 +139,15 @@ export const HELP_STRINGS: Record<Locale, HelpStrings> = {
       'page.groups': 'Groups',
       'page.schedule': 'Schedule & slots',
       'page.plans': 'Plans',
+      'page.prospects': 'Prospects',
+      'page.invitations': 'Invitations',
+      'page.subscribers': 'Subscribers',
       'page.programs': 'Athlete programs',
       'page.marketplace': 'Marketplace — Catalogue',
       'page.marketplaceOffers': 'Marketplace — My offers',
+      'page.articles': 'News',
+      'page.messages': 'Messages',
+      'page.stats': 'Statistics',
       'page.tournaments': 'Tournaments',
       'page.settings': 'Settings',
     },

@@ -1,0 +1,41 @@
+---
+slug: abonnement-en-ligne-et-compte-athlete
+title: S'abonner en ligne et gérer son compte
+summary: Le parcours d'un athlète qui paie lui-même depuis ta page publique, et ce qu'il peut faire ensuite sur son espace « Mon compte ».
+role: both
+pages: [subscribers, settings]
+tags: [abonnement, stripe, checkout, compte, résiliation, prorata, sepa]
+order: 76
+---
+
+## Avant de commencer
+
+Ce parcours ne demande aucune action de ta part : l'athlète paie sur ta page publique, Stripe encaisse, et il apparaît dans **Abonnés**. Il suppose que **Stripe Connect** est branché dans **Réglages → Paiements**, et que la formule est **Active** avec un prix supérieur à 0 €.
+
+## Étapes
+
+1. Sur `athlexapp.eu/box/<ton-slug>`, section **Abonnements**, l'athlète clique **S'abonner** sur la formule qui l'intéresse (le bouton porte le prix). Pour un Drop-in ou un carnet, section **À la carte**, le bouton s'appelle **Acheter**. <Screenshot src="/tutorials/abonnement-en-ligne-et-compte-athlete/1.png" alt="Section Abonnements de la page publique" />
+2. Il lit le **Récapitulatif du contrat** : prix TTC, engagement, séances par semaine ou accès illimité, description, et tes **conditions / mentions** saisies sur la formule. Le lien vers tes **Conditions générales (PDF)** y figure s'il est chargé dans Réglages. <Screenshot src="/tutorials/abonnement-en-ligne-et-compte-athlete/2.png" alt="Récapitulatif du contrat avant paiement" />
+3. **Payer par carte** l'emmène sur **Stripe Checkout**, où il saisit son e-mail et son moyen de paiement : carte partout, prélèvement **SEPA** en plus quand la formule est en euros. La fenêtre l'avertit avant : « Utilise l'e-mail de ton compte AthleX au paiement » — c'est cette adresse qui détermine le compte crédité, et s'il n'en a pas encore, l'abonnement sera rattaché à son inscription.
+4. Après paiement, son accès est rattaché automatiquement à ta box, sans validation de ta part. Tu le vois dans **Abonnés**, filtre **Salle**, avec le montant réellement prélevé et sa prochaine échéance.
+5. Il gère la suite depuis `athlexapp.eu/compte` — **Mon compte**, « Gère tes informations, ton abonnement et tes crédits de séances » : sa formule, son statut, le montant mensuel et la **Prochaine échéance**, ses **Drop-in & Carnets** avec les crédits restants et leur date de validité, et ses programmes achetés. <Screenshot src="/tutorials/abonnement-en-ligne-et-compte-athlete/3.png" alt="Espace Mon compte de l'athlète" />
+6. **Changer de formule** applique un **prorata immédiat** : il choisit la nouvelle formule, **Confirmer**, et Stripe ajuste la facture. **Résilier** garde l'accès « jusqu'à la fin de la période déjà payée », sans nouveau prélèvement.
+7. Si sa formule a un **engagement** en cours, le bouton devient **Demander une résiliation** : motif (**Déménagement**, **Santé / blessure grave**, **Autre motif**), message et **justificatif (PDF ou image, max 10 Mo)**. La demande arrive dans **Abonnés**, où tu l'acceptes ou la refuses.
+
+<Callout>
+Une pause d'abonnement se décide **côté box**, depuis **Abonnés** (**Geler** / **Reprendre**). L'athlète voit « Abonnement en pause — reprise le … Contacte ta box pour le réactiver », il ne peut pas la déclencher lui-même.
+</Callout>
+
+## Erreurs fréquentes
+
+- **Le bouton S'abonner n'apparaît pas.** Stripe Connect n'est pas connecté, ou la formule est inactive / à 0 € → voir **Réglages → Paiements** et **Formules**.
+- **L'athlète a payé avec une autre adresse e-mail.** Son accès part sur un autre compte AthleX : c'est l'e-mail du paiement qui compte.
+- **Il ne voit pas son abonnement sur « Mon compte ».** Il est connecté avec un autre compte, ou le paiement n'est pas encore confirmé par la banque.
+- **Il veut résilier mais ne voit que « Demander une résiliation ».** Son engagement court encore : la résiliation anticipée passe par ta décision, sur justificatif.
+- **Il dit avoir été prélevé deux fois après un changement de formule.** Le prorata immédiat génère un ajustement : le détail est dans son historique de facturation, visible dans **Abonnés**.
+
+{/* TODO Nab : l'écran annonce « Nouvelle formule (prorata immédiat) » ; la spec parlait d'un prorata au premier du mois. Texte aligné sur l'écran. */}
+
+## Y aller
+
+<GoTo page="subscribers" />

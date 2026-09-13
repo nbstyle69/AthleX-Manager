@@ -1,0 +1,43 @@
+---
+slug: reglages-de-la-box
+title: Box settings
+summary: Public page, Stripe payments, logo, banner, terms, box details, unpaid grace period, weekly digest and data export.
+role: owner
+pages: [settings]
+tags: [settings, stripe, payments, logo, banner, terms, unpaid, export, gdpr]
+order: 81
+---
+
+## Before you start
+
+**Réglages** gathers everything that applies to the whole box. Since the navigation rework, the **Page publique** and the **Paiements** blocks live here too: no need to go through the programs page any more. Blocks are saved separately — **Enregistrer** at the bottom of **Informations de la box** only saves that block. On-screen labels are in French, so they are quoted as they appear.
+
+## Steps
+
+1. **Page publique** — « L'adresse où les athlètes découvrent ta box et souscrivent tes offres »: **Modifier** to change the part of the address after `/box/`, then **Enregistrer**. Then **Voir ma page** opens the shop window and **Copier le lien** gives you the URL to share. Only letters, digits and hyphens are accepted. <Screenshot src="/tutorials/reglages-de-la-box/1.png" alt="Public page block in the settings" />
+2. **Paiements**: **Activer les paiements** starts the Stripe setup, **Continuer la configuration** resumes it where it stopped, and **Actualiser** refreshes the status once your file is approved. Until it is finished, no paid offer can be sold — neither a plan nor a program. <Screenshot src="/tutorials/reglages-de-la-box/2.png" alt="Payments block and Stripe status" />
+3. **Logo de la box** and **Bannière de la box**: **Uploader un logo** / **Uploader une bannière** (PNG, JPG or WEBP), replaceable afterwards with **Changer le logo** / **Changer la bannière**. These are the images of your public page and of the app.
+4. **Conditions générales (PDF)**: the terms document the athlete can read **before paying**. PDF only, **10 MB maximum**.
+5. **Informations de la box**: name (required), description shown on the public page, address, website and Google Maps link (both starting with `http://` or `https://`), contact email and phone, and **Date d'ouverture de la salle** (opening date). **Enregistrer** saves the block.
+6. **Impayé : délai avant suspension (jours)** (grace period after a failed payment), between 0 and 90: « Passé ce délai après un prélèvement refusé, le membre ne peut plus réserver. L'accès est rétabli dès le paiement. 0 = suspension immédiate. »
+7. **Notifications** → **Récapitulatif hebdomadaire**: every Monday, an email with the new members, the attendance taken, the members to chase and the week's failed payments. The setting applies to this box only.
+8. **Mes données**: a ZIP of CSV files with members, subscriptions, counter payments, bookings and attendance, WODs and invitations — for this box only. Further down, **Détails de la box** recalls the **Propriétaire** (owner) and the **Coachs**.
+
+<Callout>
+Change your public address as rarely as possible: old links, QR codes and posts pointing at the previous address will stop working.
+</Callout>
+
+## Common mistakes
+
+- **« Le nom de la box est requis. »** The **Informations** block will not save without a name.
+- **« Le site web doit commencer par http:// ou https:// »** — same rule for the Google Maps link.
+- **The PDF is refused.** One format only (PDF) and 10 MB maximum; for images, PNG, JPG or WEBP.
+- **The unpaid grace period is refused.** It must be « un nombre de jours entre 0 et 90 ».
+- **You filled everything in but nothing was saved.** Each block has its own button: the public address and the images are saved independently from the box details.
+- **Payments stay off after the Stripe file is done.** Click **Actualiser** in the **Paiements** block to re-read the account status.
+
+{/* TODO Nab : le bloc Paiements annonce « commission AthleX 4 % » alors que le code des abonnements de salle applique 0 %. À confirmer : le texte du bloc vise-t-il seulement les programmes vendus ? */}
+
+## Go there
+
+<GoTo page="settings" />

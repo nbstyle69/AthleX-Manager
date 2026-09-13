@@ -1,0 +1,40 @@
+---
+slug: abonnes-et-facturation
+title: Abonnés et facturation
+summary: Lire la page Abonnés, suivre les factures Stripe et les encaissements comptoir, traiter les impayés, les gels et les demandes de résiliation.
+role: owner
+pages: [subscribers, settings]
+tags: [abonnés, facturation, stripe, impayé, comptoir, résiliation, commission]
+order: 77
+---
+
+## Avant de commencer
+
+**Abonnés** (Communauté → Abonnés) réunit « tous les membres qui paient (abonnements salle + programmes) ». Trois compteurs en haut : **Abonnements actifs**, **Revenu mensuel (salle)** et **Total lignes**. Les paiements en ligne passent par ton compte **Stripe Connect** (Réglages → Paiements) ; les règlements au comptoir sont saisis ici.
+
+## Étapes
+
+1. Filtre ce que tu regardes : **Tout**, **Salle** (abonnements d'accès à la salle) ou **Programmes** (programmes de coaching vendus aux athlètes). Le champ de recherche accepte un membre ou une formule. <Screenshot src="/tutorials/abonnes-et-facturation/1.png" alt="Page Abonnés : compteurs, filtres, tableau" />
+2. Lis le tableau : **Membre**, **Type**, **Formule / Programme**, **Inscrit le**, **Montant**, **Statut**, **Prochaine échéance**. Le statut vaut **Actif**, **Impayé**, **Annulé** ou **Remboursé**, et des mentions s'ajoutent selon les cas : **En pause** (avec « reprise le … »), **Résiliation prévue** (avec « fin d'abonnement »), ou « engagé jusqu'au … ».
+3. Ouvre le détail d'une ligne avec **Factures** (paiements Stripe) ou **Encaissements** : la première liste l'**Historique de facturation (montants réellement prélevés)**, la seconde le journal des **Encaissements au comptoir (journal, non modifiable)**, avec la mention **Comptoir · 1re échéance** pour la première. <Screenshot src="/tutorials/abonnes-et-facturation/2.png" alt="Détail d'une ligne : historique de facturation" />
+4. Membre qui paie de la main à la main : clique **Encaissement reçu**. Le montant n'est pas à saisir, il est lu sur la formule du membre, et l'écriture est **définitive** — un journal en ajout seul, jamais modifié.
+5. Blessure, absence, congé : **Geler** suspend l'abonnement Stripe, **Reprendre** le relance. L'athlète voit la pause sur son espace mais ne peut pas la déclencher lui-même.
+6. Traite les **Demandes de résiliation** en haut de page : le motif, le message, le **Justificatif** à ouvrir, puis **Approuver** ou **Refuser** (avec un motif de refus optionnel). Ces demandes viennent des athlètes encore engagés.
+7. Un abonnement terminé descend dans **Anciens membres**, avec son statut (**Annulé**, **Remboursé**) et sa fin d'abonnement.
+
+<Callout>
+**Sur les abonnements d'accès à la salle, AthleX ne prend aucune commission : tu encaisses 100 % du montant.** Les frais Stripe restent dus, et les programmes vendus sur la Marketplace suivent leur propre règle de commission.
+</Callout>
+
+## Erreurs fréquentes
+
+- **Un membre passe en « Impayé ».** Son prélèvement a échoué. Le délai de grâce avant suspension de son accès se règle dans **Réglages** — « Impayé : délai avant suspension (jours) », `0` suspendant immédiatement.
+- **Le bouton « Encaissement reçu » n'apparaît pas.** Il ne concerne que les membres sans abonnement Stripe (encaissement box) et non résiliés.
+- **« Geler » est absent sur une ligne.** Le gel agit sur un abonnement Stripe : un membre réglé au comptoir n'en a pas.
+- **Un remboursement n'apparaît pas.** Il se fait depuis ton tableau de bord Stripe ; la ligne passe ensuite en **Remboursé** ici.
+- **Le revenu mensuel ne colle pas à ta caisse.** Le compteur **Revenu mensuel (salle)** ne compte que les abonnements d'accès à la salle : les programmes et les encaissements ponctuels sont ailleurs (voir « Statistiques »).
+- **Aucun paiement en ligne n'est possible.** Stripe Connect n'est pas terminé → **Réglages → Paiements**. Les offres gratuites, elles, restent accessibles sans Stripe.
+
+## Y aller
+
+<GoTo page="subscribers" />

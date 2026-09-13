@@ -1,0 +1,38 @@
+---
+slug: essai-gratuit-et-reservation
+title: Free trial session
+summary: Publish a trial offer, open the slots, and follow bookings from visitors who have no AthleX account.
+role: both
+pages: [plans, prospects, schedule]
+tags: [trial, booking, prospect, public page, slots, free]
+order: 73
+---
+
+## Before you start
+
+The trial is the only journey where a visitor books **without creating an account**: they give their first name and email, pick a coming class, and land in **Prospects**. Two conditions for the flow to open: an active **Essai** offer, and coming classes with seats left in **Horaires**. On-screen labels are in French, so they are quoted as they appear.
+
+## Steps
+
+1. Create the offer: **Formules** → **Nouvelle offre** → type **Essai** (« Gratuit · 1 séance découverte »). Name it (for instance « Séance découverte »), fill in the **Conditions / mentions (affichées au visiteur)**, and tick **Active (visible pour les athlètes)**. Without this offer, the trial section does not exist on your public page.
+2. Open the slots: they are your planned **classes**, in **Horaires**. The public flow only offers classes that are **upcoming** and **not full** — no special slot to create, and a full class drops off the list.
+3. Look at the result on your public page: the **Séance d'essai** section announces « Gratuite, sans créer de compte ». The visitor clicks **Réserver mon essai**, fills in **Tes coordonnées** (first name, last name, email, optional phone) then **Voir les cours**. <Screenshot src="/tutorials/essai-gratuit-et-reservation/1.png" alt="Trial session section on the public page" />
+4. They pick a slot: the first **7 open days** are shown, **Voir les dates suivantes** goes up to 21 days, and each class shows how many **places restantes** (seats left) remain. Nothing is written until they click **Confirmer ma réservation**. <Screenshot src="/tutorials/essai-gratuit-et-reservation/2.png" alt="Slot picker with remaining seats" />
+5. On confirmation they see « C'est réservé » and receive a confirmation email with the class, the date and the box address. If the email cannot be sent, the screen says so: the seat is booked anyway.
+6. On the Manager side: the booking appears in **Prospects → Essais**, column **Essai réservé**, with their details and their slot. When you take attendance for the class in **Horaires**, the card flips to **Venu** or **Pas venu** by itself — nothing to type twice. <Screenshot src="/tutorials/essai-gratuit-et-reservation/3.png" alt="Trials tab of Prospects with the pipeline columns" />
+
+<Callout>
+A trial prospect **is not a member**: they have no AthleX account, they do not appear in **Membres** and they do not count as a subscriber. They become one when you convert them (see « Prospects : suivre et convertir »).
+</Callout>
+
+## Common mistakes
+
+- **The trial section does not appear on the public page.** No **Essai** offer is active → create it in **Formules**.
+- **« Aucun créneau disponible pour le moment. »** Your upcoming classes are full, or the next three weeks are empty → open classes in **Horaires**.
+- **A visitor says they cannot book twice.** That is intended: « Tu as déjà utilisé tes séances d'essai dans cette box », and « Tu as déjà réservé ce cours avec cette adresse e-mail » for a duplicate. Caps per email address and per connection (3 bookings per hour per IP address) block bursts, with a readable message — not a technical error.
+- **The prospect is neither Venu nor Pas venu.** Attendance for the class was never taken → do it in **Horaires**, the pipeline follows.
+- **You look for the trial in « Créneaux RDV ».** That Prospects tab is for appointments you open yourself (a visit, an interview), not for trial sessions, which use the classes of the schedule.
+
+## Go there
+
+<GoTo page="prospects" />

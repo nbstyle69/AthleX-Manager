@@ -1,6 +1,7 @@
 ﻿'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
+import HelpButton from '@/components/help/HelpButton';
 import Link from 'next/link';
 import { Send, MessageSquare, Users2, Loader2, Hash, Megaphone } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
@@ -173,7 +174,10 @@ export default function MessagesPage() {
       {/* Groups sidebar */}
       <div className="w-72 shrink-0 bg-[#111111] border border-white/8 rounded-2xl flex flex-col overflow-hidden">
         <div className="px-4 py-4 border-b border-white/8">
-          <h2 className="text-sm font-black text-white">Conversations</h2>
+          <div className="flex items-center justify-between gap-2">
+            <h2 className="text-sm font-black text-white">Conversations</h2>
+            <HelpButton />
+          </div>
           <p className="text-xs text-gray-500 mt-0.5">{groups.length} groupe(s)</p>
         </div>
         <div className="flex-1 overflow-y-auto">

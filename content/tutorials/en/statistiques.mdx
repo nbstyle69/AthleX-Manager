@@ -1,0 +1,40 @@
+---
+slug: statistiques
+title: Reading your statistics
+summary: Money, attendance, growth: what each figure really measures, over which period, and which action it should trigger.
+role: owner
+pages: [stats]
+tags: [statistics, mrr, attendance, growth, unpaid, occupancy, steering]
+order: 80
+---
+
+## Before you start
+
+**Statistiques** (Pilotage → Statistiques) — « Vue d'ensemble de votre box » — stacks four layers: **Argent** (money), **Assiduité** (attendance), **Croissance** (growth), then the raw counters and the charts. The **Argent** and **Croissance** blocks are only shown to box owners and administrators; a coach sees attendance and counters, not amounts. On-screen labels are in French, so they are quoted as they appear.
+
+## Steps
+
+1. **Argent** — « comparaisons vs mois précédent »: **MRR abonnements** (with the number of subscribers, Stripe and counter), **Encaissé au comptoir** (membership payments taken this month), **Programmes ce mois** (Stripe and counter sales), **Nouveaux abonnés** and **Résiliations**. <Screenshot src="/tutorials/statistiques/1.png" alt="Money block of the statistics" />
+2. Below those cards, two lists that call for action: **Impayés en cours** (failed payments) → **Relancer depuis Abonnés**, and **À encaisser au comptoir** → **Voir les invitations**. Those are named people, not totals.
+3. **Encaissé sur 6 mois** adds up Stripe invoices, program purchases and membership counter payments. With no Stripe account connected, the chart says so: « seuls les programmes et le comptoir apparaissent ». **Abonnés par formule** shows how your subscribers split across plans.
+4. **Assiduité** — last 30 days vs the previous 30: **Remplissage des cours** (bookings / seats opened), **Présence réelle** (attended out of checked) and **Taux de pointage** (attendance taken out of bookings). <Screenshot src="/tutorials/statistiques/2.png" alt="Attendance block and heatmap" />
+5. Two named lists to expand: **Membres à risque** (« déjà venus, plus rien depuis 14 jours — à relancer ») and **Jamais venus via l'app** (« aucune réservation depuis l'inscription — à embarquer »), each with its message button. The **Quand la salle est pleine** heatmap locates busy slots by day and hour.
+6. **Croissance** follows the funnel over 30 days: **Prospects** → **Invitations** → **Membres** → **Abonnés**, with the conversion rate from one step to the next. The **Abonnés** counted are those « adhésions de la période » (sign-ups in the period), not every active subscription in the box.
+7. At the bottom, the box counters (**Total membres**, **Membres actifs** with its 7- and 30-day subtotals, **Coachs**, **Bannis**, **Tournois créés**, **Tournois actifs**, **WODs publiés**), the **Inscriptions membres** and **Réservations** curves (7 / 30 / 90 days) and the **Composition** of the gym by level and by role.
+
+<Callout>
+On a small cohort, funnel rates give way to raw headcounts (« 3/7 »): « sur de petites cohortes, un pourcentage varierait de dizaines de points pour une personne de plus » — one more person would move a percentage by tens of points.
+</Callout>
+
+## Common mistakes
+
+- **The Argent block is missing.** You are signed in with a coach account: amounts are reserved for the owner and administrators.
+- **« Présence réelle » shows a dash.** « Aucun appel fait sur la période »: without taking attendance in **Horaires**, neither attendance nor the check rate means anything.
+- **MRR is lower than your till.** It only counts recurring subscriptions: drop-ins, packs and programs are in the other cards.
+- **Older cash payments are missing.** « Le comptoir n'y figure que depuis la pose du journal »: earlier payments left neither amount nor date.
+- **Occupancy is low although the gym is packed.** It compares against the **seats opened** in the schedule: too much declared capacity drags the rate down.
+- **The growth funnel does not match the subscriber count of the Abonnés page.** That is intended: it follows a 30-day cohort, not the total headcount.
+
+## Go there
+
+<GoTo page="stats" />

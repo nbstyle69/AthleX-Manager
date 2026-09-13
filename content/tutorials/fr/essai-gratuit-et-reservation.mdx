@@ -1,0 +1,38 @@
+---
+slug: essai-gratuit-et-reservation
+title: Séance d'essai gratuite
+summary: Publier une offre Essai, ouvrir les créneaux, et suivre les réservations de visiteurs qui n'ont pas de compte AthleX.
+role: both
+pages: [plans, prospects, schedule]
+tags: [essai, réservation, prospect, page publique, créneaux, gratuit]
+order: 73
+---
+
+## Avant de commencer
+
+L'essai est le seul parcours où un visiteur réserve **sans créer de compte** : il donne son prénom, son e-mail, choisit un cours à venir, et arrive dans **Prospects**. Deux conditions pour que le tunnel s'ouvre : une offre de type **Essai** active, et des cours à venir avec de la place dans **Horaires**.
+
+## Étapes
+
+1. Crée l'offre : **Formules** → **Nouvelle offre** → type **Essai** (« Gratuit · 1 séance découverte »). Nomme-la (par exemple « Séance découverte »), remplis les **Conditions / mentions (affichées au visiteur)**, et coche **Active (visible pour les athlètes)**. Sans cette offre, la section Essai n'existe pas sur ta page publique.
+2. Ouvre les créneaux : ce sont tes **cours** du planning, dans **Horaires**. Le tunnel public ne propose que les cours **à venir** et **non complets** — pas de créneau spécifique à créer, et un cours complet disparaît de la liste.
+3. Regarde le résultat sur ta page publique : la section **Séance d'essai** annonce « Gratuite, sans créer de compte ». Le visiteur clique **Réserver mon essai**, remplit **Tes coordonnées** (prénom, nom, e-mail, téléphone optionnel) puis **Voir les cours**. <Screenshot src="/tutorials/essai-gratuit-et-reservation/1.png" alt="Section Séance d'essai sur la page publique" />
+4. Il choisit son créneau : les **7 premiers jours** ouverts s'affichent, **Voir les dates suivantes** va jusqu'à 21 jours, et chaque cours indique le nombre de **places restantes**. Rien n'est écrit tant qu'il n'a pas cliqué **Confirmer ma réservation**. <Screenshot src="/tutorials/essai-gratuit-et-reservation/2.png" alt="Choix du créneau avec les places restantes" />
+5. À la confirmation, il voit « C'est réservé » et reçoit un e-mail de confirmation avec le cours, la date et l'adresse de la box. Si l'e-mail ne peut pas partir, l'écran le dit : la place est prise quand même.
+6. Côté Manager : la réservation apparaît dans **Prospects → Essais**, colonne **Essai réservé**, avec ses coordonnées et son créneau. Quand tu pointes la présence du cours dans **Horaires**, la carte bascule seule en **Venu** ou **Pas venu** — tu n'as rien à saisir deux fois. <Screenshot src="/tutorials/essai-gratuit-et-reservation/3.png" alt="Onglet Essais de Prospects avec les colonnes du pipeline" />
+
+<Callout>
+Un prospect d'essai **n'est pas un membre** : il n'a pas de compte AthleX, il n'apparaît pas dans **Membres** et ne compte pas dans tes abonnés. Il le devient quand tu le convertis (voir « Prospects : suivre et convertir »).
+</Callout>
+
+## Erreurs fréquentes
+
+- **La section Essai n'apparaît pas sur la page publique.** Aucune offre de type **Essai** n'est active → crée-la dans **Formules**.
+- **« Aucun créneau disponible pour le moment. »** Tes cours à venir sont complets, ou le planning des trois prochaines semaines est vide → ouvre des cours dans **Horaires**.
+- **Un visiteur dit ne pas pouvoir réserver deux fois.** C'est voulu : « Tu as déjà utilisé tes séances d'essai dans cette box », et « Tu as déjà réservé ce cours avec cette adresse e-mail » pour un doublon. Des plafonds par adresse e-mail et par connexion (3 réservations par heure et par adresse IP) bloquent les rafales, avec un message lisible — pas une erreur technique.
+- **Le prospect n'est ni Venu ni Pas venu.** La présence du cours n'a pas été pointée → fais-le dans **Horaires**, le pipeline suit.
+- **Tu cherches l'essai dans « Créneaux RDV ».** Cet onglet de Prospects sert aux rendez-vous que tu ouvres toi-même (visite, entretien), pas aux séances d'essai, qui utilisent les cours du planning.
+
+## Y aller
+
+<GoTo page="prospects" />
