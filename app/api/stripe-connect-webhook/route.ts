@@ -362,11 +362,14 @@ export async function POST(req: NextRequest) {
         // fermée en base (Lot 0-bis). Ici c'est la porte `stripe`, réservée au
         // backend et adossée à une référence de paiement — la signature de
         // l'évènement a déjà été vérifiée plus haut.
+        // `program_members.start_date` est toujours NULL à la création (owner
+        // ou Stripe) : le lundi est choisi par l'athlète via
+        // `set_program_start_date`. Un achat Stripe réactive un accès annulé
+        // (upsert sur (program_id, user_id) → status 'active', provenance 'stripe').
         const { error: programWriteErr } = await supabase.rpc('join_program', {
           p_program_id: programId,
           p_source: 'stripe',
           p_user_id: userId,
-          p_start_date: new Date().toISOString().split('T')[0],
           p_amount_cents: amountCents,
           p_platform_fee_cents: feeCents,
           p_stripe_checkout_session_id: session.id,

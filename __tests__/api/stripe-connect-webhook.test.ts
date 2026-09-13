@@ -339,6 +339,35 @@ describe('POST /api/stripe-connect-webhook', () => {
     expect(chains.program_members.upsert).not.toHaveBeenCalled();
   });
 
+  // start_date reste NULL à la création (comme l'assignation owner) : la
+  // contrainte « lundi » de program_members rejetterait la date du jour.
+  it('ne fixe pas de start_date à l’achat Stripe (lundi choisi ensuite par l’athlète)', async () => {
+    chains.profiles = profileFound();
+    chains.program_members = makeChain({ awaited: { error: null } });
+    mockConstructEvent.mockReturnValue({
+      type: 'checkout.session.completed',
+      data: { object: { id: 'cs_1', customer_details: { email: 'a@b.com' }, payment_intent: 'pi_1', metadata: { kind: 'program', program_id: 'prog-1', user_id: 'user-1', amount_cents: '100', platform_fee_cents: '4' } } },
+    });
+
+    const res = (await POST(makeReq() as any)) as any;
+
+    expect(res._status).toBe(200);
+    expect(mockRpc).toHaveBeenCalledTimes(1);
+    const [rpcName, rpcArgs] = mockRpc.mock.calls[0];
+    expect(rpcName).toBe('join_program');
+    expect(rpcArgs).toEqual({
+      p_program_id: 'prog-1',
+      p_source: 'stripe',
+      p_user_id: 'user-1',
+      p_amount_cents: 100,
+      p_platform_fee_cents: 4,
+      p_stripe_checkout_session_id: 'cs_1',
+      p_stripe_subscription_id: null,
+      p_stripe_payment_intent: 'pi_1',
+    });
+    expect(rpcArgs).not.toHaveProperty('p_start_date');
+  });
+
   it('remonte une erreur de join_program en 500 (Stripe réessaie)', async () => {
     chains.profiles = profileFound();
     chains.program_members = makeChain({ awaited: { error: null } });
