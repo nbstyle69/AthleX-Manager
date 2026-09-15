@@ -51,6 +51,23 @@ describe('buildWodJson', () => {
     expect(json.movements[0]).toMatchObject({ name: 'Mouvement Inconnu', catalogId: null });
   });
 
+  it('une description en prose « 5 rounds : a / b / c » ne devient pas un mouvement', () => {
+    const json = buildWodJson({
+      description: '5 rounds : 10 deadlifts 100kg / 15 box jumps / 20 double-unders',
+      wod_type: 'for-time', time_cap_seconds: null, rounds: null,
+    });
+    expect(json.movements).toEqual([]);
+    expect(json.free_text).toEqual(['5 rounds : 10 deadlifts 100kg / 15 box jumps / 20 double-unders']);
+    expect(json.rounds).toBe(5);
+  });
+
+  it('un en-tête « 3 Rounds » seul donne rounds sans écraser la colonne', () => {
+    const json = buildWodJson({ description: '3 Rounds\n10 Burpees', wod_type: 'for-time', time_cap_seconds: null, rounds: 4 });
+    expect(json.rounds).toBe(4);
+    expect(json.movements.map(m => m.name)).toEqual(['Burpees']);
+    expect(json.free_text).toEqual(['3 Rounds']);
+  });
+
   it('withWodJson / stripWodJson', () => {
     const p = withWodJson({ title: 'x', description: '10 Burpees', wod_type: 'amrap', time_cap_seconds: 600, rounds: null });
     expect(p.wod_json.movements[0].name).toBe('Burpees');
