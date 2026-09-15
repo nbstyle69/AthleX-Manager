@@ -26,6 +26,7 @@ import {
   WodFormState, WodType, formatCap, movementLines, parseCap, sharedWodColumns,
 } from '@/lib/wodFields';
 import { downloadWodCsvTemplate, parseWodImportFile, VALID_WOD_TYPES } from '@/lib/wodImport';
+import { stripWodJson, withWodJson, writeWithWodJsonFallback } from '@/lib/wodJson';
 
 interface BoxWOD {
   id: string; box_id: string; created_by: string;
@@ -316,7 +317,7 @@ export default function WODsPage() {
     if (!form.title.trim() || !form.date || !boxId || !userId || form.audience === '') return;
     if (form.audience === 'groups' && form.groupIds.length === 0) return;
     setSaving(true); setFormError(null);
-    const payload = {
+    const payload = withWodJson({
       ...sharedWodColumns(form, movements),
       box_id: boxId, created_by: userId,
       scheduled_date: form.date,
@@ -325,15 +326,18 @@ export default function WODsPage() {
       publish_at: form.published && form.publishMode === 'scheduled'
         ? `${form.date}T${form.publishHour.padStart(2,'0')}:${form.publishMin.padStart(2,'0')}:00`
         : null,
-    };
+    });
     let wodId = editWOD?.id;
     if (editWOD) {
-      const { error } = await supabase.from('box_wods').update(payload).eq('id', editWOD.id);
+      const { error } = await writeWithWodJsonFallback(inc =>
+        supabase.from('box_wods').update(inc ? payload : stripWodJson(payload)).eq('id', editWOD.id));
       if (error) { setSaving(false); setFormError(error.message); return; }
     } else {
       // Assign sort_order = next position for that date
       const dayCount = wods.filter(w => w.scheduled_date === form.date).length;
-      const { data: newWod, error } = await supabase.from('box_wods').insert({ ...payload, sort_order: dayCount }).select('id').single();
+      const row = { ...payload, sort_order: dayCount };
+      const { data: newWod, error } = await writeWithWodJsonFallback(inc =>
+        supabase.from('box_wods').insert(inc ? row : stripWodJson(row)).select('id').single());
       if (error || !newWod) { setSaving(false); setFormError(error?.message ?? 'Erreur'); return; }
       wodId = newWod.id;
     }
@@ -555,7 +559,7 @@ export default function WODsPage() {
     for (let i = 0; i < rows.length; i++) {
       const r = rows[i];
       const wodType = (VALID_WOD_TYPES as string[]).includes(r.type) ? r.type : 'custom';
-      const { data: inserted, error } = await supabase.from('box_wods').insert({
+      const row = withWodJson({
         box_id: boxId, created_by: userId,
         title: r.title, description: r.description || null,
         wod_type: wodType, scheduled_date: r.date,
@@ -563,7 +567,9 @@ export default function WODsPage() {
         rounds: r.rounds ? parseInt(r.rounds) : null,
         notes: r.notes || null, block_name: r.block || null,
         is_published: r.published, leaderboard_enabled: r.rank,
-      }).select('id').single();
+      });
+      const { data: inserted, error } = await writeWithWodJsonFallback(inc =>
+        supabase.from('box_wods').insert(inc ? row : stripWodJson(row)).select('id').single());
       if (error) { errors.push(`Ligne ${i + 2} : ${error.message}`); continue; }
       ok++;
       if (inserted) importedIds.push(inserted.id);

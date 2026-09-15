@@ -1,0 +1,2124 @@
+[
+  {
+    "id": "air_squat",
+    "name": "Air Squats",
+    "family": "bodyweight",
+    "pattern": [
+      "squat"
+    ],
+    "modality": "M",
+    "unit_default": "reps",
+    "units_allowed": [
+      "reps"
+    ],
+    "load_unit": null,
+    "weight_functional": 7,
+    "weight_hybrid": 4,
+    "badge_key": "mv_air_squat",
+    "active": true,
+    "version": 2
+  },
+  {
+    "id": "db_snatch",
+    "name": "Alt DB Snatch",
+    "family": "dumbbell",
+    "pattern": [
+      "hinge",
+      "pull_v"
+    ],
+    "modality": "W",
+    "unit_default": "reps",
+    "units_allowed": [
+      "reps"
+    ],
+    "load_unit": "kg",
+    "weight_functional": 8,
+    "weight_hybrid": 3,
+    "badge_key": null,
+    "active": true,
+    "version": 2
+  },
+  {
+    "id": "back_rack_split_jerk",
+    "name": "Back Rack Split Jerk",
+    "family": "barbell",
+    "pattern": [
+      "push_v"
+    ],
+    "modality": "W",
+    "unit_default": "reps",
+    "units_allowed": [
+      "reps"
+    ],
+    "load_unit": "kg",
+    "weight_functional": 0,
+    "weight_hybrid": 0,
+    "badge_key": "mv_press",
+    "active": false,
+    "version": 1
+  },
+  {
+    "id": "back_squat",
+    "name": "Back Squat",
+    "family": "barbell",
+    "pattern": [
+      "squat"
+    ],
+    "modality": "W",
+    "unit_default": "reps",
+    "units_allowed": [
+      "reps"
+    ],
+    "load_unit": "kg",
+    "weight_functional": 5,
+    "weight_hybrid": 1,
+    "badge_key": "mv_squat",
+    "active": true,
+    "version": 2
+  },
+  {
+    "id": "pull_up_banded",
+    "name": "Banded Pull-Ups",
+    "family": "gym",
+    "pattern": [
+      "pull_v"
+    ],
+    "modality": "G",
+    "unit_default": "reps",
+    "units_allowed": [
+      "reps"
+    ],
+    "load_unit": null,
+    "weight_functional": 2,
+    "weight_hybrid": 1,
+    "badge_key": null,
+    "active": true,
+    "version": 2
+  },
+  {
+    "id": "ring_dip_banded",
+    "name": "Banded Ring Dips",
+    "family": "gym",
+    "pattern": [
+      "push_v"
+    ],
+    "modality": "G",
+    "unit_default": "reps",
+    "units_allowed": [
+      "reps"
+    ],
+    "load_unit": null,
+    "weight_functional": 2,
+    "weight_hybrid": 0,
+    "badge_key": null,
+    "active": true,
+    "version": 2
+  },
+  {
+    "id": "bar_facing_burpee",
+    "name": "Bar Facing Burpees",
+    "family": "bodyweight",
+    "pattern": [
+      "core",
+      "mono"
+    ],
+    "modality": "M",
+    "unit_default": "reps",
+    "units_allowed": [
+      "reps"
+    ],
+    "load_unit": null,
+    "weight_functional": 8,
+    "weight_hybrid": 2,
+    "badge_key": "mv_burpee",
+    "active": true,
+    "version": 2
+  },
+  {
+    "id": "bar_muscle_up",
+    "name": "Bar Muscle-ups",
+    "family": "gym",
+    "pattern": [
+      "pull_v",
+      "push_v"
+    ],
+    "modality": "G",
+    "unit_default": "reps",
+    "units_allowed": [
+      "reps"
+    ],
+    "load_unit": null,
+    "weight_functional": 4,
+    "weight_hybrid": 0,
+    "badge_key": "mv_bmu",
+    "active": true,
+    "version": 2
+  },
+  {
+    "id": "bear_crawl",
+    "name": "Bear Crawl",
+    "family": "bodyweight",
+    "pattern": [
+      "core",
+      "push_h"
+    ],
+    "modality": "M",
+    "unit_default": "m",
+    "units_allowed": [
+      "m"
+    ],
+    "load_unit": null,
+    "weight_functional": 2,
+    "weight_hybrid": 3,
+    "badge_key": null,
+    "active": true,
+    "version": 2
+  },
+  {
+    "id": "bench_press",
+    "name": "Bench Press",
+    "family": "barbell",
+    "pattern": [
+      "push_h"
+    ],
+    "modality": "W",
+    "unit_default": "reps",
+    "units_allowed": [
+      "reps"
+    ],
+    "load_unit": "kg",
+    "weight_functional": 4,
+    "weight_hybrid": 0,
+    "badge_key": "mv_bench_press",
+    "active": true,
+    "version": 2
+  },
+  {
+    "id": "bike_erg",
+    "name": "Bike Erg",
+    "family": "erg",
+    "pattern": [
+      "mono"
+    ],
+    "modality": "M",
+    "unit_default": "cal",
+    "units_allowed": [
+      "cal",
+      "m"
+    ],
+    "load_unit": null,
+    "weight_functional": 8,
+    "weight_hybrid": 7,
+    "badge_key": "mv_bike",
+    "active": true,
+    "version": 2
+  },
+  {
+    "id": "box_dip",
+    "name": "Box Dips",
+    "family": "bodyweight",
+    "pattern": [
+      "push_v"
+    ],
+    "modality": "G",
+    "unit_default": "reps",
+    "units_allowed": [
+      "reps"
+    ],
+    "load_unit": null,
+    "weight_functional": 2,
+    "weight_hybrid": 1,
+    "badge_key": null,
+    "active": true,
+    "version": 2
+  },
+  {
+    "id": "box_jump_over_step_down",
+    "name": "Box Jump Over Step Down",
+    "family": "box",
+    "pattern": [
+      "squat",
+      "mono"
+    ],
+    "modality": "M",
+    "unit_default": "reps",
+    "units_allowed": [
+      "reps"
+    ],
+    "load_unit": "cm",
+    "weight_functional": 6,
+    "weight_hybrid": 4,
+    "badge_key": null,
+    "active": true,
+    "version": 2
+  },
+  {
+    "id": "box_jump_over",
+    "name": "Box Jump-overs",
+    "family": "box",
+    "pattern": [
+      "squat",
+      "mono"
+    ],
+    "modality": "M",
+    "unit_default": "reps",
+    "units_allowed": [
+      "reps"
+    ],
+    "load_unit": "cm",
+    "weight_functional": 8,
+    "weight_hybrid": 4,
+    "badge_key": "mv_box_jump",
+    "active": true,
+    "version": 2
+  },
+  {
+    "id": "box_jump",
+    "name": "Box Jumps",
+    "family": "box",
+    "pattern": [
+      "squat",
+      "mono"
+    ],
+    "modality": "M",
+    "unit_default": "reps",
+    "units_allowed": [
+      "reps"
+    ],
+    "load_unit": "cm",
+    "weight_functional": 8,
+    "weight_hybrid": 4,
+    "badge_key": "mv_box_jump",
+    "active": true,
+    "version": 2
+  },
+  {
+    "id": "box_pistol",
+    "name": "Box Pistols",
+    "family": "bodyweight",
+    "pattern": [
+      "squat"
+    ],
+    "modality": "G",
+    "unit_default": "reps",
+    "units_allowed": [
+      "reps"
+    ],
+    "load_unit": null,
+    "weight_functional": 2,
+    "weight_hybrid": 1,
+    "badge_key": null,
+    "active": true,
+    "version": 2
+  },
+  {
+    "id": "box_step_over",
+    "name": "Box Step Over",
+    "family": "box",
+    "pattern": [
+      "lunge"
+    ],
+    "modality": "M",
+    "unit_default": "reps",
+    "units_allowed": [
+      "reps"
+    ],
+    "load_unit": "cm",
+    "weight_functional": 3,
+    "weight_hybrid": 4,
+    "badge_key": null,
+    "active": true,
+    "version": 2
+  },
+  {
+    "id": "box_step_up",
+    "name": "Box Step-ups",
+    "family": "box",
+    "pattern": [
+      "lunge"
+    ],
+    "modality": "M",
+    "unit_default": "reps",
+    "units_allowed": [
+      "reps"
+    ],
+    "load_unit": "cm",
+    "weight_functional": 4,
+    "weight_hybrid": 7,
+    "badge_key": "mv_box_jump",
+    "active": true,
+    "version": 2
+  },
+  {
+    "id": "burpee_box_jump",
+    "name": "Burpee Box Jump",
+    "family": "bodyweight",
+    "pattern": [
+      "core",
+      "mono"
+    ],
+    "modality": "M",
+    "unit_default": "reps",
+    "units_allowed": [
+      "reps"
+    ],
+    "load_unit": "cm",
+    "weight_functional": 6,
+    "weight_hybrid": 4,
+    "badge_key": "mv_burpee_bj",
+    "active": true,
+    "version": 2
+  },
+  {
+    "id": "burpee_box_jump_over",
+    "name": "Burpee Box Jump Over",
+    "family": "bodyweight",
+    "pattern": [
+      "core",
+      "mono"
+    ],
+    "modality": "M",
+    "unit_default": "reps",
+    "units_allowed": [
+      "reps"
+    ],
+    "load_unit": "cm",
+    "weight_functional": 7,
+    "weight_hybrid": 4,
+    "badge_key": "mv_burpee_bj",
+    "active": true,
+    "version": 2
+  },
+  {
+    "id": "burpee_broad_jump",
+    "name": "Burpee Broad Jumps",
+    "family": "bodyweight",
+    "pattern": [
+      "core",
+      "mono"
+    ],
+    "modality": "M",
+    "unit_default": "m",
+    "units_allowed": [
+      "m"
+    ],
+    "load_unit": null,
+    "weight_functional": 3,
+    "weight_hybrid": 10,
+    "badge_key": null,
+    "active": true,
+    "version": 2
+  },
+  {
+    "id": "burpee",
+    "name": "Burpees",
+    "family": "bodyweight",
+    "pattern": [
+      "core",
+      "mono"
+    ],
+    "modality": "M",
+    "unit_default": "reps",
+    "units_allowed": [
+      "reps"
+    ],
+    "load_unit": null,
+    "weight_functional": 9,
+    "weight_hybrid": 7,
+    "badge_key": "mv_burpee",
+    "active": true,
+    "version": 2
+  },
+  {
+    "id": "burpee_over_the_bar",
+    "name": "Burpees Over the Bar",
+    "family": "bodyweight",
+    "pattern": [
+      "core",
+      "mono"
+    ],
+    "modality": "M",
+    "unit_default": "reps",
+    "units_allowed": [
+      "reps"
+    ],
+    "load_unit": null,
+    "weight_functional": 7,
+    "weight_hybrid": 2,
+    "badge_key": "mv_burpee",
+    "active": true,
+    "version": 2
+  },
+  {
+    "id": "chest_to_bar",
+    "name": "Chest-to-Bar",
+    "family": "gym",
+    "pattern": [
+      "pull_v"
+    ],
+    "modality": "G",
+    "unit_default": "reps",
+    "units_allowed": [
+      "reps"
+    ],
+    "load_unit": null,
+    "weight_functional": 7,
+    "weight_hybrid": 1,
+    "badge_key": "mv_c2b",
+    "active": true,
+    "version": 2
+  },
+  {
+    "id": "clean_and_jerk",
+    "name": "Clean & Jerk",
+    "family": "barbell",
+    "pattern": [
+      "hinge",
+      "push_v"
+    ],
+    "modality": "W",
+    "unit_default": "reps",
+    "units_allowed": [
+      "reps"
+    ],
+    "load_unit": "kg",
+    "weight_functional": 7,
+    "weight_hybrid": 0,
+    "badge_key": "mv_cj",
+    "active": true,
+    "version": 2
+  },
+  {
+    "id": "clean_pull",
+    "name": "Clean Pull",
+    "family": "barbell",
+    "pattern": [
+      "hinge"
+    ],
+    "modality": "W",
+    "unit_default": "reps",
+    "units_allowed": [
+      "reps"
+    ],
+    "load_unit": "kg",
+    "weight_functional": 0,
+    "weight_hybrid": 0,
+    "badge_key": "mv_clean_pull",
+    "active": false,
+    "version": 1
+  },
+  {
+    "id": "cluster",
+    "name": "Cluster",
+    "family": "barbell",
+    "pattern": [
+      "squat",
+      "hinge",
+      "push_v"
+    ],
+    "modality": "W",
+    "unit_default": "reps",
+    "units_allowed": [
+      "reps"
+    ],
+    "load_unit": "kg",
+    "weight_functional": 6,
+    "weight_hybrid": 0,
+    "badge_key": null,
+    "active": true,
+    "version": 2
+  },
+  {
+    "id": "db_box_step_over",
+    "name": "DB Box Step Over",
+    "family": "dumbbell",
+    "pattern": [
+      "lunge"
+    ],
+    "modality": "W",
+    "unit_default": "reps",
+    "units_allowed": [
+      "reps"
+    ],
+    "load_unit": "kg",
+    "weight_functional": 6,
+    "weight_hybrid": 6,
+    "badge_key": null,
+    "active": true,
+    "version": 2
+  },
+  {
+    "id": "db_clean_and_jerk",
+    "name": "DB Clean & Jerk",
+    "family": "dumbbell",
+    "pattern": [
+      "hinge",
+      "push_v"
+    ],
+    "modality": "W",
+    "unit_default": "reps",
+    "units_allowed": [
+      "reps"
+    ],
+    "load_unit": "kg",
+    "weight_functional": 6,
+    "weight_hybrid": 3,
+    "badge_key": "mv_db_cj",
+    "active": true,
+    "version": 2
+  },
+  {
+    "id": "db_deadlift",
+    "name": "DB Deadlift",
+    "family": "dumbbell",
+    "pattern": [
+      "hinge"
+    ],
+    "modality": "W",
+    "unit_default": "reps",
+    "units_allowed": [
+      "reps"
+    ],
+    "load_unit": "kg",
+    "weight_functional": 0,
+    "weight_hybrid": 0,
+    "badge_key": null,
+    "active": false,
+    "version": 1
+  },
+  {
+    "id": "db_lunge",
+    "name": "DB Lunges",
+    "family": "dumbbell",
+    "pattern": [
+      "lunge"
+    ],
+    "modality": "W",
+    "unit_default": "reps",
+    "units_allowed": [
+      "reps"
+    ],
+    "load_unit": "kg",
+    "weight_functional": 6,
+    "weight_hybrid": 7,
+    "badge_key": "mv_lunge",
+    "active": true,
+    "version": 2
+  },
+  {
+    "id": "db_push_press",
+    "name": "DB Push Press",
+    "family": "dumbbell",
+    "pattern": [
+      "push_v"
+    ],
+    "modality": "W",
+    "unit_default": "reps",
+    "units_allowed": [
+      "reps"
+    ],
+    "load_unit": "kg",
+    "weight_functional": 0,
+    "weight_hybrid": 0,
+    "badge_key": "mv_db_push_press",
+    "active": false,
+    "version": 1
+  },
+  {
+    "id": "db_strict_press",
+    "name": "DB Strict Press",
+    "family": "dumbbell",
+    "pattern": [
+      "push_v"
+    ],
+    "modality": "W",
+    "unit_default": "reps",
+    "units_allowed": [
+      "reps"
+    ],
+    "load_unit": "kg",
+    "weight_functional": 0,
+    "weight_hybrid": 0,
+    "badge_key": "mv_db_strict_press",
+    "active": false,
+    "version": 1
+  },
+  {
+    "id": "db_thruster",
+    "name": "DB Thruster",
+    "family": "dumbbell",
+    "pattern": [
+      "squat",
+      "push_v"
+    ],
+    "modality": "W",
+    "unit_default": "reps",
+    "units_allowed": [
+      "reps"
+    ],
+    "load_unit": "kg",
+    "weight_functional": 7,
+    "weight_hybrid": 3,
+    "badge_key": "mv_db_thruster",
+    "active": true,
+    "version": 2
+  },
+  {
+    "id": "deadlift",
+    "name": "Deadlift",
+    "family": "barbell",
+    "pattern": [
+      "hinge"
+    ],
+    "modality": "W",
+    "unit_default": "reps",
+    "units_allowed": [
+      "reps"
+    ],
+    "load_unit": "kg",
+    "weight_functional": 9,
+    "weight_hybrid": 2,
+    "badge_key": "mv_deadlifts",
+    "active": true,
+    "version": 2
+  },
+  {
+    "id": "devil_press",
+    "name": "Devils Press",
+    "family": "dumbbell",
+    "pattern": [
+      "hinge",
+      "push_v",
+      "core"
+    ],
+    "modality": "W",
+    "unit_default": "reps",
+    "units_allowed": [
+      "reps"
+    ],
+    "load_unit": "kg",
+    "weight_functional": 5,
+    "weight_hybrid": 4,
+    "badge_key": "mv_devil_press",
+    "active": true,
+    "version": 2
+  },
+  {
+    "id": "double_under",
+    "name": "Double-unders",
+    "family": "jump_rope",
+    "pattern": [
+      "mono"
+    ],
+    "modality": "M",
+    "unit_default": "reps",
+    "units_allowed": [
+      "reps"
+    ],
+    "load_unit": null,
+    "weight_functional": 9,
+    "weight_hybrid": 3,
+    "badge_key": "mv_du",
+    "active": true,
+    "version": 2
+  },
+  {
+    "id": "echo_bike",
+    "name": "Echo Bike",
+    "family": "erg",
+    "pattern": [
+      "mono"
+    ],
+    "modality": "M",
+    "unit_default": "cal",
+    "units_allowed": [
+      "cal"
+    ],
+    "load_unit": null,
+    "weight_functional": 8,
+    "weight_hybrid": 6,
+    "badge_key": "mv_bike",
+    "active": true,
+    "version": 2
+  },
+  {
+    "id": "db_farmer_carry",
+    "name": "Farmer Carry",
+    "family": "carry",
+    "pattern": [
+      "carry"
+    ],
+    "modality": "W",
+    "unit_default": "m",
+    "units_allowed": [
+      "m"
+    ],
+    "load_unit": "kg",
+    "weight_functional": 4,
+    "weight_hybrid": 9,
+    "badge_key": null,
+    "active": true,
+    "version": 2
+  },
+  {
+    "id": "front_rack_lunge",
+    "name": "Front Rack Lunges",
+    "family": "barbell",
+    "pattern": [
+      "lunge"
+    ],
+    "modality": "W",
+    "unit_default": "reps",
+    "units_allowed": [
+      "reps"
+    ],
+    "load_unit": "kg",
+    "weight_functional": 6,
+    "weight_hybrid": 2,
+    "badge_key": null,
+    "active": true,
+    "version": 2
+  },
+  {
+    "id": "front_squat",
+    "name": "Front Squat",
+    "family": "barbell",
+    "pattern": [
+      "squat"
+    ],
+    "modality": "W",
+    "unit_default": "reps",
+    "units_allowed": [
+      "reps"
+    ],
+    "load_unit": "kg",
+    "weight_functional": 7,
+    "weight_hybrid": 1,
+    "badge_key": "mv_squat",
+    "active": true,
+    "version": 2
+  },
+  {
+    "id": "ghd_sit_up",
+    "name": "GHD Sit-Ups",
+    "family": "gym",
+    "pattern": [
+      "core"
+    ],
+    "modality": "G",
+    "unit_default": "reps",
+    "units_allowed": [
+      "reps"
+    ],
+    "load_unit": null,
+    "weight_functional": 5,
+    "weight_hybrid": 2,
+    "badge_key": null,
+    "active": true,
+    "version": 2
+  },
+  {
+    "id": "kb_goblet_squat",
+    "name": "Goblet Squat",
+    "family": "kettlebell",
+    "pattern": [
+      "squat"
+    ],
+    "modality": "W",
+    "unit_default": "reps",
+    "units_allowed": [
+      "reps"
+    ],
+    "load_unit": "kg",
+    "weight_functional": 5,
+    "weight_hybrid": 4,
+    "badge_key": "mv_goblet_squat",
+    "active": true,
+    "version": 2
+  },
+  {
+    "id": "half_wall_walk",
+    "name": "Half Wall Walks",
+    "family": "gym",
+    "pattern": [
+      "push_v",
+      "core"
+    ],
+    "modality": "G",
+    "unit_default": "reps",
+    "units_allowed": [
+      "reps"
+    ],
+    "load_unit": null,
+    "weight_functional": 2,
+    "weight_hybrid": 1,
+    "badge_key": null,
+    "active": true,
+    "version": 2
+  },
+  {
+    "id": "handstand_push_up",
+    "name": "Handstand Push-ups",
+    "family": "gym",
+    "pattern": [
+      "push_v"
+    ],
+    "modality": "G",
+    "unit_default": "reps",
+    "units_allowed": [
+      "reps"
+    ],
+    "load_unit": null,
+    "weight_functional": 7,
+    "weight_hybrid": 1,
+    "badge_key": "mv_hspu",
+    "active": true,
+    "version": 2
+  },
+  {
+    "id": "handstand_shoulder_tap",
+    "name": "Handstand Shoulder Taps",
+    "family": "gym",
+    "pattern": [
+      "push_v",
+      "core"
+    ],
+    "modality": "G",
+    "unit_default": "reps",
+    "units_allowed": [
+      "reps"
+    ],
+    "load_unit": null,
+    "weight_functional": 2,
+    "weight_hybrid": 0,
+    "badge_key": null,
+    "active": true,
+    "version": 2
+  },
+  {
+    "id": "handstand_walk",
+    "name": "Handstand Walk",
+    "family": "gym",
+    "pattern": [
+      "push_v",
+      "core"
+    ],
+    "modality": "G",
+    "unit_default": "m",
+    "units_allowed": [
+      "m"
+    ],
+    "load_unit": null,
+    "weight_functional": 4,
+    "weight_hybrid": 0,
+    "badge_key": null,
+    "active": true,
+    "version": 2
+  },
+  {
+    "id": "hang_clean_and_jerk",
+    "name": "Hang Clean & Jerk",
+    "family": "barbell",
+    "pattern": [
+      "hinge",
+      "push_v"
+    ],
+    "modality": "W",
+    "unit_default": "reps",
+    "units_allowed": [
+      "reps"
+    ],
+    "load_unit": "kg",
+    "weight_functional": 6,
+    "weight_hybrid": 0,
+    "badge_key": "mv_cj",
+    "active": true,
+    "version": 2
+  },
+  {
+    "id": "hang_power_clean",
+    "name": "Hang Power Clean",
+    "family": "barbell",
+    "pattern": [
+      "hinge",
+      "pull_v"
+    ],
+    "modality": "W",
+    "unit_default": "reps",
+    "units_allowed": [
+      "reps"
+    ],
+    "load_unit": "kg",
+    "weight_functional": 7,
+    "weight_hybrid": 0,
+    "badge_key": "mv_clean",
+    "active": true,
+    "version": 2
+  },
+  {
+    "id": "hang_power_snatch",
+    "name": "Hang Power Snatch",
+    "family": "barbell",
+    "pattern": [
+      "hinge",
+      "pull_v"
+    ],
+    "modality": "W",
+    "unit_default": "reps",
+    "units_allowed": [
+      "reps"
+    ],
+    "load_unit": "kg",
+    "weight_functional": 6,
+    "weight_hybrid": 0,
+    "badge_key": null,
+    "active": true,
+    "version": 2
+  },
+  {
+    "id": "hanging_knee_raise",
+    "name": "Hanging Knee Raises",
+    "family": "gym",
+    "pattern": [
+      "core",
+      "pull_v"
+    ],
+    "modality": "G",
+    "unit_default": "reps",
+    "units_allowed": [
+      "reps"
+    ],
+    "load_unit": null,
+    "weight_functional": 2,
+    "weight_hybrid": 1,
+    "badge_key": null,
+    "active": true,
+    "version": 2
+  },
+  {
+    "id": "hollow_rock",
+    "name": "Hollow Rocks",
+    "family": "bodyweight",
+    "pattern": [
+      "core"
+    ],
+    "modality": "G",
+    "unit_default": "reps",
+    "units_allowed": [
+      "reps"
+    ],
+    "load_unit": null,
+    "weight_functional": 4,
+    "weight_hybrid": 5,
+    "badge_key": "mv_hollow",
+    "active": true,
+    "version": 2
+  },
+  {
+    "id": "inchworm",
+    "name": "Inchworms",
+    "family": "bodyweight",
+    "pattern": [
+      "core",
+      "push_h"
+    ],
+    "modality": "M",
+    "unit_default": "reps",
+    "units_allowed": [
+      "reps"
+    ],
+    "load_unit": null,
+    "weight_functional": 2,
+    "weight_hybrid": 2,
+    "badge_key": null,
+    "active": true,
+    "version": 2
+  },
+  {
+    "id": "kb_clean",
+    "name": "KB Clean",
+    "family": "kettlebell",
+    "pattern": [
+      "hinge"
+    ],
+    "modality": "W",
+    "unit_default": "reps",
+    "units_allowed": [
+      "reps"
+    ],
+    "load_unit": "kg",
+    "weight_functional": 4,
+    "weight_hybrid": 2,
+    "badge_key": null,
+    "active": true,
+    "version": 2
+  },
+  {
+    "id": "kb_clean_and_jerk",
+    "name": "KB Clean & Jerk",
+    "family": "kettlebell",
+    "pattern": [
+      "hinge",
+      "push_v"
+    ],
+    "modality": "W",
+    "unit_default": "reps",
+    "units_allowed": [
+      "reps"
+    ],
+    "load_unit": "kg",
+    "weight_functional": 5,
+    "weight_hybrid": 3,
+    "badge_key": "mv_kb_cj",
+    "active": true,
+    "version": 2
+  },
+  {
+    "id": "kb_deadlift",
+    "name": "KB Deadlift",
+    "family": "kettlebell",
+    "pattern": [
+      "hinge"
+    ],
+    "modality": "W",
+    "unit_default": "reps",
+    "units_allowed": [
+      "reps"
+    ],
+    "load_unit": "kg",
+    "weight_functional": 4,
+    "weight_hybrid": 4,
+    "badge_key": null,
+    "active": true,
+    "version": 2
+  },
+  {
+    "id": "kb_front_squat",
+    "name": "KB Front Squat",
+    "family": "kettlebell",
+    "pattern": [
+      "squat"
+    ],
+    "modality": "W",
+    "unit_default": "reps",
+    "units_allowed": [
+      "reps"
+    ],
+    "load_unit": "kg",
+    "weight_functional": 5,
+    "weight_hybrid": 3,
+    "badge_key": null,
+    "active": true,
+    "version": 2
+  },
+  {
+    "id": "kb_snatch",
+    "name": "KB Snatch",
+    "family": "kettlebell",
+    "pattern": [
+      "hinge",
+      "pull_v"
+    ],
+    "modality": "W",
+    "unit_default": "reps",
+    "units_allowed": [
+      "reps"
+    ],
+    "load_unit": "kg",
+    "weight_functional": 6,
+    "weight_hybrid": 3,
+    "badge_key": "mv_kb_snatch",
+    "active": true,
+    "version": 2
+  },
+  {
+    "id": "kb_swing_american",
+    "name": "KB Swing",
+    "family": "kettlebell",
+    "pattern": [
+      "hinge"
+    ],
+    "modality": "W",
+    "unit_default": "reps",
+    "units_allowed": [
+      "reps"
+    ],
+    "load_unit": "kg",
+    "weight_functional": 8,
+    "weight_hybrid": 4,
+    "badge_key": "mv_kb_swing",
+    "active": true,
+    "version": 2
+  },
+  {
+    "id": "kb_swing_russian",
+    "name": "KB Swings Russian",
+    "family": "kettlebell",
+    "pattern": [
+      "hinge"
+    ],
+    "modality": "W",
+    "unit_default": "reps",
+    "units_allowed": [
+      "reps"
+    ],
+    "load_unit": "kg",
+    "weight_functional": 6,
+    "weight_hybrid": 5,
+    "badge_key": null,
+    "active": true,
+    "version": 2
+  },
+  {
+    "id": "knee_push_up",
+    "name": "Knee Push-Ups",
+    "family": "bodyweight",
+    "pattern": [
+      "push_h"
+    ],
+    "modality": "G",
+    "unit_default": "reps",
+    "units_allowed": [
+      "reps"
+    ],
+    "load_unit": null,
+    "weight_functional": 2,
+    "weight_hybrid": 2,
+    "badge_key": null,
+    "active": true,
+    "version": 2
+  },
+  {
+    "id": "legless_rope_climb",
+    "name": "Legless Rope Climbs",
+    "family": "gym",
+    "pattern": [
+      "pull_v"
+    ],
+    "modality": "G",
+    "unit_default": "reps",
+    "units_allowed": [
+      "reps"
+    ],
+    "load_unit": null,
+    "weight_functional": 2,
+    "weight_hybrid": 0,
+    "badge_key": null,
+    "active": true,
+    "version": 2
+  },
+  {
+    "id": "walking_lunge",
+    "name": "Lunges",
+    "family": "bodyweight",
+    "pattern": [
+      "lunge"
+    ],
+    "modality": "M",
+    "unit_default": "reps",
+    "units_allowed": [
+      "reps"
+    ],
+    "load_unit": null,
+    "weight_functional": 5,
+    "weight_hybrid": 5,
+    "badge_key": "mv_lunge",
+    "active": true,
+    "version": 2
+  },
+  {
+    "id": "overhead_squat",
+    "name": "Overhead Squat",
+    "family": "barbell",
+    "pattern": [
+      "squat"
+    ],
+    "modality": "W",
+    "unit_default": "reps",
+    "units_allowed": [
+      "reps"
+    ],
+    "load_unit": "kg",
+    "weight_functional": 6,
+    "weight_hybrid": 0,
+    "badge_key": "mv_ohs",
+    "active": true,
+    "version": 2
+  },
+  {
+    "id": "pike_push_up",
+    "name": "Pike Push-Ups",
+    "family": "bodyweight",
+    "pattern": [
+      "push_v"
+    ],
+    "modality": "G",
+    "unit_default": "reps",
+    "units_allowed": [
+      "reps"
+    ],
+    "load_unit": null,
+    "weight_functional": 3,
+    "weight_hybrid": 2,
+    "badge_key": null,
+    "active": true,
+    "version": 2
+  },
+  {
+    "id": "pistol",
+    "name": "Pistols",
+    "family": "bodyweight",
+    "pattern": [
+      "squat"
+    ],
+    "modality": "G",
+    "unit_default": "reps",
+    "units_allowed": [
+      "reps"
+    ],
+    "load_unit": null,
+    "weight_functional": 4,
+    "weight_hybrid": 1,
+    "badge_key": "mv_pistol",
+    "active": true,
+    "version": 2
+  },
+  {
+    "id": "pistol_to_box",
+    "name": "Pistols To Box",
+    "family": "bodyweight",
+    "pattern": [
+      "squat"
+    ],
+    "modality": "G",
+    "unit_default": "reps",
+    "units_allowed": [
+      "reps"
+    ],
+    "load_unit": null,
+    "weight_functional": 2,
+    "weight_hybrid": 1,
+    "badge_key": null,
+    "active": true,
+    "version": 2
+  },
+  {
+    "id": "plank_hold",
+    "name": "Plank Hold",
+    "family": "bodyweight",
+    "pattern": [
+      "core"
+    ],
+    "modality": "G",
+    "unit_default": "s",
+    "units_allowed": [
+      "s"
+    ],
+    "load_unit": null,
+    "weight_functional": 3,
+    "weight_hybrid": 5,
+    "badge_key": null,
+    "active": true,
+    "version": 2
+  },
+  {
+    "id": "power_clean",
+    "name": "Power Clean",
+    "family": "barbell",
+    "pattern": [
+      "hinge",
+      "pull_v"
+    ],
+    "modality": "W",
+    "unit_default": "reps",
+    "units_allowed": [
+      "reps"
+    ],
+    "load_unit": "kg",
+    "weight_functional": 9,
+    "weight_hybrid": 1,
+    "badge_key": "mv_clean",
+    "active": true,
+    "version": 2
+  },
+  {
+    "id": "power_jerk",
+    "name": "Power Jerk",
+    "family": "barbell",
+    "pattern": [
+      "push_v"
+    ],
+    "modality": "W",
+    "unit_default": "reps",
+    "units_allowed": [
+      "reps"
+    ],
+    "load_unit": "kg",
+    "weight_functional": 0,
+    "weight_hybrid": 0,
+    "badge_key": "mv_press",
+    "active": false,
+    "version": 1
+  },
+  {
+    "id": "power_snatch",
+    "name": "Power Snatch",
+    "family": "barbell",
+    "pattern": [
+      "hinge",
+      "pull_v"
+    ],
+    "modality": "W",
+    "unit_default": "reps",
+    "units_allowed": [
+      "reps"
+    ],
+    "load_unit": "kg",
+    "weight_functional": 8,
+    "weight_hybrid": 0,
+    "badge_key": "mv_snatch",
+    "active": true,
+    "version": 2
+  },
+  {
+    "id": "pull_up",
+    "name": "Pull-ups",
+    "family": "gym",
+    "pattern": [
+      "pull_v"
+    ],
+    "modality": "G",
+    "unit_default": "reps",
+    "units_allowed": [
+      "reps"
+    ],
+    "load_unit": null,
+    "weight_functional": 8,
+    "weight_hybrid": 3,
+    "badge_key": "mv_pullup",
+    "active": true,
+    "version": 2
+  },
+  {
+    "id": "push_jerk",
+    "name": "Push Jerk",
+    "family": "barbell",
+    "pattern": [
+      "push_v"
+    ],
+    "modality": "W",
+    "unit_default": "reps",
+    "units_allowed": [
+      "reps"
+    ],
+    "load_unit": "kg",
+    "weight_functional": 5,
+    "weight_hybrid": 0,
+    "badge_key": "mv_press",
+    "active": true,
+    "version": 2
+  },
+  {
+    "id": "push_press",
+    "name": "Push Press",
+    "family": "barbell",
+    "pattern": [
+      "push_v"
+    ],
+    "modality": "W",
+    "unit_default": "reps",
+    "units_allowed": [
+      "reps"
+    ],
+    "load_unit": "kg",
+    "weight_functional": 7,
+    "weight_hybrid": 1,
+    "badge_key": "mv_press",
+    "active": true,
+    "version": 2
+  },
+  {
+    "id": "push_up",
+    "name": "Push-ups",
+    "family": "bodyweight",
+    "pattern": [
+      "push_h"
+    ],
+    "modality": "G",
+    "unit_default": "reps",
+    "units_allowed": [
+      "reps"
+    ],
+    "load_unit": null,
+    "weight_functional": 6,
+    "weight_hybrid": 5,
+    "badge_key": "mv_pushup",
+    "active": true,
+    "version": 2
+  },
+  {
+    "id": "ring_dip",
+    "name": "Ring Dips",
+    "family": "gym",
+    "pattern": [
+      "push_v"
+    ],
+    "modality": "G",
+    "unit_default": "reps",
+    "units_allowed": [
+      "reps"
+    ],
+    "load_unit": null,
+    "weight_functional": 5,
+    "weight_hybrid": 0,
+    "badge_key": "mv_ring_dip",
+    "active": true,
+    "version": 2
+  },
+  {
+    "id": "ring_muscle_up",
+    "name": "Ring Muscle-ups",
+    "family": "gym",
+    "pattern": [
+      "pull_v",
+      "push_v"
+    ],
+    "modality": "G",
+    "unit_default": "reps",
+    "units_allowed": [
+      "reps"
+    ],
+    "load_unit": null,
+    "weight_functional": 3,
+    "weight_hybrid": 0,
+    "badge_key": "mv_ring_mu",
+    "active": true,
+    "version": 2
+  },
+  {
+    "id": "ring_row",
+    "name": "Ring Rows",
+    "family": "gym",
+    "pattern": [
+      "pull_h"
+    ],
+    "modality": "G",
+    "unit_default": "reps",
+    "units_allowed": [
+      "reps"
+    ],
+    "load_unit": null,
+    "weight_functional": 3,
+    "weight_hybrid": 4,
+    "badge_key": "mv_ring_row",
+    "active": true,
+    "version": 2
+  },
+  {
+    "id": "rope_climb",
+    "name": "Rope Climbs",
+    "family": "gym",
+    "pattern": [
+      "pull_v"
+    ],
+    "modality": "G",
+    "unit_default": "reps",
+    "units_allowed": [
+      "reps"
+    ],
+    "load_unit": null,
+    "weight_functional": 4,
+    "weight_hybrid": 0,
+    "badge_key": null,
+    "active": true,
+    "version": 2
+  },
+  {
+    "id": "rope_pull_from_floor",
+    "name": "Rope Pulls From Floor",
+    "family": "gym",
+    "pattern": [
+      "pull_v"
+    ],
+    "modality": "G",
+    "unit_default": "reps",
+    "units_allowed": [
+      "reps"
+    ],
+    "load_unit": null,
+    "weight_functional": 2,
+    "weight_hybrid": 0,
+    "badge_key": null,
+    "active": true,
+    "version": 2
+  },
+  {
+    "id": "row",
+    "name": "Row",
+    "family": "erg",
+    "pattern": [
+      "mono",
+      "pull_h"
+    ],
+    "modality": "M",
+    "unit_default": "cal",
+    "units_allowed": [
+      "cal",
+      "m"
+    ],
+    "load_unit": null,
+    "weight_functional": 9,
+    "weight_hybrid": 9,
+    "badge_key": "mv_row",
+    "active": true,
+    "version": 2
+  },
+  {
+    "id": "run",
+    "name": "Run",
+    "family": "run",
+    "pattern": [
+      "mono"
+    ],
+    "modality": "M",
+    "unit_default": "m",
+    "units_allowed": [
+      "m"
+    ],
+    "load_unit": null,
+    "weight_functional": 7,
+    "weight_hybrid": 10,
+    "badge_key": "mv_run",
+    "active": true,
+    "version": 2
+  },
+  {
+    "id": "sandbag_carry",
+    "name": "Sandbag Carry",
+    "family": "carry",
+    "pattern": [
+      "carry"
+    ],
+    "modality": "W",
+    "unit_default": "m",
+    "units_allowed": [
+      "m"
+    ],
+    "load_unit": "kg",
+    "weight_functional": 3,
+    "weight_hybrid": 8,
+    "badge_key": null,
+    "active": true,
+    "version": 2
+  },
+  {
+    "id": "sandbag_clean",
+    "name": "Sandbag Cleans",
+    "family": "sandbag",
+    "pattern": [
+      "hinge"
+    ],
+    "modality": "W",
+    "unit_default": "reps",
+    "units_allowed": [
+      "reps"
+    ],
+    "load_unit": "kg",
+    "weight_functional": 4,
+    "weight_hybrid": 6,
+    "badge_key": null,
+    "active": true,
+    "version": 2
+  },
+  {
+    "id": "sandbag_lunge",
+    "name": "Sandbag Lunges",
+    "family": "sandbag",
+    "pattern": [
+      "lunge"
+    ],
+    "modality": "W",
+    "unit_default": "m",
+    "units_allowed": [
+      "m"
+    ],
+    "load_unit": "kg",
+    "weight_functional": 3,
+    "weight_hybrid": 9,
+    "badge_key": null,
+    "active": true,
+    "version": 2
+  },
+  {
+    "id": "sandbag_over_shoulder",
+    "name": "Sandbag Over Shoulder",
+    "family": "sandbag",
+    "pattern": [
+      "hinge"
+    ],
+    "modality": "W",
+    "unit_default": "reps",
+    "units_allowed": [
+      "reps"
+    ],
+    "load_unit": "kg",
+    "weight_functional": 3,
+    "weight_hybrid": 5,
+    "badge_key": null,
+    "active": true,
+    "version": 2
+  },
+  {
+    "id": "shoulder_to_overhead",
+    "name": "Shoulder To Overhead",
+    "family": "barbell",
+    "pattern": [
+      "push_v"
+    ],
+    "modality": "W",
+    "unit_default": "reps",
+    "units_allowed": [
+      "reps"
+    ],
+    "load_unit": "kg",
+    "weight_functional": 8,
+    "weight_hybrid": 1,
+    "badge_key": "mv_press",
+    "active": true,
+    "version": 2
+  },
+  {
+    "id": "shuttle_run",
+    "name": "Shuttle Run",
+    "family": "run",
+    "pattern": [
+      "mono"
+    ],
+    "modality": "M",
+    "unit_default": "m",
+    "units_allowed": [
+      "m"
+    ],
+    "load_unit": null,
+    "weight_functional": 6,
+    "weight_hybrid": 8,
+    "badge_key": null,
+    "active": true,
+    "version": 2
+  },
+  {
+    "id": "single_under",
+    "name": "Single Unders",
+    "family": "jump_rope",
+    "pattern": [
+      "mono"
+    ],
+    "modality": "M",
+    "unit_default": "reps",
+    "units_allowed": [
+      "reps"
+    ],
+    "load_unit": null,
+    "weight_functional": 3,
+    "weight_hybrid": 2,
+    "badge_key": "mv_su",
+    "active": true,
+    "version": 2
+  },
+  {
+    "id": "sit_up",
+    "name": "Sit-ups",
+    "family": "bodyweight",
+    "pattern": [
+      "core"
+    ],
+    "modality": "G",
+    "unit_default": "reps",
+    "units_allowed": [
+      "reps"
+    ],
+    "load_unit": null,
+    "weight_functional": 5,
+    "weight_hybrid": 5,
+    "badge_key": "mv_situp",
+    "active": true,
+    "version": 2
+  },
+  {
+    "id": "ski_erg",
+    "name": "SkiErg",
+    "family": "erg",
+    "pattern": [
+      "mono",
+      "pull_v",
+      "core"
+    ],
+    "modality": "M",
+    "unit_default": "cal",
+    "units_allowed": [
+      "cal",
+      "m"
+    ],
+    "load_unit": null,
+    "weight_functional": 7,
+    "weight_hybrid": 9,
+    "badge_key": "mv_ski",
+    "active": true,
+    "version": 2
+  },
+  {
+    "id": "sled_pull",
+    "name": "Sled Pull",
+    "family": "sled",
+    "pattern": [
+      "pull_h",
+      "hinge"
+    ],
+    "modality": "W",
+    "unit_default": "m",
+    "units_allowed": [
+      "m"
+    ],
+    "load_unit": "kg",
+    "weight_functional": 3,
+    "weight_hybrid": 10,
+    "badge_key": null,
+    "active": true,
+    "version": 2
+  },
+  {
+    "id": "sled_push",
+    "name": "Sled Push",
+    "family": "sled",
+    "pattern": [
+      "squat",
+      "push_h"
+    ],
+    "modality": "W",
+    "unit_default": "m",
+    "units_allowed": [
+      "m"
+    ],
+    "load_unit": "kg",
+    "weight_functional": 4,
+    "weight_hybrid": 10,
+    "badge_key": null,
+    "active": true,
+    "version": 2
+  },
+  {
+    "id": "snatch_balance",
+    "name": "Snatch Balance",
+    "family": "barbell",
+    "pattern": [
+      "squat",
+      "push_v"
+    ],
+    "modality": "W",
+    "unit_default": "reps",
+    "units_allowed": [
+      "reps"
+    ],
+    "load_unit": "kg",
+    "weight_functional": 0,
+    "weight_hybrid": 0,
+    "badge_key": "mv_snatch_balance",
+    "active": false,
+    "version": 1
+  },
+  {
+    "id": "snatch_high_pull",
+    "name": "Snatch High Pull",
+    "family": "barbell",
+    "pattern": [
+      "hinge",
+      "pull_v"
+    ],
+    "modality": "W",
+    "unit_default": "reps",
+    "units_allowed": [
+      "reps"
+    ],
+    "load_unit": "kg",
+    "weight_functional": 0,
+    "weight_hybrid": 0,
+    "badge_key": "mv_snatch_hp",
+    "active": false,
+    "version": 1
+  },
+  {
+    "id": "split_jerk",
+    "name": "Split Jerk",
+    "family": "barbell",
+    "pattern": [
+      "push_v"
+    ],
+    "modality": "W",
+    "unit_default": "reps",
+    "units_allowed": [
+      "reps"
+    ],
+    "load_unit": "kg",
+    "weight_functional": 0,
+    "weight_hybrid": 0,
+    "badge_key": "mv_press",
+    "active": false,
+    "version": 1
+  },
+  {
+    "id": "squat_clean",
+    "name": "Squat Clean",
+    "family": "barbell",
+    "pattern": [
+      "hinge",
+      "squat"
+    ],
+    "modality": "W",
+    "unit_default": "reps",
+    "units_allowed": [
+      "reps"
+    ],
+    "load_unit": "kg",
+    "weight_functional": 5,
+    "weight_hybrid": 0,
+    "badge_key": "mv_clean",
+    "active": true,
+    "version": 2
+  },
+  {
+    "id": "squat_clean_and_jerk",
+    "name": "Squat Clean & Jerk",
+    "family": "barbell",
+    "pattern": [
+      "squat",
+      "hinge",
+      "push_v"
+    ],
+    "modality": "W",
+    "unit_default": "reps",
+    "units_allowed": [
+      "reps"
+    ],
+    "load_unit": "kg",
+    "weight_functional": 0,
+    "weight_hybrid": 0,
+    "badge_key": null,
+    "active": false,
+    "version": 1
+  },
+  {
+    "id": "squat_snatch",
+    "name": "Squat Snatch",
+    "family": "barbell",
+    "pattern": [
+      "hinge",
+      "squat"
+    ],
+    "modality": "W",
+    "unit_default": "reps",
+    "units_allowed": [
+      "reps"
+    ],
+    "load_unit": "kg",
+    "weight_functional": 5,
+    "weight_hybrid": 0,
+    "badge_key": "mv_snatch",
+    "active": true,
+    "version": 2
+  },
+  {
+    "id": "strict_handstand_push_up",
+    "name": "Strict Handstand Push-Ups",
+    "family": "gym",
+    "pattern": [
+      "push_v"
+    ],
+    "modality": "G",
+    "unit_default": "reps",
+    "units_allowed": [
+      "reps"
+    ],
+    "load_unit": null,
+    "weight_functional": 4,
+    "weight_hybrid": 0,
+    "badge_key": "mv_hspu",
+    "active": true,
+    "version": 2
+  },
+  {
+    "id": "strict_press",
+    "name": "Strict Press",
+    "family": "barbell",
+    "pattern": [
+      "push_v"
+    ],
+    "modality": "W",
+    "unit_default": "reps",
+    "units_allowed": [
+      "reps"
+    ],
+    "load_unit": "kg",
+    "weight_functional": 0,
+    "weight_hybrid": 0,
+    "badge_key": "mv_strict_press",
+    "active": false,
+    "version": 1
+  },
+  {
+    "id": "sumo_deadlift_high_pull",
+    "name": "Sumo Deadlift High Pull",
+    "family": "barbell",
+    "pattern": [
+      "hinge",
+      "pull_v"
+    ],
+    "modality": "W",
+    "unit_default": "reps",
+    "units_allowed": [
+      "reps"
+    ],
+    "load_unit": "kg",
+    "weight_functional": 5,
+    "weight_hybrid": 0,
+    "badge_key": "mv_sdlhp",
+    "active": true,
+    "version": 2
+  },
+  {
+    "id": "tall_clean",
+    "name": "Tall Clean",
+    "family": "barbell",
+    "pattern": [
+      "squat"
+    ],
+    "modality": "W",
+    "unit_default": "reps",
+    "units_allowed": [
+      "reps"
+    ],
+    "load_unit": "kg",
+    "weight_functional": 0,
+    "weight_hybrid": 0,
+    "badge_key": "mv_clean",
+    "active": false,
+    "version": 1
+  },
+  {
+    "id": "thruster",
+    "name": "Thruster",
+    "family": "barbell",
+    "pattern": [
+      "squat",
+      "push_v"
+    ],
+    "modality": "W",
+    "unit_default": "reps",
+    "units_allowed": [
+      "reps"
+    ],
+    "load_unit": "kg",
+    "weight_functional": 9,
+    "weight_hybrid": 2,
+    "badge_key": "mv_thrusters",
+    "active": true,
+    "version": 2
+  },
+  {
+    "id": "toes_to_bar",
+    "name": "Toes-to-Bar",
+    "family": "gym",
+    "pattern": [
+      "core",
+      "pull_v"
+    ],
+    "modality": "G",
+    "unit_default": "reps",
+    "units_allowed": [
+      "reps"
+    ],
+    "load_unit": null,
+    "weight_functional": 8,
+    "weight_hybrid": 2,
+    "badge_key": "mv_t2b",
+    "active": true,
+    "version": 2
+  },
+  {
+    "id": "v_ups",
+    "name": "V-ups",
+    "family": "bodyweight",
+    "pattern": [
+      "core"
+    ],
+    "modality": "G",
+    "unit_default": "reps",
+    "units_allowed": [
+      "reps"
+    ],
+    "load_unit": null,
+    "weight_functional": 0,
+    "weight_hybrid": 0,
+    "badge_key": "mv_vup",
+    "active": false,
+    "version": 1
+  },
+  {
+    "id": "wall_ball",
+    "name": "Wall Balls",
+    "family": "wallball",
+    "pattern": [
+      "squat",
+      "push_v"
+    ],
+    "modality": "W",
+    "unit_default": "reps",
+    "units_allowed": [
+      "reps"
+    ],
+    "load_unit": "kg",
+    "weight_functional": 9,
+    "weight_hybrid": 8,
+    "badge_key": "mv_wallball",
+    "active": true,
+    "version": 2
+  },
+  {
+    "id": "wall_walk",
+    "name": "Wall Walk",
+    "family": "gym",
+    "pattern": [
+      "push_v",
+      "core"
+    ],
+    "modality": "G",
+    "unit_default": "reps",
+    "units_allowed": [
+      "reps"
+    ],
+    "load_unit": null,
+    "weight_functional": 5,
+    "weight_hybrid": 1,
+    "badge_key": "mv_wallwalk",
+    "active": true,
+    "version": 2
+  },
+  {
+    "id": "zercher_squat",
+    "name": "Zercher Squat",
+    "family": "barbell",
+    "pattern": [
+      "squat"
+    ],
+    "modality": "W",
+    "unit_default": "reps",
+    "units_allowed": [
+      "reps"
+    ],
+    "load_unit": "kg",
+    "weight_functional": 0,
+    "weight_hybrid": 0,
+    "badge_key": "mv_squat",
+    "active": false,
+    "version": 1
+  }
+]

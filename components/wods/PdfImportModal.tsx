@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/client';
 import { messageErreur } from '@/lib/erreurs';
 import { BLOCKS, DAY_LABELS, WOD_TYPES, TYPE_COLOR } from '@/lib/wodFields';
 import { PROFILES } from '@/lib/pdfImport/profiles';
+import { stripWodJson, withWodJson, writeWithWodJsonFallback } from '@/lib/wodJson';
 import { entryToBoxWod, validateEntry, hasUnstructuredStrength } from '@/lib/pdfImport/serialize';
 import {
   ANCRE_IMPORT_PROGRAMME, caseDepuisDate, dateFictive, entryToProgramWod, rangsParCase, recalerSurSemaine, semainesCouvertes,
@@ -211,9 +212,10 @@ export default function PdfImportModal({ file, boxId, userId, target, onClose, o
     const rows = selected.map(e => {
       const n = perDay[e.date] ?? 0;
       perDay[e.date] = n + 1;
-      return entryToBoxWod(e, { boxId, userId, sourcePdfUrl: result.source_pdf_url, sortOrder: n });
+      return withWodJson(entryToBoxWod(e, { boxId, userId, sourcePdfUrl: result.source_pdf_url, sortOrder: n }));
     });
-    const { data: inserted, error: insErr } = await supabase.from('box_wods').insert(rows).select('id');
+    const { data: inserted, error: insErr } = await writeWithWodJsonFallback(inc =>
+      supabase.from('box_wods').insert(inc ? rows : stripWodJson(rows)).select('id'));
     if (insErr) {
       setInserting(false);
       setError(`Insertion refusée (aucun WOD créé) : ${insErr.message}`);
@@ -258,8 +260,9 @@ export default function PdfImportModal({ file, boxId, userId, target, onClose, o
     setInserting(true);
     setError(null);
     const rangs = rangsParCase(selected);
-    const rows = selected.map((e, i) => entryToProgramWod(e, { boxId, userId, sourcePdfUrl: result.source_pdf_url, sortOrder: rangs[i] }));
-    const { data: inserted, error: insErr } = await supabase.from('box_wods').insert(rows).select('id');
+    const rows = selected.map((e, i) => withWodJson(entryToProgramWod(e, { boxId, userId, sourcePdfUrl: result.source_pdf_url, sortOrder: rangs[i] })));
+    const { data: inserted, error: insErr } = await writeWithWodJsonFallback(inc =>
+      supabase.from('box_wods').insert(inc ? rows : stripWodJson(rows)).select('id'));
     if (insErr) {
       setInserting(false);
       setError(`Insertion refusée (aucune séance créée) : ${insErr.message}`);
