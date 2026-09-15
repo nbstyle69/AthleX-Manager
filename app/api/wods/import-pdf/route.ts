@@ -5,6 +5,7 @@ import { parseDocument } from '@/lib/pdfImport/core';
 import { detectProfile, profileBySlug } from '@/lib/pdfImport/profiles';
 import { llmSplitDays } from '@/lib/pdfImport/llm';
 import type { PdfPage } from '@/lib/pdfImport/types';
+import { loadMovementCatalog } from '@/lib/movementCatalog';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
@@ -40,6 +41,8 @@ export async function POST(req: NextRequest) {
     const userClient = await createClient();
     const boxes = await getAdminBoxes(userClient);
     if (!boxes.some(b => b.id === boxId)) return NextResponse.json({ error: 'Non autorisé' }, { status: 403 });
+
+    await loadMovementCatalog(userClient);
 
     const buffer = Buffer.from(await file.arrayBuffer());
     const parser = new PDFParse({ data: buffer });

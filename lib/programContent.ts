@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/client';
+import { stripWodJson, withWodJson, writeWithWodJsonFallback } from '@/lib/wodJson';
 import {
   EMPTY_WOD_FORM, SharedWodColumns, WodFormState, formatCap, sharedWodColumns,
 } from '@/lib/wodFields';
@@ -251,16 +252,14 @@ export async function createProgramWod(
   payload: ProgramWodPayload,
 ): Promise<string> {
   const supabase = createClient();
-  const { data, error } = await supabase
-    .from('box_wods')
-    .insert({
-      box_id: boxId,
-      ...(userId ? { created_by: userId } : {}),
-      ...payload,
-      sort_order: payload.sort_order ?? 0,
-    })
-    .select('id')
-    .single();
+  const row = withWodJson({
+    box_id: boxId,
+    ...(userId ? { created_by: userId } : {}),
+    ...payload,
+    sort_order: payload.sort_order ?? 0,
+  });
+  const { data, error } = await writeWithWodJsonFallback(inc =>
+    supabase.from('box_wods').insert(inc ? row : stripWodJson(row)).select('id').single());
   if (error) throw error;
 
   const wodId = data.id;
@@ -294,10 +293,9 @@ export async function rattacherAuProgramme(ids: string[], programId: string): Pr
 export async function updateProgramWod(wodId: string, payload: ProgramWodPayload): Promise<void> {
   const supabase = createClient();
   const { sort_order, ...reste } = payload;
-  const { error } = await supabase
-    .from('box_wods')
-    .update({ ...reste, ...(sort_order != null ? { sort_order } : {}) })
-    .eq('id', wodId);
+  const row = withWodJson({ ...reste, ...(sort_order != null ? { sort_order } : {}) });
+  const { error } = await writeWithWodJsonFallback(inc =>
+    supabase.from('box_wods').update(inc ? row : stripWodJson(row)).eq('id', wodId));
   if (error) throw error;
 }
 

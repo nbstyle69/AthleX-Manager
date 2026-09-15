@@ -3,8 +3,9 @@
 import { useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { Plus, Trash2, Loader2, X, Sparkles, ChevronDown, ChevronUp, Timer } from 'lucide-react';
+import { useMovementCatalog } from '@/lib/useMovementCatalog';
 import { boGenerateFunctional, boGenerateHybrid } from '@/lib/wod/boAdapter';
-import { MOVEMENT_CATALOG, isWeightedMovement, serializeMovement, parseMovementRow, repsPerRoundFromMovements, isRepsScoredType } from '@/lib/movements';
+import { isWeightedMovement, serializeMovement, parseMovementRow, repsPerRoundFromMovements, isRepsScoredType } from '@/lib/movements';
 import { toDatetimeLocal, fromDatetimeLocal, isScheduledAhead } from '@/lib/datetime';
 import { formatCap, parseCap } from '@/lib/wodFields';
 
@@ -65,6 +66,7 @@ interface Props {
 }
 
 export default function WODForm({ tournamentId, divisions = [], isLeague = false, isBracket = false, bracketStages = [], initial, onSaved, onCancel }: Props) {
+  const { catalog: movementCatalog } = useMovementCatalog();
   const [saving, setSaving] = useState(false);
   const [error, setError]   = useState<string | null>(null);
 
@@ -494,7 +496,7 @@ export default function WODForm({ tournamentId, divisions = [], isLeague = false
           </button>
         </div>
         <datalist id="movement-catalog">
-          {MOVEMENT_CATALOG.map(mv => <option key={mv.name} value={mv.name} />)}
+          {movementCatalog.map(mv => <option key={mv.name} value={mv.name} />)}
         </datalist>
         <div className="space-y-2">
           {movements.map((line, i) => {

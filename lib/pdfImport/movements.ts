@@ -1,4 +1,4 @@
-import { MOVEMENT_CATALOG } from '@/lib/movements';
+import { getMovementCatalog, type CatalogMovement } from '@/lib/movementCatalog';
 import GLOBAL_SYNONYMS from './movement-synonyms.json';
 import type { ChargeOrder, ParsedMovement } from './types';
 import { applyTypoFixes, normKey, normalizeQuotes, stripAccents } from './text';
@@ -6,7 +6,8 @@ import { applyTypoFixes, normKey, normalizeQuotes, stripAccents } from './text';
 /**
  * Lignes de mouvement (§4) et résolution vers le catalogue officiel (§4.4).
  *
- * Le catalogue (`MOVEMENT_CATALOG`) est un tableau statique sans identifiant :
+ * Le catalogue est le store de `lib/movementCatalog` (Supabase, snapshot en
+ * repli ; la route d'import le charge avant de parser), inactifs compris :
  * « résolu » = le nom nettoyé correspond, via synonymes puis rapprochement
  * flou (≥ 0,85), à un nom du catalogue. Un mouvement résolu prend la casse
  * exacte du catalogue ; un mouvement non résolu garde son nom brut nettoyé et
@@ -25,9 +26,18 @@ export interface MovementParse {
   chargeAmbiguous: boolean;
 }
 
-const CATALOG_BY_KEY = new Map<string, string>(
-  MOVEMENT_CATALOG.map(m => [normKey(m.name), m.name]),
-);
+let indexedFrom: CatalogMovement[] | null = null;
+let catalogByKey = new Map<string, string>();
+
+/** Index nom normalisé → nom officiel, reconstruit quand le store change. */
+function catalogIndex(): Map<string, string> {
+  const current = getMovementCatalog();
+  if (current !== indexedFrom) {
+    catalogByKey = new Map(current.map(m => [normKey(m.name), m.name]));
+    indexedFrom = current;
+  }
+  return catalogByKey;
+}
 const GLOBAL_SYN: Record<string, string> = GLOBAL_SYNONYMS;
 
 export interface Resolution { name: string; resolved: boolean }
@@ -42,6 +52,7 @@ export function resolveMovementName(raw: string, profileSynonyms: Record<string,
   const viaGlobal = lookupSyn(key, GLOBAL_SYN);
   if (viaGlobal) return viaGlobal;
 
+  const CATALOG_BY_KEY = catalogIndex();
   const exact = CATALOG_BY_KEY.get(key);
   if (exact) return { name: exact, resolved: true };
 
@@ -63,7 +74,7 @@ export function resolveMovementName(raw: string, profileSynonyms: Record<string,
 function lookupSyn(key: string, table: Record<string, string>): Resolution | null {
   for (const [from, to] of Object.entries(table)) {
     if (normKey(from) === key) {
-      const cat = CATALOG_BY_KEY.get(normKey(to));
+      const cat = catalogIndex().get(normKey(to));
       return cat ? { name: cat, resolved: true } : { name: to, resolved: false };
     }
   }

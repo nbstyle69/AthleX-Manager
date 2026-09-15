@@ -1,103 +1,52 @@
-// ── Canonical movement catalog (mirrors the WOD generator) ───────────
-// `weighted` = the movement takes an external load (barbell / DB / KB / med ball).
-// `unit` = quantité par défaut d'une ligne : des reps, sauf pour les machines
-// cardio (`m` ou `cal`) dont la quantité se mesure en mètres ou calories.
-export type MovementUnit = 'reps' | 'm' | 'cal';
-export interface CatalogMovement { name: string; weighted: boolean; cardio?: boolean; unit?: MovementUnit; }
+// ── Catalogue de mouvements ─────────────────────────────────────────────
+// Façade synchrone sur `lib/movementCatalog.ts` (Supabase `movement_catalog`,
+// snapshot embarqué en repli). `weighted` = charge externe ; `unit` = quantité
+// par défaut d'une ligne (reps, sauf machines cardio en `m` / `cal`).
+import {
+  MOVEMENT_CATALOG_SNAPSHOT,
+  catalogMovementFromRow,
+  findCatalogMovement,
+  type CatalogMovement,
+  type MovementUnit,
+} from '@/lib/movementCatalog';
 
-export const MOVEMENT_CATALOG: CatalogMovement[] = [
-  { name: 'Thruster', weighted: true },
-  { name: 'Power Clean', weighted: true },
-  { name: 'Power Snatch', weighted: true },
-  { name: 'Clean & Jerk', weighted: true },
-  { name: 'Deadlift', weighted: true },
-  { name: 'Front Squat', weighted: true },
-  { name: 'Back Squat', weighted: true },
-  { name: 'Overhead Squat', weighted: true },
-  { name: 'Push Press', weighted: true },
-  { name: 'Push Jerk', weighted: true },
-  { name: 'Sumo Deadlift High Pull', weighted: true },
-  { name: 'Squat Snatch', weighted: true },
-  { name: 'Squat Clean', weighted: true },
-  { name: 'Squat Clean & Jerk', weighted: true },
-  { name: 'Cluster', weighted: true },
-  { name: 'Alt DB Snatch', weighted: true },
-  { name: 'DB Thruster', weighted: true },
-  { name: 'Devils Press', weighted: true },
-  { name: 'DB Deadlift', weighted: true },
-  { name: 'DB Clean & Jerk', weighted: true },
-  { name: 'DB Push Press', weighted: true },
-  { name: 'KB Swing', weighted: true },
-  { name: 'Goblet Squat', weighted: true },
-  { name: 'KB Clean', weighted: true },
-  { name: 'Wall Balls', weighted: true },
-  { name: 'Snatch Balance', weighted: true, unit: 'reps' },
-  { name: 'Snatch High Pull', weighted: true, unit: 'reps' },
-  { name: 'Clean Pull', weighted: true, unit: 'reps' },
-  { name: 'Tall Clean', weighted: true, unit: 'reps' },
-  { name: 'Power Jerk', weighted: true, unit: 'reps' },
-  { name: 'Split Jerk', weighted: true, unit: 'reps' },
-  { name: 'Back Rack Split Jerk', weighted: true, unit: 'reps' },
-  { name: 'Strict Press', weighted: true, unit: 'reps' },
-  { name: 'DB Strict Press', weighted: true, unit: 'reps' },
-  { name: 'Bench Press', weighted: true, unit: 'reps' },
-  { name: 'Zercher Squat', weighted: true, unit: 'reps' },
-  { name: 'Pull-ups', weighted: false },
-  { name: 'Toes-to-Bar', weighted: false },
-  { name: 'Chest-to-Bar', weighted: false },
-  { name: 'Bar Muscle-ups', weighted: false },
-  { name: 'Handstand Push-ups', weighted: false },
-  { name: 'Ring Dips', weighted: false },
-  { name: 'Ring Muscle-ups', weighted: false },
-  { name: 'Rope Climbs', weighted: false },
-  { name: 'Pistols', weighted: false },
-  { name: 'Handstand Walk', weighted: false },
-  { name: 'Wall Walk', weighted: false, unit: 'reps' },
-  { name: 'Box Jump-overs', weighted: false },
-  { name: 'Box Jumps', weighted: false },
-  { name: 'Box Step-ups', weighted: false },
-  { name: 'Burpees Over the Bar', weighted: false },
-  { name: 'Burpees', weighted: false },
-  { name: 'Push-ups', weighted: false },
-  { name: 'Sit-ups', weighted: false },
-  { name: 'Air Squats', weighted: false },
-  { name: 'Row', weighted: false, cardio: true, unit: 'cal' },
-  { name: 'Bike Erg', weighted: false, cardio: true, unit: 'cal' },
-  { name: 'Echo Bike', weighted: false, cardio: true, unit: 'cal' },
-  { name: 'SkiErg', weighted: false, cardio: true, unit: 'cal' },
-  { name: 'Run', weighted: false, cardio: true, unit: 'm' },
-  { name: 'Double-unders', weighted: false },
-  { name: 'Lunges', weighted: false },
-  { name: 'V-ups', weighted: false },
-  { name: 'Hollow Rocks', weighted: false },
-];
+export type { CatalogMovement, MovementUnit } from '@/lib/movementCatalog';
+export { getMovementCatalog, findCatalogMovement } from '@/lib/movementCatalog';
+
+/**
+ * Snapshot embarqué (109 lignes, inactifs compris). Pour la liste vivante
+ * (Supabase), utiliser `useMovementCatalog()` côté client ou
+ * `getMovementCatalog()` après `loadMovementCatalog()`.
+ */
+export const MOVEMENT_CATALOG: readonly CatalogMovement[] = MOVEMENT_CATALOG_SNAPSHOT.map(catalogMovementFromRow);
 
 export function isWeightedMovement(name: string): boolean {
-  const found = MOVEMENT_CATALOG.find(m => m.name.toLowerCase() === name.toLowerCase().trim());
-  if (found) return found.weighted;
-  return false;
-}
-
-function findCatalog(name: string): CatalogMovement | undefined {
-  const n = name.toLowerCase().trim();
-  return MOVEMENT_CATALOG.find(m => m.name.toLowerCase() === n);
+  return findCatalogMovement(name)?.weighted ?? false;
 }
 
 /** Un mouvement dont la quantité se mesure en mètres ou calories. */
 export function isCardioMovement(name: string): boolean {
-  const u = findCatalog(name)?.unit;
+  const u = findCatalogMovement(name)?.unit;
   return u === 'm' || u === 'cal';
 }
 
 /** Unité par défaut du catalogue ; `reps` pour tout mouvement inconnu. */
 export function defaultUnitFor(name: string): MovementUnit {
-  return findCatalog(name)?.unit ?? 'reps';
+  return findCatalogMovement(name)?.unit ?? 'reps';
 }
 
 export const CARDIO_UNITS: { value: Exclude<MovementUnit, 'reps'>; label: string }[] = [
   { value: 'm', label: 'm' },
   { value: 'cal', label: 'cal' },
+  { value: 's', label: 's' },
 ];
+
+function unitFromToken(tok: string): Exclude<MovementUnit, 'reps'> {
+  const t = tok.toLowerCase();
+  if (t === 'm') return 'm';
+  if (t.startsWith('s')) return 's';
+  return 'cal';
+}
 
 // Serialize a structured movement row into a parseable line.
 // reps + name (+ optional men/women loads). Une quantité cardio porte son unité
@@ -107,6 +56,7 @@ export const CARDIO_UNITS: { value: Exclude<MovementUnit, 'reps'>; label: string
 //   { reps: 12, name: 'Pull-ups' }                                -> "12 Pull-ups"
 //   { reps: 20, name: 'Row', unit: 'cal', repsWomen: 15 }         -> "20/15 cal Row"
 //   { reps: 500, name: 'Run', unit: 'm' }                         -> "500 m Run"
+//   { reps: 30, name: 'Plank Hold', unit: 's' }                   -> "30 s Plank Hold"
 export function serializeMovement(
   reps: number,
   name: string,
@@ -143,6 +93,8 @@ export interface ParsedMovementRow {
 // Cardio lines carry their unit ("20 cal Row", "20/15 cal Row", "500 m Run",
 // "400m Course") ; a bare number is reps, except on a catalogue cardio movement
 // where it takes the catalogue default unit ("20 Row" → 20 cal, "800 Run" → 800 m).
+// A hold carries seconds ("30 s Plank Hold", "30 sec Plank Hold"). A height in
+// parentheses ("(60/50 cm)") is not a load and is dropped like any other note.
 export function parseMovementRow(line: string): ParsedMovementRow {
   let s = (line ?? '').trim();
   // weight: "(43 kg)" / "(43/30 kg)" or "@ 43kg" / "@ 42.5/30 kg"
@@ -157,12 +109,12 @@ export function parseMovementRow(line: string): ParsedMovementRow {
     if (w[2] != null) weightKgWomen = parseFloat(w[2]);
   }
   s = s.replace(/\((?:[^)]*)\)/g, '').replace(/@.*$/, '').trim();
-  const cardio = s.match(/^(\d+)(?:\s*\/\s*(\d+))?\s*(m|cals?|kcal)\b\.?\s+(.+)$/i);
+  const cardio = s.match(/^(\d+)(?:\s*\/\s*(\d+))?\s*(m|cals?|kcal|s|secs?)\b\.?\s+(.+)$/i);
   if (cardio) {
     return {
       reps: parseInt(cardio[1], 10),
       repsWomen: cardio[2] != null ? parseInt(cardio[2], 10) : null,
-      unit: cardio[3].toLowerCase() === 'm' ? 'm' : 'cal',
+      unit: unitFromToken(cardio[3]),
       name: cardio[4].trim(),
       weightKg, weightKgWomen,
     };

@@ -2,7 +2,8 @@
 
 import { Dispatch, SetStateAction, useEffect, useState } from 'react';
 import { Plus, Trash2, X, Loader2, Video, Dumbbell, HeartPulse, ChevronDown, ChevronRight, Info } from 'lucide-react';
-import { CARDIO_UNITS, MOVEMENT_CATALOG, MovementUnit } from '@/lib/movements';
+import { CARDIO_UNITS, MovementUnit } from '@/lib/movements';
+import { useMovementCatalog } from '@/lib/useMovementCatalog';
 import {
   EMPTY_MOVEMENT_ROW,
   MovementRow,
@@ -159,7 +160,8 @@ export default function WodEditor({
   const updateCardio = (i: number, patch: Partial<CardioEntry>) =>
     setCardio(cardioRows.map((e, idx) => (idx === i ? { ...e, ...patch } : e)));
 
-  const cardioCatalog = MOVEMENT_CATALOG.filter(mv => mv.unit === 'm' || mv.unit === 'cal');
+  const { catalog: movementCatalog } = useMovementCatalog();
+  const cardioCatalog = movementCatalog.filter(mv => mv.unit === 'm' || mv.unit === 'cal');
 
   const audienceChosen = !isWhiteboard || form.audience !== '';
   const groupsChosen = !isWhiteboard || form.audience !== 'groups' || form.groupIds.length > 0;
@@ -332,7 +334,7 @@ export default function WodEditor({
               </button>
             </div>
             <datalist id="box-movement-catalog">
-              {MOVEMENT_CATALOG.map(mv => <option key={mv.name} value={mv.name} />)}
+              {movementCatalog.map(mv => <option key={mv.name} value={mv.name} />)}
             </datalist>
             <div className="space-y-2">
               {wodRows.map((parsed, i) => {
