@@ -51,11 +51,17 @@ export interface WodJsonSource {
   tabata_rest_seconds?: number | null;
 }
 
+/** « 5 rounds : … », « 3 tours … » : en-tête de rounds en prose, pas un mouvement. */
+const ROUNDS_HEADER = /^(\d+)\s*(rounds?|rds?|tours?|sets?|s[ée]ries?)\b/i;
+/** Un « nom » qui enchaîne plusieurs mouvements ou une explication n'est pas un mouvement. */
+const PROSE_NAME = /\s[\/:;|]\s|\s(puis|then|et|and)\s/i;
+
 export function buildWodJson(src: WodJsonSource): WodJson {
   const strength: StrengthEntry[] = [];
   const cardio: CardioEntry[] = [];
   const movements: WodJsonMovement[] = [];
   const free_text: string[] = [];
+  let roundsFromText: number | null = null;
 
   for (const raw of (src.description ?? '').split('\n')) {
     const line = raw.trim();
@@ -64,8 +70,14 @@ export function buildWodJson(src: WodJsonSource): WodJson {
     if (s) { strength.push(s); continue; }
     const c = parseCardioLine(line);
     if (c) { cardio.push(c); continue; }
+    const header = line.match(ROUNDS_HEADER);
+    if (header) {
+      if (roundsFromText == null) roundsFromText = parseInt(header[1], 10);
+      free_text.push(line);
+      continue;
+    }
     const row = parseMovementRow(line);
-    if (!row.name || row.reps == null) { free_text.push(line); continue; }
+    if (!row.name || row.reps == null || PROSE_NAME.test(row.name)) { free_text.push(line); continue; }
     movements.push({
       reps: row.reps,
       repsWomen: row.repsWomen,
@@ -84,7 +96,7 @@ export function buildWodJson(src: WodJsonSource): WodJson {
     source: 'manager',
     format: src.wod_type ?? null,
     time_cap_s: src.time_cap_seconds ?? null,
-    rounds: src.rounds ?? null,
+    rounds: src.rounds ?? roundsFromText,
     emom_interval_s: src.emom_interval_minutes != null ? src.emom_interval_minutes * 60 : null,
     tabata: src.wod_type === 'tabata' && tabataWork != null
       ? { work_s: tabataWork, rest_s: tabataRest ?? 0 }
