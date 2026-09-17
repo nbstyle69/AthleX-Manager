@@ -139,6 +139,74 @@ export function isoWeekOf(iso: string): { iso_year: number; iso_week: number } {
   return { iso_year, iso_week };
 }
 
+// ── Onglets de piste du Whiteboard ──────────────────────────────────────────
+// Mêmes clés et même ordre que l'app athlète (`src/utils/whiteboardTracks.ts`) :
+// un onglet nommé pareil des deux côtés doit filtrer pareil.
+
+/** `box` = les cartes saisies à la main (`track` nul). `all` = tout. */
+export type TrackTab = Track | 'box' | 'all';
+
+export const TAB_LABEL: Record<TrackTab, string> = {
+  functional: 'Functional',
+  hybrid: 'Hybrid',
+  musculation: 'Musculation',
+  box: 'Box',
+  all: 'Tout',
+};
+
+/** Ce que le gérant voit en arrivant : il gère la semaine entière. */
+export const DEFAULT_TAB: TrackTab = 'all';
+
+export function isTrackTab(v: unknown): v is TrackTab {
+  return typeof v === 'string' && v in TAB_LABEL;
+}
+
+/** La piste d'une carte, `null` si elle a été saisie à la main. */
+export function trackOf(wod: { track?: string | null }): Track | null {
+  return isTrack(wod.track) ? wod.track : null;
+}
+
+/**
+ * Onglets à montrer pour une semaine : les pistes qui ont au moins une carte,
+ * dans l'ordre de `TRACKS`, puis « Box » s'il existe une carte sans piste,
+ * puis « Tout ».
+ *
+ * Rend un tableau VIDE quand aucune carte n'a de piste : la barre disparaît
+ * alors entièrement. Un gérant sans programmation automatique n'a pas à voir un
+ * filtre qui ne filtre rien.
+ */
+export function visibleTabs(wods: readonly { track?: string | null }[]): TrackTab[] {
+  const present = new Set(wods.map(trackOf).filter((t): t is Track => t !== null));
+  if (present.size === 0) return [];
+  const tabs: TrackTab[] = TRACKS.filter((t) => present.has(t));
+  if (wods.some((w) => trackOf(w) === null)) tabs.push('box');
+  tabs.push('all');
+  return tabs;
+}
+
+/** Filtre d'un onglet. `box` ne retient que les cartes sans piste. */
+export function filterByTab<T extends { track?: string | null }>(wods: T[], tab: TrackTab): T[] {
+  if (tab === 'all') return wods;
+  if (tab === 'box') return wods.filter((w) => trackOf(w) === null);
+  return wods.filter((w) => trackOf(w) === tab);
+}
+
+/**
+ * Onglet effectivement affiché : le choix mémorisé s'il a encore du contenu
+ * cette semaine, sinon « Tout ». Un onglet mémorisé qui a disparu laisserait
+ * un écran vide sans rien expliquer.
+ */
+export function resolveTab(memorise: unknown, tabs: readonly TrackTab[]): TrackTab {
+  if (tabs.length === 0) return DEFAULT_TAB;
+  if (isTrackTab(memorise) && tabs.includes(memorise)) return memorise;
+  return DEFAULT_TAB;
+}
+
+/** Clé de mémorisation, par box : deux box n'ont pas les mêmes pistes. */
+export function trackTabStorageKey(boxId: string): string {
+  return `bo_wods_track:${boxId}`;
+}
+
 // ── Journal ─────────────────────────────────────────────────────────────────
 
 export const RUN_STATUSES = ['running', 'done', 'error', 'skipped'] as const;

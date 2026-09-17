@@ -5,10 +5,10 @@ import { useParams, useRouter } from 'next/navigation';
 import {
   Building2, ArrowLeft, Users, Dumbbell, Trophy, Crown,
   CheckCircle, XCircle, Calendar, Clock, Shield, Hash,
-  Pencil, Save, X as XIcon, Image as ImageIcon, RefreshCw,
-} from 'lucide-react';
+  Pencil, Save, X as XIcon, Image as ImageIcon, RefreshCw, Archive } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import AutoProgrammingBlock from '@/components/admin/AutoProgrammingBlock';
+import BoxArchiveBlock from '@/components/admin/BoxArchiveBlock';
 import { isTrack, revealFromRow, type Track } from '@/lib/autoProgramming';
 import { formatCap } from '@/lib/wodFields';
 import { FREE_TIER, formatExpiredSince, planTierClasses } from '@/lib/boxPlanTier';
@@ -153,6 +153,27 @@ export default function BoxDetailPage() {
 
   return (
     <div className="space-y-6">
+      {/* Une box archivée le dit en tête de fiche : tout le reste de l'écran
+          continue de fonctionner, et rien n'indiquerait sinon que ses membres
+          n'y ont plus accès. */}
+      {box.archived_at && (
+        <div
+          data-testid="bandeau-archivee"
+          className="flex items-start gap-3 rounded-2xl border border-amber-500/40 bg-amber-500/[0.08] px-5 py-4"
+        >
+          <Archive size={18} className="shrink-0 mt-0.5 text-amber-400" />
+          <div>
+            <p className="text-sm font-bold text-amber-200">
+              Box archivée le {new Date(box.archived_at).toLocaleDateString('fr-FR')}
+            </p>
+            <p className="text-xs text-amber-200/70 mt-0.5">
+              Ses membres n&apos;y ont plus accès, elle est retirée des annuaires et n&apos;est plus
+              générée. Aucune donnée n&apos;a été supprimée : « Réactiver » remet tout en place.
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Back + Header */}
       <div>
         <button onClick={() => router.push('/admin/boxes')} className="flex items-center gap-1.5 text-sm text-gray-400 hover:text-white transition-colors mb-4">
@@ -305,6 +326,20 @@ export default function BoxDetailPage() {
                 </div>
                 <div>
                   <p className="text-sm font-bold text-white">{owner?.username ?? 'Inconnu'}</p>
+                  {/* L'e-mail n'est lisible que par le service client : la
+                      colonne `profiles.email` est fermée à anon et
+                      authenticated, et cette route revérifie le rôle admin. */}
+                  {owner?.email ? (
+                    <a
+                      href={`mailto:${owner.email}`}
+                      data-testid="owner-email"
+                      className="text-xs text-emerald-400 hover:text-emerald-300 hover:underline break-all"
+                    >
+                      {owner.email}
+                    </a>
+                  ) : (
+                    <p className="text-xs text-gray-600">E-mail indisponible</p>
+                  )}
                   <div className="flex items-center gap-2 mt-0.5">
                     <span className="text-[10px] font-black uppercase text-yellow-400 bg-yellow-500/15 px-2 py-0.5 rounded">{owner?.role}</span>
                     <span className={`text-[10px] font-black uppercase ${levelColor(owner?.level)}`}>{owner?.level}</span>
@@ -336,6 +371,13 @@ export default function BoxDetailPage() {
               tracks={((box.auto_programming_tracks ?? []) as string[]).filter(isTrack) as Track[]}
               reveal={revealFromRow(box)}
               onSaved={loadData}
+            />
+
+            <BoxArchiveBlock
+              boxId={box.id}
+              boxName={box.name}
+              archivedAt={box.archived_at ?? null}
+              onChanged={loadData}
             />
           </div>
         </div>

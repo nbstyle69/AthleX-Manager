@@ -11,18 +11,32 @@ async function checkAdmin() {
   return user;
 }
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   const user = await checkAdmin();
   if (!user) return NextResponse.json({ error: 'Non autorisé' }, { status: 403 });
 
   const supabase = createServiceClient();
-  const [{ data: boxes, error }, { data: subs }] = await Promise.all([
-    supabase
-      .from('boxes')
-      .select('*, owner:profiles!boxes_owner_id_fkey(username)')
-      .order('created_at', { ascending: false }),
-    supabase.from('box_subscriptions').select('*'),
-  ]);
+  // `?archived=1` bascule la liste sur les archivées. Le service role contourne
+  // la policy `boxes_hide_archived`, donc le filtre est explicite ici — c'est
+  // aussi ce qui permet de rouvrir une box archivée.
+  const wantArchived = new URL(req.url).searchParams.get('archived') === '1';
+
+  const base = () => supabase
+    .from('boxes')
+    .select('*, owner:profiles!boxes_owner_id_fkey(username)')
+    .order('created_at', { ascending: false });
+
+  // Tant que la migration `20261224` n'est pas appliquée, la colonne n'existe
+  // pas : la liste normale reste juste (aucune box n'est archivée), et l'onglet
+  // Archivées est simplement vide.
+  let { data: boxes, error } = await (wantArchived
+    ? base().not('archived_at', 'is', null)
+    : base().is('archived_at', null));
+  if (error && (error.code === '42703' || error.code === 'PGRST204')) {
+    if (wantArchived) { boxes = []; error = null; }
+    else ({ data: boxes, error } = await base());
+  }
+  const { data: subs } = await supabase.from('box_subscriptions').select('*');
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
   const allSubs = (subs ?? []) as BoxSubscriptionTier[];

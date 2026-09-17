@@ -31,25 +31,26 @@ export function audienceBadgeLabel(audience: Audience, groupNames: string[]): st
 }
 
 /** Palette des abonnements (clés stables en base, rendu ici). Pas d'émeraude ni de rouge : déjà pris. */
+import { SUB_COLOR_DARK, SUB_COLOR_LIGHT, subColorVar } from '@/lib/colorVars';
+
 export type SubscriptionColor = 'sky' | 'violet' | 'amber' | 'rose' | 'teal' | 'orange' | 'lime' | 'fuchsia';
+
+export { SUB_COLOR_DARK, SUB_COLOR_LIGHT };
 
 export const SUBSCRIPTION_COLORS: readonly SubscriptionColor[] = [
   'sky', 'violet', 'amber', 'rose', 'teal', 'orange', 'lime', 'fuchsia',
 ];
 
-export const SUBSCRIPTION_COLOR_HEX: Record<SubscriptionColor, string> = {
-  sky: '#38BDF8',
-  violet: '#8B5CF6',
-  amber: '#F59E0B',
-  rose: '#F43F5E',
-  teal: '#14B8A6',
-  orange: '#F97316',
-  lime: '#84CC16',
-  fuchsia: '#D946EF',
-};
-
-export function subscriptionColorHex(color: string | null | undefined): string {
-  return SUBSCRIPTION_COLOR_HEX[color as SubscriptionColor] ?? SUBSCRIPTION_COLOR_HEX.sky;
+/**
+ * Teinte d'un abonnement, en variable CSS déclinée par thème.
+ *
+ * Rendait un hex sombre, posé en style en ligne : les surcharges de
+ * `globals.css` portent sur des classes, donc la carte gardait sa teinte
+ * sombre en mode clair, où elle ne tient pas le contraste. Les valeurs vivent
+ * maintenant dans `lib/colorVars.ts` et `globals.css`, en deux jeux.
+ */
+export function subscriptionColorVar(color: string | null | undefined): string {
+  return subColorVar(color);
 }
 
 /** Lundi (ISO) de la semaine contenant la date locale donnée. */

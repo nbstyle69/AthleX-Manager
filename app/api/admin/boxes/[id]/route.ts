@@ -21,7 +21,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
   // Box info
   const { data: box } = await supabase
     .from('boxes')
-    .select('*, owner:profiles!boxes_owner_id_fkey(id, username, role, level, elo)')
+    .select('*, owner:profiles!boxes_owner_id_fkey(id, username, role, level, elo, email)')
     .eq('id', id)
     .single();
 
