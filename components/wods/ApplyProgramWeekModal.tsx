@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { X, Loader2, AlertTriangle, CalendarPlus, ShieldCheck, Trash2, Copy } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import {
-  AUDIENCES, AUDIENCE_LABEL, Audience, isAudience, mondayOfISO, subscriptionColorHex,
+  AUDIENCES, AUDIENCE_LABEL, Audience, isAudience, mondayOfISO, subscriptionColorVar,
 } from '@/lib/audience';
 
 /**
@@ -257,7 +257,7 @@ export default function ApplyProgramWeekModal({
 
   function SourceRow({ i }: { i: ApplicableSource }) {
     const on = keyOf(i) === sourceKey;
-    const color = i.kind === 'subscription' ? subscriptionColorHex(i.color) : null;
+    const color = i.kind === 'subscription' ? subscriptionColorVar(i.color) : null;
     return (
       <div className="flex items-center gap-1.5">
         <button

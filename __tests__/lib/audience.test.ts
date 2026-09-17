@@ -1,6 +1,6 @@
 import {
   audienceBadgeLabel, isAudience, mondayOfISO, nextMondayISO, isoDow,
-  weekNumberFor, recapLine, subscriptionColorHex, offerWeekStorageKey,
+  weekNumberFor, recapLine, subscriptionColorVar, offerWeekStorageKey,
 } from '@/lib/audience';
 
 describe('audience', () => {
@@ -48,10 +48,12 @@ describe('dates et ancrage', () => {
 });
 
 describe('palette et stockage', () => {
-  it('subscriptionColorHex retombe sur sky pour une clé inconnue', () => {
-    expect(subscriptionColorHex('violet')).toBe('#8B5CF6');
-    expect(subscriptionColorHex(null)).toBe('#38BDF8');
-    expect(subscriptionColorHex('bleu')).toBe('#38BDF8');
+  it('subscriptionColorVar retombe sur sky pour une clé inconnue', () => {
+    // Une variable CSS, pas un hex : la teinte est déclinée par thème dans
+    // `globals.css`, un hex en style en ligne restait sombre en mode clair.
+    expect(subscriptionColorVar('violet')).toBe('var(--sub-violet)');
+    expect(subscriptionColorVar(null)).toBe('var(--sub-sky)');
+    expect(subscriptionColorVar('bleu')).toBe('var(--sub-sky)');
   });
 
   it('clé localStorage des semaines d’offre', () => {

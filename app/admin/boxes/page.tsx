@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/client';
 import { Building2, Search, Users, Calendar, CheckCircle, XCircle, ChevronRight, Plus, X, MapPin } from 'lucide-react';
 import Link from 'next/link';
 import { FREE_TIER, formatExpiredSince, planTierClasses } from '@/lib/boxPlanTier';
-import { Sparkles } from 'lucide-react';
+import { Sparkles, Archive } from 'lucide-react';
 
 interface BoxItem {
   id: string;
@@ -24,17 +24,20 @@ interface BoxItem {
   /** Lot J2 : la liste dit seulement lesquelles sont concernées ;
       le réglage vit dans la fiche de la box. */
   auto_programming: boolean;
+  archived_at: string | null;
 }
 
 export default function AdminBoxesPage() {
   const [boxes, setBoxes] = useState<BoxItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  /** Onglet de la liste : les actives, ou les archivées. */
+  const [showArchived, setShowArchived] = useState(false);
   const supabase = createClient();
 
   const load = useCallback(async () => {
     setLoading(true);
-    const res = await fetch('/api/admin/boxes');
+    const res = await fetch(`/api/admin/boxes${showArchived ? '?archived=1' : ''}`, { cache: 'no-store' });
     const data: any[] = res.ok ? await res.json() : [];
 
     const mapped: BoxItem[] = data.map((b: any) => {
@@ -54,11 +57,12 @@ export default function AdminBoxesPage() {
         member_count: b.member_count ?? 0,
         logo_url: b.logo_url ?? null,
         auto_programming: b.auto_programming === true,
+        archived_at: b.archived_at ?? null,
       };
     });
     setBoxes(mapped);
     setLoading(false);
-  }, []);
+  }, [showArchived]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -171,6 +175,22 @@ export default function AdminBoxesPage() {
           >
             <Plus size={16} /> Créer une box
           </button>
+          <div className="flex items-center gap-1 p-1 rounded-xl border border-white/10" role="tablist" aria-label="Filtre">
+            {([[false, 'Actives'], [true, 'Archivées']] as const).map(([v, label]) => (
+              <button
+                key={label}
+                type="button"
+                role="tab"
+                aria-selected={showArchived === v}
+                data-testid={v ? 'filtre-archivees' : 'filtre-actives'}
+                onClick={() => setShowArchived(v)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${
+                  showArchived === v ? 'bg-white/10 text-white' : 'text-gray-400 hover:text-white'}`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
           <div className="relative">
             <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
             <input
@@ -229,7 +249,9 @@ export default function AdminBoxesPage() {
       ) : filtered.length === 0 ? (
         <div className="text-center py-20">
           <Building2 size={48} className="text-gray-600 mx-auto mb-4" />
-          <p className="text-gray-400">{search ? 'Aucun résultat.' : 'Aucune box enregistrée.'}</p>
+          <p className="text-gray-400">
+            {search ? 'Aucun résultat.' : showArchived ? 'Aucune box archivée.' : 'Aucune box enregistrée.'}
+          </p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
@@ -251,6 +273,15 @@ export default function AdminBoxesPage() {
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
+                  {box.archived_at && (
+                    <span
+                      data-testid={`archivee-${box.id}`}
+                      title={`Archivée le ${new Date(box.archived_at).toLocaleDateString('fr-FR')}`}
+                      className="flex items-center gap-1 text-[10px] font-bold text-amber-400 bg-amber-500/15 px-2 py-0.5 rounded-lg"
+                    >
+                      <Archive size={10} /> {new Date(box.archived_at).toLocaleDateString('fr-FR')}
+                    </span>
+                  )}
                   {/* Lot J2 : la liste signale, elle ne règle pas. */}
                   {box.auto_programming && (
                     <span

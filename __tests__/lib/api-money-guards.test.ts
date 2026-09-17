@@ -42,7 +42,12 @@ const CLASSIFICATION: Record<string, Classe> = {
   'admin/auto-programming': 'platform_admin',
   'admin/boxes': 'platform_admin',
   'admin/boxes/[id]': 'platform_admin',
+  // Archivage et suppression : `super_admin` seul, pas `admin`. La classe
+  // `platform_admin` couvre les deux, la distinction se teste dans
+  // `__tests__/api/admin-box-archive.test.ts`.
+  'admin/boxes/[id]/archive': 'platform_admin',
   'admin/boxes/[id]/auto-programming': 'platform_admin',
+  'admin/boxes/[id]/deletion': 'platform_admin',
   'admin/daily-tournaments': 'platform_admin',
   'admin/geocode-boxes': 'platform_admin',
   'admin/inter-competitions': 'platform_admin',

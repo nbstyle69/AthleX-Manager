@@ -18,9 +18,13 @@ import SaveWeekAsTemplateModal from '@/components/wods/SaveWeekAsTemplateModal';
 import CopyWeekToOfferModal, { CopySource } from '@/components/wods/CopyWeekToOfferModal';
 import SubscriptionBanner, { BannerSubscription } from '@/components/wods/SubscriptionBanner';
 import AutoProgrammingBanner, { AutoBadge } from '@/components/wods/AutoProgrammingBanner';
-import { DEFAULT_REVEAL, type AutoRun, type RevealSettings, type Track } from '@/lib/autoProgramming';
+import TrackTabs, { TrackBadge, trackAccent } from '@/components/wods/TrackTabs';
+import {
+  DEFAULT_REVEAL, DEFAULT_TAB, filterByTab, resolveTab, trackTabStorageKey, visibleTabs,
+  type AutoRun, type RevealSettings, type Track, type TrackTab,
+} from '@/lib/autoProgramming';
 import { WodEditorOffer } from '@/components/wods/WodEditor';
-import { Audience, isAudience, subscriptionColorHex } from '@/lib/audience';
+import { Audience, isAudience, subscriptionColorVar } from '@/lib/audience';
 import PdfImportModal from '@/components/wods/PdfImportModal';
 import { applyWeekNotes } from '@/lib/programWeek';
 import {
@@ -49,6 +53,8 @@ interface BoxWOD {
   source: string | null;
   /** Première modification humaine d'une ligne auto (trigger `box_wods_mark_edited`). */
   edited_at: string | null;
+  /** Piste de programmation, `null` pour une carte saisie à la main. */
+  track: string | null;
 }
 
 /** Provenance d'une carte reçue d'une offre Marketplace (autre box). */
@@ -121,6 +127,14 @@ export default function WODsPage() {
   const [templateModal, setTemplateModal] = useState(false);
   const [copySource, setCopySource] = useState<CopySource | null>(null);
   const [subscriptions, setSubscriptions] = useState<BannerSubscription[]>([]);
+  /** Onglet de piste, mémorisé par box. Lu au chargement de la box. */
+  const [tab, setTabRaw] = useState<TrackTab>(DEFAULT_TAB);
+  const setTab = (next: TrackTab) => {
+    setTabRaw(next);
+    if (boxId && typeof window !== 'undefined') {
+      try { localStorage.setItem(trackTabStorageKey(boxId), next); } catch { /* stockage refusé */ }
+    }
+  };
   /** Programmation automatique de la box (lot J2), lue côté serveur. */
   const [auto, setAuto] = useState<{ enabled: boolean; tracks: Track[]; reveal: RevealSettings; runs: AutoRun[] }>(
     { enabled: false, tracks: [], reveal: DEFAULT_REVEAL, runs: [] });
@@ -138,6 +152,18 @@ export default function WODsPage() {
   const [assignModal, setAssignModal] = useState(false);
 
   const weekDates = getWeekDates(weekOffset);
+
+  // Onglets de piste : dérivés de la semaine chargée, pas d'un réglage. Une
+  // semaine sans aucune carte de piste ne montre pas de barre du tout.
+  const tabs = useMemo(() => visibleTabs(wods), [wods]);
+  const activeTab = resolveTab(tab, tabs);
+  const tabCounts = useMemo(() => {
+    const out: Record<string, number> = {};
+    for (const t of tabs) out[t] = filterByTab(wods, t).length;
+    return out;
+  }, [wods, tabs]);
+  /** Ce que les deux vues affichent : la semaine vue par l'onglet actif. */
+  const shownWods = useMemo(() => filterByTab(wods, activeTab), [wods, activeTab]);
   const todayISO  = toISO(new Date());
 
   const refGroups = useMemo(
@@ -163,6 +189,12 @@ export default function WODsPage() {
         setBoxPrograms((progs ?? []) as any[]);
         await loadMarketplace(box.id);
         await loadAuto(box.id);
+        // Choix d'onglet mémorisé pour CETTE box : deux box n'ont pas les
+        // mêmes pistes, une clé globale aurait proposé un onglet absent.
+        try {
+          const memo = localStorage.getItem(trackTabStorageKey(box.id));
+          if (memo) setTabRaw(memo as TrackTab);
+        } catch { /* stockage refusé */ }
       }
     })();
   }, []);
@@ -241,7 +273,7 @@ export default function WODsPage() {
       // le verrou serveur s'applique, le titre seul manque.
       const map: Record<string, ReceivedInfo> = {};
       srcIds.filter(id => !mine.has(id)).forEach(id => {
-        map[id] = { title: titleBy[id] ?? 'programmation Marketplace', color: subscriptionColorHex(colorBy[id]) };
+        map[id] = { title: titleBy[id] ?? 'programmation Marketplace', color: subscriptionColorVar(colorBy[id]) };
       });
       setReceivedMap(map);
     } else {
@@ -1012,6 +1044,8 @@ export default function WODsPage() {
       </div>
 
       {/* Calendar */}
+      <TrackTabs tabs={tabs} active={activeTab} counts={tabCounts} onSelect={setTab} />
+
       {loading ? (
         <div className="flex justify-center py-20"><Loader2 className="animate-spin text-white" size={28} /></div>
       ) : layout === 'columns' ? (
@@ -1019,7 +1053,7 @@ export default function WODsPage() {
           {weekDates.map((d, i) => {
             const iso     = toISO(d);
             const isToday = iso === todayISO;
-            const dayWODs = wods.filter(w => w.scheduled_date === iso);
+            const dayWODs = shownWods.filter(w => w.scheduled_date === iso);
             return (
               <div key={iso} className={`bg-[#111111] border rounded-2xl overflow-hidden flex flex-col ${isToday ? 'border-white/50' : 'border-white/8'}`}>
                 <div className={`text-center px-2 py-3 ${isToday ? 'bg-white/20' : ''}`}>
@@ -1046,7 +1080,12 @@ export default function WODsPage() {
                             key={wod.id}
                             data-received={received ? 'true' : undefined}
                             className={`rounded-xl p-2.5 border bg-white/[0.02] hover:bg-white/[0.04] transition-colors ${received ? 'border-2' : 'border-white/5'} ${!wod.is_published ? 'opacity-50' : ''}`}
-                            style={received ? { borderColor: received.color } : undefined}
+                            style={{
+                              ...(received ? { borderColor: received.color } : {}),
+                              // Liseré de piste : lisible en vue « Tout », où
+                              // les trois pistes se côtoient.
+                              ...(trackAccent(wod) ? { borderLeftColor: trackAccent(wod), borderLeftWidth: 3 } : {}),
+                            }}
                           >
                             {received && (
                               <p className="text-[9px] font-bold truncate mb-1 flex items-center gap-1" style={{ color: received.color }} title={`Reçu de la programmation « ${received.title} »`}>
@@ -1054,6 +1093,7 @@ export default function WODsPage() {
                               </p>
                             )}
                             <div className="flex items-center gap-1.5 mb-1 flex-wrap">
+                              <TrackBadge wod={wod} />
                               <AutoBadge wod={wod} />
                               {wod.block_name && <span className="text-[8px] font-black tracking-wider px-1 py-0.5 rounded" style={{ backgroundColor: `${BLOCK_COLOR[wod.block_name]}20`, color: BLOCK_COLOR[wod.block_name] }}>{BLOCK_LABEL[wod.block_name]}</span>}
                               {wt && <><div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: color }} /><span className="text-[9px] font-black tracking-wider truncate" style={{ color }}>{wt.toUpperCase()}</span></>}
@@ -1132,7 +1172,7 @@ export default function WODsPage() {
           {weekDates.map((d, i) => {
             const iso     = toISO(d);
             const isToday = iso === todayISO;
-            const dayWODs = wods.filter(w => w.scheduled_date === iso);
+            const dayWODs = shownWods.filter(w => w.scheduled_date === iso);
             return (
               <div key={iso} className={`bg-[#111111] border rounded-2xl overflow-hidden ${isToday ? 'border-white/50' : 'border-white/8'}`}>
                 {/* Day header */}
@@ -1196,7 +1236,9 @@ export default function WODsPage() {
                               <ArrowRight size={14} className="text-gray-400" />
                             </button>
                           </div>
-                          <div className="w-1 h-10 rounded-full shrink-0" style={{ backgroundColor: wod.block_name ? (BLOCK_COLOR[wod.block_name] ?? color) : color }} />
+                          {/* Le liseré de cette vue portait la couleur du bloc ;
+                              la piste prime quand il y en a une. */}
+                          <div className="w-1 h-10 rounded-full shrink-0" style={{ backgroundColor: trackAccent(wod) ?? (wod.block_name ? (BLOCK_COLOR[wod.block_name] ?? color) : color) }} />
                           {selectMode && (
                             <button onClick={() => toggleSelected(wod.id)} className="shrink-0 mr-1" title="Sélectionner ce WOD">
                               {selectedIds.includes(wod.id)
@@ -1206,6 +1248,7 @@ export default function WODsPage() {
                           )}
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 mb-0.5 flex-wrap">
+                              <TrackBadge wod={wod} />
                               <AutoBadge wod={wod} />
                               {wod.block_name && (
                                 <span className="text-[10px] font-black tracking-wider px-1.5 py-0.5 rounded" style={{ backgroundColor: `${BLOCK_COLOR[wod.block_name]}20`, color: BLOCK_COLOR[wod.block_name] }}>

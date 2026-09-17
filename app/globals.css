@@ -30,6 +30,40 @@ html.light {
   --subtle2: rgba(0,0,0,0.08);
 }
 
+/* ── Couleurs de piste et d'abonnement (lib/colorVars.ts) ──────────────────
+   Déclinées par thème : posées en style en ligne, elles échappent aux
+   surcharges `html.light .classe` plus bas. Valeurs sombres = celles de
+   l'app athlète ; valeurs claires = leur équivalent lisible sur blanc. */
+:root {
+  --track-functional:  #10B981;
+  --track-hybrid:      #F97316;
+  --track-musculation: #3B82F6;
+
+  --sub-sky:     #38BDF8;
+  --sub-violet:  #8B5CF6;
+  --sub-amber:   #F59E0B;
+  --sub-rose:    #F43F5E;
+  --sub-teal:    #14B8A6;
+  --sub-orange:  #F97316;
+  --sub-lime:    #84CC16;
+  --sub-fuchsia: #D946EF;
+}
+
+html.light {
+  --track-functional:  #047857;
+  --track-hybrid:      #C2410C;
+  --track-musculation: #1D4ED8;
+
+  --sub-sky:     #0369A1;
+  --sub-violet:  #6D28D9;
+  --sub-amber:   #B45309;
+  --sub-rose:    #BE123C;
+  --sub-teal:    #0F766E;
+  --sub-orange:  #C2410C;
+  --sub-lime:    #4D7C0F;
+  --sub-fuchsia: #A21CAF;
+}
+
 /* ── Monochrome premium design system (shadcn tokens, HSL channels) ── */
 :root {
   --background: 0 0% 7%;

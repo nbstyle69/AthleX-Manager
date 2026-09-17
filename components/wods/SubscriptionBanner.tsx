@@ -1,7 +1,7 @@
 'use client';
 
 import { CalendarPlus, AlertTriangle, Clock, PauseCircle } from 'lucide-react';
-import { addDaysISO, nextMondayISO, subscriptionColorHex, toLocalISO, weekNumberFor } from '@/lib/audience';
+import { addDaysISO, nextMondayISO, subscriptionColorVar, toLocalISO, weekNumberFor } from '@/lib/audience';
 
 /**
  * Bannière du Whiteboard quand la box a au moins un abonnement Marketplace
@@ -46,7 +46,7 @@ export default function SubscriptionBanner({
   return (
     <div className="space-y-2" data-testid="banniere-abonnements">
       {subscriptions.map(s => {
-        const color = subscriptionColorHex(s.color);
+        const color = subscriptionColorVar(s.color);
         const empty = s.wodCounts.every(n => n === 0);
         const anchor = s.weekAnchor ?? nextMonday;
         const dueNext = weekNumberFor(anchor, nextMonday, s.weeksCount);

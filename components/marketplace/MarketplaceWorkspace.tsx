@@ -6,7 +6,7 @@ import {
   Plus, Pencil, Trash2, X, Check, Loader2, Search, Package,
   Globe, Lock, Video, Upload, Info, AlertTriangle,
 } from 'lucide-react';
-import { SUBSCRIPTION_COLORS, SUBSCRIPTION_COLOR_HEX, subscriptionColorHex } from '@/lib/audience';
+import { SUBSCRIPTION_COLORS, subscriptionColorVar } from '@/lib/audience';
 import WodEditor from '@/components/wods/WodEditor';
 import { ACTIVE_BOX_COOKIE, getMyAdminBoxes } from '@/lib/getMyBox';
 import ProgWodImportModal from '@/components/wods/ProgWodImportModal';
@@ -284,7 +284,7 @@ function Catalogue({
             const liveSubs = subs.filter((s) => s.programming_id === p.id && isLiveSub(s));
             const perWeek = p.wods_per_week ?? [];
             const filled = perWeek.filter((n) => n > 0).length;
-            const cardColor = subscribed ? subscriptionColorHex(liveSubs[0]?.color) : null;
+            const cardColor = subscribed ? subscriptionColorVar(liveSubs[0]?.color) : null;
             return (
               <div
                 key={p.id}
@@ -479,7 +479,7 @@ function SubscriptionOptions({
           <button key={c} type="button" role="radio" aria-checked={c === color} disabled={saving}
             onClick={() => setColor(c)} title={c}
             className={`w-4 h-4 rounded-full border-2 transition-transform ${c === color ? 'border-white scale-110' : 'border-transparent opacity-70 hover:opacity-100'}`}
-            style={{ backgroundColor: SUBSCRIPTION_COLOR_HEX[c] }} />
+            style={{ backgroundColor: subscriptionColorVar(c) }} />
         ))}
       </div>
       <button onClick={toggle} disabled={saving}
