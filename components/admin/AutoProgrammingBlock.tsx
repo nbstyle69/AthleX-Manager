@@ -9,6 +9,7 @@ import {
 
 const TRACK_DESC: Record<Track, string> = {
   functional: 'Six séances lundi → samedi, autour de 60 minutes.',
+  hybrid: 'Six séances orientées course, stations et simulation, plus une séance test de 75 minutes toutes les huit semaines.',
   musculation: 'Cinq séances, objectif tournant sur un cycle de six semaines.',
 };
 

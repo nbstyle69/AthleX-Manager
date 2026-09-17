@@ -157,6 +157,21 @@ describe('POST /api/box/[id]/auto-programming/run', () => {
     expect(global.fetch).not.toHaveBeenCalled();
   });
 
+  it('« Régénérer » fait trois appels quand les trois pistes sont actives', async () => {
+    mockGetServerUser.mockResolvedValue({ id: 'coach-1' });
+    mockCreateServiceClient.mockReturnValue(
+      service({ staff: true, tracks: ['functional', 'hybrid', 'musculation'] }),
+    );
+    (global.fetch as jest.Mock).mockResolvedValue(fnOk([]));
+
+    await POST(req({ mode: 'regen', iso_year: 2026, iso_week: 39 }), params);
+
+    // Hybrid est une piste à part entière : elle a son propre appel, la
+    // fonction ne régénérant qu'une piste à la fois.
+    const bodies = (global.fetch as jest.Mock).mock.calls.map(c => JSON.parse(c[1].body));
+    expect(bodies.map((b: any) => b.regen.track)).toEqual(['functional', 'hybrid', 'musculation']);
+  });
+
   it('un échec sur une seule piste ne se rend pas comme un succès', async () => {
     mockGetServerUser.mockResolvedValue({ id: 'coach-1' });
     mockCreateServiceClient.mockReturnValue(service({ staff: true }));

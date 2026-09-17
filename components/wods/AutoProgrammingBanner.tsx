@@ -3,8 +3,8 @@
 import { useState } from 'react';
 import { CalendarPlus, RefreshCw, Sparkles, AlertTriangle } from 'lucide-react';
 import {
-  everyTrackDone, isoWeekOf, revealLabel, weekDayLabel,
-  GENERATION_LABEL, REGEN_CONFIRM_WORD, TRACK_LABEL,
+  everyTrackDone, isoWeekOf, revealLabel, trackListLabel, weekDayLabel,
+  GENERATION_LABEL, REGEN_CONFIRM_WORD,
   type AutoRun, type RevealSettings, type Track,
 } from '@/lib/autoProgramming';
 
@@ -114,9 +114,7 @@ export default function AutoProgrammingBanner({
             <span className="text-white font-semibold">visible par les athlètes {revealLabel(reveal)}</span>
           </p>
           <p className="text-[11px] text-gray-500 mt-0.5">
-            {tracks.length > 0
-              ? tracks.map(t => TRACK_LABEL[t]).join(' · ')
-              : 'Aucune piste active'}
+            {tracks.length > 0 ? trackListLabel(tracks) : 'Aucune piste active'}
           </p>
           {error && <p className="text-xs text-red-400 mt-1.5" data-testid="auto-run-error">{error}</p>}
         </div>
@@ -156,8 +154,7 @@ export default function AutoProgrammingBanner({
             </div>
             <p className="text-sm text-gray-300">
               Les séances de la semaine du {weekLabel} vont être retirées et remplacées
-              pour {tracks.length > 1 ? 'les deux pistes' : 'la piste'}{' '}
-              {tracks.map(t => TRACK_LABEL[t]).join(' et ')}.
+              pour {tracks.length > 1 ? 'les pistes' : 'la piste'} {trackListLabel(tracks)}.
             </p>
             <p className="text-sm text-emerald-300">
               Les jours qui ont déjà un score, ou que tu as modifiés à la main, sont conservés :

@@ -1,23 +1,52 @@
 // ── Programmation automatique de box (lot J2) ───────────────────────────────
 // Ce que le Manager doit savoir de la programmation automatique, sans le
-// moteur : les deux pistes, le réglage de révélation, et la semaine ISO.
+// moteur : les trois pistes, le réglage de révélation, et la semaine ISO.
 //
 // Le moteur (`packages/wod-engine` dans athlex-app) et la fonction edge
 // `generate-box-week` restent la source de vérité pour *ce qui est généré*.
 // Ici on ne décide rien : on nomme, on valide et on affiche.
 
-/** Pistes générées. Clés figées en base (`boxes.auto_programming_tracks`). */
-export const TRACKS = ['functional', 'musculation'] as const;
+/**
+ * Pistes générées. Clés figées en base (`boxes.auto_programming_tracks`,
+ * `box_auto_programming_runs.track`), dans le même ordre que le moteur.
+ *
+ * Trois pistes depuis la migration `20261222` d'athlex-app : Functional et
+ * Hybrid étaient jusque-là une seule piste nommée « Functional / Hybrid ».
+ * Ce sont deux disciplines distinctes du générateur, activables séparément.
+ * Aucune box n'a été migrée : celles qui avaient les deux anciennes pistes
+ * gardent `{functional, musculation}`, et Hybrid se coche ici.
+ */
+export const TRACKS = ['functional', 'hybrid', 'musculation'] as const;
 export type Track = typeof TRACKS[number];
 
-/** Libellés visibles. Jamais « CrossFit » ni « Hyrox » côté utilisateur. */
+/**
+ * Libellés visibles. Jamais « CrossFit » ni « Hyrox » côté utilisateur, et
+ * identiques à `TRACK_LABEL` du moteur : deux libellés pour une même clé
+ * donneraient deux noms au même objet selon l'écran.
+ */
 export const TRACK_LABEL: Record<Track, string> = {
-  functional: 'Functional / Hybrid',
+  functional: 'Functional',
+  hybrid: 'Hybrid',
   musculation: 'Musculation',
 };
 
 export function isTrack(v: unknown): v is Track {
   return typeof v === 'string' && (TRACKS as readonly string[]).includes(v);
+}
+
+/**
+ * « Functional », « Functional et Hybrid », « Functional, Hybrid et
+ * Musculation » — énumération française des pistes actives.
+ *
+ * Écrit à la main parce que les phrases qui l'utilisent comptaient les pistes
+ * (« les deux pistes ») : à trois, ce genre de formule devient faux sans que
+ * rien n'échoue.
+ */
+export function trackListLabel(tracks: readonly Track[]): string {
+  const labels = tracks.map((t) => TRACK_LABEL[t]);
+  if (labels.length === 0) return '';
+  if (labels.length === 1) return labels[0];
+  return `${labels.slice(0, -1).join(', ')} et ${labels[labels.length - 1]}`;
 }
 
 // ── Révélation ──────────────────────────────────────────────────────────────
@@ -184,7 +213,7 @@ export function validateAutoProgrammingPatch(body: unknown): {
   const rawTracks = 'tracks' in b ? b.tracks : b.auto_programming_tracks;
   if (rawTracks !== undefined) {
     if (!Array.isArray(rawTracks) || !rawTracks.every(isTrack)) {
-      errors.push('pistes : functional et/ou musculation');
+      errors.push(`pistes connues : ${TRACKS.join(', ')}`);
     } else {
       patch.auto_programming_tracks = [...new Set(rawTracks as Track[])];
     }
