@@ -77,6 +77,19 @@ export function revealLabel(r: RevealSettings): string {
 /** Heure de pose, fixée par le cron `generate-box-week` (créé dans athlex-app). */
 export const GENERATION_LABEL = 'le samedi 8h';
 
+/**
+ * Mot à saisir pour confirmer une régénération. Cocher une case ou cliquer
+ * « Oui » se fait sans lire ; recopier un mot demande d'avoir vu la phrase.
+ */
+export const REGEN_CONFIRM_WORD = 'REGENERER';
+
+/** « 5 octobre » — nomme la semaine visée dans un bouton ou une confirmation. */
+export function weekDayLabel(isoDate: string): string {
+  return new Date(`${isoDate}T00:00:00Z`).toLocaleDateString('fr-FR', {
+    day: 'numeric', month: 'long', timeZone: 'UTC',
+  });
+}
+
 // ── Semaine ISO ─────────────────────────────────────────────────────────────
 
 /**

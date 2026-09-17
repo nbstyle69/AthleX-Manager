@@ -67,14 +67,14 @@ const fnOk = (outcomes: any[]) => ({
 describe('POST /api/box/[id]/auto-programming/run', () => {
   it('refuse un visiteur non authentifié', async () => {
     mockGetServerUser.mockResolvedValue(null);
-    const res: any = await POST(req({ mode: 'next' }), params);
+    const res: any = await POST(req({ mode: 'next', iso_year: 2026, iso_week: 40 }), params);
     expect(res._status).toBe(401);
   });
 
   it('refuse un utilisateur qui n’est ni gérant ni coach de la box', async () => {
     mockGetServerUser.mockResolvedValue({ id: 'intrus' });
     mockCreateServiceClient.mockReturnValue(service({ staff: false }));
-    const res: any = await POST(req({ mode: 'next' }), params);
+    const res: any = await POST(req({ mode: 'next', iso_year: 2026, iso_week: 40 }), params);
     expect(res._status).toBe(403);
     expect(global.fetch).not.toHaveBeenCalled();
   });
@@ -84,7 +84,7 @@ describe('POST /api/box/[id]/auto-programming/run', () => {
     mockGetServerUser.mockResolvedValue({ id: 'coach-1' });
     mockCreateServiceClient.mockReturnValue(service({ staff: true }));
 
-    const res: any = await POST(req({ mode: 'next' }), params);
+    const res: any = await POST(req({ mode: 'next', iso_year: 2026, iso_week: 40 }), params);
     const body = await res.json();
 
     expect(res._status).toBe(500);
@@ -92,21 +92,22 @@ describe('POST /api/box/[id]/auto-programming/run', () => {
     expect(global.fetch).not.toHaveBeenCalled();
   });
 
-  it('« Générer maintenant » envoie { box_id } et le secret en en-tête', async () => {
+  it('« Générer » vise la semaine demandée, pas « la suivante »', async () => {
     mockGetServerUser.mockResolvedValue({ id: 'coach-1' });
     mockCreateServiceClient.mockReturnValue(service({ staff: true }));
     (global.fetch as jest.Mock).mockResolvedValue(fnOk([
-      { box_id: BOX, track: 'functional', iso_year: 2026, iso_week: 40, status: 'done', inserted: 21 },
+      { box_id: BOX, track: 'functional', iso_year: 2026, iso_week: 41, status: 'done', inserted: 21 },
     ]));
 
-    const res: any = await POST(req({ mode: 'next' }), params);
+    // Semaine 41 = celle du 5 octobre 2026, loin devant la semaine suivante.
+    const res: any = await POST(req({ mode: 'next', iso_year: 2026, iso_week: 41 }), params);
     const body = await res.json();
 
     expect(global.fetch).toHaveBeenCalledTimes(1);
     const [url, init] = (global.fetch as jest.Mock).mock.calls[0];
     expect(url).toBe('https://ref.supabase.co/functions/v1/generate-box-week');
     expect(init.headers['x-cron-secret']).toBe('secret-de-test');
-    expect(JSON.parse(init.body)).toEqual({ box_id: BOX });
+    expect(JSON.parse(init.body)).toEqual({ box_id: BOX, iso_year: 2026, iso_week: 41 });
     expect(body.inserted).toBe(21);
   });
 
@@ -132,10 +133,18 @@ describe('POST /api/box/[id]/auto-programming/run', () => {
     expect(body.kept_days).toEqual(['2026-09-21']);
   });
 
-  it('refuse une semaine ISO absente en régénération', async () => {
+  it.each(['next', 'regen'])('refuse une semaine ISO absente en mode %s', async (mode) => {
     mockGetServerUser.mockResolvedValue({ id: 'coach-1' });
     mockCreateServiceClient.mockReturnValue(service({ staff: true }));
-    const res: any = await POST(req({ mode: 'regen' }), params);
+    const res: any = await POST(req({ mode }), params);
+    expect(res._status).toBe(400);
+    expect(global.fetch).not.toHaveBeenCalled();
+  });
+
+  it('refuse une semaine ISO hors bornes', async () => {
+    mockGetServerUser.mockResolvedValue({ id: 'coach-1' });
+    mockCreateServiceClient.mockReturnValue(service({ staff: true }));
+    const res: any = await POST(req({ mode: 'next', iso_year: 2026, iso_week: 54 }), params);
     expect(res._status).toBe(400);
     expect(global.fetch).not.toHaveBeenCalled();
   });
@@ -143,7 +152,7 @@ describe('POST /api/box/[id]/auto-programming/run', () => {
   it('refuse une box dont la programmation automatique est éteinte', async () => {
     mockGetServerUser.mockResolvedValue({ id: 'coach-1' });
     mockCreateServiceClient.mockReturnValue(service({ staff: true, enabled: false }));
-    const res: any = await POST(req({ mode: 'next' }), params);
+    const res: any = await POST(req({ mode: 'next', iso_year: 2026, iso_week: 40 }), params);
     expect(res._status).toBe(409);
     expect(global.fetch).not.toHaveBeenCalled();
   });

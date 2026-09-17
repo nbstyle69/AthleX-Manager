@@ -14,8 +14,15 @@ import { isTrack, revealFromRow, type AutoRun, type Track } from '@/lib/autoProg
  * `authenticated`. La garde d'accès est ici, explicite.
  */
 
-/** 8 semaines : la même fenêtre que le journal admin. */
-const WINDOW_MS = 8 * 7 * 86400000;
+/**
+ * Le bandeau juge « cette semaine est-elle déjà générée » sur la semaine
+ * *affichée*, qui peut être loin devant ou derrière. Une fenêtre sur
+ * `generated_at` (celle du journal admin) répondrait « non » pour une semaine
+ * ancienne dont la run est sortie de la fenêtre, et le bouton mentirait. On
+ * prend donc les runs les plus récentes par semaine ciblée, sans fenêtre de
+ * temps : deux pistes par semaine, 200 lignes couvrent environ deux ans.
+ */
+const RUNS_LIMIT = 200;
 
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const user = await getServerUser();
@@ -44,13 +51,13 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
     return NextResponse.json({ enabled, tracks, reveal: revealFromRow(row), runs: [] });
   }
 
-  const since = new Date(Date.now() - WINDOW_MS).toISOString();
   const { data: runs } = await service
     .from('box_auto_programming_runs')
     .select('id, box_id, track, iso_year, iso_week, status, regen_counter, error, wod_ids, generated_at')
     .eq('box_id', id)
-    .gte('generated_at', since)
-    .order('generated_at', { ascending: false });
+    .order('iso_year', { ascending: false })
+    .order('iso_week', { ascending: false })
+    .limit(RUNS_LIMIT);
 
   return NextResponse.json({
     enabled,

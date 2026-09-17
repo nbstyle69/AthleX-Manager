@@ -11,7 +11,10 @@ import { isTrack, type Track } from '@/lib/autoProgramming';
  * navigateur. La route porte donc trois choses que le client ne peut pas
  * porter : le contrôle owner/coach, le secret, et l'agrégation des appels.
  *
- *   mode `next`  → corps `{ box_id }` : la semaine ISO suivante, cette box.
+ *   mode `next`  → corps `{ box_id, iso_year, iso_week }` : la semaine affichée
+ *                  par l'appelant, pas « la suivante ». La fonction accepte une
+ *                  semaine cible explicite hors régénération, et reste
+ *                  idempotente (`kept`) si elle est déjà générée.
  *   mode `regen` → un appel **par piste active**, corps
  *                  `{ regen: { box_id, track }, iso_year, iso_week }`.
  *                  La fonction ne régénère qu'une piste à la fois.
@@ -73,18 +76,19 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     return NextResponse.json({ error: 'Aucune piste active sur cette box.' }, { status: 409 });
   }
 
-  // Un appel par piste en régénération, un seul appel sinon.
-  let bodies: Record<string, unknown>[];
-  if (mode === 'regen') {
-    const iso_year = Number(body?.iso_year);
-    const iso_week = Number(body?.iso_week);
-    if (!Number.isInteger(iso_year) || !Number.isInteger(iso_week) || iso_week < 1 || iso_week > 53) {
-      return NextResponse.json({ error: 'Semaine ISO invalide.' }, { status: 400 });
-    }
-    bodies = tracks.map((track) => ({ regen: { box_id: id, track }, iso_year, iso_week }));
-  } else {
-    bodies = [{ box_id: id }];
+  // La semaine cible est obligatoire dans les deux modes : les boutons agissent
+  // sur la semaine affichée, jamais sur une semaine que seul le serveur
+  // choisirait. Une cible explicite est aussi ce qui rend l'appel rejouable.
+  const iso_year = Number(body?.iso_year);
+  const iso_week = Number(body?.iso_week);
+  if (!Number.isInteger(iso_year) || !Number.isInteger(iso_week) || iso_week < 1 || iso_week > 53) {
+    return NextResponse.json({ error: 'Semaine ISO invalide.' }, { status: 400 });
   }
+
+  // Un appel par piste en régénération, un seul appel sinon.
+  const bodies: Record<string, unknown>[] = mode === 'regen'
+    ? tracks.map((track) => ({ regen: { box_id: id, track }, iso_year, iso_week }))
+    : [{ box_id: id, iso_year, iso_week }];
 
   const url = `${supabaseUrl}/functions/v1/generate-box-week`;
   const outcomes: Outcome[] = [];
