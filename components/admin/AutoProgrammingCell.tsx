@@ -74,10 +74,8 @@ export default function AutoProgrammingCell({
 
   return (
     <div
-      className="space-y-2 pt-3 border-t border-white/[0.04]"
+      className="space-y-2 mt-4 pt-3 border-t border-white/[0.04]"
       data-testid={`auto-programming-${boxId}`}
-      // La carte de box est un lien : sans ça, chaque clic navigue.
-      onClick={e => { e.preventDefault(); e.stopPropagation(); }}
     >
       <div className="flex items-center justify-between gap-2">
         <span className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase tracking-wider font-bold">
