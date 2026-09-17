@@ -5,6 +5,8 @@ import { createClient } from '@/lib/supabase/client';
 import { Building2, Search, Users, Calendar, CheckCircle, XCircle, ChevronRight, Plus, X, MapPin } from 'lucide-react';
 import Link from 'next/link';
 import { FREE_TIER, formatExpiredSince, planTierClasses } from '@/lib/boxPlanTier';
+import AutoProgrammingCell from '@/components/admin/AutoProgrammingCell';
+import { isTrack, revealFromRow, type RevealSettings, type Track } from '@/lib/autoProgramming';
 
 interface BoxItem {
   id: string;
@@ -20,6 +22,9 @@ interface BoxItem {
   owner_email: string;
   member_count: number;
   logo_url: string | null;
+  auto_programming: boolean;
+  auto_tracks: Track[];
+  auto_reveal: RevealSettings;
 }
 
 export default function AdminBoxesPage() {
@@ -49,6 +54,9 @@ export default function AdminBoxesPage() {
         owner_email: '',
         member_count: b.member_count ?? 0,
         logo_url: b.logo_url ?? null,
+        auto_programming: b.auto_programming === true,
+        auto_tracks: ((b.auto_programming_tracks ?? []) as string[]).filter(isTrack) as Track[],
+        auto_reveal: revealFromRow(b),
       };
     });
     setBoxes(mapped);
@@ -229,7 +237,12 @@ export default function AdminBoxesPage() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           {filtered.map(box => (
-            <Link key={box.id} href={`/admin/boxes/${box.id}`} className="block bg-[#111111] border border-white/[0.06] rounded-2xl p-5 space-y-4 hover:border-emerald-500/30 transition-all cursor-pointer group">
+            // La carte n'est plus un lien de bout en bout : le bloc de
+            // programmation automatique contient des champs, et un formulaire
+            // dans une ancre navigue à chaque clic (et imbrique deux éléments
+            // interactifs). Le lien couvre l'en-tête, pas les réglages.
+            <div key={box.id} className="bg-[#111111] border border-white/[0.06] rounded-2xl p-5 hover:border-emerald-500/30 transition-all">
+              <Link href={`/admin/boxes/${box.id}`} className="block space-y-4 cursor-pointer group">
               {/* Header */}
               <div className="flex items-start justify-between">
                 <div className="flex items-center gap-3">
@@ -288,8 +301,21 @@ export default function AdminBoxesPage() {
                   </span>
                   <ChevronRight size={14} className="text-gray-600 group-hover:text-emerald-400 transition-colors" />
                 </div>
-              </div>
-            </Link>
+                </div>
+              </Link>
+
+              {/* Lot J2 : interrupteur réservé à l'admin (trigger `boxes_auto_programming_guard`). */}
+              <AutoProgrammingCell
+                boxId={box.id}
+                enabled={box.auto_programming}
+                tracks={box.auto_tracks}
+                reveal={box.auto_reveal}
+                onSaved={({ enabled, tracks, reveal }) => setBoxes(prev => prev.map(b =>
+                  b.id === box.id
+                    ? { ...b, auto_programming: enabled, auto_tracks: tracks, auto_reveal: reveal }
+                    : b))}
+              />
+            </div>
           ))}
         </div>
       )}

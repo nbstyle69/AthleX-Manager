@@ -39,8 +39,10 @@ type Classe =
   | 'box_staff';
 
 const CLASSIFICATION: Record<string, Classe> = {
+  'admin/auto-programming': 'platform_admin',
   'admin/boxes': 'platform_admin',
   'admin/boxes/[id]': 'platform_admin',
+  'admin/boxes/[id]/auto-programming': 'platform_admin',
   'admin/daily-tournaments': 'platform_admin',
   'admin/geocode-boxes': 'platform_admin',
   'admin/inter-competitions': 'platform_admin',
@@ -53,6 +55,10 @@ const CLASSIFICATION: Record<string, Classe> = {
   'auth/signup': 'auth',
   'box-export': 'owner_admin',
   'box-revenue': 'owner_admin',
+  // Poser ou régénérer la semaine automatique n'est pas une opération
+  // d'argent : le coach de la box y a sa place, comme sur l'import PDF.
+  'box/[id]/auto-programming': 'box_staff',
+  'box/[id]/auto-programming/run': 'box_staff',
   'box/dunning': 'owner_admin',
   'box/invite-code': 'owner_admin',
   'cancel-membership': 'self_service',
@@ -86,8 +92,13 @@ const CLASSIFICATION: Record<string, Classe> = {
   'wods/import-pdf': 'box_staff',
 };
 
-/** Jeton que le code de la route doit contenir pour sa classe. */
-const GARDE: Record<Classe, string | null> = {
+/**
+ * Jeton que le code de la route doit contenir pour sa classe. Une liste vaut
+ * « l'un de ces jetons » : `box_staff` a deux résolveurs de titre selon que la
+ * route cible la box active (`getAdminBoxes`) ou une box nommée dans l'URL
+ * (`isBoxStaff`).
+ */
+const GARDE: Record<Classe, string | string[] | null> = {
   owner_admin: 'isBoxOwnerAdmin(',
   primary_owner: 'requireBoxOwner(',
   owner_self: "eq('owner_id', user.id)",
@@ -97,7 +108,7 @@ const GARDE: Record<Classe, string | null> = {
   token: 'peek_box_invitation',
   self_service: null,
   public_debit: 'takeToken(',
-  box_staff: 'getAdminBoxes(',
+  box_staff: ['getAdminBoxes(', 'isBoxStaff('],
 };
 
 /**
@@ -155,7 +166,8 @@ describe('gardes des routes d’API (inventaire dérivé du disque)', () => {
     const code = source(route);
     const jeton = GARDE[classe];
 
-    if (jeton) expect(code).toContain(jeton);
+    if (Array.isArray(jeton)) expect(jeton.some((j) => code.includes(j))).toBe(true);
+    else if (jeton) expect(code).toContain(jeton);
     if (SESSION_REQUISE.includes(classe)) {
       expect(code).toMatch(/getServerUser|auth\.getUser/);
     }

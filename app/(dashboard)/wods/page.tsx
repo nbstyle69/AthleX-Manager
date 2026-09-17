@@ -17,6 +17,8 @@ import { assignRestrictions, libelleAssignation } from '@/lib/wodAssignment';
 import SaveWeekAsTemplateModal from '@/components/wods/SaveWeekAsTemplateModal';
 import CopyWeekToOfferModal, { CopySource } from '@/components/wods/CopyWeekToOfferModal';
 import SubscriptionBanner, { BannerSubscription } from '@/components/wods/SubscriptionBanner';
+import AutoProgrammingBanner, { AutoBadge } from '@/components/wods/AutoProgrammingBanner';
+import { DEFAULT_REVEAL, type AutoRun, type RevealSettings, type Track } from '@/lib/autoProgramming';
 import { WodEditorOffer } from '@/components/wods/WodEditor';
 import { Audience, isAudience, subscriptionColorHex } from '@/lib/audience';
 import PdfImportModal from '@/components/wods/PdfImportModal';
@@ -43,6 +45,10 @@ interface BoxWOD {
   tabata_rest_seconds: number | null;
   audience: Audience;
   source_programming_id: string | null;
+  /** `auto` = posée par `generate-box-week` ; `manual` = saisie par un humain. */
+  source: string | null;
+  /** Première modification humaine d'une ligne auto (trigger `box_wods_mark_edited`). */
+  edited_at: string | null;
 }
 
 /** Provenance d'une carte reçue d'une offre Marketplace (autre box). */
@@ -115,6 +121,9 @@ export default function WODsPage() {
   const [templateModal, setTemplateModal] = useState(false);
   const [copySource, setCopySource] = useState<CopySource | null>(null);
   const [subscriptions, setSubscriptions] = useState<BannerSubscription[]>([]);
+  /** Programmation automatique de la box (lot J2), lue côté serveur. */
+  const [auto, setAuto] = useState<{ enabled: boolean; tracks: Track[]; reveal: RevealSettings; runs: AutoRun[] }>(
+    { enabled: false, tracks: [], reveal: DEFAULT_REVEAL, runs: [] });
   const [offers, setOffers] = useState<WodEditorOffer[]>([]);
   /** programming_id → provenance, pour les cartes reçues d'une autre box. */
   const [receivedMap, setReceivedMap] = useState<Record<string, ReceivedInfo>>({});
@@ -153,6 +162,7 @@ export default function WODsPage() {
         const { data: progs } = await supabase.from('programs').select('id, title, type').eq('box_id', box.id).eq('is_active', true).order('title');
         setBoxPrograms((progs ?? []) as any[]);
         await loadMarketplace(box.id);
+        await loadAuto(box.id);
       }
     })();
   }, []);
@@ -186,6 +196,17 @@ export default function WODsPage() {
     setSubscriptions(rows);
     setOffers(((offs.data ?? []) as { id: string; title: string; weeks_count: number | null }[])
       .map(o => ({ id: o.id, title: o.title, weeksCount: Math.max(o.weeks_count ?? 1, 1) })));
+  }
+
+  /**
+   * Programmation automatique : lue par la route serveur et pas en direct.
+   * La policy de `box_auto_programming_runs` passe par `is_box_owner_admin()`,
+   * qui exclut le coach — un coach ne verrait aucune run depuis le client.
+   */
+  async function loadAuto(bid: string) {
+    const res = await fetch(`/api/box/${bid}/auto-programming`, { cache: 'no-store' });
+    if (!res.ok) return;
+    setAuto(await res.json());
   }
 
   const load = useCallback(async () => {
@@ -802,6 +823,21 @@ export default function WODsPage() {
         />
       )}
 
+      {boxId && auto.enabled && (
+        <AutoProgrammingBanner
+          boxId={boxId}
+          tracks={auto.tracks}
+          reveal={auto.reveal}
+          runs={auto.runs}
+          displayedMonday={toISO(weekDates[0])}
+          onRan={(message) => {
+            setImportResult({ ok: 0, errors: [], notes: [message] });
+            void load();
+            void loadAuto(boxId);
+          }}
+        />
+      )}
+
       {/* Poser une semaine type ou une programmation Marketplace sur la semaine affichée */}
       {applyModal && boxId && (
         <ApplyProgramWeekModal
@@ -1018,6 +1054,7 @@ export default function WODsPage() {
                               </p>
                             )}
                             <div className="flex items-center gap-1.5 mb-1 flex-wrap">
+                              <AutoBadge wod={wod} />
                               {wod.block_name && <span className="text-[8px] font-black tracking-wider px-1 py-0.5 rounded" style={{ backgroundColor: `${BLOCK_COLOR[wod.block_name]}20`, color: BLOCK_COLOR[wod.block_name] }}>{BLOCK_LABEL[wod.block_name]}</span>}
                               {wt && <><div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: color }} /><span className="text-[9px] font-black tracking-wider truncate" style={{ color }}>{wt.toUpperCase()}</span></>}
                               {wod.video_url && <Video size={9} className="text-red-400 shrink-0" />}
@@ -1169,6 +1206,7 @@ export default function WODsPage() {
                           )}
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 mb-0.5 flex-wrap">
+                              <AutoBadge wod={wod} />
                               {wod.block_name && (
                                 <span className="text-[10px] font-black tracking-wider px-1.5 py-0.5 rounded" style={{ backgroundColor: `${BLOCK_COLOR[wod.block_name]}20`, color: BLOCK_COLOR[wod.block_name] }}>
                                   {BLOCK_LABEL[wod.block_name]}

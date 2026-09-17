@@ -433,6 +433,32 @@ export default function MovementCatalogEditor() {
                   </details>
                 )}
 
+                {/* Musculation : métadonnées du générateur M1, en lecture seule.
+                    Leur édition viendra dans un lot ultérieur — les cacher
+                    laisserait croire que ces lignes n'en ont pas. */}
+                {selected?.discipline_muscu && (
+                  <div className="space-y-1.5 p-3 rounded-xl bg-white/[0.02] border border-white/[0.06]" data-testid="catalog-muscu">
+                    <p className="text-[11px] font-bold uppercase tracking-wider text-gray-500">
+                      Musculation · lecture seule
+                    </p>
+                    <dl className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
+                      {([
+                        ['Muscle principal', selected.muscle_primary ?? '—'],
+                        ['Muscles secondaires', (selected.muscle_secondary ?? []).join(', ') || '—'],
+                        ['Polyarticulaire', selected.compound ? 'oui' : 'non'],
+                        ['Niveau minimum', selected.level_min ?? '—'],
+                        ['Mode de charge', selected.load_mode ?? '—'],
+                        ['Priorité', selected.priority == null ? '—' : String(selected.priority)],
+                      ] as const).map(([label, value]) => (
+                        <div key={label} className="flex items-baseline justify-between gap-2">
+                          <dt className="text-gray-500">{label}</dt>
+                          <dd className="text-gray-300 font-semibold text-right">{value}</dd>
+                        </div>
+                      ))}
+                    </dl>
+                  </div>
+                )}
+
                 {saveError && <p className="text-xs text-red-400" data-testid="catalog-error">{saveError}</p>}
                 {saved && <p className="text-xs text-emerald-400 flex items-center gap-1" data-testid="catalog-saved"><Check size={12} /> {saved}</p>}
 

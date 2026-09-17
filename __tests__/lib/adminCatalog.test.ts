@@ -12,6 +12,22 @@ describe('validateMovementPatch', () => {
     expect(patch).toMatchObject({ id: 'zz_test', name: 'ZZ Test', load_unit: 'kg' });
   });
 
+  // Écart E12 : les lignes de musculation sont en `machine` / `cable` depuis la
+  // migration `20261214` d'athlex-app. Sans ces familles ici, tout PATCH sur un
+  // exercice muscu partait en « famille inconnue » — le catalogue les listait
+  // sans permettre de les éditer.
+  it.each(['cable', 'machine'])('accepte la famille %s (exercices de musculation)', (family) => {
+    const { errors, patch } = validateMovementPatch({ ...full, id: 'cable_fly', family }, true);
+    expect(errors).toEqual([]);
+    expect(patch.family).toBe(family);
+  });
+
+  it('accepte de modifier la seule famille d’une ligne existante en cable', () => {
+    const { errors, patch } = validateMovementPatch({ family: 'cable' }, false);
+    expect(errors).toEqual([]);
+    expect(patch).toEqual({ family: 'cable' });
+  });
+
   it('refuse un id hors snake_case, une famille inconnue, un poids > 10', () => {
     const { errors } = validateMovementPatch({ ...full, id: 'ZZ Test', family: 'nope', weight_hybrid: 11 }, true);
     expect(errors.join(' ')).toMatch(/id/);
