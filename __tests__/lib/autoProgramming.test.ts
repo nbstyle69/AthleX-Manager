@@ -1,6 +1,7 @@
 import {
-  DEFAULT_REVEAL, REGEN_CONFIRM_WORD, everyTrackDone, isoWeekOf, normalizeTime, revealFromRow,
-  revealLabel, validateAutoProgrammingPatch, weekDayLabel, type AutoRun,
+  DEFAULT_REVEAL, REGEN_CONFIRM_WORD, TRACKS, TRACK_LABEL, everyTrackDone, isoWeekOf,
+  isTrack, normalizeTime, revealFromRow, revealLabel, trackListLabel,
+  validateAutoProgrammingPatch, weekDayLabel, type AutoRun,
 } from '@/lib/autoProgramming';
 
 describe('semaine ISO', () => {
@@ -69,19 +70,32 @@ describe('everyTrackDone', () => {
 });
 
 describe('validateAutoProgrammingPatch', () => {
-  it('accepte l’interrupteur et les deux pistes', () => {
+  it('accepte l’interrupteur et les trois pistes', () => {
     const { errors, patch } = validateAutoProgrammingPatch({
-      auto_programming: true, tracks: ['functional', 'musculation'],
+      auto_programming: true, tracks: ['functional', 'hybrid', 'musculation'],
     });
     expect(errors).toEqual([]);
     expect(patch.auto_programming).toBe(true);
-    expect(patch.auto_programming_tracks).toEqual(['functional', 'musculation']);
+    expect(patch.auto_programming_tracks).toEqual(['functional', 'hybrid', 'musculation']);
+  });
+
+  it('accepte Hybrid seule', () => {
+    // Une box peut n’activer que Hybrid : ce n’est pas un complément de
+    // Functional, c’est une piste à part entière.
+    const { errors, patch } = validateAutoProgrammingPatch({
+      auto_programming: true, tracks: ['hybrid'],
+    });
+    expect(errors).toEqual([]);
+    expect(patch.auto_programming_tracks).toEqual(['hybrid']);
   });
 
   it('refuse une piste inconnue', () => {
-    // `crossfit` était l’ancienne clé : elle ne doit plus passer.
-    const { errors } = validateAutoProgrammingPatch({ tracks: ['crossfit'] });
-    expect(errors).toEqual(['pistes : functional et/ou musculation']);
+    // `crossfit` et `hyrox` sont des valeurs de discipline du Marketplace,
+    // jamais des clés de piste : elles ne doivent pas passer.
+    for (const pas of ['crossfit', 'hyrox']) {
+      const { errors } = validateAutoProgrammingPatch({ tracks: [pas] });
+      expect(errors).toEqual(['pistes connues : functional, hybrid, musculation']);
+    }
   });
 
   it('refuse d’allumer une box sans aucune piste', () => {
@@ -145,5 +159,47 @@ describe('semaine affichée et bouton « Générer »', () => {
     expect(semaine41).toEqual({ iso_year: 2026, iso_week: 41 });
     expect(everyTrackDone(runs, ['functional', 'musculation'], semaine41)).toBe(false);
     expect(everyTrackDone(runs, ['functional', 'musculation'], isoWeekOf('2026-09-21'))).toBe(true);
+  });
+});
+
+describe('les trois pistes', () => {
+  it('garde les clés internes attendues par la base, dans l’ordre du moteur', () => {
+    // Le CHECK de `boxes.auto_programming_tracks` (migration `20261222`) et
+    // `TRACKS` du moteur portent exactement ces trois valeurs.
+    expect(TRACKS).toEqual(['functional', 'hybrid', 'musculation']);
+    expect(Object.keys(TRACK_LABEL)).toEqual(['functional', 'hybrid', 'musculation']);
+    expect(isTrack('hybrid')).toBe(true);
+    expect(isTrack('crossfit')).toBe(false);
+    expect(isTrack('hyrox')).toBe(false);
+  });
+
+  it('n’affiche ni « CrossFit » ni « Hyrox », et plus « Functional / Hybrid »', () => {
+    const labels = Object.values(TRACK_LABEL);
+    expect(labels).toEqual(['Functional', 'Hybrid', 'Musculation']);
+    for (const l of labels) {
+      expect(l).not.toMatch(/crossfit|hyrox/i);
+      // L’ancien libellé fusionné nommait deux pistes d’un coup.
+      expect(l).not.toContain('/');
+    }
+  });
+
+  it('énumère les pistes actives en français, sans jamais dire « les deux »', () => {
+    expect(trackListLabel(['functional'])).toBe('Functional');
+    expect(trackListLabel(['functional', 'hybrid'])).toBe('Functional et Hybrid');
+    expect(trackListLabel(['functional', 'hybrid', 'musculation']))
+      .toBe('Functional, Hybrid et Musculation');
+    expect(trackListLabel([])).toBe('');
+  });
+
+  it('une box à trois pistes n’est « déjà générée » que si les trois le sont', () => {
+    const run = (track: string): AutoRun => ({
+      id: `r-${track}`, box_id: 'box-1', track: track as AutoRun['track'],
+      iso_year: 2026, iso_week: 39, status: 'done',
+      regen_counter: 0, error: null, wod_ids: [], generated_at: '2026-09-16T20:26:13Z',
+    });
+    const semaine = { iso_year: 2026, iso_week: 39 };
+    const trois: AutoRun['track'][] = ['functional', 'hybrid', 'musculation'];
+    expect(everyTrackDone([run('functional'), run('musculation')], trois, semaine)).toBe(false);
+    expect(everyTrackDone(trois.map(run), trois, semaine)).toBe(true);
   });
 });
