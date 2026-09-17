@@ -8,6 +8,8 @@ import {
   Pencil, Save, X as XIcon, Image as ImageIcon, RefreshCw,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import AutoProgrammingBlock from '@/components/admin/AutoProgrammingBlock';
+import { isTrack, revealFromRow, type Track } from '@/lib/autoProgramming';
 import { formatCap } from '@/lib/wodFields';
 import { FREE_TIER, formatExpiredSince, planTierClasses } from '@/lib/boxPlanTier';
 
@@ -324,6 +326,15 @@ export default function BoxDetailPage() {
               boxId={box.id}
               current={Array.isArray(box.allowed_tournament_formats) && box.allowed_tournament_formats.length > 0
                 ? box.allowed_tournament_formats : ['simple']}
+              onSaved={loadData}
+            />
+
+            {/* Lot J2 : réservé à l'admin (trigger `boxes_auto_programming_guard`). */}
+            <AutoProgrammingBlock
+              boxId={box.id}
+              enabled={box.auto_programming === true}
+              tracks={((box.auto_programming_tracks ?? []) as string[]).filter(isTrack) as Track[]}
+              reveal={revealFromRow(box)}
               onSaved={loadData}
             />
           </div>
