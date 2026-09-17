@@ -15,9 +15,10 @@
  * Usage : node scripts/check-no-client-elo-writes.mjs   (CI + npm run check:elo-writes)
  */
 import { readdirSync, readFileSync, statSync } from 'node:fs';
-import { join, relative } from 'node:path';
+import { join, relative, sep } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-const ROOT = new URL('..', import.meta.url).pathname;
+const ROOT = fileURLToPath(new URL('..', import.meta.url));
 const SCAN = ['components', 'app'];
 
 // Écritures profiles légitimes, nominatives. Tout nouveau point d'écriture doit
@@ -51,7 +52,9 @@ const ELO_IN_PAYLOAD = /\belo\b/;
 const errors = [];
 for (const dir of SCAN) {
   for (const file of walk(join(ROOT, dir))) {
-    const rel = relative(ROOT, file);
+    // Séparateurs unifiés : sous Windows `relative()` rend des antislashs,
+    // que les clés de l'allowlist (écrites en `/`) ne rencontrent jamais.
+    const rel = relative(ROOT, file).split(sep).join('/');
     const src = readFileSync(file, 'utf8');
     const lineOf = idx => src.slice(0, idx).split('\n').length;
 

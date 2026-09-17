@@ -4,9 +4,14 @@
 // de la migration `20261211000000_movement_catalog.sql` (athlex-app) pour
 // refuser côté Manager ce que la base refuserait.
 
+// Même liste, même ordre que le CHECK `movement_catalog_family_check`
+// (migration `20261214000000_movement_catalog_musculation` d'athlex-app, qui a
+// ajouté `machine` et `cable`). Sans elles ici, la validation de la route
+// refusait « famille inconnue » sur toute ligne de musculation : les exercices
+// machine et poulie étaient au catalogue mais inéditables (écart E12).
 export const CATALOG_FAMILIES = [
   'barbell', 'dumbbell', 'kettlebell', 'gym', 'bodyweight', 'erg', 'run',
-  'sled', 'carry', 'sandbag', 'wallball', 'jump_rope', 'box', 'other',
+  'sled', 'carry', 'sandbag', 'wallball', 'jump_rope', 'box', 'machine', 'cable', 'other',
 ] as const;
 export type CatalogFamily = typeof CATALOG_FAMILIES[number];
 
@@ -65,6 +70,19 @@ export interface MovementCatalogAdminRow {
   version: number;
   notes: string | null;
   updated_at: string;
+  // ── Musculation (lecture seule dans l'admin) ────────────────────────────
+  // Renseignées seulement sur les lignes `discipline_muscu`. Leur édition
+  // viendra dans un lot ultérieur : les afficher évite qu'un admin croie
+  // qu'un exercice muscu n'a pas de métadonnées parce qu'il ne les voit pas.
+  discipline_muscu?: boolean;
+  muscle_primary?: string | null;
+  muscle_secondary?: string[] | null;
+  compound?: boolean;
+  unilateral?: boolean;
+  level_min?: string | null;
+  load_mode?: string | null;
+  priority?: number | null;
+  movement_group?: string | null;
 }
 
 /** Champs modifiables depuis l'onglet Catalogue. */
