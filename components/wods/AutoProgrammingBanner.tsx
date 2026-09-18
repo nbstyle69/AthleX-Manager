@@ -3,8 +3,8 @@
 import { useState } from 'react';
 import { CalendarPlus, RefreshCw, Sparkles, AlertTriangle } from 'lucide-react';
 import {
-  everyTrackDone, isoWeekOf, revealLabel, trackListLabel, weekDayLabel,
-  GENERATION_LABEL, REGEN_CONFIRM_WORD,
+  everyTrackDone, isoWeekOf, revealLabel, trackChoices, trackListLabel, weekDayLabel,
+  GENERATION_LABEL, REGEN_CONFIRM_WORD, TRACK_LABEL,
   type AutoRun, type RevealSettings, type Track,
 } from '@/lib/autoProgramming';
 
@@ -35,16 +35,20 @@ export function AutoBadge({ wod }: { wod: { source?: string | null; edited_at?: 
   );
 }
 
+type Mode = 'next' | 'regen';
+
 /**
  * Bandeau du Whiteboard d'une box en programmation automatique.
  *
  * Il dit trois choses que le gérant ne peut pas déduire des cartes : que la
  * semaine est générée, quand elle se pose, et quand ses athlètes la verront.
  *
- * Les deux boutons agissent sur **la semaine affichée**, celle du sélecteur, et
- * la nomment. Viser « la semaine suivante » quoi qu'affiche l'écran laissait le
- * bouton grisé sur une semaine lointaine et vide, où il y avait précisément
- * quelque chose à générer.
+ * Les deux boutons agissent sur **la semaine affichée**, la nomment, et
+ * ouvrent une confirmation avec **une case par piste active**, toutes cochées
+ * par défaut. Seules les pistes cochées sont envoyées : la fonction (v8) borne
+ * la génération à ce qu'on lui demande. Une case qui n'aurait pas cet effet
+ * serait une interface qui ment — c'est pour ça que ce choix n'existait pas
+ * avant que la fonction sache le respecter.
  *
  * Tout passe par `/api/box/[id]/auto-programming/run` : le secret de la
  * fonction est côté serveur, jamais ici.
@@ -60,29 +64,46 @@ export default function AutoProgrammingBanner({
   displayedMonday: string;
   onRan: (message: string) => void;
 }) {
-  const [busy, setBusy] = useState<'next' | 'regen' | null>(null);
-  const [confirmRegen, setConfirmRegen] = useState(false);
+  const [busy, setBusy] = useState<Mode | null>(null);
+  const [confirm, setConfirm] = useState<Mode | null>(null);
+  const [chosen, setChosen] = useState<Track[]>([]);
   const [confirmText, setConfirmText] = useState('');
   const [error, setError] = useState<string | null>(null);
 
   const week = isoWeekOf(displayedMonday);
   const weekLabel = weekDayLabel(displayedMonday);
   const alreadyGenerated = everyTrackDone(runs, tracks, week);
-  const confirmed = confirmText.trim().toUpperCase() === REGEN_CONFIRM_WORD;
+  const choices = confirm ? trackChoices(confirm, runs, tracks, week) : [];
+  const wordOk = confirm !== 'regen' || confirmText.trim().toUpperCase() === REGEN_CONFIRM_WORD;
+  const canSubmit = chosen.length > 0 && wordOk && busy === null;
 
-  function closeConfirm() {
-    setConfirmRegen(false);
+  function open(mode: Mode) {
+    // Toutes les cases cochables sont cochées d'emblée : le cas courant est
+    // « tout », la case sert à retirer une piste, pas à en ajouter une.
+    setChosen(trackChoices(mode, runs, tracks, week).filter(c => c.enabled).map(c => c.track));
+    setConfirmText('');
+    setError(null);
+    setConfirm(mode);
+  }
+
+  function close() {
+    setConfirm(null);
+    setChosen([]);
     setConfirmText('');
   }
 
-  async function run(mode: 'next' | 'regen') {
+  function toggle(track: Track) {
+    setChosen(prev => prev.includes(track) ? prev.filter(t => t !== track) : [...prev, track]);
+  }
+
+  async function run(mode: Mode) {
     setBusy(mode);
     setError(null);
     try {
       const res = await fetch(`/api/box/${boxId}/auto-programming/run`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mode, iso_year: week.iso_year, iso_week: week.iso_week }),
+        body: JSON.stringify({ mode, iso_year: week.iso_year, iso_week: week.iso_week, tracks: chosen }),
       });
       const json = await res.json().catch(() => ({}));
       if (!res.ok || json.ok === false) {
@@ -92,15 +113,15 @@ export default function AutoProgrammingBanner({
       const inserted = json.inserted ?? 0;
       const kept = (json.kept_days ?? []).length;
       onRan(
-        `Semaine du ${weekLabel} : ${inserted} séance${inserted > 1 ? 's' : ''} posée${inserted > 1 ? 's' : ''}`
+        `Semaine du ${weekLabel}, ${trackListLabel(chosen)} : ${inserted} séance${inserted > 1 ? 's' : ''} posée${inserted > 1 ? 's' : ''}`
         + (kept > 0 ? ` · ${kept} jour${kept > 1 ? 's' : ''} conservé${kept > 1 ? 's' : ''} (score ou modification)` : '')
         + (json.kept > 0 && inserted === 0 ? ' · elle était déjà générée' : ''),
       );
+      close();
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
       setBusy(null);
-      closeConfirm();
     }
   }
 
@@ -116,12 +137,12 @@ export default function AutoProgrammingBanner({
           <p className="text-[11px] text-gray-500 mt-0.5">
             {tracks.length > 0 ? trackListLabel(tracks) : 'Aucune piste active'}
           </p>
-          {error && <p className="text-xs text-red-400 mt-1.5" data-testid="auto-run-error">{error}</p>}
+          {error && !confirm && <p className="text-xs text-red-400 mt-1.5" data-testid="auto-run-error">{error}</p>}
         </div>
         <div className="flex items-center gap-2 shrink-0">
           <button
             type="button"
-            onClick={() => void run('next')}
+            onClick={() => open('next')}
             disabled={busy !== null || alreadyGenerated}
             data-testid="auto-generer"
             title={alreadyGenerated
@@ -134,7 +155,7 @@ export default function AutoProgrammingBanner({
           </button>
           <button
             type="button"
-            onClick={() => setConfirmRegen(true)}
+            onClick={() => open('regen')}
             disabled={busy !== null}
             data-testid="auto-regenerer"
             title={`Régénérer la semaine du ${weekLabel}`}
@@ -145,49 +166,90 @@ export default function AutoProgrammingBanner({
         </div>
       </div>
 
-      {confirmRegen && (
+      {confirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-          <div className="bg-[#111111] border border-white/[0.08] rounded-2xl p-6 w-full max-w-md space-y-4">
+          <div className="bg-[#111111] border border-white/[0.08] rounded-2xl p-6 w-full max-w-md space-y-4" data-testid={`confirmation-${confirm}`}>
             <div className="flex items-center gap-2">
-              <AlertTriangle size={18} className="text-amber-400" />
-              <h2 className="text-lg font-black text-white">Régénérer la semaine du {weekLabel} ?</h2>
+              {confirm === 'regen'
+                ? <AlertTriangle size={18} className="text-amber-400" />
+                : <CalendarPlus size={18} className="text-emerald-400" />}
+              <h2 className="text-lg font-black text-white">
+                {confirm === 'regen' ? 'Régénérer' : 'Générer'} la semaine du {weekLabel} ?
+              </h2>
             </div>
+
             <p className="text-sm text-gray-300">
-              Les séances de la semaine du {weekLabel} vont être retirées et remplacées
-              pour {tracks.length > 1 ? 'les pistes' : 'la piste'} {trackListLabel(tracks)}.
+              {confirm === 'regen'
+                ? 'Les séances des pistes cochées vont être retirées et remplacées.'
+                : 'Les séances des pistes cochées vont être posées sur la semaine.'}
             </p>
-            <p className="text-sm text-emerald-300">
-              Les jours qui ont déjà un score, ou que tu as modifiés à la main, sont conservés :
-              ils ne seront ni supprimés ni remplacés.
-            </p>
-            <div>
-              <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">
-                Tape {REGEN_CONFIRM_WORD} pour confirmer
-              </label>
-              <input
-                value={confirmText}
-                onChange={e => setConfirmText(e.target.value)}
-                autoFocus
-                placeholder={REGEN_CONFIRM_WORD}
-                data-testid="auto-regenerer-saisie"
-                className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-amber-500/50"
-              />
-            </div>
+
+            <fieldset className="space-y-2" data-testid="choix-pistes">
+              <legend className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">Pistes</legend>
+              {choices.map(({ track, enabled, reason }) => (
+                <label
+                  key={track}
+                  className={`flex items-center gap-3 p-2.5 rounded-xl border transition-colors ${
+                    !enabled ? 'opacity-40 cursor-not-allowed border-white/5'
+                      : chosen.includes(track) ? 'border-emerald-500/40 bg-emerald-500/5 cursor-pointer'
+                        : 'border-white/10 bg-white/[0.02] hover:border-white/20 cursor-pointer'}`}
+                >
+                  <input
+                    type="checkbox"
+                    checked={chosen.includes(track)}
+                    disabled={!enabled}
+                    onChange={() => toggle(track)}
+                    data-testid={`piste-${track}`}
+                    className="w-4 h-4 accent-emerald-500"
+                  />
+                  <span className="text-sm font-bold text-white">{TRACK_LABEL[track]}</span>
+                  {reason && <span className="text-[11px] text-gray-500 ml-auto">{reason}</span>}
+                </label>
+              ))}
+            </fieldset>
+
+            {confirm === 'regen' && (
+              <>
+                <p className="text-sm text-emerald-300">
+                  Les jours qui ont déjà un score, ou que tu as modifiés à la main, sont conservés :
+                  ils ne seront ni supprimés ni remplacés.
+                </p>
+                <div>
+                  <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">
+                    Tape {REGEN_CONFIRM_WORD} pour confirmer
+                  </label>
+                  <input
+                    value={confirmText}
+                    onChange={e => setConfirmText(e.target.value)}
+                    autoFocus
+                    placeholder={REGEN_CONFIRM_WORD}
+                    data-testid="auto-regenerer-saisie"
+                    className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-amber-500/50"
+                  />
+                </div>
+              </>
+            )}
+
+            {error && <p className="text-xs text-red-400" data-testid="auto-run-error">{error}</p>}
+
             <div className="flex items-center gap-3">
               <button
-                onClick={closeConfirm}
+                onClick={close}
                 className="flex-1 py-2.5 rounded-xl border border-white/10 text-gray-300 text-sm font-bold hover:text-white transition-colors"
               >
                 Annuler
               </button>
               <button
-                onClick={() => void run('regen')}
-                disabled={busy !== null || !confirmed}
-                data-testid="auto-regenerer-confirmer"
-                title={confirmed ? undefined : `Tape ${REGEN_CONFIRM_WORD} pour activer`}
-                className="flex-1 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 disabled:opacity-40 disabled:cursor-not-allowed text-black text-sm font-bold transition-colors"
+                onClick={() => void run(confirm)}
+                disabled={!canSubmit}
+                data-testid={confirm === 'regen' ? 'auto-regenerer-confirmer' : 'auto-generer-confirmer'}
+                title={chosen.length === 0 ? 'Coche au moins une piste'
+                  : !wordOk ? `Tape ${REGEN_CONFIRM_WORD} pour activer` : undefined}
+                className={`flex-1 py-2.5 rounded-xl disabled:opacity-40 disabled:cursor-not-allowed text-sm font-bold transition-colors ${
+                  confirm === 'regen' ? 'bg-amber-500 hover:bg-amber-600 text-black' : 'bg-emerald-500 hover:bg-emerald-600 text-white'}`}
               >
-                {busy === 'regen' ? 'Régénération...' : 'Régénérer'}
+                {busy ? (confirm === 'regen' ? 'Régénération...' : 'Génération...')
+                  : `${confirm === 'regen' ? 'Régénérer' : 'Générer'} ${chosen.length > 0 ? trackListLabel(chosen) : ''}`}
               </button>
             </div>
           </div>

@@ -1,6 +1,6 @@
 import {
   DEFAULT_REVEAL, REGEN_CONFIRM_WORD, TRACKS, TRACK_LABEL, everyTrackDone, isoWeekOf,
-  isTrack, normalizeTime, revealFromRow, revealLabel, trackListLabel,
+  isTrack, normalizeTime, revealFromRow, revealLabel, trackChoices, trackListLabel, tracksDone,
   validateAutoProgrammingPatch, weekDayLabel, type AutoRun,
 } from '@/lib/autoProgramming';
 
@@ -201,5 +201,44 @@ describe('les trois pistes', () => {
     const trois: AutoRun['track'][] = ['functional', 'hybrid', 'musculation'];
     expect(everyTrackDone([run('functional'), run('musculation')], trois, semaine)).toBe(false);
     expect(everyTrackDone(trois.map(run), trois, semaine)).toBe(true);
+  });
+});
+
+describe('cases de la confirmation par piste', () => {
+  const week = { iso_year: 2026, iso_week: 39 };
+  const run = (track: string, status = 'done'): AutoRun => ({
+    id: `r-${track}`, box_id: 'box-1', track: track as AutoRun['track'],
+    iso_year: 2026, iso_week: 39, status: status as AutoRun['status'],
+    regen_counter: 0, error: null, wod_ids: [], generated_at: '2026-09-16T20:26:13Z',
+  });
+  const trois: AutoRun['track'][] = ['functional', 'hybrid', 'musculation'];
+
+  it('tracksDone ne retient que les runs terminées de la semaine visée', () => {
+    const runs = [run('functional'), run('hybrid', 'error'), { ...run('musculation'), iso_week: 38 }];
+    expect([...tracksDone(runs, week)]).toEqual(['functional']);
+  });
+
+  it('en génération, une piste déjà générée est grisée, les autres cochables', () => {
+    // Le cas du brief : une seule des trois est faite, les deux autres restent
+    // proposées.
+    const choix = trackChoices('next', [run('hybrid')], trois, week);
+    expect(choix.map(c => [c.track, c.enabled])).toEqual([
+      ['functional', true], ['hybrid', false], ['musculation', true],
+    ]);
+    expect(choix[1].reason).toBe('déjà générée cette semaine');
+  });
+
+  it('en régénération, c’est l’inverse : une piste jamais générée n’a rien à remplacer', () => {
+    const choix = trackChoices('regen', [run('hybrid')], trois, week);
+    expect(choix.map(c => [c.track, c.enabled])).toEqual([
+      ['functional', false], ['hybrid', true], ['musculation', false],
+    ]);
+    expect(choix[0].reason).toBe('pas encore générée cette semaine');
+  });
+
+  it('respecte l’ordre du moteur, pas celui des runs', () => {
+    const choix = trackChoices('next', [], ['musculation', 'functional'] as AutoRun['track'][], week);
+    expect(choix.map(c => c.track)).toEqual(['musculation', 'functional']);
+    // Ce sont les pistes ACTIVES de la box qui font la liste, dans leur ordre.
   });
 });

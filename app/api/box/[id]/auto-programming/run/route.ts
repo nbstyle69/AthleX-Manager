@@ -11,13 +11,16 @@ import { isTrack, type Track } from '@/lib/autoProgramming';
  * navigateur. La route porte donc trois choses que le client ne peut pas
  * porter : le contrôle owner/coach, le secret, et l'agrégation des appels.
  *
- *   mode `next`  → corps `{ box_id, iso_year, iso_week }` : la semaine affichée
- *                  par l'appelant, pas « la suivante ». La fonction accepte une
- *                  semaine cible explicite hors régénération, et reste
- *                  idempotente (`kept`) si elle est déjà générée.
- *   mode `regen` → un appel **par piste active**, corps
- *                  `{ regen: { box_id, track }, iso_year, iso_week }`.
- *                  La fonction ne régénère qu'une piste à la fois.
+ *   mode `next`  → un appel, corps `{ box_id, iso_year, iso_week, tracks }` :
+ *                  la semaine affichée par l'appelant, bornée aux pistes
+ *                  cochées. Idempotent (`kept`) sur une piste déjà générée.
+ *   mode `regen` → un appel **par piste cochée**, corps
+ *                  `{ regen: { box_id, track }, iso_year, iso_week, tracks: [track] }`.
+ *                  La fonction ne régénère qu'une piste à la fois, et
+ *                  `tracks: [track]` l'empêche de toucher aux autres.
+ *
+ * `tracks` existe depuis la v8 de la fonction ; absent, elle prend toutes les
+ * pistes actives de la box, ce que la route envoie aussi par défaut.
  *
  * Les jours déjà scorés ou modifiés à la main sont conservés par le moteur
  * (`runWeekGeneration` garde les dates dont la ligne a `edited_at` ou un
@@ -59,7 +62,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   }
 
   const body = await req.json().catch(() => null) as
-    { mode?: unknown; iso_year?: unknown; iso_week?: unknown } | null;
+    { mode?: unknown; iso_year?: unknown; iso_week?: unknown; tracks?: unknown } | null;
   const mode = body?.mode === 'regen' ? 'regen' : 'next';
 
   const { data: box } = await service
@@ -85,10 +88,32 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     return NextResponse.json({ error: 'Semaine ISO invalide.' }, { status: 400 });
   }
 
-  // Un appel par piste en régénération, un seul appel sinon.
+  // Pistes cochées dans la confirmation. Absentes = toutes les pistes actives,
+  // ce qui est aussi le défaut de la fonction. Une piste demandée mais inactive
+  // sur la box est refusée ici plutôt qu'ignorée en silence par la fonction :
+  // l'écran a cru cocher quelque chose.
+  let chosen: Track[] = tracks;
+  if (body?.tracks !== undefined) {
+    if (!Array.isArray(body.tracks) || !body.tracks.every(isTrack)) {
+      return NextResponse.json({ error: 'tracks : tableau parmi functional, hybrid, musculation.' }, { status: 400 });
+    }
+    const inactive = (body.tracks as Track[]).filter((t) => !tracks.includes(t));
+    if (inactive.length > 0) {
+      return NextResponse.json({ error: `Piste inactive sur cette box : ${inactive.join(', ')}.` }, { status: 400 });
+    }
+    chosen = tracks.filter((t) => (body.tracks as Track[]).includes(t));
+    if (chosen.length === 0) {
+      return NextResponse.json({ error: 'Aucune piste cochée.' }, { status: 400 });
+    }
+  }
+
+  // La fonction (v8) borne la génération à `tracks` ∩ pistes actives. En
+  // génération : un seul appel avec les pistes cochées. En régénération : un
+  // appel par piste, chacun borné à sa seule piste par `tracks: [track]` — sans
+  // ça, la boucle de la fonction traiterait aussi les autres pistes de la box.
   const bodies: Record<string, unknown>[] = mode === 'regen'
-    ? tracks.map((track) => ({ regen: { box_id: id, track }, iso_year, iso_week }))
-    : [{ box_id: id, iso_year, iso_week }];
+    ? chosen.map((track) => ({ regen: { box_id: id, track }, iso_year, iso_week, tracks: [track] }))
+    : [{ box_id: id, iso_year, iso_week, tracks: chosen }];
 
   const url = `${supabaseUrl}/functions/v1/generate-box-week`;
   const outcomes: Outcome[] = [];
@@ -128,7 +153,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   return NextResponse.json({
     ok,
     mode,
-    tracks,
+    tracks: chosen,
     done: outcomes.filter((o) => o.status === 'done').length,
     kept: outcomes.filter((o) => o.status === 'kept').length,
     inserted: outcomes.reduce((n, o) => n + (o.inserted ?? 0), 0),
