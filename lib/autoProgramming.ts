@@ -240,9 +240,42 @@ export function everyTrackDone(
   week: { iso_year: number; iso_week: number },
 ): boolean {
   if (tracks.length === 0) return false;
-  return tracks.every((t) => runs.some((r) =>
-    r.track === t && r.status === 'done'
-    && r.iso_year === week.iso_year && r.iso_week === week.iso_week));
+  const done = tracksDone(runs, week);
+  return tracks.every((t) => done.has(t));
+}
+
+/**
+ * Les pistes qui ont une run `done` sur la semaine. C'est ce que la
+ * confirmation grise : en génération, une piste déjà faite n'a rien à
+ * générer ; en régénération, une piste jamais faite n'a rien à remplacer.
+ */
+export function tracksDone(
+  runs: readonly AutoRun[],
+  week: { iso_year: number; iso_week: number },
+): Set<Track> {
+  return new Set(runs
+    .filter((r) => r.status === 'done' && r.iso_year === week.iso_year && r.iso_week === week.iso_week)
+    .map((r) => r.track));
+}
+
+/**
+ * Pistes proposées dans la confirmation, avec leur état. `enabled` dit si la
+ * case est cochable ; les cases cochables sont toutes cochées par défaut.
+ */
+export function trackChoices(
+  mode: 'next' | 'regen',
+  runs: readonly AutoRun[],
+  tracks: readonly Track[],
+  week: { iso_year: number; iso_week: number },
+): { track: Track; enabled: boolean; reason: string | null }[] {
+  const done = tracksDone(runs, week);
+  return tracks.map((track) => {
+    const isDone = done.has(track);
+    const enabled = mode === 'next' ? !isDone : isDone;
+    const reason = enabled ? null
+      : mode === 'next' ? 'déjà générée cette semaine' : 'pas encore générée cette semaine';
+    return { track, enabled, reason };
+  });
 }
 
 // ── Validation du corps de `PATCH /api/admin/boxes/[id]/auto-programming` ────

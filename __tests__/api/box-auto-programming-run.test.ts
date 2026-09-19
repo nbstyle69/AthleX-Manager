@@ -107,7 +107,7 @@ describe('POST /api/box/[id]/auto-programming/run', () => {
     const [url, init] = (global.fetch as jest.Mock).mock.calls[0];
     expect(url).toBe('https://ref.supabase.co/functions/v1/generate-box-week');
     expect(init.headers['x-cron-secret']).toBe('secret-de-test');
-    expect(JSON.parse(init.body)).toEqual({ box_id: BOX, iso_year: 2026, iso_week: 41 });
+    expect(JSON.parse(init.body)).toEqual({ box_id: BOX, iso_year: 2026, iso_week: 41, tracks: ['functional', 'musculation'] });
     expect(body.inserted).toBe(21);
   });
 
@@ -123,9 +123,11 @@ describe('POST /api/box/[id]/auto-programming/run', () => {
 
     expect(global.fetch).toHaveBeenCalledTimes(2);
     const bodies = (global.fetch as jest.Mock).mock.calls.map(c => JSON.parse(c[1].body));
+    // `tracks: [track]` sur chaque appel : sans lui, la boucle de la fonction
+    // traiterait aussi les autres pistes de la box.
     expect(bodies).toEqual([
-      { regen: { box_id: BOX, track: 'functional' }, iso_year: 2026, iso_week: 39 },
-      { regen: { box_id: BOX, track: 'musculation' }, iso_year: 2026, iso_week: 39 },
+      { regen: { box_id: BOX, track: 'functional' }, iso_year: 2026, iso_week: 39, tracks: ['functional'] },
+      { regen: { box_id: BOX, track: 'musculation' }, iso_year: 2026, iso_week: 39, tracks: ['musculation'] },
     ]);
     expect(body.inserted).toBe(9);
     // Le jour scoré ou modifié remonte à l'utilisateur : c'est la promesse
@@ -170,6 +172,56 @@ describe('POST /api/box/[id]/auto-programming/run', () => {
     // fonction ne régénérant qu'une piste à la fois.
     const bodies = (global.fetch as jest.Mock).mock.calls.map(c => JSON.parse(c[1].body));
     expect(bodies.map((b: any) => b.regen.track)).toEqual(['functional', 'hybrid', 'musculation']);
+  });
+
+  it('« Générer » n’envoie que les pistes cochées, en un seul appel', async () => {
+    mockGetServerUser.mockResolvedValue({ id: 'coach-1' });
+    mockCreateServiceClient.mockReturnValue(
+      service({ staff: true, tracks: ['functional', 'hybrid', 'musculation'] }),
+    );
+    (global.fetch as jest.Mock).mockResolvedValue(fnOk([]));
+
+    const res: any = await POST(req({ mode: 'next', iso_year: 2026, iso_week: 40, tracks: ['hybrid'] }), params);
+    const body = await res.json();
+
+    expect(global.fetch).toHaveBeenCalledTimes(1);
+    expect(JSON.parse((global.fetch as jest.Mock).mock.calls[0][1].body))
+      .toEqual({ box_id: BOX, iso_year: 2026, iso_week: 40, tracks: ['hybrid'] });
+    expect(body.tracks).toEqual(['hybrid']);
+  });
+
+  it('« Régénérer » ne fait un appel que pour les pistes cochées', async () => {
+    mockGetServerUser.mockResolvedValue({ id: 'coach-1' });
+    mockCreateServiceClient.mockReturnValue(
+      service({ staff: true, tracks: ['functional', 'hybrid', 'musculation'] }),
+    );
+    (global.fetch as jest.Mock).mockResolvedValue(fnOk([]));
+
+    await POST(req({ mode: 'regen', iso_year: 2026, iso_week: 39, tracks: ['musculation', 'functional'] }), params);
+
+    // Ordre du moteur, pas ordre de la requête : la piste est une clé, pas
+    // une préférence.
+    const bodies = (global.fetch as jest.Mock).mock.calls.map(c => JSON.parse(c[1].body));
+    expect(bodies.map((b: any) => b.regen.track)).toEqual(['functional', 'musculation']);
+    expect(bodies.every((b: any) => b.tracks.length === 1 && b.tracks[0] === b.regen.track)).toBe(true);
+  });
+
+  it('refuse une piste cochée qui n’est pas active sur la box', async () => {
+    mockGetServerUser.mockResolvedValue({ id: 'coach-1' });
+    mockCreateServiceClient.mockReturnValue(service({ staff: true, tracks: ['functional'] }));
+    const res: any = await POST(req({ mode: 'next', iso_year: 2026, iso_week: 40, tracks: ['hybrid'] }), params);
+    const body = await res.json();
+    expect(res._status).toBe(400);
+    expect(body.error).toContain('hybrid');
+    expect(global.fetch).not.toHaveBeenCalled();
+  });
+
+  it.each([[[]], [['crossfit']], ['functional']])('refuse tracks = %j', async (tracks) => {
+    mockGetServerUser.mockResolvedValue({ id: 'coach-1' });
+    mockCreateServiceClient.mockReturnValue(service({ staff: true }));
+    const res: any = await POST(req({ mode: 'next', iso_year: 2026, iso_week: 40, tracks }), params);
+    expect(res._status).toBe(400);
+    expect(global.fetch).not.toHaveBeenCalled();
   });
 
   it('un échec sur une seule piste ne se rend pas comme un succès', async () => {
