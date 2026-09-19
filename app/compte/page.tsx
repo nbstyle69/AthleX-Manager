@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { createClient, getServerUser } from '@/lib/supabase/server';
-import { CreditCard, Ticket, Dumbbell, CalendarClock, Search } from 'lucide-react';
+import { createClient, getAdminBoxes, getServerUser } from '@/lib/supabase/server';
+import { CreditCard, Ticket, Dumbbell, CalendarClock, Search, Building2 } from 'lucide-react';
 import AccountProfileForm from './AccountProfileForm';
 import ManageSubscription from './ManageSubscription';
 import { selectMembership, type MembershipBillingRow } from '@/lib/compte/membership';
@@ -59,6 +59,11 @@ export default async function AccountPage() {
   // échouer toute la requête qui le mentionne. L'e-mail du compte connecté
   // vient de la session auth, qui le porte déjà.
   const { data: profileRows } = await supabase.rpc('get_my_profile');
+  // Ce que ce compte administre déjà : décide si on propose « Créer ma box »
+  // ou « Gérer ma box ». C'est le seul chemin d'un athlète vers le rôle de
+  // gérant (issue #342) : le tunnel d'inscription refuse un compte existant.
+  const adminBoxes = await getAdminBoxes(supabase);
+  const ownsBox = adminBoxes.some((b) => b.my_role === 'owner');
   const profile = ((profileRows ?? []) as ProfileRow[])[0] ?? null;
 
   // Son propre abonnement : les colonnes nominatives (plan_id, subscription_*,
@@ -183,6 +188,28 @@ export default async function AccountPage() {
               className="inline-flex items-center gap-2 bg-white hover:bg-gray-100 text-[#0A0A0A] text-sm font-bold px-4 py-2.5 rounded-xl transition-colors"
             >
               <Search size={15} /> Trouver une box
+            </Link>
+          </div>
+        )}
+      </section>
+
+      {/* Ma box : le chemin par lequel un athlète devient gérant */}
+      <section className="bg-[#111] border border-white/[0.06] rounded-2xl p-6" data-testid="section-ma-box">
+        <h2 className="text-base font-black text-white mb-4 flex items-center gap-2">
+          <Building2 size={18} className="text-emerald-400" /> Ma box
+        </h2>
+        {ownsBox ? (
+          <div className="space-y-3">
+            <p className="text-sm text-gray-500">Tu gères {adminBoxes.length > 1 ? 'des box' : `la box ${adminBoxes[0]?.name ?? ''}`}.</p>
+            <Link href="/" className="inline-flex items-center gap-2 bg-white hover:bg-gray-100 text-[#0A0A0A] text-sm font-bold px-4 py-2.5 rounded-xl transition-colors" data-testid="gerer-ma-box">
+              <Building2 size={15} /> Gérer ma box
+            </Link>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            <p className="text-sm text-gray-500">Tu gères une salle ? Crée ta box depuis ce compte : tu en deviens le gérant, ton historique d&apos;athlète reste intact.</p>
+            <Link href="/compte/creer-ma-box" className="inline-flex items-center gap-2 border border-white/20 hover:border-white/40 text-white text-sm font-bold px-4 py-2.5 rounded-xl transition-colors" data-testid="creer-ma-box-lien">
+              <Building2 size={15} /> Créer ma box
             </Link>
           </div>
         )}
