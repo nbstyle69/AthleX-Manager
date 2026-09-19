@@ -11,13 +11,16 @@ import { LandingHeader } from '@/components/landing/header';
 import { useLanguage } from '@/components/language-provider';
 
 type Step = 'account' | 'box' | 'done';
-type Mode = 'signup' | 'login';
 
 export default function OnboardingPage() {
   const { t } = useLanguage();
   const o = t.funnel.onboarding;
   const [step, setStep] = useState<Step>('account');
-  const [mode, setMode] = useState<Mode>('signup');
+  // Un compte existe déjà avec cet e-mail : le tunnel s'arrête et propose la
+  // connexion. Il ne crée jamais de box pour un compte existant (issue #342) —
+  // ce chemin est l'écran « Créer ma box » de l'espace athlète, session ouverte.
+  const [accountExists, setAccountExists] = useState(false);
+  const [checking, setChecking] = useState(false);
 
   // Account fields
   const [email, setEmail] = useState('');
@@ -83,7 +86,7 @@ export default function OnboardingPage() {
           box_phone: boxPhone,
           box_google_maps: boxGoogleMaps,
           box_founded_at: boxFoundedAt || null,
-          mode,
+          mode: 'signup',
         }),
       });
       const data = await res.json();
@@ -149,32 +152,19 @@ export default function OnboardingPage() {
                   <Mail size={20} className="text-white" />
                 </div>
                 <div>
-                  <h2 className="text-xl font-black">
-                    {mode === 'signup' ? o.signupTitle : o.loginTitle}
-                  </h2>
+                  <h2 className="text-xl font-black">{o.signupTitle}</h2>
                   <p className="text-xs text-gray-500">{o.stepLabel}1/3</p>
                 </div>
               </div>
 
-              {/* Toggle signup / login */}
-              <div className="bg-background border border-border rounded-xl p-1 flex gap-1 mb-6">
-                <button
-                  onClick={() => { setMode('signup'); setError(null); }}
-                  className={`flex-1 py-2 rounded-lg text-sm font-bold transition-all ${
-                    mode === 'signup' ? 'bg-white text-[#0A0A0A]' : 'text-gray-500 hover:text-foreground'
-                  }`}
-                >
-                  {o.signupTab}
-                </button>
-                <button
-                  onClick={() => { setMode('login'); setError(null); }}
-                  className={`flex-1 py-2 rounded-lg text-sm font-bold transition-all ${
-                    mode === 'login' ? 'bg-white text-[#0A0A0A]' : 'text-gray-500 hover:text-foreground'
-                  }`}
-                >
-                  {o.loginTab}
-                </button>
-              </div>
+              {/* Le tunnel crée un compte neuf ; un compte existant se connecte
+                  et crée sa box depuis son espace. */}
+              <p className="text-xs text-gray-500 mb-6">
+                {o.alreadyHaveAccount}{' '}
+                <Link href="/login/box?next=/compte" className="text-foreground font-bold underline" data-testid="tunnel-se-connecter">
+                  {o.signInInstead}
+                </Link>
+              </p>
 
               <div className="space-y-4">
                 <div>
@@ -185,8 +175,9 @@ export default function OnboardingPage() {
                       type="email"
                       required
                       value={email}
-                      onChange={e => setEmail(e.target.value)}
+                      onChange={e => { setEmail(e.target.value); setAccountExists(false); }}
                       placeholder={t.funnel.common.ownerEmailPlaceholder}
+                      data-testid="tunnel-email"
                       className="w-full bg-white/5 border border-white/10 rounded-xl pl-10 pr-4 py-3 text-sm text-foreground placeholder:text-gray-600 focus:outline-none focus:border-white transition-colors"
                     />
                   </div>
@@ -211,22 +202,52 @@ export default function OnboardingPage() {
                       {showPass ? <EyeOff size={16} /> : <Eye size={16} />}
                     </button>
                   </div>
-                  {mode === 'signup' && (
-                    <p className="text-[10px] text-gray-600 mt-1">{o.passwordHint}</p>
-                  )}
+                  <p className="text-[10px] text-gray-600 mt-1">{o.passwordHint}</p>
                 </div>
               </div>
 
+              {accountExists && (
+                <div className="mt-6 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 space-y-3" data-testid="tunnel-compte-existant">
+                  <p className="text-sm text-amber-200">{o.accountExists}</p>
+                  <Link
+                    href="/login/box?next=/compte"
+                    className="inline-flex items-center gap-2 bg-white text-[#0A0A0A] text-sm font-bold px-4 py-2.5 rounded-xl hover:bg-gray-100 transition-colors"
+                    data-testid="tunnel-se-connecter-existant"
+                  >
+                    {o.signInInstead} <ChevronRight size={14} />
+                  </Link>
+                </div>
+              )}
+
               <button
-                onClick={() => {
+                onClick={async () => {
                   if (!email || !password) { setError(o.fillAll); return; }
-                  if (mode === 'signup' && password.length < 6) { setError(o.passwordTooShort); return; }
+                  if (password.length < 6) { setError(o.passwordTooShort); return; }
                   setError(null);
-                  setStep('box');
+                  setChecking(true);
+                  try {
+                    // L'e-mail est vérifié dès la première étape : un compte
+                    // existant n'entre pas dans la création de box.
+                    const res = await fetch('/api/create-box', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ mode: 'check', email }),
+                    });
+                    const data = await res.json().catch(() => ({}));
+                    if (!res.ok) { setError(data.error ?? t.funnel.common.networkError); return; }
+                    if (data.exists) { setAccountExists(true); return; }
+                    setStep('box');
+                  } catch {
+                    setError(t.funnel.common.networkError);
+                  } finally {
+                    setChecking(false);
+                  }
                 }}
-                className="w-full mt-6 flex items-center justify-center gap-2 bg-white hover:bg-[#B8911F] text-[#0A0A0A] font-bold py-3.5 rounded-xl transition-colors"
+                disabled={checking || accountExists}
+                data-testid="tunnel-continuer"
+                className="w-full mt-6 flex items-center justify-center gap-2 bg-white hover:bg-[#B8911F] disabled:opacity-50 text-[#0A0A0A] font-bold py-3.5 rounded-xl transition-colors"
               >
-                {o.continue} <ChevronRight size={16} />
+                {checking ? <Loader2 size={16} className="animate-spin" /> : <>{o.continue} <ChevronRight size={16} /></>}
               </button>
 
               {error && (
@@ -416,7 +437,7 @@ export default function OnboardingPage() {
                   <p className="text-sm text-gray-300"><span className="text-gray-500">{o.recapBox}</span> {boxName || '—'}</p>
                   {boxAddress && <p className="text-sm text-gray-300"><span className="text-gray-500">{o.recapAddress}</span> {boxAddress}</p>}
                   {boxPhone && <p className="text-sm text-gray-300"><span className="text-gray-500">{o.recapPhone}</span> {boxPhone}</p>}
-                  <p className="text-sm text-gray-300"><span className="text-gray-500">{o.recapMode}</span> {mode === 'signup' ? o.modeSignup : o.modeLogin}</p>
+
                 </div>
               </div>
 
