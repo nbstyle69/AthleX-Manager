@@ -1,4 +1,4 @@
-import { createClient, createServiceClient, getActiveBox } from '@/lib/supabase/server';
+import { divisionIdsOf, getTournamentForActiveBox } from '@/lib/tournaments/getTournamentForActiveBox';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { ChevronLeft, Layers } from 'lucide-react';
@@ -6,21 +6,21 @@ import DivisionsManager from '@/components/tournaments/DivisionsManager';
 
 export default async function DivisionsPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const supabase = await createClient();
-  const box = await getActiveBox(supabase);
-  if (!box) redirect('/login');
-
-  const { data: t } = await supabase
-    .from('tournaments').select('*').eq('id', id).eq('box_id', box.id).single();
-  if (!t) redirect('/tournaments');
+  const { tournament: t, svc } = await getTournamentForActiveBox<Record<string, any>>(id);
   if (t.format !== 'league_div') redirect(`/tournaments/${id}`);
 
-  const svc = createServiceClient();
+  // `tournament_division_members` n'a pas de `tournament_id` : borné par les
+  // divisions de CE tournoi, au lieu d'une lecture de toute la table.
+  const divisionIds = await divisionIdsOf(svc, id);
+
   const [{ data: divisions }, { data: members }, { data: participants }, { data: history }] = await Promise.all([
     svc.from('tournament_divisions').select('*').eq('tournament_id', id).order('level'),
-    svc.from('tournament_division_members')
-       .select('id, division_id, athlete_id, points, rank, joined_at')
-       .order('points', { ascending: false }),
+    divisionIds.length > 0
+      ? svc.from('tournament_division_members')
+           .select('id, division_id, athlete_id, points, rank, joined_at')
+           .in('division_id', divisionIds)
+           .order('points', { ascending: false })
+      : Promise.resolve({ data: [] as any[] }),
     svc.from('tournament_participants')
        .select('athlete_id')
        .eq('tournament_id', id),
@@ -32,9 +32,8 @@ export default async function DivisionsPage({ params }: { params: Promise<{ id: 
        .order('final_rank', { ascending: true }),
   ]);
 
-  // Filter members to those of this tournament's divisions
-  const divIds = new Set((divisions ?? []).map((d: any) => d.id));
-  const tournamentMembers = (members ?? []).filter((m: any) => divIds.has(m.division_id));
+  // Déjà bornés par `divisionIds` côté base : plus de filtrage en mémoire.
+  const tournamentMembers = members ?? [];
 
   // Collect all athlete ids needed (members + participants + history)
   const allAthleteIds = new Set<string>();

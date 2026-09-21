@@ -1,4 +1,4 @@
-import { createClient, createServiceClient, getActiveBox } from '@/lib/supabase/server';
+import { getTournamentForActiveBox } from '@/lib/tournaments/getTournamentForActiveBox';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { ChevronLeft, GitBranch } from 'lucide-react';
@@ -6,16 +6,9 @@ import BracketManager from '@/components/tournaments/BracketManager';
 
 export default async function BracketPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const supabase = await createClient();
-  const box = await getActiveBox(supabase);
-  if (!box) redirect('/login');
-
-  const { data: t } = await supabase
-    .from('tournaments').select('*').eq('id', id).eq('box_id', box.id).single();
-  if (!t) redirect('/tournaments');
+  const { tournament: t, svc } = await getTournamentForActiveBox<Record<string, any>>(id);
   if (t.format !== 'bracket' && t.format !== 'swiss') redirect(`/tournaments/${id}`);
 
-  const svc = createServiceClient();
   const [{ data: matches }, { data: participants }, { data: wods }, { data: scoreRows }] = await Promise.all([
     svc.from('tournament_bracket_matches').select('*').eq('tournament_id', id)
        .order('round', { ascending: true }).order('side').order('match_number'),

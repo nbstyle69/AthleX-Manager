@@ -1,23 +1,13 @@
-﻿import { createClient, getActiveBox } from '@/lib/supabase/server';
-import { redirect } from 'next/navigation';
+﻿import { getTournamentForActiveBox } from '@/lib/tournaments/getTournamentForActiveBox';
 import Link from 'next/link';
 import TournamentWODManager from '@/components/tournaments/TournamentWODManager';
 import { ChevronLeft, Trophy } from 'lucide-react';
 
 export default async function TournamentWODsPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const supabase = await createClient();
-  const box = await getActiveBox(supabase);
-  if (!box) redirect('/login');
-
-  const { data: tournament } = await supabase
-    .from('tournaments')
-    .select('id, name, level, status, format, current_season, max_participants')
-    .eq('id', id)
-    .eq('box_id', box.id)
-    .single();
-
-  if (!tournament) redirect('/tournaments');
+  const { tournament, userClient: supabase } = await getTournamentForActiveBox<Record<string, any>>(
+    id, 'id, name, level, status, format, current_season, max_participants',
+  );
 
   const isBracket = tournament.format === 'bracket' || tournament.format === 'swiss';
   // Bracket stages encoded as distance-to-final (0 = Finale). Options derived

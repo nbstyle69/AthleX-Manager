@@ -1,5 +1,4 @@
-﻿import { createClient, createServiceClient, getActiveBox } from '@/lib/supabase/server';
-import { redirect } from 'next/navigation';
+﻿import { getTournamentForActiveBox } from '@/lib/tournaments/getTournamentForActiveBox';
 import Link from 'next/link';
 import { ChevronLeft, Dumbbell, Users, BarChart2, Trophy, Pencil, ClipboardCheck, GitBranch, Layers } from 'lucide-react';
 import CloseTournamentButton from '@/components/tournaments/CloseTournamentButton';
@@ -10,20 +9,8 @@ import { tournamentStatusInfo } from '@/lib/utils';
 
 export default async function TournamentDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const supabase = await createClient();
-  const box = await getActiveBox(supabase);
-  if (!box) redirect('/login');
+  const { tournament: t, svc, userClient: supabase } = await getTournamentForActiveBox<Record<string, any>>(id);
 
-  const { data: t } = await supabase
-    .from('tournaments')
-    .select('*')
-    .eq('id', id)
-    .eq('box_id', box.id)
-    .single();
-
-  if (!t) redirect('/tournaments');
-
-  const svc = createServiceClient();
   const [{ count: wodCount }, { count: closedWodCount }, { count: participantCount }, { count: pendingCount }, { count: totalScores }] = await Promise.all([
     supabase.from('tournament_wods').select('*', { count: 'exact', head: true }).eq('tournament_id', id),
     supabase.from('tournament_wods').select('*', { count: 'exact', head: true }).eq('tournament_id', id).eq('status', 'closed'),
