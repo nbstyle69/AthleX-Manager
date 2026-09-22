@@ -25,10 +25,10 @@ export function LandingHeader({ variant = 'full' }: { variant?: 'full' | 'funnel
   // Ancres préfixées : le header vit aussi sur /box, /classement et /privacy,
   // où un « #pricing » nu ne mènerait nulle part.
   const nav = [
-    { href: '/landing#features', label: t.nav.features },
-    { href: '/landing#app', label: t.nav.app },
+    { href: '/landing#salle', label: t.nav.features },
+    { href: '/landing#salle', label: t.nav.app },
     { href: '/classement', label: t.nav.ranking },
-    { href: '/landing#pricing', label: t.nav.pricing },
+    { href: '/landing#tarifs', label: t.nav.pricing },
     { href: '/landing#faq', label: t.faq.tag },
     { href: '/box', label: t.nav.boxes },
   ];

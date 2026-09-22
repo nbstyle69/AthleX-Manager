@@ -1,46 +1,49 @@
-import type { Metadata } from 'next';
-import { LandingHeader } from '@/components/landing/header';
-import { Hero } from '@/components/landing/hero';
-import { Stats } from '@/components/landing/stats';
-import { Proof } from '@/components/landing/proof';
-import { Faq } from '@/components/landing/faq';
-import { Features } from '@/components/landing/features';
-import { Experiences } from '@/components/landing/experiences';
-import { Steps } from '@/components/landing/steps';
-import { AppShowcase } from '@/components/landing/app-showcase';
-import { Tools } from '@/components/landing/tools';
-import { AthleteCta } from '@/components/landing/athlete-cta';
-import { Pricing } from '@/components/landing/pricing';
-import { FinalCta } from '@/components/landing/final-cta';
-import { LandingFooter } from '@/components/landing/footer';
+import type { Metadata, Viewport } from 'next';
+import { LandingPage } from '@/components/landing-gym/landing-experience';
+import { translations } from '@/data/landing';
+import './landing.css';
 
-export const revalidate = 300;
+type Props = { searchParams: Promise<{ lang?: string; profil?: string }> };
 
-export const metadata: Metadata = {
-  title: 'AthleX — La plateforme tout-en-un pour votre box',
-  description:
-    'Gère, anime et développe ta box de functional fitness / hybrid : membres, réservations, WODs, tournois et communauté. AthleX Manager sur le web + app mobile athlète.',
+export async function generateMetadata({ searchParams }: Props): Promise<Metadata> {
+  const { lang } = await searchParams;
+  const locale = lang === 'en' ? 'en' : 'fr';
+  const t = translations[locale].meta;
+  return {
+    metadataBase: new URL('https://www.athlexapp.eu'),
+    title: t.title,
+    description: t.description,
+    alternates: {
+      canonical: locale === 'en' ? '/landing?lang=en' : '/landing',
+      languages: { fr: '/landing', en: '/landing?lang=en' },
+    },
+    openGraph: {
+      title: t.title,
+      description: t.description,
+      locale: locale === 'en' ? 'en_GB' : 'fr_FR',
+      alternateLocale: locale === 'en' ? 'fr_FR' : 'en_GB',
+      type: 'website',
+      siteName: 'AthleX',
+      url: locale === 'en' ? '/landing?lang=en' : '/landing',
+    },
+  };
+}
+
+// La landing est sombre en toutes circonstances, mode clair du Manager compris.
+export const viewport: Viewport = {
+  colorScheme: 'dark',
+  themeColor: '#101214',
 };
 
-export default function LandingPage() {
+export default async function Page({ searchParams }: Props) {
+  const params = await searchParams;
   return (
-    <div className="min-h-screen bg-background font-sans text-foreground antialiased">
-      <LandingHeader />
-      <main>
-        <Hero />
-        <Stats />
-        <Proof />
-        <Features />
-        <Experiences />
-        <Steps />
-        <AppShowcase />
-        <Tools />
-        <AthleteCta />
-        <Pricing />
-        <Faq />
-        <FinalCta />
-      </main>
-      <LandingFooter />
+    // Racine unique de `landing.css` : toutes ses règles et variables y sont bornées.
+    <div className="athlex-landing">
+      <LandingPage
+        initialLocale={params.lang === 'en' ? 'en' : 'fr'}
+        initialProfile={params.profil === 'athlete' || params.profil === 'pro' ? params.profil : null}
+      />
     </div>
   );
 }
