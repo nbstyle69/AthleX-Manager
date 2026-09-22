@@ -61,7 +61,7 @@ export function LandingHeader({ variant = 'full' }: { variant?: 'full' | 'funnel
         >
           {nav.map((item) => (
             <a
-              key={item.href}
+              key={item.label}
               href={item.href}
               className="whitespace-nowrap text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
             >
@@ -101,7 +101,7 @@ export function LandingHeader({ variant = 'full' }: { variant?: 'full' | 'funnel
           <nav className="flex flex-col gap-1" aria-label="Mobile">
             {nav.map((item) => (
               <a
-                key={item.href}
+                key={item.label}
                 href={item.href}
                 onClick={() => setOpen(false)}
                 className="rounded-md px-2 py-2.5 text-sm font-medium text-muted-foreground hover:bg-accent hover:text-foreground"
