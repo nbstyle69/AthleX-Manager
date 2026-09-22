@@ -1,6 +1,6 @@
 'use server';
 
-import { createClient } from '@/lib/supabase/server';
+import { createClient, getActiveBox } from '@/lib/supabase/server';
 
 type Result = { ok: true } | { ok: false; error: string };
 type AdvanceResult = { ok: true; created: number } | { ok: false; error: string };
@@ -14,9 +14,21 @@ type AdvanceResult = { ok: true; created: number } | { ok: false; error: string 
  */
 async function authorize(tournamentId: string) {
   const supabase = await createClient();
+
+  // Le tournoi doit appartenir à la BOX ACTIVE, et pas seulement à une box
+  // que l'appelant administre : un gérant de plusieurs box écrirait sinon sur
+  // l'une pendant qu'il travaille dans l'autre, sans que l'écran le dise.
+  // C'est aussi le contrôle que font les pages (`getTournamentForActiveBox`) ;
+  // il est refait ici parce qu'une page n'est pas une garde.
+  const box = await getActiveBox(supabase);
+  if (!box) return { supabase, error: 'Aucune box active.' as const };
+
   const { data: t } = await supabase
-    .from('tournaments').select('box_id').eq('id', tournamentId).single();
+    .from('tournaments').select('box_id').eq('id', tournamentId).eq('box_id', box.id).maybeSingle();
   if (!t) return { supabase, error: 'Tournoi introuvable.' as const };
+
+  // `is_box_admin` reste : la box active dit SUR QUOI on travaille, le rôle
+  // dit si on a le droit d'y écrire. Les deux sont nécessaires.
   const { data: allowed } = await supabase.rpc('is_box_admin', { p_box_id: t.box_id });
   if (!allowed) return { supabase, error: 'Non autorisé : réservé à l’owner/coach de la box.' as const };
   return { supabase, error: null };

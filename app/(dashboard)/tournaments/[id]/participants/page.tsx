@@ -1,5 +1,4 @@
-import { createClient, getActiveBox } from '@/lib/supabase/server';
-import { redirect } from 'next/navigation';
+import { getTournamentForActiveBox } from '@/lib/tournaments/getTournamentForActiveBox';
 import Link from 'next/link';
 import { ArrowLeft, Users, Star, Building2, ShieldAlert, Layers } from 'lucide-react';
 import KickButton from './KickButton';
@@ -15,18 +14,13 @@ const LEVEL_COLORS: Record<string, { bg: string; text: string }> = {
 
 export default async function TournamentParticipantsPage({ params }: { params: Promise<{ id: string }> }) {
   const { id: tournamentId } = await params;
-  const userClient = await createClient();
-  const box = await getActiveBox(userClient);
-  if (!box) redirect('/login');
+  const { tournament, userClient } = await getTournamentForActiveBox<Record<string, any>>(
+    tournamentId, 'name, box_id, format',
+  );
 
-  const [{ data: tournament }, { data: tp }] = await Promise.all([
-    userClient.from('tournaments').select('name, box_id, format').eq('id', tournamentId).single(),
-    userClient.from('tournament_participants')
-      .select('athlete_id, score')
-      .eq('tournament_id', tournamentId),
-  ]);
-
-  if (!tournament || (tournament as any).box_id !== box.id) redirect('/tournaments');
+  const { data: tp } = await userClient.from('tournament_participants')
+    .select('athlete_id, score')
+    .eq('tournament_id', tournamentId);
 
   const isLeague = (tournament as any).format === 'league_div';
 

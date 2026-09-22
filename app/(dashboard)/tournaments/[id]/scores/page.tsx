@@ -1,5 +1,4 @@
-﻿import { createServiceClient, getActiveBox, createClient } from '@/lib/supabase/server';
-import { redirect } from 'next/navigation';
+﻿import { getTournamentForActiveBox } from '@/lib/tournaments/getTournamentForActiveBox';
 import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import ScoresClient, { ScoreRow } from './ScoresClient';
@@ -7,21 +6,16 @@ import ScoresClient, { ScoreRow } from './ScoresClient';
 export default async function TournamentScoresPage({ params }: { params: Promise<{ id: string }> }) {
   const { id: tournamentId } = await params;
 
-  const userClient = await createClient();
-  const box = await getActiveBox(userClient);
-  if (!box) redirect('/login');
+  // Les scores sont lus en `service_role` : l'appartenance du tournoi à la box
+  // active se vérifie donc AVANT, pas après.
+  const { tournament, svc } = await getTournamentForActiveBox<Record<string, any>>(
+    tournamentId, 'name, box_id, require_video_proof',
+  );
 
-  const svc = createServiceClient();
-
-  const [{ data: tournament }, { data: rawScores }] = await Promise.all([
-    svc.from('tournaments').select('name, box_id, require_video_proof').eq('id', tournamentId).single(),
-    svc.from('tournament_scores')
-      .select('id, score_value, submitted_at, status, video_url, notes, admin_message, athlete_id, tournament_wod_id, tw:tournament_wods(title, type, reps_per_round)')
-      .eq('tournament_id', tournamentId)
-      .order('submitted_at', { ascending: false }),
-  ]);
-
-  if (!tournament || (tournament as any).box_id !== box.id) redirect('/tournaments');
+  const { data: rawScores } = await svc.from('tournament_scores')
+    .select('id, score_value, submitted_at, status, video_url, notes, admin_message, athlete_id, tournament_wod_id, tw:tournament_wods(title, type, reps_per_round)')
+    .eq('tournament_id', tournamentId)
+    .order('submitted_at', { ascending: false });
 
   const athleteIds = [...new Set((rawScores ?? []).map((s: any) => s.athlete_id))];
   let profileMap: Record<string, { username: string; level: string }> = {};

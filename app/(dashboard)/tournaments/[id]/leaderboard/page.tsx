@@ -1,5 +1,4 @@
-﻿import { createServiceClient, createClient, getActiveBox } from '@/lib/supabase/server';
-import { redirect } from 'next/navigation';
+﻿import { divisionIdsOf, getTournamentForActiveBox } from '@/lib/tournaments/getTournamentForActiveBox';
 import Link from 'next/link';
 import { ArrowLeft, Trophy } from 'lucide-react';
 import LeaderboardClient from './LeaderboardClient';
@@ -10,24 +9,27 @@ import type { ParticipantRow, WodRanking, DivisionRanking } from './types';
 export default async function LeaderboardPage({ params }: { params: Promise<{ id: string }> }) {
   const { id: tournamentId } = await params;
 
-  const userClient = await createClient();
-  const box = await getActiveBox(userClient);
-  if (!box) redirect('/login');
+  // Appartenance à la box active vérifiée AVANT toute lecture privilégiée :
+  // les huit requêtes ci-dessous ignorent la RLS, et elles s'exécutaient
+  // auparavant avant le contrôle.
+  const { tournament, svc } = await getTournamentForActiveBox<Record<string, any>>(tournamentId);
 
-  const svc = createServiceClient();
+  // `tournament_division_members` n'a pas de `tournament_id` : on le borne par
+  // les divisions de CE tournoi, au lieu de lire la table entière et de trier
+  // en mémoire.
+  const divisionIds = await divisionIdsOf(svc, tournamentId);
 
-  const [{ data: tournament }, { data: rawParticipants }, { data: wods }, { data: validatedScores }, { data: divisionsRaw }, { data: divMembersRaw }, { data: bracketMatches }, { data: eloHistory }] = await Promise.all([
-    svc.from('tournaments').select('*').eq('id', tournamentId).single(),
+  const [{ data: rawParticipants }, { data: wods }, { data: validatedScores }, { data: divisionsRaw }, { data: divMembersRaw }, { data: bracketMatches }, { data: eloHistory }] = await Promise.all([
     svc.from('tournament_participants').select('athlete_id, score').eq('tournament_id', tournamentId).order('score', { ascending: false }),
     svc.from('tournament_wods').select('id, title, order_index, type').eq('tournament_id', tournamentId).order('order_index'),
     svc.from('tournament_scores').select('athlete_id, tournament_wod_id, score_value, capped, tiebreak_value').eq('tournament_id', tournamentId).eq('status', 'validated'),
     svc.from('tournament_divisions').select('*').eq('tournament_id', tournamentId).order('level'),
-    svc.from('tournament_division_members').select('division_id, athlete_id, points, rank').order('points', { ascending: false }),
+    divisionIds.length > 0
+      ? svc.from('tournament_division_members').select('division_id, athlete_id, points, rank').in('division_id', divisionIds).order('points', { ascending: false })
+      : Promise.resolve({ data: [] as any[] }),
     svc.from('tournament_bracket_matches').select('round, side, participant1_id, participant2_id, winner_id, loser_id, status').eq('tournament_id', tournamentId),
     svc.from('tournament_elo_history').select('athlete_id, elo_change, final_rank').eq('tournament_id', tournamentId),
   ]);
-
-  if (!tournament || (tournament as any).box_id !== box.id) redirect('/tournaments');
 
   const format = (tournament as any).format;
   const isBracket = format === 'bracket' || format === 'swiss';
