@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { Plus, Trophy, Users, Clock, ChevronRight, Archive } from 'lucide-react';
 import { formatDate, tournamentStatusInfo } from '@/lib/utils';
+import { softVar } from '@/lib/colorVars';
 import TopEloCard from '@/components/stats/TopEloCard';
 import HelpDock from '@/components/help/HelpDock';
 
@@ -71,7 +72,7 @@ export default async function TournamentsPage() {
                   </div>
                 </td>
                 <td className="px-5 py-4">
-                  <span className="text-xs font-bold px-2.5 py-1 rounded-lg" style={{ backgroundColor: `${sb.color}20`, color: sb.color }}>
+                  <span className="text-xs font-bold px-2.5 py-1 rounded-lg" style={{ backgroundColor: softVar(sb.color, 32 / 255), color: sb.color }}>
                     {sb.label}
                   </span>
                 </td>
