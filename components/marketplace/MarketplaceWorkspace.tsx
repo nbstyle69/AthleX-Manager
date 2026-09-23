@@ -26,7 +26,8 @@ const LEVELS = ['all', 'beginner', 'intermediate', 'advanced'];
 const LEVEL_LABEL: Record<string, string> = {
   all: 'Tous niveaux', beginner: 'Débutant', intermediate: 'Intermédiaire', advanced: 'Avancé',
 };
-const INPUT_CLS = 'w-full min-h-11 rounded-ax-control border border-ax-input-border bg-ax-surface px-3 py-2.5 text-base sm:text-sm text-ax-text placeholder:text-ax-text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ax-focus focus-visible:ring-offset-2 focus-visible:ring-offset-ax-surface transition-colors';
+const FIELD_CLS = 'min-h-11 rounded-ax-control border border-ax-input-border bg-ax-surface px-3 py-2.5 text-base sm:text-sm text-ax-text placeholder:text-ax-text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ax-focus focus-visible:ring-offset-2 focus-visible:ring-offset-ax-surface transition-colors';
+const INPUT_CLS = `w-full ${FIELD_CLS}`;
 
 function readCookie(name: string): string | null {
   if (typeof document === 'undefined') return null;
@@ -263,12 +264,12 @@ function Catalogue({
           <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Rechercher…" className="pl-9" />
         </div>
         <select value={fDiscipline} onChange={(e) => setFDiscipline(e.target.value)}
-          className={`${INPUT_CLS} w-auto`}>
+          className={FIELD_CLS}>
           <option value="">Toutes disciplines</option>
           {DISCIPLINES.map((d) => <option key={d} value={d}>{disciplineLabel(d)}</option>)}
         </select>
         <select value={fLevel} onChange={(e) => setFLevel(e.target.value)}
-          className={`${INPUT_CLS} w-auto`}>
+          className={FIELD_CLS}>
           <option value="">Tous niveaux</option>
           {LEVELS.map((l) => <option key={l} value={l}>{LEVEL_LABEL[l]}</option>)}
         </select>

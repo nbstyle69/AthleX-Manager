@@ -34,7 +34,7 @@ export default function MarketplaceShell({
       </div>
       <p className="text-sm text-ax-text-secondary mb-6">{SUBTITLES[tab]}</p>
 
-      <div className="flex gap-1 mb-6 border-b border-ax-border overflow-x-auto">
+      <div className="flex gap-1 mb-6 border-b border-ax-border overflow-x-auto overflow-y-hidden">
         {TABS.map((t) => (
           <Link key={t.tab} href={t.href}
             aria-current={t.tab === tab ? 'page' : undefined}
