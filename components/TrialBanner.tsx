@@ -66,10 +66,10 @@ export default function TrialBanner({ status: initialStatus, daysLeft, trialEnds
     return (
       <Link
         href={`/pricing?box_id=${boxId}`}
-        className="flex items-center gap-3 bg-ax-surface border border-ax-border rounded-ax-card px-4 py-3 mb-6 text-ax-text hover:bg-ax-hover transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ax-focus motion-reduce:transition-none"
+        className="flex flex-wrap items-center gap-3 bg-ax-surface border border-ax-border rounded-ax-card px-4 py-3 mb-6 text-ax-text hover:bg-ax-hover transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ax-focus motion-reduce:transition-none"
       >
         <Zap size={18} className="text-ax-accent-text shrink-0" />
-        <div className="flex-1">
+        <div className="flex-1 min-w-0 basis-40">
           <p className="text-sm font-bold text-ax-text">Aucun abonnement</p>
           <p className="text-xs text-ax-text-secondary">Active ton essai gratuit de 14 jours ou souscris directement</p>
         </div>
@@ -80,9 +80,9 @@ export default function TrialBanner({ status: initialStatus, daysLeft, trialEnds
 
   if (status === 'active') {
     return (
-      <div className="flex items-center gap-3 bg-ax-success-soft border border-ax-success rounded-ax-card px-4 py-3 mb-6">
+      <div className="flex flex-wrap items-center gap-3 bg-ax-success-soft border border-ax-success rounded-ax-card px-4 py-3 mb-6">
         <Crown size={18} className="text-ax-success shrink-0" />
-        <div className="flex-1">
+        <div className="flex-1 min-w-0 basis-40">
           <p className="text-sm font-bold text-ax-success">Plan Complet actif</p>
           <p className="text-xs text-ax-text-secondary">Toutes les fonctionnalités sont débloquées</p>
         </div>
@@ -97,10 +97,10 @@ export default function TrialBanner({ status: initialStatus, daysLeft, trialEnds
     return (
       <Link
         href={`/pricing/manage?box_id=${boxId}`}
-        className="flex items-center gap-3 bg-ax-danger-soft border border-ax-danger rounded-ax-card px-4 py-3 mb-6 hover:bg-ax-hover transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ax-focus motion-reduce:transition-none"
+        className="flex flex-wrap items-center gap-3 bg-ax-danger-soft border border-ax-danger rounded-ax-card px-4 py-3 mb-6 hover:bg-ax-hover transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ax-focus motion-reduce:transition-none"
       >
         <CreditCard size={18} className="text-ax-danger shrink-0" />
-        <div className="flex-1">
+        <div className="flex-1 min-w-0 basis-40">
           <p className="text-sm font-bold text-ax-danger">Paiement échoué</p>
           <p className="text-xs text-ax-text-secondary">Mets à jour ton moyen de paiement pour continuer</p>
         </div>
@@ -111,9 +111,9 @@ export default function TrialBanner({ status: initialStatus, daysLeft, trialEnds
 
   if (status === 'canceled' || status === 'expired' || daysLeft <= 0) {
     return (
-      <div className="flex items-center gap-3 bg-ax-danger-soft border border-ax-danger rounded-ax-card px-4 py-3 mb-6">
+      <div className="flex flex-wrap items-center gap-3 bg-ax-danger-soft border border-ax-danger rounded-ax-card px-4 py-3 mb-6">
         <AlertTriangle size={18} className="text-ax-danger shrink-0" />
-        <div className="flex-1">
+        <div className="flex-1 min-w-0 basis-40">
           <p className="text-sm font-bold text-ax-danger">Essai terminé</p>
           <p className="text-xs text-ax-text-secondary">Souscris pour continuer à utiliser AthleX Manager</p>
         </div>
@@ -148,10 +148,10 @@ export default function TrialBanner({ status: initialStatus, daysLeft, trialEnds
   return (
     <Link
       href={`/pricing?box_id=${boxId}`}
-      className={`flex items-center gap-3 ${bgColor} border ${borderColor} rounded-ax-card px-4 py-3 mb-6 hover:bg-ax-hover transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ax-focus motion-reduce:transition-none`}
+      className={`flex flex-wrap items-center gap-3 ${bgColor} border ${borderColor} rounded-ax-card px-4 py-3 mb-6 hover:bg-ax-hover transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ax-focus motion-reduce:transition-none`}
     >
       <Icon size={18} className={`${textColor} shrink-0`} />
-      <div className="flex-1">
+      <div className="flex-1 min-w-0 basis-40">
         <p className={`text-sm font-bold ${textColor}`}>
           {isEarlyAdopter ? '🏅 Fondateur · ' : ''}Essai gratuit · J-{daysLeft}
         </p>
