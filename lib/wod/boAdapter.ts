@@ -154,6 +154,9 @@ export function boGenerateHybrid(type: string, level: string, format: string, du
   if (wod.modifiers.length > 0) movements.push(`⚙️ ${wod.modifiers.join(' · ')}`);
 
   const wodType = hybridTypeFor(wod.structure);
+  // Un AMRAP ou un EMOM hybride ne dure pas toute la séance (80 % et 70 % :
+  // « AMRAP 24 min » pour 30 min) ; sa durée réelle est celle du bloc noté.
+  const minutes = hybridScoredMinutes(wod, wodType) ?? duration;
   return {
     title: wod.title,
     type: wodType,
@@ -161,10 +164,24 @@ export function boGenerateHybrid(type: string, level: string, format: string, du
     scoring: `${cap1(wod.score_type)} (cap ${wod.time_cap_min} min)`,
     description: `${type} — ${format} — ${level} — ${duration} min. ${wod.coach_notes[0] ?? wod.stimulus}`,
     timer_type: CF_TIMER[wodType] ?? 'countdown',
-    time_cap_seconds: duration * 60,
+    time_cap_seconds: minutes * 60,
     rounds: null,
     work_seconds: null,
     rest_seconds: null,
-    duration_minutes: duration,
+    duration_minutes: minutes,
   };
+}
+
+/**
+ * Durée, en minutes, du bloc noté d'un WOD hybride AMRAP ou EMOM. Le moteur
+ * l'écrit seulement dans le schéma du bloc (« AMRAP 24 min », « 24 min AMRAP »,
+ * « EMOM 21 ») ; `null` pour les autres types ou un schéma illisible — la
+ * durée de la séance reste alors celle du formulaire.
+ */
+export function hybridScoredMinutes(wod: Pick<HyroxWod, 'structure' | 'blocks'>, wodType: string): number | null {
+  if (wodType !== 'AMRAP' && wodType !== 'EMOM') return null;
+  const block = wod.blocks.find(b => b.structure.toUpperCase() === wod.structure.toUpperCase());
+  const m = block?.scheme.match(/(\d+)\s*min\b|EMOM\s+(\d+)/i);
+  const n = m ? Number(m[1] ?? m[2]) : NaN;
+  return Number.isInteger(n) && n > 0 ? n : null;
 }
