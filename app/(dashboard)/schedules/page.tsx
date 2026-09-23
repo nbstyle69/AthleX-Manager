@@ -12,6 +12,28 @@ import {
 } from 'lucide-react';
 import { getMyBox } from '@/lib/getMyBox';
 import { writeFailure } from '@/lib/writeGuard';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+
+const FOCUS_CLS = 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ax-focus focus-visible:ring-offset-2 focus-visible:ring-offset-ax-surface';
+const ICON_BTN = `rounded-ax-control text-ax-text-secondary hover:text-ax-text hover:bg-ax-hover transition-colors motion-reduce:transition-none ${FOCUS_CLS}`;
+const LABEL_CLS = 'text-xs font-bold text-ax-text-secondary uppercase tracking-wider mb-2 block';
+const CHIP_CLS = `px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors break-words text-left ${FOCUS_CLS}`;
+const CHIP_ON = 'bg-ax-text border-ax-text text-ax-background';
+const CHIP_OFF = 'bg-transparent border-ax-input-border text-ax-text-secondary hover:bg-ax-hover hover:text-ax-text';
+const OVERLAY_CLS = 'fixed inset-0 bg-ax-overlay backdrop-blur-ax-glass flex items-center justify-center z-50 p-4';
+const PANEL_CLS = 'w-full rounded-ax-panel shadow-ax-panel';
+const TEXTAREA_CLS = `w-full min-h-[5.5rem] [field-sizing:content] rounded-ax-control border border-ax-input-border bg-ax-surface px-3 py-2.5 text-base sm:text-sm text-ax-text placeholder:text-ax-text-muted resize-none transition-colors ${FOCUS_CLS}`;
+const KICK_CLS = `opacity-0 group-hover:opacity-100 p-1.5 rounded-ax-control hover:bg-ax-danger-soft text-ax-text-secondary hover:text-ax-danger transition-all ${FOCUS_CLS}`;
+// Présent / absent / non marqué : la case porte aussi une icône (✓ / ✕ / vide) et un title.
+const ATT_CLS = (attended: boolean | null) =>
+  attended === true
+    ? 'bg-ax-success border-ax-success'
+    : attended === false
+    ? 'bg-ax-danger-soft border-ax-danger'
+    : 'bg-transparent border-ax-input-border hover:border-ax-text-secondary';
 
 interface Participant {
   reservation_id: string;
@@ -75,7 +97,7 @@ function Avatar({ url, name }: { url: string | null; name: string }) {
     return <img src={url} alt={name} className="w-8 h-8 rounded-full object-cover shrink-0" />;
   }
   return (
-    <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-[11px] font-black text-white shrink-0">
+    <div className="w-8 h-8 rounded-full bg-ax-surface-secondary flex items-center justify-center text-[11px] font-black text-ax-text shrink-0">
       {name.slice(0, 1).toUpperCase()}
     </div>
   );
@@ -544,37 +566,27 @@ export default function SchedulesPage() {
     <div className="space-y-6">
 
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div className="min-w-0">
           <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-black text-white">Horaires & Créneaux</h1>
+            <h1 className="font-display text-2xl font-medium uppercase tracking-wide text-ax-text">Horaires & Créneaux</h1>
             <HelpButton />
           </div>
-          <p className="text-sm text-gray-400 mt-1">Gérez les créneaux de cours de votre box</p>
+          <p className="text-sm text-ax-text-secondary mt-1">Gérez les créneaux de cours de votre box</p>
         </div>
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => setShowTemplates(true)}
-            className="flex items-center gap-2 border border-white/10 text-gray-300 hover:text-white hover:bg-white/5 text-sm font-bold px-4 py-2.5 rounded-xl transition-colors"
-          >
+        <div className="flex flex-wrap items-center gap-3">
+          <Button variant="ax-outline" onClick={() => setShowTemplates(true)}>
             <LayoutTemplate size={16} />
             Créneaux types
-          </button>
-          <button
-            onClick={generateFromTemplate}
-            disabled={generating}
-            className="flex items-center gap-2 border border-white text-white hover:bg-white/10 text-sm font-bold px-4 py-2.5 rounded-xl transition-colors disabled:opacity-50"
-          >
+          </Button>
+          <Button variant="ax-outline" onClick={generateFromTemplate} disabled={generating}>
             {generating ? <Loader2 size={16} className="animate-spin" /> : <CalendarCheck size={16} />}
             Générer 8 semaines
-          </button>
-          <button
-            onClick={() => openCreate(todayISO)}
-            className="flex items-center gap-2 bg-white hover:bg-[#B8911F] text-[#0A0A0A] text-sm font-bold px-4 py-2.5 rounded-xl transition-colors"
-          >
+          </Button>
+          <Button variant="ax-white" onClick={() => openCreate(todayISO)}>
             <Plus size={16} />
             Nouveau créneau
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -593,22 +605,22 @@ export default function SchedulesPage() {
 
         return (
           <div
-            className={`flex items-start gap-3 rounded-2xl px-5 py-4 border ${
+            className={`flex flex-wrap sm:flex-nowrap items-start gap-3 rounded-ax-card px-4 sm:px-5 py-4 border ${
               urgent
-                ? 'bg-red-500/10 border-red-500/30'
-                : 'bg-amber-500/10 border-amber-500/30'
+                ? 'bg-ax-danger-soft border-ax-danger'
+                : 'bg-ax-warning-soft border-ax-warning'
             }`}
           >
-            <Icon size={20} className={urgent ? 'text-red-400 mt-0.5 shrink-0' : 'text-amber-400 mt-0.5 shrink-0'} />
-            <div className="flex-1 min-w-0">
-              <p className={`text-sm font-bold ${urgent ? 'text-red-300' : 'text-amber-300'}`}>
+            <Icon size={20} className={urgent ? 'text-ax-danger mt-0.5 shrink-0' : 'text-ax-warning mt-0.5 shrink-0'} />
+            <div className="flex-1 min-w-0 basis-[12rem]">
+              <p className={`text-sm font-bold ${urgent ? 'text-ax-danger' : 'text-ax-warning'}`}>
                 {expired
                   ? 'Plus aucun créneau futur !'
                   : urgent
                     ? `Plus que ${daysLeft} jour${daysLeft > 1 ? 's' : ''} de créneaux générés`
                     : `${daysLeft} jours de créneaux restants`}
               </p>
-              <p className="text-xs text-gray-400 mt-1">
+              <p className="text-xs text-ax-text-secondary mt-1">
                 {expired
                   ? `Le dernier créneau était le ${lastFr}. Génère 8 nouvelles semaines pour permettre aux membres de réserver.`
                   : `Dernier créneau planifié : ${lastFr}. Pense à relancer la génération pour étendre la fenêtre de réservation.`}
@@ -617,10 +629,10 @@ export default function SchedulesPage() {
             <button
               onClick={generateFromTemplate}
               disabled={generating}
-              className={`flex items-center gap-2 text-xs font-bold px-3 py-2 rounded-xl transition-colors shrink-0 ${
+              className={`flex items-center gap-2 text-xs font-bold px-3 py-2 min-h-8 rounded-ax-control transition hover:brightness-110 shrink-0 text-ax-background ${FOCUS_CLS} ${
                 urgent
-                  ? 'bg-red-500 hover:bg-red-600 text-white'
-                  : 'bg-amber-500 hover:bg-amber-600 text-black'
+                  ? 'bg-ax-danger'
+                  : 'bg-ax-warning'
               } disabled:opacity-50`}
             >
               {generating ? <Loader2 size={14} className="animate-spin" /> : <CalendarCheck size={14} />}
@@ -631,15 +643,16 @@ export default function SchedulesPage() {
       })()}
 
       {/* Onglets — la feuille de présence a sa propre vue, la grille ne bouge pas */}
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         {([['presences', 'Présences', ClipboardCheck], ['grille', 'Grille hebdo', CalendarDays]] as const).map(([key, label, Icon]) => (
           <button
             key={key}
             onClick={() => setTab(key)}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold border transition-colors ${
+            aria-pressed={tab === key}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-ax-control text-sm font-bold border transition-colors ${FOCUS_CLS} ${
               tab === key
-                ? 'bg-white border-white text-[#0A0A0A]'
-                : 'bg-transparent border-white/10 text-gray-400 hover:text-white hover:border-white/20'
+                ? 'bg-ax-text border-ax-text text-ax-background'
+                : 'bg-transparent border-ax-border text-ax-text-secondary hover:text-ax-text hover:bg-ax-hover'
             }`}
           >
             <Icon size={15} />
@@ -651,29 +664,29 @@ export default function SchedulesPage() {
       {tab === 'presences' ? (
         <>
           {/* Day nav */}
-          <div className="flex items-center gap-4 bg-[#111111] border border-white/8 rounded-2xl px-5 py-3">
-            <button onClick={() => setDayISO(d => addDaysISO(d, -1))} className="p-1.5 rounded-lg hover:bg-white/5 text-gray-400 hover:text-white transition-colors" title="Hier">
+          <Card className="flex items-center gap-2 sm:gap-4 px-3 sm:px-5 py-3">
+            <button onClick={() => setDayISO(d => addDaysISO(d, -1))} className={`p-1.5 ${ICON_BTN}`} title="Hier">
               <ChevronLeft size={18} />
             </button>
-            <span className="flex-1 text-center text-sm font-bold text-white capitalize">
+            <span className="flex-1 min-w-0 text-center text-sm font-bold text-ax-text capitalize">
               {new Date(dayISO + 'T00:00:00').toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}
-              {dayISO === todayISO && <span className="ml-2 text-[10px] font-black uppercase tracking-wider text-emerald-400">aujourd&apos;hui</span>}
+              {dayISO === todayISO && <span className="ml-2 text-[10px] font-black uppercase tracking-wider text-ax-success">aujourd&apos;hui</span>}
             </span>
-            <button onClick={() => setDayISO(d => addDaysISO(d, 1))} className="p-1.5 rounded-lg hover:bg-white/5 text-gray-400 hover:text-white transition-colors" title="Demain">
+            <button onClick={() => setDayISO(d => addDaysISO(d, 1))} className={`p-1.5 ${ICON_BTN}`} title="Demain">
               <ChevronRight size={18} />
             </button>
-            <button onClick={() => setDayISO(todayISO)} className="text-xs font-semibold text-white hover:underline px-2">
+            <button onClick={() => setDayISO(todayISO)} className={`text-xs font-semibold text-ax-text hover:underline px-2 py-1.5 rounded-ax-control ${FOCUS_CLS}`}>
               Aujourd&apos;hui
             </button>
-          </div>
+          </Card>
 
           {dayLoading ? (
-            <div className="flex justify-center py-16"><Loader2 size={28} className="animate-spin text-white" /></div>
+            <div className="flex justify-center py-16"><Loader2 size={28} className="animate-spin text-ax-text-secondary" /></div>
           ) : dayItems.length === 0 ? (
-            <div className="text-center py-16 bg-[#111111] border border-white/8 rounded-2xl">
-              <ClipboardCheck size={32} className="text-gray-600 mx-auto mb-3" />
-              <p className="text-sm text-gray-500">Aucun cours ce jour-là.</p>
-            </div>
+            <Card className="text-center py-16">
+              <ClipboardCheck size={32} className="text-ax-text-muted mx-auto mb-3" />
+              <p className="text-sm text-ax-text-secondary">Aucun cours ce jour-là.</p>
+            </Card>
           ) : (
             <div className="space-y-2">
               {dayItems.map(item => {
@@ -682,38 +695,38 @@ export default function SchedulesPage() {
                   <button
                     key={item.id}
                     onClick={() => openDetail(item)}
-                    className={`w-full text-left flex items-center gap-4 rounded-2xl px-5 py-4 border transition-colors ${
+                    className={`w-full text-left flex items-center gap-3 sm:gap-4 rounded-ax-card px-4 sm:px-5 py-4 border transition-colors ${FOCUS_CLS} ${
                       isNext
-                        ? 'bg-white/[0.06] border-white/40'
-                        : 'bg-[#111111] border-white/8 hover:border-white/20'
+                        ? 'bg-ax-surface-secondary border-ax-text'
+                        : 'bg-ax-surface border-ax-border hover:bg-ax-hover'
                     }`}
                   >
-                    <div className="w-20 shrink-0">
-                      <p className="text-base font-black text-white">{item.start_time.slice(0, 5)}</p>
-                      <p className="text-[11px] text-gray-500">{item.end_time.slice(0, 5)}</p>
+                    <div className="w-14 sm:w-20 shrink-0">
+                      <p className="text-base font-black text-ax-text">{item.start_time.slice(0, 5)}</p>
+                      <p className="text-[11px] text-ax-text-muted">{item.end_time.slice(0, 5)}</p>
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <p className="text-sm font-bold text-white truncate">{item.title}</p>
+                      <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                        <p className="text-sm font-bold text-ax-text break-words min-w-0">{item.title}</p>
                         {isNext && (
-                          <span className="text-[9px] font-black uppercase tracking-wider bg-white text-[#0A0A0A] rounded-full px-2 py-0.5">
+                          <span className="text-[9px] font-black uppercase tracking-wider bg-ax-text text-ax-background rounded-full px-2 py-0.5">
                             Prochain cours
                           </span>
                         )}
                       </div>
-                      <p className="text-xs text-gray-500 mt-0.5 truncate">
+                      <p className="text-xs text-ax-text-secondary mt-0.5 break-words">
                         {item.confirmed_count}/{item.max_capacity}
                         {item.waiting_count > 0 && ` · ${item.waiting_count} en attente`}
                         {item.coach && ` · ${item.coach}`}
                       </p>
                     </div>
-                    <div className="shrink-0 text-right">
+                    <div className="shrink-0 text-right max-w-[7rem] sm:max-w-none">
                       <p className={`text-xs font-bold ${
-                        item.confirmed_count > 0 && item.pointed_count >= item.confirmed_count ? 'text-emerald-400' : 'text-gray-400'
+                        item.confirmed_count > 0 && item.pointed_count >= item.confirmed_count ? 'text-ax-success' : 'text-ax-text-secondary'
                       }`}>
                         {item.pointed_count > 0 ? `${item.pointed_count} pointé${item.pointed_count > 1 ? 's' : ''}` : 'Appel à faire'}
                       </p>
-                      <p className="text-[11px] text-gray-600">Faire l&apos;appel →</p>
+                      <p className="text-[11px] text-ax-text-muted">Faire l&apos;appel →</p>
                     </div>
                   </button>
                 );
@@ -724,26 +737,27 @@ export default function SchedulesPage() {
       ) : (
       <>
       {/* Week nav */}
-      <div className="flex items-center gap-4 bg-[#111111] border border-white/8 rounded-2xl px-5 py-3">
-        <button onClick={() => setWeek(w => w - 1)} className="p-1.5 rounded-lg hover:bg-white/5 text-gray-400 hover:text-white transition-colors">
+      <Card className="flex items-center gap-2 sm:gap-4 px-3 sm:px-5 py-3">
+        <button onClick={() => setWeek(w => w - 1)} className={`p-1.5 ${ICON_BTN}`}>
           <ChevronLeft size={18} />
         </button>
-        <span className="flex-1 text-center text-sm font-bold text-white">{weekLabel}</span>
-        <button onClick={() => setWeek(w => w + 1)} className="p-1.5 rounded-lg hover:bg-white/5 text-gray-400 hover:text-white transition-colors">
+        <span className="flex-1 min-w-0 text-center text-sm font-bold text-ax-text">{weekLabel}</span>
+        <button onClick={() => setWeek(w => w + 1)} className={`p-1.5 ${ICON_BTN}`}>
           <ChevronRight size={18} />
         </button>
-        <button onClick={() => setWeek(0)} className="text-xs font-semibold text-white hover:underline px-2">
+        <button onClick={() => setWeek(0)} className={`text-xs font-semibold text-ax-text hover:underline px-2 py-1.5 rounded-ax-control ${FOCUS_CLS}`}>
           Aujourd'hui
         </button>
-      </div>
+      </Card>
 
-      {/* Calendar grid */}
+      {/* Calendar grid — défile dans son propre conteneur quand la largeur manque */}
       {loading ? (
         <div className="flex justify-center py-16">
-          <Loader2 size={28} className="animate-spin text-white" />
+          <Loader2 size={28} className="animate-spin text-ax-text-secondary" />
         </div>
       ) : (
-        <div className="grid grid-cols-7 gap-3">
+        <div className="overflow-x-auto pb-2" data-testid="grille-hebdo">
+        <div className="grid grid-cols-7 gap-3 min-w-[56rem]">
           {weekDates.map((d, i) => {
             const iso     = toISO(d);
             const isToday = iso === todayISO;
@@ -751,16 +765,16 @@ export default function SchedulesPage() {
             const dayItems = schedules.filter(s => s.scheduled_date === iso);
 
             return (
-              <div key={iso} className="space-y-2">
+              <div key={iso} className="space-y-2 min-w-0">
                 {/* Day header */}
-                <div className={`rounded-xl px-3 py-2 text-center border ${
-                  isToday ? 'bg-white border-white' : 'bg-[#111111] border-white/8'
+                <div aria-current={isToday ? 'date' : undefined} className={`rounded-ax-control px-3 py-2 text-center border ${
+                  isToday ? 'bg-ax-text border-ax-text' : 'bg-ax-surface border-ax-border'
                 }`}>
                   <p className={`text-xs font-bold ${
-                    isToday ? 'text-white' : isPast ? 'text-gray-600' : 'text-gray-300'
+                    isToday ? 'text-ax-background' : isPast ? 'text-ax-text-muted' : 'text-ax-text-secondary'
                   }`}>{DAY_LABELS[i]}</p>
                   <p className={`text-lg font-black ${
-                    isToday ? 'text-white' : isPast ? 'text-gray-600' : 'text-white'
+                    isToday ? 'text-ax-background' : isPast ? 'text-ax-text-muted' : 'text-ax-text'
                   }`}>{d.getDate()}</p>
                 </div>
 
@@ -769,44 +783,44 @@ export default function SchedulesPage() {
                   {Array.from(new Set(dayItems.map(s => s.start_time))).sort().map(slotTime => {
                     const slotItems = dayItems.filter(s => s.start_time === slotTime);
                     return (
-                      <div key={slotTime} className={`flex gap-1 ${slotItems.length > 1 ? 'flex-row' : ''}`}>
+                      <div key={slotTime} className={`flex flex-wrap gap-1 ${slotItems.length > 1 ? 'flex-row' : ''}`}>
                         {slotItems.map(item => (
-                          <div key={item.id} onClick={() => openDetail(item)} className={`flex-1 min-w-0 bg-[#111111] border border-white/8 rounded-xl p-2.5 group relative cursor-pointer ${
-                            isPast ? 'opacity-50' : 'hover:border-white/20'
+                          <div key={item.id} onClick={() => openDetail(item)} className={`flex-1 basis-[7rem] min-w-0 border rounded-ax-control p-2.5 group relative cursor-pointer ${
+                            isPast ? 'bg-ax-surface-secondary border-ax-border' : 'bg-ax-surface border-ax-border hover:border-ax-input-border'
                           } transition-colors`}>
-                            <div className="flex items-center gap-1 mb-1">
-                              <Clock size={10} className="text-white" />
-                              <span className="text-[10px] font-bold text-white truncate">
+                            <div className="flex items-start gap-1 mb-1">
+                              <Clock size={10} className={`${isPast ? 'text-ax-text-muted' : 'text-ax-text'} mt-0.5 shrink-0`} />
+                              <span className={`text-[10px] font-bold break-words min-w-0 ${isPast ? 'text-ax-text-secondary' : 'text-ax-text'}`}>
                                 {item.start_time}–{item.end_time}
                               </span>
                             </div>
-                            <p className="text-xs font-bold text-white leading-tight truncate">{item.title}</p>
+                            <p className={`text-xs font-bold leading-tight break-words ${isPast ? 'text-ax-text-secondary' : 'text-ax-text'}`}>{item.title}</p>
                             {item.coach && (
-                              <p className="text-[10px] text-gray-500 mt-0.5 truncate">👤 {item.coach}</p>
+                              <p className="text-[10px] text-ax-text-secondary mt-0.5 break-words">👤 {item.coach}</p>
                             )}
                             <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
                               <div className="flex items-center gap-1">
-                                <Users size={9} className="text-gray-500" />
+                                <Users size={9} className="text-ax-text-muted" />
                                 <span className={`text-[10px] font-semibold ${
-                                  item.confirmed_count >= item.max_capacity ? 'text-red-400' : 'text-gray-400'
+                                  item.confirmed_count >= item.max_capacity ? 'text-ax-danger' : 'text-ax-text-secondary'
                                 }`}>
                                   {item.confirmed_count}/{item.max_capacity}
                                 </span>
                               </div>
                               {item.waiting_count > 0 && (
-                                <div className="flex items-center gap-1 bg-amber-500/10 rounded px-1 py-0.5">
-                                  <Timer size={8} className="text-amber-400" />
-                                  <span className="text-[9px] font-bold text-amber-400">{item.waiting_count}</span>
+                                <div className="flex items-center gap-1 bg-ax-warning-soft rounded-ax-badge px-1 py-0.5">
+                                  <Timer size={8} className="text-ax-warning" />
+                                  <span className="text-[9px] font-bold text-ax-warning">{item.waiting_count}</span>
                                 </div>
                               )}
                             </div>
-                            {/* Hover actions */}
-                            <div className="absolute top-1.5 right-1.5 hidden group-hover:flex gap-1">
-                              <button onClick={() => openEdit(item)} className="p-1 rounded-lg bg-[#1a1a1a] hover:bg-white/20 text-gray-500 hover:text-white transition-colors">
-                                <Pencil size={11} />
+                            {/* Actions : toujours visibles sous 1024 px ; au-dessus, au survol ou au focus clavier */}
+                            <div className="mt-1.5 flex justify-end gap-1 lg:mt-0 lg:absolute lg:top-1 lg:right-1 lg:opacity-0 lg:pointer-events-none lg:group-hover:opacity-100 lg:group-hover:pointer-events-auto lg:group-focus-within:opacity-100 lg:group-focus-within:pointer-events-auto transition-opacity motion-reduce:transition-none">
+                              <button onClick={() => openEdit(item)} aria-label="Modifier" className={`inline-flex items-center justify-center w-8 h-8 bg-ax-surface-secondary ${ICON_BTN}`}>
+                                <Pencil size={12} />
                               </button>
-                              <button onClick={() => handleDelete(item)} className="p-1 rounded-lg bg-[#1a1a1a] hover:bg-red-500/20 text-gray-500 hover:text-red-400 transition-colors">
-                                <Trash2 size={11} />
+                              <button onClick={() => handleDelete(item)} aria-label="Supprimer" className={`inline-flex items-center justify-center w-8 h-8 rounded-ax-control bg-ax-surface-secondary text-ax-text-secondary hover:bg-ax-danger-soft hover:text-ax-danger transition-colors ${FOCUS_CLS}`}>
+                                <Trash2 size={12} />
                               </button>
                             </div>
                           </div>
@@ -818,10 +832,10 @@ export default function SchedulesPage() {
                   <button
                     onClick={() => !isPast && openCreate(iso)}
                     disabled={isPast}
-                    className={`w-full border border-dashed rounded-xl py-2 text-xs font-semibold transition-colors ${
+                    className={`w-full border border-dashed rounded-ax-control py-2 text-xs font-semibold transition-colors ${FOCUS_CLS} ${
                       isPast
-                        ? 'border-white/[0.03] text-gray-700 cursor-default'
-                        : 'border-white/10 text-gray-600 hover:border-white/20 hover:text-gray-400 cursor-pointer'
+                        ? 'border-ax-border text-ax-text-muted cursor-default'
+                        : 'border-ax-input-border text-ax-text-secondary hover:bg-ax-hover hover:text-ax-text cursor-pointer'
                     }`}
                   >
                     {isPast ? '' : '+ Ajouter'}
@@ -831,34 +845,31 @@ export default function SchedulesPage() {
             );
           })}
         </div>
+        </div>
       )}
       </>
       )}
 
       {/* Modal */}
       {modal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-[#111111] border border-white/10 rounded-2xl w-full max-w-md shadow-2xl">
-            <div className="flex items-center justify-between px-6 py-5 border-b border-white/8">
-              <h2 className="text-lg font-black text-white">
+        <div className={OVERLAY_CLS}>
+          <Card className={`${PANEL_CLS} max-w-lg`}>
+            <div className="flex items-center justify-between gap-3 px-5 sm:px-6 py-5 border-b border-ax-border">
+              <h2 className="text-lg font-black text-ax-text">
                 {editItem ? 'Modifier le créneau' : 'Nouveau créneau'}
               </h2>
-              <button onClick={() => setModal(false)} className="text-gray-500 hover:text-white transition-colors">
+              <button onClick={() => setModal(false)} aria-label="Fermer" className={`p-1 ${ICON_BTN}`}>
                 <X size={20} />
               </button>
             </div>
 
-            <div className="px-6 py-5 space-y-4 max-h-[70vh] overflow-y-auto">
+            <div className="px-5 sm:px-6 py-5 space-y-4 max-h-[70vh] overflow-y-auto">
               <div>
-                <label className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 block">Type de cours</label>
+                <label className={LABEL_CLS}>Type de cours</label>
                 <div className="flex flex-wrap gap-2">
                   {CLASS_TYPES.map(t => (
-                    <button key={t} onClick={() => setForm(f => ({ ...f, title: t }))}
-                      className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors ${
-                        form.title === t
-                          ? 'bg-white border-white text-[#0A0A0A]'
-                          : 'bg-transparent border-white/10 text-gray-400 hover:border-white/20 hover:text-white'
-                      }`}>
+                    <button key={t} onClick={() => setForm(f => ({ ...f, title: t }))} aria-pressed={form.title === t}
+                      className={`${CHIP_CLS} ${form.title === t ? CHIP_ON : CHIP_OFF}`}>
                       {t}
                     </button>
                   ))}
@@ -867,9 +878,8 @@ export default function SchedulesPage() {
 
               {form.title === 'Autre' && (
                 <div>
-                  <label className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 block">Nom personnalisé</label>
-                  <input
-                    className="w-full bg-[#0A0A0A] border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-white/50"
+                  <label className={LABEL_CLS}>Nom personnalisé</label>
+                  <Input
                     value={form.customTitle} onChange={e => setForm(f => ({ ...f, customTitle: e.target.value }))}
                     placeholder="Ex : Yoga, Pilates…"
                   />
@@ -877,121 +887,111 @@ export default function SchedulesPage() {
               )}
 
               <div>
-                <label className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 block">Coach (optionnel)</label>
+                <label className={LABEL_CLS}>Coach (optionnel)</label>
                 {coaches.length > 0 ? (
                   <div className="flex flex-wrap gap-2">
                     {coaches.map(c => (
-                      <button key={c.id} onClick={() => setForm(f => ({ ...f, coach: f.coach === c.username ? '' : c.username }))}
-                        className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors ${
-                          form.coach === c.username
-                            ? 'bg-white border-white text-[#0A0A0A]'
-                            : 'bg-transparent border-white/10 text-gray-400 hover:border-white/20 hover:text-white'
-                        }`}>
+                      <button key={c.id} onClick={() => setForm(f => ({ ...f, coach: f.coach === c.username ? '' : c.username }))} aria-pressed={form.coach === c.username}
+                        className={`${CHIP_CLS} ${form.coach === c.username ? CHIP_ON : CHIP_OFF}`}>
                         {c.username}
                       </button>
                     ))}
                   </div>
                 ) : (
-                  <p className="text-sm text-gray-500">Aucun coach assigné à cette box</p>
+                  <p className="text-sm text-ax-text-secondary">Aucun coach assigné à cette box</p>
                 )}
               </div>
 
               <div>
-                <label className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 block">Date</label>
-                <input type="date"
-                  className="w-full bg-[#0A0A0A] border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-white/50"
+                <label className={LABEL_CLS}>Date</label>
+                <Input type="date"
                   value={form.date} onChange={e => setForm(f => ({ ...f, date: e.target.value }))}
                 />
               </div>
 
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                 <div>
-                  <label className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 block">Début</label>
-                  <input type="time"
-                    className="w-full bg-[#0A0A0A] border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-white/50"
+                  <label className={LABEL_CLS}>Début</label>
+                  <Input type="time"
                     value={form.startTime} onChange={e => setForm(f => ({ ...f, startTime: e.target.value }))}
                   />
                 </div>
                 <div>
-                  <label className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 block">Fin</label>
-                  <input type="time"
-                    className="w-full bg-[#0A0A0A] border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-white/50"
+                  <label className={LABEL_CLS}>Fin</label>
+                  <Input type="time"
                     value={form.endTime} onChange={e => setForm(f => ({ ...f, endTime: e.target.value }))}
                   />
                 </div>
                 <div>
-                  <label className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 block">Capacité</label>
-                  <input type="number" min={1}
-                    className="w-full bg-[#0A0A0A] border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-white/50"
+                  <label className={LABEL_CLS}>Capacité</label>
+                  <Input type="number" min={1}
                     value={form.maxCapacity} onChange={e => setForm(f => ({ ...f, maxCapacity: e.target.value }))}
                   />
                 </div>
               </div>
 
               <div>
-                <label className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 block">Description (optionnel)</label>
-                <textarea rows={2}
-                  className="w-full bg-[#0A0A0A] border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-600 resize-none focus:outline-none focus:border-white/50"
+                <label className={LABEL_CLS}>Description (optionnel)</label>
+                <textarea rows={3}
+                  className={TEXTAREA_CLS}
                   value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
                   placeholder="Détails du cours…"
                 />
               </div>
 
               {formError && (
-                <p className="text-sm text-red-400 bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-2.5">{formError}</p>
+                <p className="text-sm text-ax-danger bg-ax-danger-soft border border-ax-danger rounded-ax-control px-4 py-2.5 break-words">{formError}</p>
               )}
             </div>
 
-            <div className="px-6 py-4 border-t border-white/8 flex gap-3">
-              <button onClick={() => setModal(false)}
-                className="flex-1 px-4 py-2.5 rounded-xl border border-white/10 text-sm font-semibold text-gray-400 hover:text-white hover:border-white/20 transition-colors">
+            <div className="px-5 sm:px-6 py-4 border-t border-ax-border flex gap-3">
+              <Button variant="ax-outline" onClick={() => setModal(false)} className="flex-1">
                 Annuler
-              </button>
-              <button onClick={handleSave} disabled={saving}
-                className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-white hover:bg-[#B8911F] text-[#0A0A0A] text-sm font-bold transition-colors disabled:opacity-60">
+              </Button>
+              <Button variant="ax-white" onClick={handleSave} disabled={saving} className="flex-1">
                 {saving && <Loader2 size={16} className="animate-spin" />}
                 {saving ? 'Enregistrement…' : editItem ? 'Modifier' : 'Créer'}
-              </button>
+              </Button>
             </div>
-          </div>
+          </Card>
         </div>
       )}
     </div>
 
       {/* Detail modal — participants + attendance */}
       {detailItem && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-[#111111] border border-white/10 rounded-2xl w-full max-w-lg shadow-2xl">
-            <div className="flex items-center justify-between px-6 py-5 border-b border-white/8">
-              <div>
-                <h2 className="text-lg font-black text-white">{detailItem.title}</h2>
-                <p className="text-sm text-gray-400 mt-0.5">
+        <div className={OVERLAY_CLS}>
+          <Card className={`${PANEL_CLS} max-w-lg`}>
+            <div className="flex items-start justify-between gap-3 px-5 sm:px-6 py-5 border-b border-ax-border">
+              <div className="min-w-0">
+                <h2 className="text-lg font-black text-ax-text break-words">{detailItem.title}</h2>
+                <p className="text-sm text-ax-text-secondary mt-0.5 break-words">
                   {new Date(detailItem.scheduled_date + 'T00:00').toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}
                   {' · '}{detailItem.start_time} – {detailItem.end_time}
                   {detailItem.coach && ` · ${detailItem.coach}`}
                 </p>
                 {!detailLoading && (
-                  <p className="text-sm font-bold text-white mt-1">
+                  <p className="text-sm font-bold text-ax-text mt-1">
                     {participants.filter(p => p.status === 'confirmed').length}/{detailItem.max_capacity}
                     {participants.filter(p => p.status === 'waiting').length > 0 &&
                       ` · ${participants.filter(p => p.status === 'waiting').length} en attente`}
                   </p>
                 )}
               </div>
-              <button onClick={() => { setDetailItem(null); setAddMemberOpen(false); }} className="text-gray-500 hover:text-white transition-colors">
+              <button onClick={() => { setDetailItem(null); setAddMemberOpen(false); }} aria-label="Fermer" className={`p-1 shrink-0 ${ICON_BTN}`}>
                 <X size={20} />
               </button>
             </div>
 
-            <div className="px-6 py-5 max-h-[60vh] overflow-y-auto">
+            <div className="px-5 sm:px-6 py-5 max-h-[60vh] overflow-y-auto">
               {detailLoading ? (
                 <div className="flex justify-center py-10">
-                  <Loader2 size={24} className="animate-spin text-white" />
+                  <Loader2 size={24} className="animate-spin text-ax-text-secondary" />
                 </div>
               ) : participants.length === 0 && !addMemberOpen ? (
                 <div className="text-center py-10">
-                  <Users size={32} className="text-gray-600 mx-auto mb-3" />
-                  <p className="text-sm text-gray-500">Aucun inscrit pour ce créneau</p>
+                  <Users size={32} className="text-ax-text-muted mx-auto mb-3" />
+                  <p className="text-sm text-ax-text-secondary">Aucun inscrit pour ce créneau</p>
                 </div>
               ) : !addMemberOpen ? (
                 <div className="space-y-4">
@@ -1001,50 +1001,44 @@ export default function SchedulesPage() {
                     return confirmed.length > 0 && (
                       <div>
                         <div className="flex items-center gap-2 mb-3">
-                          <div className="w-2 h-2 rounded-full bg-green-400" />
-                          <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">
+                          <div className="w-2 h-2 rounded-full bg-ax-success" />
+                          <span className="text-xs font-bold text-ax-text-secondary uppercase tracking-wider">
                             Inscrits ({confirmed.length}/{detailItem.max_capacity})
                           </span>
                         </div>
                         <div className="space-y-1">
                           {confirmed.map((p, i) => (
-                            <div key={p.reservation_id} className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-white/[0.03] transition-colors group">
+                            <div key={p.reservation_id} className="flex items-center gap-3 px-2 sm:px-3 py-2.5 rounded-ax-control hover:bg-ax-hover transition-colors group">
                               {/* Attendance toggle */}
                               <button
                                 onClick={() => toggleAttendance(p.reservation_id, p.attended)}
                                 disabled={togglingAtt === p.reservation_id}
-                                className={`w-7 h-7 rounded-lg border-2 flex items-center justify-center shrink-0 transition-all ${
-                                  p.attended === true
-                                    ? 'bg-emerald-500 border-emerald-500'
-                                    : p.attended === false
-                                    ? 'bg-red-500/20 border-red-500/50'
-                                    : 'bg-transparent border-white/20 hover:border-white/40'
-                                }`}
+                                className={`w-7 h-7 rounded-ax-control border-2 flex items-center justify-center shrink-0 transition-all ${FOCUS_CLS} ${ATT_CLS(p.attended)}`}
                                 title={p.attended === true ? 'Présent' : p.attended === false ? 'Absent' : 'Non marqué'}
                               >
                                 {togglingAtt === p.reservation_id
-                                  ? <Loader2 size={12} className="animate-spin text-white" />
+                                  ? <Loader2 size={12} className="animate-spin text-ax-text" />
                                   : p.attended === true
-                                  ? <Check size={14} className="text-white" strokeWidth={3} />
+                                  ? <Check size={14} className="text-ax-background" strokeWidth={3} />
                                   : p.attended === false
-                                  ? <X size={14} className="text-red-400" strokeWidth={3} />
+                                  ? <X size={14} className="text-ax-danger" strokeWidth={3} />
                                   : null}
                               </button>
                               <Avatar url={p.avatar_url} name={p.username} />
                               <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-1.5">
-                                  <p className="text-sm font-semibold text-white truncate">{p.username}</p>
+                                <div className="flex flex-wrap items-center gap-1.5">
+                                  <p className="text-sm font-semibold text-ax-text break-words min-w-0">{p.username}</p>
                                   {p.is_trial && (
-                                    <span className="text-[9px] px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-300 font-bold shrink-0">ESSAI</span>
+                                    <Badge variant="warning" className="text-[9px] px-1.5 py-0.5 font-bold leading-3 shrink-0">ESSAI</Badge>
                                   )}
                                 </div>
-                                <p className="text-xs text-gray-500 truncate">{p.email}</p>
+                                <p className="text-xs text-ax-text-secondary break-all">{p.email}</p>
                               </div>
-                              <span className="text-[10px] text-gray-600 font-mono">#{i + 1}</span>
+                              <span className="text-[10px] text-ax-text-muted font-mono">#{i + 1}</span>
                               <button
                                 onClick={(e) => { e.stopPropagation(); kickMember(p.reservation_id); }}
                                 disabled={kicking === p.reservation_id}
-                                className="opacity-0 group-hover:opacity-100 p-1.5 rounded-lg hover:bg-red-500/20 text-gray-500 hover:text-red-400 transition-all"
+                                className={KICK_CLS}
                                 title="Retirer du créneau"
                               >
                                 {kicking === p.reservation_id
@@ -1064,43 +1058,37 @@ export default function SchedulesPage() {
                     return waiting.length > 0 && (
                       <div>
                         <div className="flex items-center gap-2 mb-3 mt-2">
-                          <div className="w-2 h-2 rounded-full bg-amber-400" />
-                          <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">
+                          <div className="w-2 h-2 rounded-full bg-ax-warning" />
+                          <span className="text-xs font-bold text-ax-text-secondary uppercase tracking-wider">
                             Liste d&apos;attente ({waiting.length})
                           </span>
                         </div>
                         <div className="space-y-1">
                           {waiting.map((p, i) => (
-                            <div key={p.reservation_id} className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-white/[0.03] transition-colors group">
+                            <div key={p.reservation_id} className="flex items-center gap-3 px-2 sm:px-3 py-2.5 rounded-ax-control hover:bg-ax-hover transition-colors group">
                               <button
                                 onClick={() => toggleAttendance(p.reservation_id, p.attended)}
                                 disabled={togglingAtt === p.reservation_id}
-                                className={`w-7 h-7 rounded-lg border-2 flex items-center justify-center shrink-0 transition-all ${
-                                  p.attended === true
-                                    ? 'bg-emerald-500 border-emerald-500'
-                                    : p.attended === false
-                                    ? 'bg-red-500/20 border-red-500/50'
-                                    : 'bg-transparent border-white/20 hover:border-white/40'
-                                }`}
+                                className={`w-7 h-7 rounded-ax-control border-2 flex items-center justify-center shrink-0 transition-all ${FOCUS_CLS} ${ATT_CLS(p.attended)}`}
                               >
                                 {togglingAtt === p.reservation_id
-                                  ? <Loader2 size={12} className="animate-spin text-white" />
+                                  ? <Loader2 size={12} className="animate-spin text-ax-text" />
                                   : p.attended === true
-                                  ? <Check size={14} className="text-white" strokeWidth={3} />
+                                  ? <Check size={14} className="text-ax-background" strokeWidth={3} />
                                   : p.attended === false
-                                  ? <X size={14} className="text-red-400" strokeWidth={3} />
+                                  ? <X size={14} className="text-ax-danger" strokeWidth={3} />
                                   : null}
                               </button>
                               <Avatar url={p.avatar_url} name={p.username} />
                               <div className="flex-1 min-w-0">
-                                <p className="text-sm font-semibold text-white truncate">{p.username}</p>
-                                <p className="text-xs text-gray-500 truncate">{p.email}</p>
+                                <p className="text-sm font-semibold text-ax-text break-words">{p.username}</p>
+                                <p className="text-xs text-ax-text-secondary break-all">{p.email}</p>
                               </div>
-                              <span className="text-[10px] text-amber-400 font-bold">#{i + 1}</span>
+                              <span className="text-[10px] text-ax-warning font-bold">#{i + 1}</span>
                               <button
                                 onClick={(e) => { e.stopPropagation(); kickMember(p.reservation_id); }}
                                 disabled={kicking === p.reservation_id}
-                                className="opacity-0 group-hover:opacity-100 p-1.5 rounded-lg hover:bg-red-500/20 text-gray-500 hover:text-red-400 transition-all"
+                                className={KICK_CLS}
                                 title="Retirer de la liste d'attente"
                               >
                                 {kicking === p.reservation_id
@@ -1116,18 +1104,18 @@ export default function SchedulesPage() {
 
                   {/* Attendance summary */}
                   {participants.length > 0 && (
-                    <div className="flex items-center gap-4 pt-3 border-t border-white/5">
+                    <div className="flex flex-wrap items-center gap-x-4 gap-y-2 pt-3 border-t border-ax-border">
                       <div className="flex items-center gap-1.5">
-                        <div className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
-                        <span className="text-[11px] text-gray-400">{participants.filter(p => p.attended === true).length} présent{participants.filter(p => p.attended === true).length > 1 ? 's' : ''}</span>
+                        <div className="w-2.5 h-2.5 rounded-full bg-ax-success" />
+                        <span className="text-[11px] text-ax-text-secondary">{participants.filter(p => p.attended === true).length} présent{participants.filter(p => p.attended === true).length > 1 ? 's' : ''}</span>
                       </div>
                       <div className="flex items-center gap-1.5">
-                        <div className="w-2.5 h-2.5 rounded-full bg-red-500" />
-                        <span className="text-[11px] text-gray-400">{participants.filter(p => p.attended === false).length} absent{participants.filter(p => p.attended === false).length > 1 ? 's' : ''}</span>
+                        <div className="w-2.5 h-2.5 rounded-full bg-ax-danger" />
+                        <span className="text-[11px] text-ax-text-secondary">{participants.filter(p => p.attended === false).length} absent{participants.filter(p => p.attended === false).length > 1 ? 's' : ''}</span>
                       </div>
                       <div className="flex items-center gap-1.5">
-                        <div className="w-2.5 h-2.5 rounded-full bg-gray-600" />
-                        <span className="text-[11px] text-gray-400">{participants.filter(p => p.attended === null).length} non marqué{participants.filter(p => p.attended === null).length > 1 ? 's' : ''}</span>
+                        <div className="w-2.5 h-2.5 rounded-full bg-ax-neutral" />
+                        <span className="text-[11px] text-ax-text-secondary">{participants.filter(p => p.attended === null).length} non marqué{participants.filter(p => p.attended === null).length > 1 ? 's' : ''}</span>
                       </div>
                     </div>
                   )}
@@ -1136,15 +1124,15 @@ export default function SchedulesPage() {
                 /* Add member search */
                 <div className="space-y-3">
                   <div className="flex items-center gap-2 mb-2">
-                    <button onClick={() => { setAddMemberOpen(false); setMemberSearch(''); }} className="text-gray-500 hover:text-white transition-colors">
+                    <button onClick={() => { setAddMemberOpen(false); setMemberSearch(''); }} aria-label="Retour" className={`p-1 ${ICON_BTN}`}>
                       <ChevronLeft size={18} />
                     </button>
-                    <h3 className="text-sm font-bold text-white">Ajouter un membre</h3>
+                    <h3 className="text-sm font-bold text-ax-text">Ajouter un membre</h3>
                   </div>
                   <div className="relative">
-                    <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
-                    <input
-                      className="w-full bg-[#0A0A0A] border border-white/10 rounded-xl pl-9 pr-4 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-white/50"
+                    <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-ax-text-muted pointer-events-none" />
+                    <Input
+                      className="pl-9"
                       placeholder="Rechercher par nom d'utilisateur..."
                       value={memberSearch}
                       onChange={e => searchMembers(e.target.value)}
@@ -1153,55 +1141,53 @@ export default function SchedulesPage() {
                   </div>
                   {searching && (
                     <div className="flex justify-center py-4">
-                      <Loader2 size={18} className="animate-spin text-white" />
+                      <Loader2 size={18} className="animate-spin text-ax-text-secondary" />
                     </div>
                   )}
                   {memberSearch.length >= 3 && !searching && searchResults.length === 0 && (
-                    <p className="text-center text-sm text-gray-500 py-4">Aucun résultat</p>
+                    <p className="text-center text-sm text-ax-text-secondary py-4">Aucun résultat</p>
                   )}
                   {searchResults.map(m => (
                     <button
                       key={m.id}
                       onClick={() => addMemberToSlot(m.id, m.username, m.email)}
-                      className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-white/[0.03] transition-colors text-left"
+                      className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-ax-control hover:bg-ax-hover transition-colors text-left ${FOCUS_CLS}`}
                     >
-                      <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center text-white text-xs font-black shrink-0">
+                      <div className="w-8 h-8 rounded-full bg-ax-surface-secondary flex items-center justify-center text-ax-text text-xs font-black shrink-0">
                         {m.username[0].toUpperCase()}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold text-white truncate">{m.username}</p>
-                        <p className="text-xs text-gray-500 truncate">{m.email}</p>
+                        <p className="text-sm font-semibold text-ax-text break-words">{m.username}</p>
+                        <p className="text-xs text-ax-text-secondary break-all">{m.email}</p>
                       </div>
-                      <Plus size={16} className="text-white shrink-0" />
+                      <Plus size={16} className="text-ax-text shrink-0" />
                     </button>
                   ))}
                 </div>
               ) : null}
             </div>
 
-            <div className="px-6 py-4 border-t border-white/8 flex gap-3">
-              <button
+            <div className="px-5 sm:px-6 py-4 border-t border-ax-border flex flex-wrap gap-3">
+              <Button variant="ax-outline" size="ax-compact" className="h-10 min-h-10"
                 onClick={() => setAddMemberOpen(true)}
-                className="flex items-center gap-2 px-3 py-2.5 rounded-xl border border-white/10 text-xs font-semibold text-gray-400 hover:text-white hover:border-white/20 transition-colors"
               >
                 <UserPlus size={14} />
                 Ajouter
-              </button>
-              <button
+              </Button>
+              <Button variant="ax-outline" size="ax-compact" className="h-10 min-h-10"
                 onClick={exportAttendanceCSV}
                 disabled={participants.length === 0}
-                className="flex items-center gap-2 px-3 py-2.5 rounded-xl border border-white/10 text-xs font-semibold text-gray-400 hover:text-white hover:border-white/20 transition-colors disabled:opacity-40"
               >
                 <Download size={14} />
                 Exporter CSV
-              </button>
+              </Button>
               <div className="flex-1" />
-              <button onClick={() => { setDetailItem(null); setAddMemberOpen(false); }}
-                className="px-4 py-2.5 rounded-xl border border-white/10 text-sm font-semibold text-gray-400 hover:text-white hover:border-white/20 transition-colors">
+              <Button variant="ax-outline" size="ax-compact" className="h-10 min-h-10"
+                onClick={() => { setDetailItem(null); setAddMemberOpen(false); }}>
                 Fermer
-              </button>
+              </Button>
             </div>
-          </div>
+          </Card>
         </div>
       )}
     </>
