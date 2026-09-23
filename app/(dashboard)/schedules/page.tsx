@@ -26,7 +26,8 @@ const CHIP_OFF = 'bg-transparent border-ax-input-border text-ax-text-secondary h
 const OVERLAY_CLS = 'fixed inset-0 bg-ax-overlay backdrop-blur-ax-glass flex items-center justify-center z-50 p-4';
 const PANEL_CLS = 'w-full rounded-ax-panel shadow-ax-panel';
 const TEXTAREA_CLS = `w-full min-h-[5.5rem] [field-sizing:content] rounded-ax-control border border-ax-input-border bg-ax-surface px-3 py-2.5 text-base sm:text-sm text-ax-text placeholder:text-ax-text-muted resize-none transition-colors ${FOCUS_CLS}`;
-const KICK_CLS = `opacity-0 group-hover:opacity-100 p-1.5 rounded-ax-control hover:bg-ax-danger-soft text-ax-text-secondary hover:text-ax-danger transition-all ${FOCUS_CLS}`;
+// Retirer : toujours visible sous 1024 px ; au-dessus, au survol de la ligne ou au focus clavier.
+const KICK_CLS = `inline-flex items-center justify-center w-8 h-8 shrink-0 rounded-ax-control hover:bg-ax-danger-soft text-ax-text-secondary hover:text-ax-danger lg:opacity-0 lg:pointer-events-none lg:group-hover:opacity-100 lg:group-hover:pointer-events-auto lg:group-focus-within:opacity-100 lg:group-focus-within:pointer-events-auto transition motion-reduce:transition-none ${FOCUS_CLS}`;
 // Présent / absent / non marqué : la case porte aussi une icône (✓ / ✕ / vide) et un title.
 const ATT_CLS = (attended: boolean | null) =>
   attended === true

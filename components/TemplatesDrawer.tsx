@@ -131,7 +131,7 @@ export default function TemplatesDrawer({ open, onClose, boxId }: Props) {
         {/* Header */}
         <div className="flex items-center justify-between gap-3 px-4 sm:px-6 py-4 border-b border-ax-border">
           <div className="min-w-0">
-            <h2 className="text-lg font-bold text-ax-text">Modele de semaine</h2>
+            <h2 className="text-lg font-bold text-ax-text">Créneaux types</h2>
             <p className="text-xs text-ax-text-secondary mt-0.5">Définissez les créneaux récurrents de votre box</p>
           </div>
           <button onClick={onClose} aria-label="Fermer" className={`p-2 shrink-0 ${ICON_BTN}`}>
