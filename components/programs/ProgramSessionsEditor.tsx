@@ -616,7 +616,7 @@ export default function ProgramSessionsEditor({ program, userId, onClose, onChan
                                 {selectedIds.includes(w.id) ? <CheckSquare size={16} className="text-ax-text" /> : <Square size={16} className="text-ax-text-muted" />}
                               </button>
                             )}
-                            <div className="flex-1 min-w-0">
+                            <div className="w-full min-w-0 sm:w-auto sm:flex-1">
                               <div className="flex items-center gap-2 mb-0.5 flex-wrap"><Badges w={w} />{chipProgramme}</div>
                               <p className="text-sm font-bold text-ax-text break-words">{w.title}</p>
                               {w.description && <p className="text-xs text-ax-text-muted line-clamp-2 break-words mt-0.5">{w.description}</p>}
@@ -653,7 +653,7 @@ export default function ProgramSessionsEditor({ program, userId, onClose, onChan
                   <span className="text-xs font-bold text-ax-text-secondary w-24 shrink-0">
                     {new Date(`${w.scheduled_date}T00:00:00`).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' })}
                   </span>
-                  <div className="flex-1 min-w-0">
+                  <div className="w-full min-w-0 sm:w-auto sm:flex-1">
                     <div className="flex items-center gap-2 mb-0.5 flex-wrap"><Badges w={w} /></div>
                     <p className="text-sm font-bold text-ax-text break-words">{w.title}</p>
                   </div>

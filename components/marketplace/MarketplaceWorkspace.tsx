@@ -951,9 +951,9 @@ function OfferEditor({ offer, publisherBoxId, onClose, onSaved }: {
           </Field>
           <Field label="Description">
             <textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })}
-              rows={3} className={INPUT_CLS} placeholder="Ce que contient cette prog, comment elle est construite…" />
+              rows={3} className={`${INPUT_CLS} [field-sizing:content] min-h-[5.5rem]`} placeholder="Ce que contient cette prog, comment elle est construite…" />
           </Field>
-          <div className="grid sm:grid-cols-3 gap-3">
+          <div className="grid gap-3">
             <Field label="Objectif">
               <Input value={form.goal} onChange={(e) => setForm({ ...form, goal: e.target.value })} placeholder="Ex. Force + capacité aérobie" />
             </Field>

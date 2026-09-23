@@ -475,7 +475,7 @@ export default function AthleteProgramsWorkspace() {
               <div>
                 <label className="text-xs font-bold text-ax-text-secondary mb-1 block">Description</label>
                 <textarea
-                  className="w-full min-h-[80px] rounded-ax-control border border-ax-input-border bg-ax-surface px-3 py-2.5 text-base sm:text-sm text-ax-text placeholder:text-ax-text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ax-focus focus-visible:ring-offset-2 focus-visible:ring-offset-ax-surface transition-colors"
+                  className="w-full min-h-[80px] [field-sizing:content] rounded-ax-control border border-ax-input-border bg-ax-surface px-3 py-2.5 text-base sm:text-sm text-ax-text placeholder:text-ax-text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ax-focus focus-visible:ring-offset-2 focus-visible:ring-offset-ax-surface transition-colors"
                   value={form.description} onChange={e => setForm({ ...form, description: e.target.value })}
                   placeholder="Programme de force progressive…"
                 />
