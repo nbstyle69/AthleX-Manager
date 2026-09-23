@@ -5,7 +5,8 @@ import { createClient } from '@/lib/supabase/client';
 import { Plus, Trash2, Loader2, X, Sparkles, ChevronDown, ChevronUp, Timer } from 'lucide-react';
 import { useMovementCatalog } from '@/lib/useMovementCatalog';
 import { boGenerateFunctional, boGenerateHybrid } from '@/lib/wod/boAdapter';
-import { isWeightedMovement, editMovementLine, parseMovementRow, repsPerRoundFromMovements, isRepsScoredType } from '@/lib/movements';
+import { isWeightedMovement, editMovementLine, parseMovementRow, repsPerRoundFromMovements, isRepsScoredType, type MovementUnit } from '@/lib/movements';
+import MovementUnitSelect from '@/components/wods/MovementUnitSelect';
 import { buildMovementLines, generatedForTimeRounds, parseForTimeRounds } from '@/lib/tournaments/movementLines';
 import { toDatetimeLocal, fromDatetimeLocal, isScheduledAhead } from '@/lib/datetime';
 import { formatCap, parseCap } from '@/lib/wodFields';
@@ -539,9 +540,9 @@ export default function WODForm({ tournamentId, divisions = [], isLeague = false
           {movements.map((line, i) => {
             const parsed = parseMovementRow(line);
             const showWeight = parsed.weightKg != null || parsed.weightKgWomen != null || isWeightedMovement(parsed.name);
-            const update = (reps: number | null, name: string, weightKg: number | null, weightKgWomen: number | null) => {
+            const update = (reps: number | null, name: string, weightKg: number | null, weightKgWomen: number | null, unit?: MovementUnit) => {
               setMovement(i, editMovementLine(line, {
-                reps, name,
+                reps, name, unit,
                 weightKg:      showWeight ? weightKg : null,
                 weightKgWomen: showWeight ? weightKgWomen : null,
               }));
@@ -554,6 +555,12 @@ export default function WODForm({ tournamentId, divisions = [], isLeague = false
                   value={parsed.reps ?? ''}
                   onChange={e => update(e.target.value === '' ? null : parseInt(e.target.value, 10), parsed.name, parsed.weightKg, parsed.weightKgWomen)}
                   placeholder="Reps" aria-label="Répétitions" />
+                <MovementUnitSelect
+                  name={parsed.name}
+                  unit={parsed.unit}
+                  disabled={parsed.reps == null}
+                  onChange={u => update(parsed.reps, parsed.name, parsed.weightKg, parsed.weightKgWomen, u)}
+                  className={`${inp} !w-20 shrink-0 px-2 disabled:opacity-50`} />
                 <input
                   list="movement-catalog"
                   className={`${inp} flex-1 min-w-0`}

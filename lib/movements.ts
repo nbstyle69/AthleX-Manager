@@ -88,7 +88,11 @@ export function serializeMovement(
  */
 export function editMovementLine(
   line: string,
-  next: { reps: number | null; name: string; weightKg: number | null; weightKgWomen: number | null },
+  next: {
+    reps: number | null; name: string; weightKg: number | null; weightKgWomen: number | null;
+    /** Unité choisie dans le sélecteur ; ignorée si le mouvement ne la permet pas. */
+    unit?: MovementUnit;
+  },
 ): string {
   if (next.reps == null) {
     return serializeMovement(0, next.name, next.weightKg, next.weightKgWomen).replace(/^0\s*/, '').trim();
@@ -100,7 +104,19 @@ export function editMovementLine(
     if (!next.name.trim()) unit = 'reps';
     else if (mv && !(mv.unitsAllowed ?? [mv.unit ?? 'reps']).includes(unit)) unit = mv.unit ?? 'reps';
   }
+  if (next.unit && unitChoicesFor(next.name).includes(next.unit)) unit = next.unit;
   return serializeMovement(next.reps, next.name, next.weightKg, next.weightKgWomen, unit, prev.repsWomen);
+}
+
+/**
+ * Unités proposées au choix pour un mouvement : ses unités permises au
+ * catalogue (`units_allowed`), seulement s'il en a plusieurs — Row, SkiErg,
+ * Bike Erg (cal ou m). Liste vide sinon : une seule unité, ou mouvement hors
+ * catalogue, il n'y a rien à choisir.
+ */
+export function unitChoicesFor(name: string): MovementUnit[] {
+  const allowed = findCatalogMovement(name)?.unitsAllowed ?? [];
+  return allowed.length > 1 ? allowed : [];
 }
 
 export interface ParsedMovementRow {
