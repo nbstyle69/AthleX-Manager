@@ -1,0 +1,2206 @@
+/*
+ * Landing /landing — styles propres, importés par app/landing/page.tsx seulement.
+ *
+ * Converti du globals.css Tailwind 4 de la maquette v0 : @import, @theme,
+ * @custom-variant et @apply retirés ; seules les classes présentes dans
+ * components/landing-gym/ sont conservées.
+ *
+ * Tout est borné à .athlex-landing, variables comprises : ce fichier reste
+ * chargé après une navigation côté client vers une autre page du Manager, il ne
+ * doit rien toucher hors de la landing. Les variables sont préfixées --lp-* :
+ * le Manager déclare déjà --background, --border, --primary… sur :root, en
+ * canaux HSL pour Tailwind, et un même nom casserait l'un ou l'autre.
+ *
+ * Mode clair : la landing n'emploie aucune des classes surchargées par
+ * `html.light` dans app/globals.css, et fixe elle-même fond, texte et
+ * color-scheme sur sa racine. Elle reste sombre dans les deux thèmes.
+ */
+
+.athlex-landing {
+  color-scheme: dark;
+  --lp-background: #101214;
+  --lp-foreground: #f2f4f4;
+  --lp-card: #1c2023;
+  --lp-muted-foreground: #989fa3;
+  --lp-primary: #9ae6d2;
+  --lp-border: color-mix(in srgb, var(--lp-foreground) 12%, transparent);
+  --lp-glass: color-mix(in srgb, var(--lp-background) 90%, transparent);
+  --lp-header-height: 80px;
+  background-color: var(--lp-background);
+  color: var(--lp-foreground);
+  font-family: var(--font-sans), sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Équivalent borné de l'ancien @layer base. Placé en tête : à spécificité
+   égale, les règles de composant qui suivent l'emportent, comme avec le
+   calque « base » de Tailwind 4. */
+.athlex-landing *,
+.athlex-landing ::before,
+.athlex-landing ::after {
+  border-color: var(--lp-border);
+  outline-color: color-mix(in srgb, var(--lp-primary) 50%, transparent);
+}
+/* Remplace scroll-padding-top posé sur <html> : les ancres #salle, #tarifs,
+   #faq s'arrêtent sous l'en-tête collant. */
+.athlex-landing [id] {
+  scroll-margin-top: var(--lp-header-height);
+}
+.athlex-landing button,
+.athlex-landing a {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+.athlex-landing button {
+  cursor: pointer;
+}
+.athlex-landing a {
+  text-decoration: none;
+}
+.athlex-landing :focus-visible {
+  outline: 2px solid var(--lp-primary);
+  outline-offset: 4px;
+}
+.athlex-landing ::selection {
+  background: var(--lp-primary);
+  color: var(--lp-background);
+}
+
+.athlex-landing .font-display {
+  font-family: var(--font-display), sans-serif;
+}
+.athlex-landing .landing-shell {
+  overflow: clip;
+}
+.athlex-landing .skip-link {
+  position: fixed;
+  left: 20px;
+  top: -100px;
+  z-index: 100;
+  background: var(--lp-primary);
+  color: var(--lp-background);
+  padding: 12px 20px;
+}
+.athlex-landing .skip-link:focus {
+  top: 12px;
+}
+.athlex-landing .site-header {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  border-bottom: 1px solid var(--lp-border);
+  background: var(--lp-glass);
+  backdrop-filter: blur(24px);
+}
+.athlex-landing .header-inner {
+  max-width: 1504px;
+  height: var(--lp-header-height);
+  margin: auto;
+  padding: 0 5%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 28px;
+}
+.athlex-landing .brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  flex-shrink: 0;
+}
+.athlex-landing .brand img {
+  object-fit: contain;
+}
+.athlex-landing .brand > span {
+  font-size: 26px;
+  font-weight: 650;
+  letter-spacing: -0.7px;
+}
+.athlex-landing .desktop-nav {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+.athlex-landing .desktop-nav a,
+.athlex-landing .login-link {
+  font-size: 14px;
+  color: var(--lp-muted-foreground);
+  white-space: nowrap;
+}
+.athlex-landing .desktop-nav a:hover,
+.athlex-landing .login-link:hover {
+  color: var(--lp-foreground);
+}
+.athlex-landing .header-actions {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+.athlex-landing .language-switch {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.athlex-landing .language-switch button {
+  font-size: 14px;
+  color: var(--lp-muted-foreground);
+  padding: 3px;
+}
+.athlex-landing .language-switch button[aria-pressed="true"] {
+  color: var(--lp-foreground);
+}
+.athlex-landing .language-switch button + button {
+  border-left: 1px solid var(--lp-border);
+  padding-left: 10px;
+}
+.athlex-landing .button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 15px;
+  min-height: 46px;
+  padding: 13px 19px;
+  border: 1px solid transparent;
+  border-radius: 5px;
+  font-size: 14px;
+  font-weight: 550;
+  transition:
+    background 0.2s,
+    border-color 0.2s;
+}
+.athlex-landing .button:hover {
+  filter: brightness(1.08);
+}
+.athlex-landing .button-light {
+  background: var(--lp-foreground);
+  color: var(--lp-background);
+}
+.athlex-landing .button-outline {
+  background: transparent;
+  color: var(--lp-foreground);
+  border-color: var(--lp-border);
+}
+.athlex-landing .button-outline:hover {
+  border-color: var(--lp-muted-foreground);
+}
+.athlex-landing .button-accent {
+  background: var(--lp-primary);
+  color: var(--lp-background);
+}
+.athlex-landing .header-trial {
+  min-height: 38px;
+  padding: 10px 15px;
+}
+.athlex-landing .mobile-menu-button,
+.athlex-landing .mobile-nav {
+  display: none;
+}
+.athlex-landing .hero {
+  max-width: 1504px;
+  min-height: calc(100svh - var(--lp-header-height));
+  margin: auto;
+  padding: 0 5%;
+  display: flex;
+  flex-direction: column;
+}
+.athlex-landing .hero-topline {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  min-height: 72px;
+  border-bottom: 1px solid var(--lp-border);
+  font-size: 14px;
+  letter-spacing: 1.2px;
+  color: var(--lp-muted-foreground);
+}
+.athlex-landing .hero-topline > span {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.athlex-landing .status-dot {
+  width: 6px;
+  height: 6px;
+  display: inline-block;
+  border-radius: 50%;
+  background: var(--lp-primary);
+  flex-shrink: 0;
+}
+.athlex-landing .hero-layout {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 64px;
+  padding: 40px 0;
+  flex: 1;
+}
+.athlex-landing .hero-content {
+  flex: 1;
+}
+.athlex-landing .hero-eyebrow {
+  margin: 0 0 20px;
+  font-size: 14px;
+  letter-spacing: 2px;
+  color: var(--lp-muted-foreground);
+}
+.athlex-landing .hero h1 {
+  font-size: clamp(36px, 3.4vw, 60px);
+  text-wrap: balance;
+  line-height: 1.12;
+  font-weight: 550;
+  letter-spacing: -1.7px;
+  text-transform: uppercase;
+  margin: 0;
+}
+.athlex-landing .hero h1 > span {
+  display: block;
+}
+.athlex-landing .hero-subtitle {
+  font-size: 17px;
+  line-height: 1.6;
+  margin: 24px 0 0;
+  color: var(--lp-muted-foreground);
+}
+.athlex-landing .entrance-choice {
+  width: 43%;
+  max-width: 510px;
+}
+.athlex-landing .entrance-caption {
+  font-size: 14px;
+  letter-spacing: 1px;
+  line-height: 1.6;
+  margin: 0 0 20px;
+  color: var(--lp-muted-foreground);
+}
+.athlex-landing .profile-doors {
+  display: flex;
+  gap: 16px;
+}
+.athlex-landing .profile-door {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 24px 20px;
+  min-height: 300px;
+  text-align: left;
+  border: 1px solid var(--lp-border);
+  border-bottom: 3px solid var(--lp-primary);
+  border-radius: 8px 8px 2px 2px;
+  background: var(--lp-card);
+  color: var(--lp-foreground);
+  transition:
+    border-color 0.25s,
+    transform 0.25s;
+}
+.athlex-landing .profile-door:hover,
+.athlex-landing .profile-door[aria-pressed="true"] {
+  border-color: var(--lp-primary);
+  transform: translateY(-5px);
+}
+.athlex-landing .door-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  color: var(--lp-primary);
+  flex: 1;
+  align-items: flex-start;
+}
+.athlex-landing .door-top svg:last-child {
+  color: var(--lp-muted-foreground);
+}
+.athlex-landing .profile-door strong {
+  font-size: 19px;
+  line-height: 1.4;
+  font-weight: 550;
+}
+.athlex-landing .profile-door > span:last-child {
+  font-size: 14px;
+  color: var(--lp-muted-foreground);
+  line-height: 1.6;
+}
+.athlex-landing .pro-door {
+  background: transparent;
+}
+.athlex-landing .door-reassurance {
+  font-size: 14px;
+  color: var(--lp-muted-foreground);
+  margin: 20px 0 0;
+}
+.athlex-landing .hero-bottom {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-top: 1px solid var(--lp-border);
+  min-height: 88px;
+}
+.athlex-landing .hero-bottom > a {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 14px;
+}
+.athlex-landing .scroll-icon {
+  display: grid;
+  place-items: center;
+  width: 29px;
+  height: 39px;
+  border: 1px solid var(--lp-border);
+  border-radius: 20px;
+}
+.athlex-landing .hero-bottom > div {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+.athlex-landing .hero-bottom > div > span {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--lp-muted-foreground);
+  font-size: 14px;
+}
+.athlex-landing .gym-screen {
+  height: calc(100svh - var(--lp-header-height));
+  min-height: 0;
+  position: relative;
+  isolation: isolate;
+  border-block: 1px solid var(--lp-border);
+  background: var(--lp-background);
+}
+.athlex-landing .gym-canvas,
+.athlex-landing .gym-canvas canvas {
+  touch-action: pan-y !important;
+}
+.athlex-landing .gym-canvas {
+  position: absolute !important;
+  inset: 0;
+  z-index: 0;
+}
+.athlex-landing .gym-loading {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: var(--lp-muted-foreground);
+  font-size: 14px;
+}
+.athlex-landing .gym-heading {
+  position: absolute;
+  top: 32px;
+  left: 4%;
+  pointer-events: none;
+  max-width: 46%;
+  z-index: 6;
+  text-shadow: 0 2px 16px var(--lp-background);
+}
+.athlex-landing .gym-heading p {
+  font-size: 14px;
+  letter-spacing: 1.7px;
+  color: var(--lp-primary);
+  margin: 0 0 8px;
+}
+.athlex-landing .gym-heading h2 {
+  font-size: clamp(32px, 3vw, 48px);
+  line-height: 1.15;
+  text-transform: uppercase;
+  margin: 0 0 12px;
+}
+.athlex-landing .gym-heading > span {
+  display: block;
+  max-width: 380px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--lp-foreground);
+}
+.athlex-landing .gym-heading .button {
+  pointer-events: auto;
+}
+.athlex-landing .entrance-profile {
+  display: flex;
+  width: fit-content;
+  border: 1px solid var(--lp-border);
+  border-radius: 6px;
+  background: var(--lp-glass);
+  margin-top: 20px;
+  pointer-events: auto;
+}
+.athlex-landing .entrance-profile button {
+  padding: 10px 16px;
+  color: var(--lp-foreground);
+  font-size: 14px;
+  border-radius: 5px;
+}
+.athlex-landing .entrance-profile button[aria-pressed="true"] {
+  background: var(--lp-foreground);
+  color: var(--lp-background);
+}
+.athlex-landing .visit-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 12px;
+}
+.athlex-landing .gym-heading .stepwise-note {
+  margin-top: 12px;
+}
+.athlex-landing .tour-play {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 8px 12px;
+  border-right: 1px solid var(--lp-border);
+  color: var(--lp-primary);
+  font-size: 14px;
+}
+.athlex-landing .tour-progress {
+  height: 3px;
+  overflow: hidden;
+  border-radius: 12px 12px 0 0;
+  background: var(--lp-border);
+}
+.athlex-landing .tour-progress span {
+  display: block;
+  height: 100%;
+  background: var(--lp-primary);
+  transform-origin: left;
+}
+.athlex-landing .reception-links {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.athlex-landing .reception-links .store-badges {
+  flex-wrap: nowrap;
+  gap: 8px;
+}
+.athlex-landing .reception-links .store-badge {
+  flex: 1;
+  padding: 6px 8px;
+  gap: 6px;
+}
+.athlex-landing .reception-links .store-badge > svg {
+  width: 18px;
+  flex-shrink: 0;
+}
+.athlex-landing .reception-links .store-badge strong {
+  font-size: 14px;
+}
+.athlex-landing .reception-links .store-badge small {
+  font-size: 14px;
+  white-space: nowrap;
+}
+.athlex-landing .reception-links .play-glyph {
+  border-top-width: 8px;
+  border-bottom-width: 8px;
+  border-left-width: 12px;
+}
+.athlex-landing .tour-complete h3 {
+  font-size: 36px;
+  line-height: 1.15;
+  margin: 12px 0;
+}
+.athlex-landing .scene-labels {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.athlex-landing .scene-labels .hotspot-label {
+  position: absolute;
+  transform: translate(-50%, -50%);
+}
+.athlex-landing .icon-button:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+.athlex-landing .hotspot-label {
+  display: block;
+  white-space: nowrap;
+  font-family: var(--font-sans), sans-serif;
+  font-size: 14px;
+  padding: 7px 12px;
+  color: var(--lp-foreground);
+  background: var(--lp-glass);
+  border: 1px solid var(--lp-border);
+  border-radius: 3px;
+  pointer-events: none;
+}
+.athlex-landing .hotspot-active {
+  border-color: var(--lp-primary);
+  color: var(--lp-primary);
+}
+.athlex-landing .tour-controls {
+  position: absolute;
+  bottom: 24px;
+  left: 4%;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  border: 1px solid var(--lp-border);
+  border-radius: 8px;
+  background: var(--lp-glass);
+  backdrop-filter: blur(18px);
+  z-index: 10;
+  padding: 4px;
+}
+.athlex-landing .icon-button {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  border-radius: 4px;
+  color: var(--lp-foreground);
+}
+.athlex-landing .icon-button:hover {
+  background: var(--lp-card);
+  color: var(--lp-primary);
+}
+.athlex-landing .tour-current {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  font-size: 14px;
+  min-width: 180px;
+  padding: 12px;
+}
+.athlex-landing .tour-current > svg {
+  color: var(--lp-primary);
+}
+.athlex-landing .tour-moving {
+  font-size: 14px;
+  color: var(--lp-muted-foreground);
+}
+.athlex-landing .station-panel {
+  position: absolute;
+  right: 24px;
+  top: 50%;
+  bottom: auto;
+  transform: translateY(-56%);
+  width: min(430px, 36%);
+  display: flex;
+  flex-direction: column;
+  background: var(--lp-glass);
+  border: 1px solid color-mix(in srgb, var(--lp-foreground) 20%, transparent);
+  border-radius: 12px;
+  backdrop-filter: blur(24px);
+  box-shadow: 0 16px 60px color-mix(in srgb, var(--lp-background) 50%, transparent);
+  z-index: 12;
+  overflow: visible;
+  animation: lp-panel-in 0.25s ease-out;
+}
+.athlex-landing .station-panel:focus {
+  outline: none;
+}
+.athlex-landing .station-panel:focus-visible {
+  outline: 2px solid var(--lp-primary);
+  outline-offset: 2px;
+}
+.athlex-landing .station-panel-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border-bottom: 1px solid var(--lp-border);
+  padding: 4px 16px;
+  flex-shrink: 0;
+}
+.athlex-landing .station-sign {
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 1.6px;
+  color: var(--lp-primary);
+}
+.athlex-landing .station-panel-body {
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.athlex-landing .station-text {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.athlex-landing .station-tabs {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid var(--lp-border);
+  border-radius: 6px;
+  margin-bottom: 0;
+}
+.athlex-landing .station-tabs button {
+  flex: 1;
+  padding: 9px;
+  font-size: 14px;
+  border-radius: 3px;
+  color: var(--lp-muted-foreground);
+}
+.athlex-landing .station-tabs button[aria-selected="true"] {
+  background: var(--lp-foreground);
+  color: var(--lp-background);
+}
+.athlex-landing .station-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.athlex-landing .station-copy > h3 {
+  font-size: 28px;
+  line-height: 1.18;
+  text-transform: uppercase;
+  margin: 0;
+  font-weight: 500;
+}
+.athlex-landing .station-text > p {
+  color: var(--lp-muted-foreground);
+  font-size: 14px;
+  line-height: 1.6;
+  margin: 0;
+}
+.athlex-landing .station-text > ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.athlex-landing .station-text > ul > li {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 14px;
+  line-height: 1.5;
+}
+.athlex-landing .station-text > ul svg {
+  color: var(--lp-primary);
+  flex-shrink: 0;
+  margin-top: 3px;
+}
+.athlex-landing .station-action {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: var(--lp-primary);
+}
+.athlex-landing .station-continue {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 16px 22px;
+  border-top: 1px solid var(--lp-border);
+  font-size: 14px;
+  flex-shrink: 0;
+  color: var(--lp-primary);
+  background: var(--lp-card);
+}
+.athlex-landing .station-mockup {
+  position: absolute;
+  left: 24px;
+  top: calc(50% - 32px);
+  transform: translateY(-50%);
+  width: min(340px, 29%);
+  display: flex;
+  justify-content: center;
+  padding: 16px;
+  border: 1px solid var(--lp-border);
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--lp-card) 55%, transparent);
+  color: var(--lp-foreground);
+  backdrop-filter: blur(16px);
+  z-index: 10;
+}
+.athlex-landing .station-mockup.pro-preview {
+  width: min(420px, 32%);
+  padding: 12px;
+}
+.athlex-landing .station-mockup,
+.athlex-landing .mobile-app-preview {
+  font-size: 14px;
+  line-height: 1.5;
+}
+.athlex-landing :is(.station-mockup, .mobile-app-preview) .week-day {
+  padding: 4px 3px;
+  gap: 2px;
+  flex-direction: row;
+  justify-content: space-between;
+}
+.athlex-landing :is(.station-mockup, .mobile-app-preview) .program-toggles {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 4px;
+  margin-bottom: 8px;
+}
+.athlex-landing :is(.station-mockup, .mobile-app-preview) .program-toggles button {
+  min-width: 0;
+  padding: 5px 2px;
+  flex-direction: column;
+  gap: 3px;
+}
+.athlex-landing :is(.station-mockup, .mobile-app-preview) .program-actions {
+  margin-top: 10px;
+}
+.athlex-landing :is(.station-mockup, .mobile-app-preview) .preview-tabs {
+  margin-block: 8px;
+}
+.athlex-landing :is(.station-mockup, .mobile-app-preview) .preview-tabs button {
+  padding-inline: 2px;
+}
+.athlex-landing :is(.station-mockup, .mobile-app-preview) .week-day > svg, .athlex-landing :is(.station-mockup, .mobile-app-preview) .week-day > strong {
+  display: none;
+}
+.athlex-landing :is(.station-mockup, .mobile-app-preview) .week-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.athlex-landing :is(.station-mockup, .mobile-app-preview) .program-actions {
+  flex-wrap: wrap;
+}
+.athlex-landing .mobile-app-toggle,
+.athlex-landing .mobile-app-preview {
+  display: none;
+}
+.athlex-landing :is(.station-mockup, .mobile-app-preview) .phone-wrap {
+  max-width: 270px;
+}
+.athlex-landing :is(.station-mockup, .mobile-app-preview) .phone-status {
+  height: 32px;
+  padding-block: 5px;
+  line-height: 20px;
+}
+.athlex-landing :is(.station-mockup, .mobile-app-preview) .phone-bottom {
+  padding: 10px;
+}
+.athlex-landing :is(.station-mockup, .mobile-app-preview) .mockup-body {
+  padding: 12px;
+}
+.athlex-landing :is(.station-mockup, .mobile-app-preview) .mockup-brand {
+  padding-bottom: 8px;
+}
+.athlex-landing :is(.station-mockup, .mobile-app-preview) .mockup-main h3 {
+  font-size: 18px;
+  margin-bottom: 10px;
+}
+.athlex-landing :is(.station-mockup, .mobile-app-preview) .workout-card {
+  padding: 10px;
+  gap: 4px;
+}
+.athlex-landing :is(.station-mockup, .mobile-app-preview) .timer-digits {
+  font-size: 36px;
+}
+.athlex-landing :is(.station-mockup, .mobile-app-preview) .mockup-cta {
+  margin-top: 10px;
+}
+.athlex-landing :is(.station-mockup, .mobile-app-preview) .movement-row {
+  padding-block: 9px;
+}
+.athlex-landing :is(.station-mockup, .mobile-app-preview) .mockup-caption {
+  margin-block: 8px 0;
+}
+.athlex-landing :is(.station-mockup, .mobile-app-preview) .phone-mockup .mockup-brand {
+  display: none;
+}
+.athlex-landing :is(.station-mockup, .mobile-app-preview) .movement-icon {
+  width: 20px;
+  height: 20px;
+}
+.athlex-landing :is(.station-mockup, .mobile-app-preview) .movement-row {
+  padding-block: 7px;
+}
+.athlex-landing :is(.station-mockup, .mobile-app-preview)
+  :is(.clock-preview, .badge-preview, .arena-preview, .security-preview) {
+  padding: 12px 8px;
+  gap: 10px;
+}
+.athlex-landing :is(.station-mockup, .mobile-app-preview) .clock-preview strong {
+  font-size: 56px;
+  line-height: 1.1;
+}
+.athlex-landing :is(.station-mockup, .mobile-app-preview) .timer-formats > span {
+  padding-block: 6px;
+}
+.athlex-landing :is(.station-mockup, .mobile-app-preview) .arena-preview > svg {
+  width: 44px;
+  height: 44px;
+}
+.athlex-landing :is(.station-mockup, .mobile-app-preview) .community-symbol {
+  padding: 16px;
+}
+.athlex-landing :is(.station-mockup, .mobile-app-preview) .mockup-screenshot {
+  max-height: calc(100svh - var(--lp-header-height) - 200px);
+  object-fit: contain;
+}
+@keyframes lp-panel-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.athlex-landing .tour-map {
+  position: absolute;
+  right: 24px;
+  bottom: 24px;
+  z-index: 25;
+  display: flex;
+  flex-direction: column-reverse;
+  width: 300px;
+  background: var(--lp-glass);
+  border: 1px solid var(--lp-border);
+  border-radius: 8px;
+  backdrop-filter: blur(24px);
+  overflow: hidden;
+}
+.athlex-landing .tour-map-toggle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 16px;
+  font-size: 14px;
+  min-height: 52px;
+}
+.athlex-landing .tour-map-toggle > svg:first-child {
+  color: var(--lp-primary);
+}
+.athlex-landing .tour-map-toggle > svg:last-child {
+  margin-left: auto;
+}
+.athlex-landing .tour-map-content {
+  padding: 14px 14px 0;
+}
+.athlex-landing .tour-map-content > p {
+  font-size: 14px;
+  color: var(--lp-muted-foreground);
+  margin: 12px 0;
+}
+.athlex-landing .floor-plan {
+  position: relative;
+  aspect-ratio: 26 / 41;
+  background: var(--lp-card);
+  width: 100%;
+  border-radius: 4px;
+}
+.athlex-landing .floor-plan-path {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.athlex-landing .plan-walls,
+.athlex-landing .plan-door,
+.athlex-landing .plan-office,
+.athlex-landing .plan-lane,
+.athlex-landing .plan-route {
+  fill: none;
+  stroke: var(--lp-muted-foreground);
+  stroke-width: 0.14;
+}
+.athlex-landing .plan-door,
+.athlex-landing .plan-office {
+  stroke: var(--lp-primary);
+}
+.athlex-landing .plan-lane {
+  opacity: 0.2;
+  stroke-width: 0.06;
+}
+.athlex-landing .plan-fixture {
+  fill: var(--lp-muted-foreground);
+  opacity: 0.6;
+}
+.athlex-landing .plan-route {
+  stroke: var(--lp-primary);
+  stroke-width: 0.1;
+  opacity: 0.65;
+}
+.athlex-landing .plan-step {
+  fill: var(--lp-primary);
+}
+.athlex-landing .plan-number {
+  fill: var(--lp-background);
+  font-size: 0.85px;
+  font-weight: 600;
+}
+.athlex-landing .floor-plan-station {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  color: var(--lp-muted-foreground);
+  font-size: 14px;
+  line-height: 1.2;
+  z-index: 1;
+}
+.athlex-landing .plan-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 1px solid currentColor;
+}
+.athlex-landing .on-route .plan-dot {
+  border-color: transparent;
+}
+.athlex-landing .floor-plan-station.on-route {
+  color: var(--lp-foreground);
+}
+.athlex-landing .floor-plan-station.is-current {
+  color: var(--lp-primary);
+  z-index: 2;
+}
+.athlex-landing .is-current .plan-dot {
+  width: 22px;
+  height: 22px;
+  border: 2px solid var(--lp-primary);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--lp-primary) 15%, transparent);
+}
+.athlex-landing .plan-label {
+  position: absolute;
+  top: 26px;
+  width: max-content;
+  max-width: 100px;
+  text-align: center;
+  white-space: normal;
+  padding: 2px 4px;
+  background: var(--lp-card);
+}
+.athlex-landing .label-right {
+  left: 12px;
+}
+.athlex-landing .label-left {
+  right: 12px;
+}
+.athlex-landing .floor-plan-station:hover .plan-label {
+  color: var(--lp-primary);
+  text-decoration: underline;
+}
+.athlex-landing .fallback-location {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 16px 0 0;
+  font-size: 14px;
+  color: var(--lp-primary);
+}
+.athlex-landing .gym-fallback {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 4% 90px;
+}
+.athlex-landing .gym-fallback .floor-plan {
+  width: min(430px, calc((100svh - var(--lp-header-height) - 155px) * 0.634));
+  flex-shrink: 0;
+}
+.athlex-landing .gym-screen.has-panel .gym-fallback {
+  padding-inline: 33%;
+}
+.athlex-landing .gym-screen[data-mode="plan"]:not(.has-panel) .gym-fallback {
+  padding-left: 38%;
+}
+.athlex-landing .store-badges {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+.athlex-landing .store-badge {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  border: 1px solid var(--lp-border);
+  border-radius: 6px;
+  padding: 10px 14px;
+}
+.athlex-landing .store-badge > span:last-child {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.athlex-landing .store-badge small {
+  font-size: 14px;
+  color: var(--lp-muted-foreground);
+}
+.athlex-landing .store-badge strong {
+  font-size: 16px;
+  font-weight: 500;
+}
+.athlex-landing .play-glyph {
+  width: 0;
+  height: 0;
+  border-left: 17px solid var(--lp-foreground);
+  border-top: 11px solid transparent;
+  border-bottom: 11px solid transparent;
+}
+.athlex-landing .mockup-wrap {
+  position: relative;
+  width: 100%;
+}
+.athlex-landing .phone-wrap {
+  max-width: 260px;
+}
+.athlex-landing .phone-mockup {
+  width: 100%;
+  border: 4px solid var(--lp-muted-foreground);
+  border-radius: 30px;
+  background: var(--lp-background);
+  overflow: hidden;
+}
+.athlex-landing .phone-status {
+  height: 42px;
+  padding: 10px 18px;
+  display: flex;
+  justify-content: space-between;
+  font-size: 14px;
+  position: relative;
+}
+.athlex-landing .phone-island {
+  position: absolute;
+  top: 6px;
+  left: 50%;
+  transform: translateX(-50%);
+  height: 18px;
+  width: 64px;
+  background: var(--lp-card);
+  border-radius: 20px;
+}
+.athlex-landing .mockup-body {
+  padding: 16px;
+}
+.athlex-landing .mockup-main {
+  min-width: 0;
+}
+.athlex-landing .mockup-brand {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 20px;
+}
+.athlex-landing .mockup-brand > span:first-child {
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 600;
+}
+.athlex-landing .mini-avatar {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  background: var(--lp-card);
+  border: 1px solid var(--lp-border);
+  border-radius: 50%;
+  font-size: 14px;
+}
+.athlex-landing .mockup-eyebrow {
+  font-size: 14px;
+  color: var(--lp-primary);
+  margin-bottom: 8px;
+}
+.athlex-landing .mockup-main h3 {
+  font-size: 20px;
+  line-height: 1.3;
+  margin: 0 0 15px;
+  font-family: var(--font-display);
+  text-transform: uppercase;
+  font-weight: 500;
+}
+.athlex-landing .preview-tabs {
+  display: flex;
+  align-items: center;
+  padding: 4px;
+  background: var(--lp-card);
+  border-radius: 4px;
+  margin: 12px 0;
+  gap: 3px;
+}
+.athlex-landing .preview-tabs button {
+  flex: 1;
+  padding: 7px 4px;
+  font-size: 14px;
+  color: var(--lp-muted-foreground);
+  border-radius: 3px;
+}
+.athlex-landing .preview-tabs button[aria-pressed="true"] {
+  background: var(--lp-background);
+  color: var(--lp-foreground);
+}
+.athlex-landing .workout-card {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  padding: 15px;
+  border: 1px solid var(--lp-border);
+  background: var(--lp-card);
+  border-radius: 7px;
+}
+.athlex-landing .workout-card > div {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 14px;
+}
+.athlex-landing .workout-card > span {
+  color: var(--lp-muted-foreground);
+  font-size: 14px;
+}
+.athlex-landing .timer-digits {
+  font-family: var(--font-display);
+  font-size: 42px;
+  line-height: 1.1;
+  font-weight: 500;
+}
+.athlex-landing .movement-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border-bottom: 1px solid var(--lp-border);
+  padding: 14px 0;
+  font-size: 14px;
+}
+.athlex-landing .movement-row > strong:last-child,
+.athlex-landing .movement-row > svg:last-child {
+  margin-left: auto;
+}
+.athlex-landing .movement-icon {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 5px;
+  background: var(--lp-card);
+  flex-shrink: 0;
+}
+.athlex-landing .mockup-cta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: var(--lp-primary);
+  color: var(--lp-background);
+  padding: 11px 8px;
+  font-size: 14px;
+  border-radius: 4px;
+  margin-top: 15px;
+}
+.athlex-landing .phone-bottom {
+  display: flex;
+  justify-content: space-around;
+  color: var(--lp-muted-foreground);
+  border-top: 1px solid var(--lp-border);
+  padding: 15px 10px 20px;
+}
+.athlex-landing .phone-bottom svg:nth-child(2) {
+  color: var(--lp-primary);
+}
+.athlex-landing .mockup-caption,
+.athlex-landing .mockup-disclaimer {
+  text-align: center;
+  margin: 16px 0 0;
+  font-size: 14px;
+  color: var(--lp-muted-foreground);
+  line-height: 1.6;
+}
+.athlex-landing .browser-mockup {
+  width: 100%;
+  border: 1px solid var(--lp-border);
+  border-radius: 8px;
+  background: var(--lp-background);
+  overflow: hidden;
+}
+.athlex-landing .browser-chrome {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  height: 35px;
+  padding: 0 10px;
+  background: var(--lp-card);
+  border-bottom: 1px solid var(--lp-border);
+  color: var(--lp-muted-foreground);
+  font-size: 14px;
+}
+.athlex-landing .browser-dots {
+  display: flex;
+  gap: 4px;
+}
+.athlex-landing .browser-dots i {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--lp-muted-foreground);
+}
+.athlex-landing .manager-body {
+  padding: 14px;
+}
+.athlex-landing .manager-sidebar {
+  display: none;
+}
+.athlex-landing .program-toggles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.athlex-landing .program-toggles button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  border: 1px solid var(--lp-border);
+  border-radius: 5px;
+  padding: 8px;
+  font-size: 14px;
+  flex: 1;
+  min-width: 95px;
+}
+.athlex-landing .tiny-switch {
+  width: 20px;
+  height: 12px;
+  border-radius: 12px;
+  background: var(--lp-card);
+  position: relative;
+  flex-shrink: 0;
+}
+.athlex-landing .tiny-switch:after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--lp-muted-foreground);
+}
+.athlex-landing .tiny-switch.on {
+  background: var(--lp-primary);
+}
+.athlex-landing .tiny-switch.on:after {
+  left: 10px;
+  background: var(--lp-background);
+}
+.athlex-landing .week-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 7px;
+}
+.athlex-landing .week-day {
+  border: 1px solid var(--lp-border);
+  border-radius: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  padding: 9px;
+  font-size: 14px;
+}
+.athlex-landing .week-day > span {
+  color: var(--lp-muted-foreground);
+}
+.athlex-landing .week-day > svg {
+  color: var(--lp-primary);
+}
+.athlex-landing .week-day strong {
+  font-weight: 500;
+}
+.athlex-landing .program-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 16px;
+  font-size: 14px;
+  flex-wrap: wrap;
+}
+.athlex-landing .program-actions > span,
+.athlex-landing .program-actions > button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.athlex-landing .program-actions > span {
+  color: var(--lp-muted-foreground);
+}
+.athlex-landing .program-actions > button {
+  background: var(--lp-primary);
+  color: var(--lp-background);
+  padding: 9px 12px;
+  border-radius: 3px;
+}
+.athlex-landing .program-reveal {
+  font-size: 14px;
+  color: var(--lp-muted-foreground);
+  margin: 12px 0;
+}
+.athlex-landing .generation-log {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 14px;
+  padding-top: 10px;
+  border-top: 1px solid var(--lp-border);
+}
+.athlex-landing .generation-log svg {
+  color: var(--lp-primary);
+}
+.athlex-landing .mockup-screenshot {
+  width: 100%;
+  height: auto;
+  object-fit: contain;
+}
+.athlex-landing .clock-preview,
+.athlex-landing .badge-preview,
+.athlex-landing .arena-preview,
+.athlex-landing .security-preview {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  padding: 26px 8px;
+  text-align: center;
+  color: var(--lp-primary);
+}
+.athlex-landing .clock-preview strong {
+  font-family: var(--font-display);
+  font-size: 70px;
+  font-weight: 500;
+}
+.athlex-landing .timer-formats {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 6px;
+}
+.athlex-landing .timer-formats > span {
+  border: 1px solid var(--lp-border);
+  font-size: 14px;
+  text-align: center;
+  padding: 9px 0;
+  border-radius: 3px;
+}
+.athlex-landing .badge-shelf {
+  display: flex;
+  justify-content: space-around;
+  border-top: 1px solid var(--lp-border);
+  padding: 30px 0;
+  color: var(--lp-muted-foreground);
+}
+.athlex-landing .community-symbol {
+  display: grid;
+  place-items: center;
+  padding: 30px;
+  color: var(--lp-primary);
+}
+.athlex-landing .role-status {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--lp-primary);
+  margin-left: auto;
+}
+.athlex-landing .security-inline {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  color: var(--lp-primary);
+  font-size: 14px;
+  padding: 20px 0;
+}
+.athlex-landing .booking-days {
+  display: flex;
+  justify-content: space-between;
+  padding: 15px 0;
+  font-size: 14px;
+  color: var(--lp-muted-foreground);
+}
+.athlex-landing .booking-days .selected {
+  color: var(--lp-primary);
+}
+.athlex-landing .shared-zone {
+  padding: 80px 5%;
+  border-bottom: 1px solid var(--lp-border);
+}
+.athlex-landing .zone-sign {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  border: 1px solid var(--lp-border);
+  background: var(--lp-card);
+  border-radius: 3px;
+  padding: 8px 14px;
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+.athlex-landing .shared-heading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 22px;
+  text-align: center;
+  max-width: 800px;
+  margin: 0 auto 45px;
+}
+.athlex-landing .shared-heading h2 {
+  margin: 0;
+  font-size: clamp(40px, 4.5vw, 66px);
+  font-weight: 500;
+  line-height: 1.15;
+  text-transform: uppercase;
+  text-wrap: balance;
+}
+.athlex-landing .shared-heading > p {
+  margin: 0;
+  color: var(--lp-muted-foreground);
+  line-height: 1.6;
+}
+.athlex-landing .billing-switch {
+  display: flex;
+  padding: 5px;
+  border: 1px solid var(--lp-border);
+  border-radius: 6px;
+  background: var(--lp-card);
+}
+.athlex-landing .billing-switch button {
+  padding: 10px 22px;
+  font-size: 14px;
+  color: var(--lp-muted-foreground);
+  border-radius: 3px;
+}
+.athlex-landing .billing-switch button[aria-pressed="true"] {
+  background: var(--lp-foreground);
+  color: var(--lp-background);
+}
+.athlex-landing .pricing-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  max-width: 900px;
+  margin: auto;
+}
+.athlex-landing .price-card {
+  position: relative;
+  border: 1px solid var(--lp-border);
+  border-radius: 10px;
+  padding: 32px;
+  background: color-mix(in srgb, var(--lp-card) 60%, var(--lp-background));
+}
+.athlex-landing .popular-plan {
+  border-color: color-mix(in srgb, var(--lp-primary) 60%, transparent);
+}
+.athlex-landing .popular-label {
+  position: absolute;
+  top: -14px;
+  right: 24px;
+  background: var(--lp-primary);
+  color: var(--lp-background);
+  border-radius: 4px;
+  padding: 5px 13px;
+  font-size: 14px;
+  font-weight: 500;
+}
+.athlex-landing .plan-heading h3 {
+  margin: 0;
+  text-transform: uppercase;
+  font-size: 30px;
+  font-weight: 500;
+}
+.athlex-landing .plan-heading p {
+  font-size: 14px;
+  color: var(--lp-muted-foreground);
+  line-height: 1.6;
+  min-height: 45px;
+}
+.athlex-landing .plan-price {
+  display: flex;
+  align-items: baseline;
+  gap: 9px;
+}
+.athlex-landing .plan-price strong {
+  font-size: 62px;
+  font-weight: 500;
+  line-height: 1.1;
+}
+.athlex-landing .plan-price strong > span {
+  font-size: 32px;
+}
+.athlex-landing .plan-price > span {
+  color: var(--lp-muted-foreground);
+  font-size: 14px;
+}
+.athlex-landing .billing-note {
+  color: var(--lp-muted-foreground);
+  font-size: 14px;
+  margin: 12px 0 26px;
+}
+.athlex-landing .price-card > .button {
+  display: flex;
+  width: 100%;
+}
+.athlex-landing .plan-features {
+  list-style: none;
+  padding: 25px 0 0;
+  margin: 25px 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  border-top: 1px solid var(--lp-border);
+}
+.athlex-landing .plan-features li {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 14px;
+  line-height: 1.6;
+}
+.athlex-landing .plan-features svg {
+  color: var(--lp-primary);
+  flex-shrink: 0;
+  margin-top: 3px;
+}
+.athlex-landing .pricing-reassurance {
+  text-align: center;
+  color: var(--lp-muted-foreground);
+  font-size: 14px;
+  margin: 28px 0 0;
+}
+.athlex-landing .plan-stripe {
+  font-size: 14px;
+  color: var(--lp-muted-foreground);
+  margin: 24px 0 0;
+}
+.athlex-landing .faq-list {
+  max-width: 830px;
+  margin: auto;
+}
+.athlex-landing .faq-list [data-slot="accordion-trigger"] {
+  padding-block: 23px;
+  font-size: 16px;
+  line-height: 1.5;
+  gap: 20px;
+}
+.athlex-landing .faq-list [data-slot="accordion-content"] {
+  color: var(--lp-muted-foreground);
+  font-size: 15px;
+  line-height: 1.6;
+}
+.athlex-landing .faq-list [data-slot="accordion-content"] > div {
+  padding-bottom: 24px;
+}
+.athlex-landing .exit-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 27px;
+  text-align: center;
+}
+.athlex-landing .exit-symbol {
+  width: 75px;
+  height: 90px;
+  display: grid;
+  place-items: center;
+  color: var(--lp-primary);
+  border: 1px solid var(--lp-border);
+  border-bottom: 3px solid var(--lp-primary);
+}
+.athlex-landing .exit-section h2 {
+  margin: 0;
+  font-size: clamp(44px, 5vw, 76px);
+  font-weight: 500;
+  line-height: 1.2;
+  text-transform: uppercase;
+  text-wrap: balance;
+  max-width: 800px;
+}
+.athlex-landing .exit-section > p {
+  margin: 0;
+  color: var(--lp-muted-foreground);
+  line-height: 1.6;
+}
+.athlex-landing .exit-actions {
+  display: flex;
+  gap: 14px;
+}
+.athlex-landing .exit-section .store-badges {
+  margin-top: 12px;
+}
+.athlex-landing .site-footer {
+  padding: 48px 5% 28px;
+}
+.athlex-landing .footer-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 40px;
+}
+.athlex-landing .footer-top p {
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--lp-muted-foreground);
+  max-width: 330px;
+  margin: 20px 0 0;
+}
+.athlex-landing .footer-top nav {
+  display: flex;
+  align-items: flex-start;
+  gap: 25px;
+  font-size: 14px;
+  color: var(--lp-muted-foreground);
+  padding-top: 15px;
+}
+.athlex-landing .footer-bottom {
+  display: flex;
+  justify-content: space-between;
+  gap: 25px;
+  border-top: 1px solid var(--lp-border);
+  margin-top: 40px;
+  padding-top: 25px;
+  font-size: 14px;
+  color: var(--lp-muted-foreground);
+}
+.athlex-landing .testimonial-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 25px;
+  max-width: 1200px;
+  margin: auto;
+}
+.athlex-landing .testimonial-card {
+  border: 1px solid var(--lp-border);
+  border-radius: 8px;
+  padding: 25px;
+  line-height: 1.6;
+}
+.athlex-landing .testimonial-card figcaption {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-top: 25px;
+}
+.athlex-landing .testimonial-card figcaption span {
+  color: var(--lp-muted-foreground);
+  font-size: 14px;
+}
+@media (max-width: 1200px) {
+  .athlex-landing .desktop-nav {
+    gap: 14px;
+  }
+  .athlex-landing .header-inner {
+    gap: 16px;
+    padding-inline: 4%;
+  }
+  .athlex-landing .header-actions {
+    gap: 14px;
+  }
+  .athlex-landing .hero-layout {
+    gap: 32px;
+  }
+  .athlex-landing .profile-door {
+    padding: 20px 16px;
+  }
+  .athlex-landing .profile-door strong {
+    font-size: 17px;
+  }
+  .athlex-landing .hero h1 {
+    font-size: clamp(34px, 3.4vw, 46px);
+  }
+}
+@media (max-width: 1023px) {
+  .athlex-landing {
+    --lp-header-height: 72px;
+  }
+  .athlex-landing .desktop-nav {
+    display: none;
+  }
+  .athlex-landing .mobile-menu-button {
+    display: flex;
+    padding: 7px;
+  }
+  .athlex-landing .mobile-nav {
+    display: flex;
+    flex-direction: column;
+    padding: 10px 5% 25px;
+    border-top: 1px solid var(--lp-border);
+    background: var(--lp-background);
+  }
+  .athlex-landing .mobile-nav a {
+    display: flex;
+    justify-content: space-between;
+    padding: 12px 0;
+    color: var(--lp-muted-foreground);
+    font-size: 15px;
+  }
+  .athlex-landing .hero-layout {
+    gap: 24px;
+  }
+  .athlex-landing .profile-doors {
+    flex-direction: column;
+  }
+  .athlex-landing .profile-door {
+    min-height: 140px;
+    gap: 8px;
+  }
+  .athlex-landing .door-top {
+    flex: 0;
+    margin-bottom: 8px;
+  }
+  .athlex-landing .hero-bottom > div > span:last-child {
+    display: none;
+  }
+  .athlex-landing .station-panel {
+    width: 45%;
+    right: 16px;
+  }
+  .athlex-landing .station-mockup {
+    display: none;
+  }
+  .athlex-landing .gym-heading {
+    max-width: 50%;
+  }
+  .athlex-landing .tour-controls {
+    left: 16px;
+  }
+  .athlex-landing .tour-map {
+    right: 16px;
+    width: 290px;
+  }
+  .athlex-landing .tour-current {
+    min-width: 150px;
+    gap: 8px;
+  }
+  .athlex-landing .gym-screen.has-panel .gym-fallback {
+    padding-left: 3%;
+    padding-right: 49%;
+  }
+}
+@media (max-width: 767px) {
+  .athlex-landing {
+    --lp-header-height: 66px;
+  }
+  .athlex-landing .header-inner {
+    padding: 0 5%;
+    gap: 12px;
+  }
+  .athlex-landing .brand > span {
+    font-size: 23px;
+  }
+  .athlex-landing .brand img {
+    width: 29px;
+    height: 29px;
+  }
+  .athlex-landing .header-actions {
+    gap: 12px;
+  }
+  .athlex-landing .header-trial,
+  .athlex-landing .login-link {
+    display: none;
+  }
+  .athlex-landing .language-switch {
+    gap: 5px;
+  }
+  .athlex-landing .hero {
+    padding: 0 6%;
+  }
+  .athlex-landing .hero-topline {
+    min-height: 50px;
+    font-size: 14px;
+    letter-spacing: 0.3px;
+  }
+  .athlex-landing .hero-topline > span:last-child {
+    display: none;
+  }
+  .athlex-landing .hero-layout {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 24px;
+    padding: 24px 0;
+  }
+  .athlex-landing .hero-eyebrow {
+    font-size: 14px;
+    letter-spacing: 0.7px;
+    margin-bottom: 12px;
+  }
+  .athlex-landing .hero h1 {
+    font-size: clamp(32px, 8.2vw, 54px);
+    letter-spacing: -0.6px;
+  }
+  .athlex-landing .hero-subtitle {
+    font-size: 14px;
+    margin-top: 16px;
+  }
+  .athlex-landing .entrance-choice {
+    width: 100%;
+    max-width: none;
+  }
+  .athlex-landing .entrance-caption {
+    font-size: 14px;
+    letter-spacing: 0.2px;
+    margin-bottom: 12px;
+  }
+  .athlex-landing .profile-doors {
+    flex-direction: row;
+    gap: 10px;
+  }
+  .athlex-landing .profile-door {
+    min-height: 160px;
+    padding: 16px 12px;
+    gap: 10px;
+  }
+  .athlex-landing .profile-door strong {
+    font-size: 14px;
+  }
+  .athlex-landing .profile-door > span:last-child {
+    font-size: 14px;
+  }
+  .athlex-landing .door-top {
+    flex: 1;
+  }
+  .athlex-landing .door-reassurance {
+    font-size: 14px;
+    margin-top: 12px;
+  }
+  .athlex-landing .hero-bottom {
+    min-height: 64px;
+  }
+  .athlex-landing .hero-bottom > div {
+    display: none;
+  }
+  .athlex-landing .gym-screen {
+    min-height: 0;
+  }
+  .athlex-landing .gym-heading {
+    top: 20px;
+    left: 20px;
+    max-width: 90%;
+  }
+  .athlex-landing .gym-screen[data-mode="3d"] .gym-heading {
+    top: auto;
+    bottom: 92px;
+    left: 12px;
+    right: 12px;
+    max-width: none;
+    padding: 16px 12px;
+    background: var(--lp-glass);
+    color: var(--lp-foreground);
+    border: 1px solid var(--lp-border);
+    border-radius: 12px;
+  }
+  .athlex-landing .gym-heading p {
+    font-size: 14px;
+    letter-spacing: 1px;
+  }
+  .athlex-landing .gym-heading h2 {
+    font-size: 32px;
+  }
+  .athlex-landing .gym-heading > span {
+    display: block;
+  }
+  .athlex-landing .gym-screen.has-panel .gym-heading {
+    display: none;
+  }
+  .athlex-landing .station-panel {
+    top: auto;
+    bottom: 82px;
+    left: 12px;
+    right: 12px;
+    width: auto;
+    max-height: none;
+    transform: none;
+    border-radius: 16px 16px 8px 8px;
+  }
+  .athlex-landing .station-panel.show-app .station-copy,
+  .athlex-landing .station-panel.show-app .station-tabs {
+    display: none;
+  }
+  .athlex-landing .mobile-app-toggle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    color: var(--lp-primary);
+    min-height: 32px;
+  }
+  .athlex-landing .mobile-app-preview {
+    display: flex;
+    justify-content: center;
+  }
+  .athlex-landing .mobile-app-preview .phone-wrap {
+    max-width: 270px;
+  }
+  .athlex-landing .mobile-app-preview .mockup-body {
+    padding: 10px;
+  }
+  .athlex-landing .mobile-app-preview .movement-row {
+    padding-block: 6px;
+  }
+  .athlex-landing .mobile-app-preview .phone-status {
+    height: 28px;
+  }
+  .athlex-landing .mobile-app-preview .week-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .athlex-landing .mobile-app-preview .program-actions {
+    flex-wrap: wrap;
+  }
+  .athlex-landing .station-panel-heading {
+    padding: 6px 12px;
+  }
+  .athlex-landing .station-panel-body {
+    padding: 12px 16px;
+    gap: 10px;
+  }
+  .athlex-landing .station-copy > h3 {
+    font-size: 25px;
+  }
+  .athlex-landing .station-text {
+    gap: 10px;
+  }
+  .athlex-landing .station-text > ul {
+    gap: 7px;
+  }
+  .athlex-landing .station-text > p {
+    line-height: 1.45;
+  }
+  .athlex-landing .station-continue {
+    padding: 14px 16px;
+  }
+  .athlex-landing .station-copy {
+    gap: 14px;
+  }
+  .athlex-landing .station-tabs {
+    margin-bottom: 0;
+  }
+  .athlex-landing .tour-controls {
+    left: 12px;
+    bottom: 16px;
+    padding: 3px;
+    max-width: calc(100% - 84px);
+    gap: 0;
+  }
+  .athlex-landing .tour-play {
+    padding: 6px 8px;
+  }
+  .athlex-landing .tour-play svg {
+    display: none;
+  }
+  .athlex-landing .tour-controls:has(.tour-play) .tour-current {
+    width: 90px;
+  }
+  .athlex-landing .reception-links .store-badge {
+    padding: 6px;
+  }
+  .athlex-landing .reception-links .store-badge > svg,
+  .athlex-landing .reception-links .play-glyph {
+    display: none;
+  }
+  .athlex-landing .tour-current {
+    min-width: 0;
+    padding: 8px;
+    width: 150px;
+    gap: 4px;
+  }
+  .athlex-landing .tour-current > span {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .athlex-landing .tour-current .tour-moving {
+    display: none;
+  }
+  .athlex-landing .tour-map {
+    right: 12px;
+    bottom: 16px;
+    width: auto;
+    max-width: calc(100% - 24px);
+    overflow: visible;
+  }
+  .athlex-landing .tour-map-toggle {
+    padding: 16px;
+    min-height: 52px;
+  }
+  .athlex-landing .tour-map-toggle > span,
+  .athlex-landing .tour-map-toggle > svg:last-child {
+    display: none;
+  }
+  .athlex-landing .tour-map-content {
+    position: absolute;
+    bottom: 64px;
+    right: 0;
+    width: min(320px, calc(100vw - 24px));
+    padding: 14px;
+    background: var(--lp-background);
+    border: 1px solid var(--lp-border);
+    border-radius: 8px;
+    max-height: calc(100svh - 180px);
+    overflow: auto;
+  }
+  .athlex-landing .tour-map-content .floor-plan {
+    aspect-ratio: 26 / 41;
+  }
+  .athlex-landing .tour-map-content > p {
+    margin-bottom: 0;
+  }
+  .athlex-landing .floor-plan-station {
+    font-size: 14px;
+  }
+  .athlex-landing .gym-screen[data-mode="plan"]:not(.has-panel) .gym-fallback,
+  .athlex-landing .gym-fallback {
+    padding: 340px 20px 75px;
+  }
+  .athlex-landing .gym-fallback .floor-plan {
+    width: min(100%, calc((100svh - var(--lp-header-height) - 440px) * 0.634));
+    aspect-ratio: 26 / 41;
+  }
+  .athlex-landing .gym-screen.has-panel .gym-fallback {
+    padding: 16px 20px 85px;
+    justify-content: flex-start;
+  }
+  .athlex-landing .gym-screen.has-panel .gym-fallback .floor-plan {
+    width: min(100%, 300px);
+  }
+  .athlex-landing .shared-zone {
+    padding: 60px 6%;
+  }
+  .athlex-landing .shared-heading {
+    gap: 18px;
+    margin-bottom: 32px;
+  }
+  .athlex-landing .shared-heading h2 {
+    font-size: 39px;
+  }
+  .athlex-landing .pricing-grid {
+    grid-template-columns: 1fr;
+    gap: 28px;
+  }
+  .athlex-landing .price-card {
+    padding: 26px;
+  }
+  .athlex-landing .plan-heading p {
+    min-height: 0;
+  }
+  .athlex-landing .exit-section h2 {
+    font-size: 42px;
+  }
+  .athlex-landing .exit-actions {
+    flex-direction: column;
+    width: 100%;
+  }
+  .athlex-landing .exit-section .store-badges {
+    justify-content: center;
+  }
+  .athlex-landing .footer-top,
+  .athlex-landing .footer-bottom {
+    flex-direction: column;
+    gap: 24px;
+  }
+  .athlex-landing .footer-top nav {
+    flex-wrap: wrap;
+    gap: 20px;
+  }
+  .athlex-landing .footer-bottom {
+    line-height: 1.6;
+  }
+  .athlex-landing .testimonial-grid {
+    grid-template-columns: 1fr;
+  }
+  .athlex-landing .site-footer {
+    padding: 36px 6% 26px;
+  }
+}
+@media (max-height: 740px) and (min-width: 768px) {
+  .athlex-landing .hero-topline {
+    min-height: 56px;
+  }
+  .athlex-landing .hero-layout {
+    padding: 24px 0;
+  }
+  .athlex-landing .hero h1 {
+    font-size: clamp(34px, 3.4vw, 46px);
+  }
+  .athlex-landing .profile-door {
+    min-height: 230px;
+  }
+  .athlex-landing .hero-bottom {
+    min-height: 68px;
+  }
+  .athlex-landing .station-mockup {
+    padding: 10px;
+  }
+  .athlex-landing :is(.station-mockup, .mobile-app-preview) .phone-wrap {
+    max-width: 270px;
+  }
+  .athlex-landing .station-panel {
+    top: 16px;
+    transform: none;
+  }
+  .athlex-landing .station-panel-body {
+    padding: 12px 16px;
+    gap: 10px;
+  }
+  .athlex-landing .station-copy > h3 {
+    font-size: 24px;
+  }
+  .athlex-landing .station-text > p {
+    line-height: 1.45;
+  }
+  .athlex-landing .station-text > ul {
+    gap: 6px;
+  }
+  .athlex-landing .station-copy,
+  .athlex-landing .station-text {
+    gap: 10px;
+  }
+  .athlex-landing .station-continue {
+    padding: 12px 16px;
+  }
+  .athlex-landing .station-panel-heading {
+    padding-block: 0;
+  }
+  .athlex-landing .station-tabs button {
+    padding-block: 7px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .athlex-landing *,
+  .athlex-landing *::before,
+  .athlex-landing *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+  .athlex-landing .profile-door:hover {
+    transform: none;
+  }
+}
+
+/* Accordéon de la FAQ (components/ui/accordion.tsx, Radix) : couleurs de la
+   landing plutôt que les jetons du Manager, focus en anneau comme la maquette. */
+.athlex-landing .faq-list [data-slot="accordion-item"] {
+  border-color: var(--lp-border);
+}
+/* En Tailwind 3, `outline-none` vaut « 2px solid transparent » : la couleur
+   de contour posée plus haut sur tous les éléments le rendrait visible. La
+   maquette (Tailwind 4, où `outline-none` retire le contour) n'en a pas. */
+.athlex-landing .faq-list [data-slot="accordion-trigger"] {
+  border-color: transparent;
+  outline: none;
+}
+.athlex-landing .faq-list [data-slot="accordion-trigger"]:focus-visible {
+  outline: none;
+  border-color: var(--lp-primary);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--lp-primary) 50%, transparent);
+}
+.athlex-landing .faq-list [data-slot="accordion-trigger-icon"] {
+  color: var(--lp-muted-foreground);
+}
+.athlex-landing .faq-list [data-slot="accordion-content"] a:hover {
+  color: var(--lp-foreground);
+}

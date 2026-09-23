@@ -25,10 +25,10 @@ export function LandingHeader({ variant = 'full' }: { variant?: 'full' | 'funnel
   // Ancres préfixées : le header vit aussi sur /box, /classement et /privacy,
   // où un « #pricing » nu ne mènerait nulle part.
   const nav = [
-    { href: '/landing#features', label: t.nav.features },
-    { href: '/landing#app', label: t.nav.app },
+    { href: '/landing#salle', label: t.nav.features },
+    { href: '/landing#salle', label: t.nav.app },
     { href: '/classement', label: t.nav.ranking },
-    { href: '/landing#pricing', label: t.nav.pricing },
+    { href: '/landing#tarifs', label: t.nav.pricing },
     { href: '/landing#faq', label: t.faq.tag },
     { href: '/box', label: t.nav.boxes },
   ];
@@ -61,7 +61,7 @@ export function LandingHeader({ variant = 'full' }: { variant?: 'full' | 'funnel
         >
           {nav.map((item) => (
             <a
-              key={item.href}
+              key={item.label}
               href={item.href}
               className="whitespace-nowrap text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
             >
@@ -101,7 +101,7 @@ export function LandingHeader({ variant = 'full' }: { variant?: 'full' | 'funnel
           <nav className="flex flex-col gap-1" aria-label="Mobile">
             {nav.map((item) => (
               <a
-                key={item.href}
+                key={item.label}
                 href={item.href}
                 onClick={() => setOpen(false)}
                 className="rounded-md px-2 py-2.5 text-sm font-medium text-muted-foreground hover:bg-accent hover:text-foreground"
