@@ -15,13 +15,18 @@ import {
   WodFormState, formatCap, movementLines, sharedWodColumns,
 } from '@/lib/wodFields';
 import { disciplineLabel } from '@/lib/disciplines';
+import { softVar } from '@/lib/colorVars';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
 
 const DISCIPLINES = ['crossfit', 'hyrox', 'hybrid', 'haltero', 'endurance'];
 const LEVELS = ['all', 'beginner', 'intermediate', 'advanced'];
 const LEVEL_LABEL: Record<string, string> = {
   all: 'Tous niveaux', beginner: 'Débutant', intermediate: 'Intermédiaire', advanced: 'Avancé',
 };
-const INPUT_CLS = 'w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-white/30';
+const INPUT_CLS = 'w-full min-h-11 rounded-ax-control border border-ax-input-border bg-ax-surface px-3 py-2.5 text-base sm:text-sm text-ax-text placeholder:text-ax-text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ax-focus focus-visible:ring-offset-2 focus-visible:ring-offset-ax-surface transition-colors';
 
 function readCookie(name: string): string | null {
   if (typeof document === 'undefined') return null;
@@ -195,14 +200,14 @@ export default function MarketplaceWorkspace({ tab }: { tab: 'catalogue' | 'mine
   const myBoxIds = new Set(myBoxes.map((b) => b.id));
 
   if (loading) {
-    return <div className="flex items-center justify-center h-64"><Loader2 className="animate-spin text-white/40" /></div>;
+    return <div className="flex items-center justify-center h-64"><Loader2 className="animate-spin text-ax-text-muted" /></div>;
   }
 
   return (
     <div>
       {loadError && (
-        <div className="bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3 mb-6">
-          <p className="text-sm text-red-300">
+        <div className="bg-ax-danger-soft border border-ax-danger rounded-ax-control px-4 py-3 mb-6">
+          <p className="text-sm text-ax-danger">
             Lecture incomplète : {loadError}. Les listes ci-dessous peuvent être vides pour cette raison,
             pas parce qu&apos;il n&apos;y a rien.
           </p>
@@ -254,29 +259,26 @@ function Catalogue({
     <div>
       <div className="flex flex-wrap gap-2 mb-5">
         <div className="relative flex-1 min-w-[180px]">
-          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
-          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Rechercher…"
-            className="w-full pl-9 pr-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-white/30" />
+          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-ax-text-muted" />
+          <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Rechercher…" className="pl-9" />
         </div>
         <select value={fDiscipline} onChange={(e) => setFDiscipline(e.target.value)}
-          className="px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm text-white">
+          className={`${INPUT_CLS} w-auto`}>
           <option value="">Toutes disciplines</option>
           {DISCIPLINES.map((d) => <option key={d} value={d}>{disciplineLabel(d)}</option>)}
         </select>
         <select value={fLevel} onChange={(e) => setFLevel(e.target.value)}
-          className="px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm text-white">
+          className={`${INPUT_CLS} w-auto`}>
           <option value="">Tous niveaux</option>
           {LEVELS.map((l) => <option key={l} value={l}>{LEVEL_LABEL[l]}</option>)}
         </select>
-        <button onClick={() => setFFree(!fFree)}
-          className={`px-3 py-2 rounded-lg text-sm font-semibold border transition-colors ${
-            fFree ? 'bg-white text-black border-white' : 'bg-white/5 text-gray-300 border-white/10'}`}>
+        <Button variant={fFree ? 'ax-white' : 'ax-outline'} onClick={() => setFFree(!fFree)} aria-pressed={fFree} className="h-11 font-semibold">
           Gratuit
-        </button>
+        </Button>
       </div>
 
       {visible.length === 0 ? (
-        <div className="text-center py-16 text-gray-500 text-sm">Aucune programmation disponible pour ces filtres.</div>
+        <div className="text-center py-16 text-ax-text-muted text-sm">Aucune programmation disponible pour ces filtres.</div>
       ) : (
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {visible.map((p) => {
@@ -286,24 +288,24 @@ function Catalogue({
             const filled = perWeek.filter((n) => n > 0).length;
             const cardColor = subscribed ? subscriptionColorVar(liveSubs[0]?.color) : null;
             return (
-              <div
+              <Card
                 key={p.id}
-                className={`rounded-2xl bg-white/[0.03] border p-5 flex flex-col ${cardColor ? 'border-2' : 'border-white/10'}`}
+                className={`p-5 flex flex-col ${cardColor ? 'border-2' : ''}`}
                 style={cardColor ? { borderColor: cardColor } : undefined}
               >
                 <div className="flex items-start justify-between gap-2 mb-2">
-                  <button onClick={() => setDetail(p)} className="text-left font-bold text-white text-base leading-tight hover:underline">{p.title}</button>
+                  <button onClick={() => setDetail(p)} className="text-left font-bold text-ax-text text-base leading-tight hover:underline">{p.title}</button>
                   {p.billing === 'free'
-                    ? <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400">Gratuit</span>
-                    : <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded bg-white/10 text-white">{(p.price_cents / 100).toFixed(0)}€{p.billing === 'monthly' ? '/mois' : ''}</span>}
+                    ? <Badge variant="success" className="text-[10px] font-black uppercase px-2 py-0.5">Gratuit</Badge>
+                    : <Badge variant="neutral" className="text-[10px] font-black uppercase px-2 py-0.5">{(p.price_cents / 100).toFixed(0)}€{p.billing === 'monthly' ? '/mois' : ''}</Badge>}
                 </div>
-                <p className="text-xs text-gray-500 mb-1">par {p.publisher_name}</p>
+                <p className="text-xs text-ax-text-muted mb-1">par {p.publisher_name}</p>
                 {p.goal
-                  ? <p className="text-sm text-gray-300 mb-1 line-clamp-1" title={p.goal}>Objectif : {p.goal}</p>
-                  : p.description && <p className="text-sm text-gray-400 mb-1 line-clamp-2">{p.description}</p>}
-                <p className="text-xs text-gray-500 mb-3">
+                  ? <p className="text-sm text-ax-text-secondary mb-1 line-clamp-1" title={p.goal}>Objectif : {p.goal}</p>
+                  : p.description && <p className="text-sm text-ax-text-secondary mb-1 line-clamp-2">{p.description}</p>}
+                <p className="text-xs text-ax-text-muted mb-3">
                   {(p.wods_total ?? 0) === 0
-                    ? <span className="text-amber-400 flex items-center gap-1"><AlertTriangle size={11} /> Aucun WOD pour l&apos;instant</span>
+                    ? <span className="text-ax-warning flex items-center gap-1"><AlertTriangle size={11} /> Aucun WOD pour l&apos;instant</span>
                     : `${p.wods_total} WOD · ${filled}/${p.weeks_count} semaine${p.weeks_count > 1 ? 's' : ''} remplie${filled > 1 ? 's' : ''}`}
                 </p>
                 <div className="flex flex-wrap gap-1.5 mb-4 mt-auto">
@@ -312,23 +314,22 @@ function Catalogue({
                   {p.days_per_week && <Tag>{p.days_per_week} j/sem</Tag>}
                   <Tag>{p.weeks_count} sem</Tag>
                 </div>
-                <button onClick={() => setDetail(p)} className="mb-2 text-xs font-semibold text-gray-400 hover:text-white flex items-center gap-1">
+                <button onClick={() => setDetail(p)} className="mb-2 text-xs font-semibold text-ax-text-secondary hover:text-ax-text flex items-center gap-1">
                   <Info size={12} /> Voir le détail
                 </button>
                 {subscribed ? (
                   <div className="space-y-2">
-                    <div className="flex items-center justify-center gap-2 py-2 rounded-lg bg-emerald-500/10 text-emerald-400 text-sm font-bold">
+                    <div className="flex items-center justify-center gap-2 py-2 rounded-ax-control bg-ax-success-soft text-ax-success text-sm font-bold">
                       <Check size={15} /> Abonné
                     </div>
                     <SubscriptionOptions subscriptions={liveSubs} onChanged={onChanged} />
                   </div>
                 ) : (
-                  <button onClick={() => setSubModal(p)}
-                    className="py-2 rounded-lg bg-white text-black text-sm font-bold hover:bg-gray-200 transition-colors">
+                  <Button variant="ax-white" onClick={() => setSubModal(p)}>
                     S&apos;abonner
-                  </button>
+                  </Button>
                 )}
-              </div>
+              </Card>
             );
           })}
         </div>
@@ -360,14 +361,14 @@ function OfferDetailPanel({ programming: p, subscribed, onClose, onSubscribe }: 
   const perWeek = p.wods_per_week ?? [];
   const preview = p.preview_week1 ?? [];
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4" onClick={onClose}>
-      <div className="w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl bg-[#111] border border-white/10 p-6" onClick={(e) => e.stopPropagation()}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-ax-overlay backdrop-blur-ax-glass p-4" onClick={onClose}>
+      <Card className="w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-ax-panel shadow-ax-panel p-6" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-start justify-between gap-3 mb-1">
           <div>
-            <h3 className="text-lg font-black text-white">{p.title}</h3>
-            <p className="text-xs text-gray-500">par {p.publisher_name}</p>
+            <h3 className="text-lg font-black text-ax-text">{p.title}</h3>
+            <p className="text-xs text-ax-text-muted">par {p.publisher_name}</p>
           </div>
-          <button onClick={onClose} className="text-gray-500 hover:text-white"><X size={18} /></button>
+          <button onClick={onClose} className="text-ax-text-muted hover:text-ax-text"><X size={18} /></button>
         </div>
         <div className="flex flex-wrap gap-1.5 my-3">
           {p.discipline && <Tag>{disciplineLabel(p.discipline)}</Tag>}
@@ -378,35 +379,35 @@ function OfferDetailPanel({ programming: p, subscribed, onClose, onSubscribe }: 
           <Tag>{p.wods_total ?? 0} WOD</Tag>
         </div>
 
-        {p.description && <p className="text-sm text-gray-300 whitespace-pre-line mb-4">{p.description}</p>}
+        {p.description && <p className="text-sm text-ax-text-secondary whitespace-pre-line mb-4">{p.description}</p>}
 
         <dl className="grid sm:grid-cols-3 gap-3 mb-4">
           {([['Objectif', p.goal], ['Public visé', p.target_audience], ['Matériel', p.equipment]] as const).map(([k, v]) => (
-            <div key={k} className="rounded-xl bg-white/[0.03] border border-white/10 p-3">
-              <dt className="text-[10px] font-black uppercase tracking-wider text-gray-500 mb-1">{k}</dt>
-              <dd className="text-sm text-gray-200">{v || <span className="text-gray-600">Non renseigné</span>}</dd>
+            <div key={k} className="rounded-ax-control bg-ax-surface border border-ax-border p-3">
+              <dt className="text-[10px] font-black uppercase tracking-wider text-ax-text-muted mb-1">{k}</dt>
+              <dd className="text-sm text-ax-text">{v || <span className="text-ax-text-muted">Non renseigné</span>}</dd>
             </div>
           ))}
         </dl>
 
-        <p className="text-[10px] font-black uppercase tracking-wider text-gray-500 mb-1.5">WOD par semaine</p>
+        <p className="text-[10px] font-black uppercase tracking-wider text-ax-text-muted mb-1.5">WOD par semaine</p>
         <div className="flex flex-wrap gap-1.5 mb-4">
           {perWeek.map((n, i) => (
-            <span key={i} className={`px-2 py-1 rounded-lg text-xs font-bold border ${n > 0 ? 'bg-white/5 text-white border-white/10' : 'bg-amber-500/5 text-amber-400 border-amber-500/20'}`}>
+            <span key={i} className={`px-2 py-1 rounded-ax-control text-xs font-bold border ${n > 0 ? 'bg-ax-surface-secondary text-ax-text border-ax-border' : 'bg-ax-warning-soft text-ax-warning border-ax-warning'}`}>
               S{i + 1} : {n > 0 ? `${n} WOD` : 'vide'}
             </span>
           ))}
         </div>
 
-        <p className="text-[10px] font-black uppercase tracking-wider text-gray-500 mb-1.5">Aperçu de la semaine 1</p>
+        <p className="text-[10px] font-black uppercase tracking-wider text-ax-text-muted mb-1.5">Aperçu de la semaine 1</p>
         {preview.length === 0 ? (
-          <p className="text-xs text-gray-500 mb-4">La semaine 1 est vide.</p>
+          <p className="text-xs text-ax-text-muted mb-4">La semaine 1 est vide.</p>
         ) : (
           <div className="space-y-1.5 mb-4">
             {preview.map((d) => (
               <div key={d.day} className="flex gap-3 text-sm">
-                <span className="w-20 shrink-0 text-[11px] font-black uppercase text-gray-400 pt-0.5">{DAY_LABELS[d.day - 1] ?? `J${d.day}`}</span>
-                <ul className="text-gray-200">
+                <span className="w-20 shrink-0 text-[11px] font-black uppercase text-ax-text-secondary pt-0.5">{DAY_LABELS[d.day - 1] ?? `J${d.day}`}</span>
+                <ul className="text-ax-text">
                   {d.titles.map((t, i) => <li key={i}>{t}</li>)}
                 </ul>
               </div>
@@ -414,16 +415,16 @@ function OfferDetailPanel({ programming: p, subscribed, onClose, onSubscribe }: 
           </div>
         )}
 
-        <p className="text-[11px] text-gray-500 mb-4">
+        <p className="text-[11px] text-ax-text-muted mb-4">
           Avec l&apos;application automatique, la semaine 1 se pose dans ton Whiteboard le dimanche suivant à 18h ; tu peux aussi la poser tout de suite depuis le Whiteboard (« Programmation »). Le contenu reçu n&apos;est pas modifiable, mais tu choisis qui le voit.
         </p>
 
         {subscribed ? (
-          <div className="flex items-center justify-center gap-2 py-2 rounded-lg bg-emerald-500/10 text-emerald-400 text-sm font-bold"><Check size={15} /> Abonné</div>
+          <div className="flex items-center justify-center gap-2 py-2 rounded-ax-control bg-ax-success-soft text-ax-success text-sm font-bold"><Check size={15} /> Abonné</div>
         ) : (
-          <button onClick={onSubscribe} className="w-full py-2.5 rounded-lg bg-white text-black text-sm font-bold hover:bg-gray-200">S&apos;abonner</button>
+          <Button variant="ax-white" onClick={onSubscribe} className="w-full">S&apos;abonner</Button>
         )}
-      </div>
+      </Card>
     </div>
   );
 }
@@ -474,28 +475,28 @@ function SubscriptionOptions({
   return (
     <div className="space-y-2">
       <div className="flex items-center gap-1.5" role="radiogroup" aria-label="Couleur de l'abonnement">
-        <span className="text-[10px] font-semibold text-gray-500 mr-1">Couleur</span>
+        <span className="text-[10px] font-semibold text-ax-text-muted mr-1">Couleur</span>
         {SUBSCRIPTION_COLORS.map((c) => (
           <button key={c} type="button" role="radio" aria-checked={c === color} disabled={saving}
             onClick={() => setColor(c)} title={c}
-            className={`w-4 h-4 rounded-full border-2 transition-transform ${c === color ? 'border-white scale-110' : 'border-transparent opacity-70 hover:opacity-100'}`}
+            className={`w-4 h-4 rounded-full border-2 transition-transform ${c === color ? 'border-ax-text scale-110' : 'border-transparent opacity-70 hover:opacity-100'}`}
             style={{ backgroundColor: subscriptionColorVar(c) }} />
         ))}
       </div>
       <button onClick={toggle} disabled={saving}
-        className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-[11px] font-bold border transition-colors ${
-          on ? 'bg-white/10 text-white border-white/20' : 'bg-white/[0.02] text-gray-400 border-white/10 hover:text-white'}`}>
-        <span className={`w-3.5 h-3.5 rounded border flex items-center justify-center shrink-0 ${on ? 'bg-white border-white' : 'border-white/30'}`}>
-          {on && <Check size={10} className="text-black" />}
+        className={`w-full flex items-center gap-2 px-3 py-2 rounded-ax-control text-[11px] font-bold border transition-colors ${
+          on ? 'bg-ax-surface-secondary text-ax-text border-ax-input-border' : 'bg-ax-surface-secondary text-ax-text-secondary border-ax-border hover:text-ax-text'}`}>
+        <span className={`w-3.5 h-3.5 rounded border flex items-center justify-center shrink-0 ${on ? 'bg-ax-text border-ax-text' : 'border-ax-input-border'}`}>
+          {on && <Check size={10} className="text-ax-background" />}
         </span>
         <span className="text-left leading-tight">
           Application automatique chaque semaine
-          <span className="block text-[10px] font-semibold text-gray-500 normal-case">
+          <span className="block text-[10px] font-semibold text-ax-text-muted normal-case">
             {on ? 'La semaine due se pose seule le dimanche 18h (semaine 1 le premier dimanche).' : 'Tu poses les semaines depuis le Whiteboard, « Programmation ».'}
           </span>
         </span>
       </button>
-      {error && <p className="text-[10px] text-red-400 mt-1">{error}</p>}
+      {error && <p className="text-[10px] text-ax-danger mt-1">{error}</p>}
       <UnsubscribeLink subscriptions={subscriptions} onChanged={onChanged} />
     </div>
   );
@@ -521,7 +522,7 @@ function UnsubscribeLink({
   if (pending.length === subscriptions.length) {
     const end = pending[0]?.current_period_end;
     return (
-      <p className="text-[10px] text-amber-400 text-center">
+      <p className="text-[10px] text-ax-warning text-center">
         Résiliation demandée{end ? ` — effective le ${new Date(end).toLocaleDateString('fr-FR')}` : ' — effective à la fin de la période'}
       </p>
     );
@@ -553,35 +554,34 @@ function UnsubscribeLink({
   return (
     <>
       <button type="button" onClick={() => setOpen(true)}
-        className="w-full text-[11px] text-gray-500 hover:text-red-400 underline underline-offset-2 text-center">
+        className="w-full text-[11px] text-ax-text-muted hover:text-ax-danger underline underline-offset-2 text-center">
         Se désabonner
       </button>
       {open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4" onClick={() => !saving && setOpen(false)}>
-          <div className="w-full max-w-md rounded-2xl bg-[#111] border border-white/10 p-6" onClick={(e) => e.stopPropagation()}>
-            <h3 className="text-lg font-black text-white mb-2">Se désabonner de cette programmation ?</h3>
-            <p className="text-sm text-gray-400 mb-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-ax-overlay backdrop-blur-ax-glass p-4" onClick={() => !saving && setOpen(false)}>
+          <Card className="w-full max-w-md rounded-ax-panel shadow-ax-panel p-6" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-lg font-black text-ax-text mb-2">Se désabonner de cette programmation ?</h3>
+            <p className="text-sm text-ax-text-secondary mb-4">
               {paid
                 ? 'L\u2019abonnement Stripe sera résilié à la fin de la période en cours ; jusque-là les semaines continuent de se poser.'
                 : 'Plus aucune semaine ne se posera dans ton Whiteboard. Tu pourras te réabonner plus tard, ta couleur sera conservée.'}
             </p>
-            <label className="flex items-start gap-2 text-sm text-gray-200 cursor-pointer mb-2">
+            <label className="flex items-start gap-2 text-sm text-ax-text cursor-pointer mb-2">
               <input type="checkbox" checked={removeFuture} onChange={(e) => setRemoveFuture(e.target.checked)} className="mt-0.5" />
               <span>Retirer aussi les séances déjà posées dans mon Whiteboard à partir de la semaine prochaine</span>
             </label>
-            <p className="text-[11px] text-gray-500 mb-5">
+            <p className="text-[11px] text-ax-text-muted mb-5">
               Les semaines passées et la semaine en cours ne sont jamais supprimées : les scores et l&apos;ELO enregistrés sont conservés.
             </p>
-            {error && <p className="text-xs text-red-400 mb-3">{error}</p>}
-            <div className="flex gap-2 justify-end">
-              <button type="button" disabled={saving} onClick={() => setOpen(false)}
-                className="px-4 py-2 rounded-lg text-sm font-semibold text-gray-300 hover:text-white">Annuler</button>
-              <button type="button" disabled={saving} onClick={confirm}
-                className="px-4 py-2 rounded-lg bg-red-500 text-white text-sm font-bold hover:bg-red-400 disabled:opacity-50 flex items-center gap-2">
+            {error && <p className="text-xs text-ax-danger mb-3">{error}</p>}
+            <div className="flex gap-2 justify-end flex-wrap">
+              <Button type="button" variant="ax-outline" disabled={saving} onClick={() => setOpen(false)}>Annuler</Button>
+              <Button type="button" variant="ax-outline" disabled={saving} onClick={confirm}
+                className="border-ax-danger bg-ax-danger text-ax-background hover:brightness-110 hover:bg-ax-danger">
                 {saving && <Loader2 size={14} className="animate-spin" />} Se désabonner
-              </button>
+              </Button>
             </div>
-          </div>
+          </Card>
         </div>
       )}
     </>
@@ -589,7 +589,7 @@ function UnsubscribeLink({
 }
 
 function Tag({ children }: { children: React.ReactNode }) {
-  return <span className="text-[11px] font-semibold px-2 py-0.5 rounded bg-white/5 text-gray-300 border border-white/10">{children}</span>;
+  return <span className="text-[11px] font-semibold px-2 py-0.5 rounded-ax-badge bg-ax-surface-secondary text-ax-text-secondary border border-ax-border">{children}</span>;
 }
 
 /* ────────────────── Subscribe modal (multi-box opt-out) ────────────────── */
@@ -663,47 +663,46 @@ function SubscribeModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4" onClick={onClose}>
-      <div className="w-full max-w-md rounded-2xl bg-[#111] border border-white/10 p-6" onClick={(e) => e.stopPropagation()}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-ax-overlay backdrop-blur-ax-glass p-4" onClick={onClose}>
+      <Card className="w-full max-w-md rounded-ax-panel shadow-ax-panel p-6" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-1">
-          <h3 className="text-lg font-black text-white">S&apos;abonner</h3>
-          <button onClick={onClose} className="text-gray-500 hover:text-white"><X size={18} /></button>
+          <h3 className="text-lg font-black text-ax-text">S&apos;abonner</h3>
+          <button onClick={onClose} className="text-ax-text-muted hover:text-ax-text"><X size={18} /></button>
         </div>
-        <p className="text-sm text-gray-400 mb-4">{programming.title}</p>
+        <p className="text-sm text-ax-text-secondary mb-4">{programming.title}</p>
         {programming.billing !== 'free' && (
-          <p className="text-xs text-amber-300/90 bg-amber-500/10 border border-amber-500/20 rounded-lg px-3 py-2 mb-3">
+          <p className="text-xs text-ax-warning bg-ax-warning-soft border border-ax-warning rounded-ax-control px-3 py-2 mb-3">
             Offre payante ({(programming.price_cents / 100).toFixed(0)}€{programming.billing === 'monthly' ? '/mois' : ''}) — paiement sécurisé Stripe, une box à la fois.
           </p>
         )}
-        <p className="text-xs text-gray-500 mb-2">Diffuser à mes boxs (décochez celles à exclure) :</p>
+        <p className="text-xs text-ax-text-muted mb-2">Diffuser à mes boxs (décochez celles à exclure) :</p>
         <div className="space-y-1.5 mb-4 max-h-60 overflow-y-auto">
           {myBoxes.map((b) => {
             const already = alreadyIds.has(b.id);
             const on = selected.has(b.id);
             return (
               <button key={b.id} disabled={already} onClick={() => toggle(b.id)}
-                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg border text-left transition-colors ${
-                  already ? 'border-white/5 bg-white/[0.02] opacity-50 cursor-not-allowed'
-                    : on ? 'border-white/30 bg-white/10' : 'border-white/10 bg-white/[0.02] hover:bg-white/5'}`}>
-                <div className={`w-5 h-5 rounded border flex items-center justify-center ${on || already ? 'bg-white border-white' : 'border-white/30'}`}>
-                  {(on || already) && <Check size={12} color="#000" strokeWidth={3} />}
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-ax-control border text-left transition-colors ${
+                  already ? 'border-ax-border bg-ax-surface-secondary opacity-50 cursor-not-allowed'
+                    : on ? 'border-ax-input-border bg-ax-surface-secondary' : 'border-ax-border bg-ax-surface-secondary hover:bg-ax-hover'}`}>
+                <div className={`w-5 h-5 rounded border flex items-center justify-center ${on || already ? 'bg-ax-text border-ax-text' : 'border-ax-input-border'}`}>
+                  {(on || already) && <Check size={12} className="text-ax-background" strokeWidth={3} />}
                 </div>
-                <span className="text-sm font-semibold text-white flex-1">{b.name}</span>
-                {already && <span className="text-[10px] text-emerald-400 font-bold">déjà abonnée</span>}
+                <span className="text-sm font-semibold text-ax-text flex-1">{b.name}</span>
+                {already && <span className="text-[10px] text-ax-success font-bold">déjà abonnée</span>}
               </button>
             );
           })}
         </div>
-        {error && <p className="text-xs text-red-400 mb-3">{error}</p>}
-        <button onClick={confirm} disabled={saving}
-          className="w-full py-2.5 rounded-lg bg-white text-black text-sm font-bold hover:bg-gray-200 disabled:opacity-60 flex items-center justify-center gap-2">
+        {error && <p className="text-xs text-ax-danger mb-3">{error}</p>}
+        <Button variant="ax-white" onClick={confirm} disabled={saving} className="w-full">
           {saving && <Loader2 size={15} className="animate-spin" />}
           Confirmer l&apos;abonnement
-        </button>
-        <p className="text-[11px] text-gray-500 mt-3 text-center">
+        </Button>
+        <p className="text-[11px] text-ax-text-muted mt-3 text-center">
           Rien ne se pose tout seul tant que l&apos;application automatique n&apos;est pas cochée. Cochée, la semaine 1 arrive dans le Whiteboard le dimanche suivant à 18h ; sinon tu la poses quand tu veux depuis le Whiteboard (« Programmation »), en choisissant qui la voit.
         </p>
-      </div>
+      </Card>
     </div>
   );
 }
@@ -736,54 +735,54 @@ function MyOffers({ offers, activeBoxId, onChanged }: {
 
   return (
     <div>
-      <div className="flex justify-between items-center mb-5">
-        <p className="text-sm text-gray-400">Vos programmations publiées pour d&apos;autres boxs.</p>
+      <div className="flex justify-between items-center gap-3 flex-wrap mb-5">
+        <p className="text-sm text-ax-text-secondary">Vos programmations publiées pour d&apos;autres boxs.</p>
         {/* Sans box active, la création échouerait à l'enregistrement : le bouton
             le dit avant, il ne le découvre pas après un formulaire rempli. */}
-        <button onClick={() => setEditing('new')} disabled={!activeBoxId}
+        <Button variant="ax-white" size="ax-compact" onClick={() => setEditing('new')} disabled={!activeBoxId}
           title={activeBoxId ? undefined : 'Aucune box active : recharge la page ou reconnecte-toi'}
-          className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-white text-black text-sm font-bold hover:bg-gray-200 disabled:opacity-40 disabled:cursor-not-allowed">
+          className="h-auto px-3.5 py-2 text-sm">
           <Plus size={15} /> Nouvelle programmation
-        </button>
+        </Button>
       </div>
 
       {offers.length === 0 ? (
-        <div className="text-center py-16 text-gray-500 text-sm">
+        <div className="text-center py-16 text-ax-text-muted text-sm">
           <Package size={32} className="mx-auto mb-3 opacity-40" />
           Vous n&apos;avez pas encore publié de programmation.
         </div>
       ) : (
         <div className="space-y-3">
           {offers.map((o) => (
-            <div key={o.id} className="rounded-2xl bg-white/[0.03] border border-white/10 p-5">
-              <div className="flex items-start justify-between gap-3">
+            <Card key={o.id} className="p-5">
+              <div className="flex items-start justify-between gap-3 flex-wrap">
                 <div className="min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    <h3 className="font-bold text-white">{o.title}</h3>
+                  <div className="flex items-center gap-2 mb-1 flex-wrap">
+                    <h3 className="font-bold text-ax-text">{o.title}</h3>
                     {o.is_published
-                      ? <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 flex items-center gap-1"><Globe size={10} /> Publiée</span>
-                      : <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded bg-white/10 text-gray-400 flex items-center gap-1"><Lock size={10} /> Brouillon</span>}
+                      ? <Badge variant="success" className="text-[10px] font-black uppercase px-2 py-0.5 gap-1"><Globe size={10} /> Publiée</Badge>
+                      : <Badge variant="neutral" className="text-[10px] font-black uppercase px-2 py-0.5 gap-1"><Lock size={10} /> Brouillon</Badge>}
                   </div>
-                  <p className="text-xs text-gray-500">
+                  <p className="text-xs text-ax-text-muted">
                     {o.discipline ? disciplineLabel(o.discipline) : ''} · {LEVEL_LABEL[o.level ?? 'all']} · {o.weeks_count} sem · {o.billing === 'free' ? 'Gratuit' : `${(o.price_cents / 100).toFixed(0)}€${o.billing === 'monthly' ? '/mois' : ''}`}
                   </p>
                   {publishError?.id === o.id && (
-                    <div className="mt-2 text-xs text-amber-300 bg-amber-500/10 border border-amber-500/20 rounded-lg px-3 py-2">
+                    <div className="mt-2 text-xs text-ax-warning bg-ax-warning-soft border border-ax-warning rounded-ax-control px-3 py-2">
                       <p className="font-semibold">Publication refusée : {publishError.message}</p>
-                      <p className="text-amber-300/70 mt-1">Remplis les semaines vides depuis le Whiteboard (« Copier vers une offre » ou la case « Mes offres Marketplace » du formulaire WOD), ou ici via le crayon.</p>
+                      <p className="text-ax-warning mt-1">Remplis les semaines vides depuis le Whiteboard (« Copier vers une offre » ou la case « Mes offres Marketplace » du formulaire WOD), ou ici via le crayon.</p>
                     </div>
                   )}
                 </div>
                 <div className="flex items-center gap-1.5 shrink-0">
-                  <button onClick={() => togglePublish(o)} disabled={publishing === o.id} title={o.is_published ? 'Dépublier' : 'Publier'}
-                    className="px-2.5 py-1.5 rounded-lg bg-white/5 border border-white/10 text-xs font-semibold text-gray-300 hover:text-white disabled:opacity-50">
+                  <Button variant="ax-outline" size="ax-compact" onClick={() => togglePublish(o)} disabled={publishing === o.id} title={o.is_published ? 'Dépublier' : 'Publier'}
+                    className="text-xs text-ax-text-secondary hover:text-ax-text">
                     {publishing === o.id ? <Loader2 size={12} className="animate-spin" /> : o.is_published ? 'Dépublier' : 'Publier'}
-                  </button>
-                  <button onClick={() => setEditing(o)} className="p-2 rounded-lg bg-white/5 border border-white/10 text-gray-400 hover:text-white"><Pencil size={14} /></button>
-                  <button onClick={() => remove(o)} className="p-2 rounded-lg bg-white/5 border border-white/10 text-gray-400 hover:text-red-400"><Trash2 size={14} /></button>
+                  </Button>
+                  <Button variant="ax-outline" size="ax-compact" onClick={() => setEditing(o)} className="w-8 px-0 text-ax-text-secondary hover:text-ax-text" aria-label="Modifier"><Pencil size={14} /></Button>
+                  <Button variant="ax-outline" size="ax-compact" onClick={() => remove(o)} className="w-8 px-0 text-ax-text-secondary hover:text-ax-danger hover:border-ax-danger" aria-label="Supprimer"><Trash2 size={14} /></Button>
                 </div>
               </div>
-            </div>
+            </Card>
           ))}
         </div>
       )}
@@ -938,17 +937,16 @@ function OfferEditor({ offer, publisherBoxId, onClose, onSaved }: {
   const weekWods = wods.filter((w) => w.week_number === week).sort((a, b) => a.day_of_week - b.day_of_week);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4" onClick={onClose}>
-      <div className="w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl bg-[#111] border border-white/10 p-6" onClick={(e) => e.stopPropagation()}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-ax-overlay backdrop-blur-ax-glass p-4" onClick={onClose}>
+      <Card className="w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-ax-panel shadow-ax-panel p-6" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-black text-white">{offerId ? 'Modifier la programmation' : 'Nouvelle programmation'}</h3>
-          <button onClick={onClose} className="text-gray-500 hover:text-white"><X size={18} /></button>
+          <h3 className="text-lg font-black text-ax-text">{offerId ? 'Modifier la programmation' : 'Nouvelle programmation'}</h3>
+          <button onClick={onClose} className="text-ax-text-muted hover:text-ax-text"><X size={18} /></button>
         </div>
 
         <div className="space-y-3 mb-4">
           <Field label="Titre">
-            <input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })}
-              className={INPUT_CLS} placeholder="Ex. Programmation Compétiteur — Bloc Force" />
+            <Input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="Ex. Programmation Compétiteur — Bloc Force" />
           </Field>
           <Field label="Description">
             <textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })}
@@ -956,19 +954,16 @@ function OfferEditor({ offer, publisherBoxId, onClose, onSaved }: {
           </Field>
           <div className="grid sm:grid-cols-3 gap-3">
             <Field label="Objectif">
-              <input value={form.goal} onChange={(e) => setForm({ ...form, goal: e.target.value })}
-                className={INPUT_CLS} placeholder="Ex. Force + capacité aérobie" />
+              <Input value={form.goal} onChange={(e) => setForm({ ...form, goal: e.target.value })} placeholder="Ex. Force + capacité aérobie" />
             </Field>
             <Field label="Public visé">
-              <input value={form.target_audience} onChange={(e) => setForm({ ...form, target_audience: e.target.value })}
-                className={INPUT_CLS} placeholder="Ex. Intermédiaires, 1 an de pratique" />
+              <Input value={form.target_audience} onChange={(e) => setForm({ ...form, target_audience: e.target.value })} placeholder="Ex. Intermédiaires, 1 an de pratique" />
             </Field>
             <Field label="Matériel">
-              <input value={form.equipment} onChange={(e) => setForm({ ...form, equipment: e.target.value })}
-                className={INPUT_CLS} placeholder="Ex. Barre, rameur, box" />
+              <Input value={form.equipment} onChange={(e) => setForm({ ...form, equipment: e.target.value })} placeholder="Ex. Barre, rameur, box" />
             </Field>
           </div>
-          <p className="text-[11px] text-gray-500">Description, objectif et public visé sont exigés à la publication, ainsi qu&apos;au moins un WOD par semaine annoncée.</p>
+          <p className="text-[11px] text-ax-text-muted">Description, objectif et public visé sont exigés à la publication, ainsi qu&apos;au moins un WOD par semaine annoncée.</p>
           <div className="grid grid-cols-2 gap-3">
             <Field label="Discipline">
               <select value={form.discipline} onChange={(e) => setForm({ ...form, discipline: e.target.value })} className={INPUT_CLS}>
@@ -981,12 +976,12 @@ function OfferEditor({ offer, publisherBoxId, onClose, onSaved }: {
               </select>
             </Field>
             <Field label="Jours / semaine">
-              <input type="number" min={1} max={7} value={form.days_per_week}
-                onChange={(e) => setForm({ ...form, days_per_week: e.target.value })} className={INPUT_CLS} />
+              <Input type="number" min={1} max={7} value={form.days_per_week}
+                onChange={(e) => setForm({ ...form, days_per_week: e.target.value })} />
             </Field>
             <Field label="Nombre de semaines">
-              <input type="number" min={1} max={52} value={form.weeks_count}
-                onChange={(e) => setForm({ ...form, weeks_count: e.target.value })} className={INPUT_CLS} />
+              <Input type="number" min={1} max={52} value={form.weeks_count}
+                onChange={(e) => setForm({ ...form, weeks_count: e.target.value })} />
             </Field>
             <Field label="Facturation">
               <select value={form.billing} onChange={(e) => setForm({ ...form, billing: e.target.value as typeof form.billing })} className={INPUT_CLS}>
@@ -997,66 +992,65 @@ function OfferEditor({ offer, publisherBoxId, onClose, onSaved }: {
             </Field>
             {form.billing !== 'free' && (
               <Field label="Prix (€)">
-                <input type="number" min={0} step="0.01" value={form.price}
-                  onChange={(e) => setForm({ ...form, price: e.target.value })} className={INPUT_CLS} />
+                <Input type="number" min={0} step="0.01" value={form.price}
+                  onChange={(e) => setForm({ ...form, price: e.target.value })} />
               </Field>
             )}
           </div>
-          {error && <p className="text-xs text-red-400">{error}</p>}
-          <button onClick={saveOffer} disabled={saving}
-            className="w-full py-2.5 rounded-lg bg-white text-black text-sm font-bold hover:bg-gray-200 disabled:opacity-60 flex items-center justify-center gap-2">
+          {error && <p className="text-xs text-ax-danger">{error}</p>}
+          <Button variant="ax-white" onClick={saveOffer} disabled={saving} className="w-full">
             {saving && <Loader2 size={15} className="animate-spin" />}
             {offerId ? 'Enregistrer' : 'Créer et ajouter des WOD'}
-          </button>
+          </Button>
         </div>
 
         {offerId && wodsLoaded && (
-          <div className="border-t border-white/10 pt-4">
+          <div className="border-t border-ax-border pt-4">
             <div className="flex items-center gap-2 mb-3 flex-wrap">
-              <span className="text-sm font-bold text-white mr-1">Semaine :</span>
+              <span className="text-sm font-bold text-ax-text mr-1">Semaine :</span>
               {Array.from({ length: weeksCount }, (_, i) => i + 1).map((w) => {
                 const n = wods.filter((x) => x.week_number === w).length;
                 return (
                   <button key={w} onClick={() => setWeek(w)} title={n ? `${n} WOD` : 'Semaine vide'}
-                    className={`relative w-8 h-8 rounded-lg text-sm font-bold ${week === w ? 'bg-white text-black' : n ? 'bg-white/5 text-gray-400 border border-white/10' : 'bg-amber-500/5 text-amber-400 border border-amber-500/20'}`}>
+                    className={`relative w-8 h-8 rounded-ax-control text-sm font-bold ${week === w ? 'bg-ax-text text-ax-background' : n ? 'bg-ax-surface-secondary text-ax-text-secondary border border-ax-border' : 'bg-ax-warning-soft text-ax-warning border border-ax-warning'}`}>
                     {w}
-                    {n > 0 && <span className="absolute -top-1 -right-1 text-[9px] leading-none px-1 py-0.5 rounded-full bg-white/20 text-white">{n}</span>}
+                    {n > 0 && <span className="absolute -top-1 -right-1 text-[9px] leading-none px-1 py-0.5 rounded-full bg-ax-surface-secondary text-ax-text">{n}</span>}
                   </button>
                 );
               })}
             </div>
-            <p className="text-[11px] text-gray-500 mb-3">Tu peux aussi remplir cette offre depuis le Whiteboard : « Copier vers une offre » pour une semaine entière, ou la case « Mes offres Marketplace » dans le formulaire d&apos;un WOD (la copie suit ensuite tes modifications).</p>
+            <p className="text-[11px] text-ax-text-muted mb-3">Tu peux aussi remplir cette offre depuis le Whiteboard : « Copier vers une offre » pour une semaine entière, ou la case « Mes offres Marketplace » dans le formulaire d&apos;un WOD (la copie suit ensuite tes modifications).</p>
             <div className="space-y-2 mb-3">
-              {weekWods.length === 0 && <p className="text-xs text-gray-500">Aucun WOD pour la semaine {week}. Ajoutez-en un jour ci-dessous.</p>}
+              {weekWods.length === 0 && <p className="text-xs text-ax-text-muted">Aucun WOD pour la semaine {week}. Ajoutez-en un jour ci-dessous.</p>}
               {weekWods.map((w) => (
                 <button key={w.id} onClick={() => openEditWod(w)}
-                  className="w-full text-left rounded-xl bg-white/[0.03] border border-white/10 p-3 hover:border-white/25 transition-colors">
-                  <div className="flex items-center gap-2 mb-1.5">
-                    <span className="text-[11px] font-black uppercase px-2 py-0.5 rounded bg-white/10 text-white">{DAY_LABELS[w.day_of_week - 1]}</span>
+                  className="w-full text-left rounded-ax-control bg-ax-surface border border-ax-border p-3 hover:border-ax-input-border transition-colors">
+                  <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+                    <span className="text-[11px] font-black uppercase px-2 py-0.5 rounded-ax-badge bg-ax-surface-secondary text-ax-text">{DAY_LABELS[w.day_of_week - 1]}</span>
                     {w.block_name && (
-                      <span className="text-[10px] font-black tracking-wider px-1.5 py-0.5 rounded"
-                        style={{ backgroundColor: `${BLOCK_COLOR[w.block_name]}20`, color: BLOCK_COLOR[w.block_name] }}>
+                      <span className="text-[10px] font-black tracking-wider px-1.5 py-0.5 rounded-ax-badge"
+                        style={{ backgroundColor: softVar(BLOCK_COLOR[w.block_name], 0.125), color: BLOCK_COLOR[w.block_name] }}>
                         {BLOCK_LABEL[w.block_name]}
                       </span>
                     )}
                     {w.wod_type && (
-                      <span className="text-[10px] font-black uppercase px-1.5 py-0.5 rounded"
-                        style={{ backgroundColor: `${TYPE_COLOR[w.wod_type]}20`, color: TYPE_COLOR[w.wod_type] }}>
+                      <span className="text-[10px] font-black uppercase px-1.5 py-0.5 rounded-ax-badge"
+                        style={{ backgroundColor: softVar(TYPE_COLOR[w.wod_type], 0.125), color: TYPE_COLOR[w.wod_type] }}>
                         {w.wod_type}
                       </span>
                     )}
-                    <span className="flex-1 text-sm font-semibold text-white truncate">{w.title}</span>
-                    {w.video_url && <Video size={12} className="text-red-400 shrink-0" />}
-                    <Pencil size={13} className="text-gray-500 shrink-0" />
+                    <span className="flex-1 text-sm font-semibold text-ax-text truncate">{w.title}</span>
+                    {w.video_url && <Video size={12} className="text-ax-danger shrink-0" />}
+                    <Pencil size={13} className="text-ax-text-muted shrink-0" />
                     <span role="button" tabIndex={0}
                       onClick={(e) => { e.stopPropagation(); delWod(w.id); }}
                       onKeyDown={(e) => { if (e.key === 'Enter') { e.stopPropagation(); delWod(w.id); } }}
-                      className="text-gray-500 hover:text-red-400 shrink-0"><Trash2 size={13} /></span>
+                      className="text-ax-text-muted hover:text-ax-danger shrink-0"><Trash2 size={13} /></span>
                   </div>
                   {w.description && (
-                    <p className="text-xs text-gray-400 whitespace-pre-line line-clamp-4">{w.description}</p>
+                    <p className="text-xs text-ax-text-secondary whitespace-pre-line line-clamp-4">{w.description}</p>
                   )}
-                  <p className="text-[11px] text-gray-600 mt-1">
+                  <p className="text-[11px] text-ax-text-muted mt-1">
                     {[
                       w.time_cap_seconds ? `Cap ${formatCap(w.time_cap_seconds)}` : null,
                       w.rounds ? `${w.rounds} rounds` : null,
@@ -1067,22 +1061,22 @@ function OfferEditor({ offer, publisherBoxId, onClose, onSaved }: {
               ))}
             </div>
             <div className="flex items-center gap-1.5 flex-wrap mb-2">
-              <span className="text-xs text-gray-500 mr-1">Ajouter :</span>
+              <span className="text-xs text-ax-text-muted mr-1">Ajouter :</span>
               {DAY_LABELS.map((d, i) => (
-                <button key={d} onClick={() => openCreateWod(i + 1)}
-                  className="px-2.5 py-1 rounded-lg bg-white/5 border border-white/10 text-xs font-semibold text-gray-300 hover:text-white">{d}</button>
+                <Button key={d} variant="ax-outline" size="ax-compact" onClick={() => openCreateWod(i + 1)}
+                  className="h-7 min-h-[28px] px-2.5 text-xs text-ax-text-secondary hover:text-ax-text">{d}</Button>
               ))}
             </div>
-            <button onClick={() => { setImportDone(null); setImportModal(true); }}
-              className="px-2.5 py-1.5 rounded-lg bg-white/5 border border-white/10 text-xs font-semibold text-gray-300 hover:text-white flex items-center gap-1.5">
+            <Button variant="ax-outline" size="ax-compact" onClick={() => { setImportDone(null); setImportModal(true); }}
+              className="text-xs text-ax-text-secondary hover:text-ax-text">
               <Upload size={12} /> Importer (CSV, JSON, PDF)
-            </button>
+            </Button>
             {importDone !== null && (
-              <p className="text-xs text-emerald-400 mt-2">{importDone} WOD importé{importDone > 1 ? 's' : ''}.</p>
+              <p className="text-xs text-ax-success mt-2">{importDone} WOD importé{importDone > 1 ? 's' : ''}.</p>
             )}
           </div>
         )}
-      </div>
+      </Card>
 
       {/* Le fond du modal d'offre ferme au clic : on isole l'éditeur de WOD. */}
       {wodModal && (
@@ -1127,7 +1121,7 @@ function OfferEditor({ offer, publisherBoxId, onClose, onSaved }: {
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <label className="block">
-      <span className="text-xs font-semibold text-gray-400 mb-1 block">{label}</span>
+      <span className="text-xs font-semibold text-ax-text-secondary mb-1 block">{label}</span>
       {children}
     </label>
   );

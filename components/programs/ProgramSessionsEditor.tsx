@@ -10,6 +10,10 @@ import WodEditor from '@/components/wods/WodEditor';
 import PdfImportModal from '@/components/wods/PdfImportModal';
 import { downloadWodCsvTemplate, parseWodImportFile } from '@/lib/wodImport';
 import { messageErreur } from '@/lib/erreurs';
+import { softVar } from '@/lib/colorVars';
+import { programColor } from '@/components/wods/RestrictionBadges';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
 import {
   BLOCK_COLOR, BLOCK_LABEL, DAY_LABELS, EMPTY_WOD_FORM, TYPE_COLOR, WodFormState, formatCap, movementLines,
 } from '@/lib/wodFields';
@@ -21,6 +25,9 @@ import {
   moveProgramWod, nombreSemaines, seanceDepuisLigneCsv, seancesDatees, seancesDeCase, seancesDeSemaine,
   setProgramWodPublished, updateProgramWod,
 } from '@/lib/programContent';
+
+const TOOLBAR_BTN = 'h-auto min-h-[32px] gap-1.5 text-xs text-ax-text-secondary hover:text-ax-text hover:border-ax-input-border';
+const ICON_BTN = 'p-1 rounded-ax-control hover:bg-ax-hover transition-colors motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ax-focus focus-visible:ring-offset-2 focus-visible:ring-offset-ax-surface';
 
 /**
  * Page « Séances » d'un programme athlète : le rendu et l'outillage du
@@ -308,11 +315,11 @@ export default function ProgramSessionsEditor({ program, userId, onClose, onChan
   // ── Carte (identique au Whiteboard, sans groupe : le programme est implicite) ──
   function Badges({ w }: { w: ProgramWod }) {
     const wt = w.wod_type ?? '';
-    const color = TYPE_COLOR[wt] ?? '#6B7280';
+    const color = TYPE_COLOR[wt] ?? 'var(--ax-neutral)';
     return (
       <>
         {w.block_name && (
-          <span className="text-[8px] font-black tracking-wider px-1 py-0.5 rounded" style={{ backgroundColor: `${BLOCK_COLOR[w.block_name]}20`, color: BLOCK_COLOR[w.block_name] }}>
+          <span className="text-[8px] font-black tracking-wider px-1 py-0.5 rounded-ax-badge" style={{ backgroundColor: softVar(BLOCK_COLOR[w.block_name], 0.125), color: BLOCK_COLOR[w.block_name] }}>
             {BLOCK_LABEL[w.block_name] ?? w.block_name}
           </span>
         )}
@@ -322,8 +329,8 @@ export default function ProgramSessionsEditor({ program, userId, onClose, onChan
             <span className="text-[9px] font-black tracking-wider truncate" style={{ color }}>{wt.toUpperCase()}</span>
           </>
         )}
-        {w.video_url && <Video size={9} className="text-red-400 shrink-0" />}
-        {w.is_published === false && <EyeOff size={9} className="text-amber-500 shrink-0" />}
+        {w.video_url && <Video size={9} className="text-ax-danger shrink-0" />}
+        {w.is_published === false && <EyeOff size={9} className="text-ax-warning shrink-0" />}
       </>
     );
   }
@@ -331,178 +338,182 @@ export default function ProgramSessionsEditor({ program, userId, onClose, onChan
   function Actions({ w, c, index, total, size = 11 }: { w: ProgramWod; c: CaseProgramme; index: number; total: number; size?: number }) {
     return (
       <>
-        <button onClick={() => moveToDay(w, 'prev')} disabled={c.day === 1} className="p-1 rounded-lg hover:bg-white/10 transition-colors disabled:opacity-25" title="Jour précédent">
-          <ArrowLeft size={size} className="text-gray-400" />
+        <button onClick={() => moveToDay(w, 'prev')} disabled={c.day === 1} className={`${ICON_BTN} disabled:opacity-25`} title="Jour précédent">
+          <ArrowLeft size={size} className="text-ax-text-secondary" />
         </button>
-        <button onClick={() => moveToDay(w, 'next')} disabled={c.day === 7} className="p-1 rounded-lg hover:bg-white/10 transition-colors disabled:opacity-25" title="Jour suivant">
-          <ArrowRight size={size} className="text-gray-400" />
+        <button onClick={() => moveToDay(w, 'next')} disabled={c.day === 7} className={`${ICON_BTN} disabled:opacity-25`} title="Jour suivant">
+          <ArrowRight size={size} className="text-ax-text-secondary" />
         </button>
         {total > 1 && (
           <>
-            <button onClick={() => moveInDay(c, index, 'up')} disabled={index === 0} className="p-1 rounded-lg hover:bg-white/10 transition-colors disabled:opacity-25" title="Monter">
-              <ChevronUp size={size} className="text-gray-400" />
+            <button onClick={() => moveInDay(c, index, 'up')} disabled={index === 0} className={`${ICON_BTN} disabled:opacity-25`} title="Monter">
+              <ChevronUp size={size} className="text-ax-text-secondary" />
             </button>
-            <button onClick={() => moveInDay(c, index, 'down')} disabled={index === total - 1} className="p-1 rounded-lg hover:bg-white/10 transition-colors disabled:opacity-25" title="Descendre">
-              <ChevronDown size={size} className="text-gray-400" />
+            <button onClick={() => moveInDay(c, index, 'down')} disabled={index === total - 1} className={`${ICON_BTN} disabled:opacity-25`} title="Descendre">
+              <ChevronDown size={size} className="text-ax-text-secondary" />
             </button>
           </>
         )}
-        <button onClick={() => togglePublish(w)} className="p-1 rounded-lg hover:bg-white/10 transition-colors" title={w.is_published === false ? 'Publier' : 'Dépublier'}>
-          {w.is_published === false ? <EyeOff size={size} className="text-gray-500" /> : <Eye size={size} className="text-emerald-400" />}
+        <button onClick={() => togglePublish(w)} className={ICON_BTN} title={w.is_published === false ? 'Publier' : 'Dépublier'}>
+          {w.is_published === false ? <EyeOff size={size} className="text-ax-text-muted" /> : <Eye size={size} className="text-ax-success" />}
         </button>
-        <button onClick={() => openEdit(w)} className="p-1 rounded-lg hover:bg-white/10 transition-colors" title="Modifier">
-          <Pencil size={size} className="text-white" />
+        <button onClick={() => openEdit(w)} className={ICON_BTN} title="Modifier">
+          <Pencil size={size} className="text-ax-text" />
         </button>
-        <button onClick={() => remove(w)} className="p-1 rounded-lg hover:bg-red-500/10 transition-colors" title="Supprimer">
-          <Trash2 size={size} className="text-red-400" />
+        <button onClick={() => remove(w)} className={`${ICON_BTN} hover:bg-ax-danger-soft`} title="Supprimer">
+          <Trash2 size={size} className="text-ax-danger" />
         </button>
       </>
     );
   }
 
   const chipProgramme = (
-    <span className="text-[8px] font-black tracking-wider px-1 py-0.5 rounded" style={{ backgroundColor: `${isFixed ? '#3B82F6' : '#8B5CF6'}20`, color: isFixed ? '#3B82F6' : '#8B5CF6' }}>
+    <span className="text-[8px] font-black tracking-wider px-1 py-0.5 rounded-ax-badge" style={{ backgroundColor: softVar(programColor(program.type), 0.125), color: programColor(program.type) }}>
       {program.title}
     </span>
   );
 
   return (
-    <div className="fixed inset-0 z-50 bg-[#0A0A0A] overflow-y-auto">
+    <div className="fixed inset-0 z-50 bg-ax-background overflow-y-auto">
       {/* En-tête */}
-      <div className="sticky top-0 z-10 bg-[#0A0A0A]/95 backdrop-blur-xl border-b border-white/[0.06]">
-        <div className="px-6 py-4 flex items-center gap-4 flex-wrap">
-          <button onClick={onClose} className="text-gray-400 hover:text-white" title="Retour aux programmes">
+      <div className="sticky top-0 z-10 bg-ax-background/95 backdrop-blur-xl border-b border-ax-border">
+        <div className="px-4 sm:px-6 py-4 flex items-center gap-4 flex-wrap">
+          <button onClick={onClose} className={`${ICON_BTN} text-ax-text-secondary hover:text-ax-text`} title="Retour aux programmes">
             <ChevronLeft size={20} />
           </button>
-          <div className="flex-1 min-w-[200px]">
-            <h2 className="text-lg font-black text-white">{program.title}</h2>
-            <p className="text-xs text-gray-500">
+          <div className="flex-1 min-w-0 sm:min-w-[200px]">
+            <h2 className="text-lg font-black text-ax-text">{program.title}</h2>
+            <p className="text-xs text-ax-text-muted">
               {isFixed ? `${program.duration_weeks} semaines` : 'Ongoing'} · {program.days_per_week}j/sem · {relatives} séance{relatives > 1 ? 's' : ''}
               {datees.length > 0 && ` · ${datees.length} datée${datees.length > 1 ? 's' : ''}`}
             </p>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
-            <button onClick={() => downloadWodCsvTemplate('programming')} title="Modèle CSV (week,day,title,…)"
-              className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold border border-white/10 text-gray-400 hover:text-white hover:border-white/20 transition-colors">
+            <Button variant="ax-outline" size="ax-compact" onClick={() => downloadWodCsvTemplate('programming')} title="Modèle CSV (week,day,title,…)" className={TOOLBAR_BTN}>
               <FileText size={13} /> Modèle CSV
-            </button>
-            <button onClick={exportCSV} disabled={semaine.length === 0}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold border border-white/10 text-gray-400 hover:text-white hover:border-white/20 disabled:opacity-40 transition-colors">
+            </Button>
+            <Button variant="ax-outline" size="ax-compact" onClick={exportCSV} disabled={semaine.length === 0} className={TOOLBAR_BTN}>
               <Download size={13} /> Exporter
-            </button>
-            <button onClick={() => fileInputRef.current?.click()} disabled={importing} title="Importer un PDF de programmation ou un CSV/JSON"
-              className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold border border-white/10 text-gray-400 hover:text-white hover:border-white/20 disabled:opacity-40 transition-colors">
+            </Button>
+            <Button variant="ax-outline" size="ax-compact" onClick={() => fileInputRef.current?.click()} disabled={importing} title="Importer un PDF de programmation ou un CSV/JSON" className={TOOLBAR_BTN}>
               {importing ? <Loader2 size={13} className="animate-spin" /> : <Upload size={13} />} Importer
-            </button>
+            </Button>
             <input
               ref={fileInputRef} type="file" accept=".csv,.json,.pdf" className="hidden"
               onChange={e => { const f = e.target.files?.[0]; e.target.value = ''; if (f) void importFile(f); }}
             />
-            <button
+            <Button
+              variant="ax-outline" size="ax-compact"
               onClick={() => { setSelectMode(m => !m); setSelectedIds([]); }}
-              className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold border transition-colors ${selectMode ? 'border-white/40 text-white bg-white/10' : 'border-white/10 text-gray-400 hover:text-white hover:border-white/20'}`}
+              className={`${TOOLBAR_BTN} ${selectMode ? 'border-ax-input-border text-ax-text bg-ax-surface-secondary' : ''}`}
             >
               <CheckSquare size={13} /> {selectMode ? 'Quitter la sélection' : 'Sélectionner'}
-            </button>
-            <button
+            </Button>
+            <Button
+              variant="ax-outline" size="ax-compact"
               onClick={() => setLayout(layout === 'columns' ? 'rows' : 'columns')}
               title={layout === 'columns' ? 'Vue lignes' : 'Vue colonnes'}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold border border-white/10 text-gray-400 hover:text-white hover:border-white/20 transition-colors"
+              className={TOOLBAR_BTN}
             >
               {layout === 'columns' ? <List size={13} /> : <LayoutGrid size={13} />}
               {layout === 'columns' ? 'Lignes' : 'Colonnes'}
-            </button>
-            <button
+            </Button>
+            <Button
+              variant="ax-outline" size="ax-compact"
               onClick={removeWeek}
               disabled={semaine.length === 0}
               title="Supprimer toutes les séances de la semaine affichée"
-              className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold border border-red-500/20 text-red-400 hover:text-red-300 hover:border-red-500/40 hover:bg-red-500/5 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              className={`${TOOLBAR_BTN} border-ax-danger text-ax-danger hover:text-ax-danger hover:border-ax-danger hover:bg-ax-danger-soft`}
             >
               <Trash2 size={13} /> Tout supprimer
-            </button>
-            <button
+            </Button>
+            <Button
+              variant="ax-outline" size="ax-compact"
               onClick={duplicateWeek}
               disabled={semaine.length === 0 || (isFixed && week >= totalSemaines)}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold border border-white/10 text-gray-300 hover:text-white hover:border-white/20 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              className={TOOLBAR_BTN}
             >
               <Copy size={13} /> Dupliquer sem. {week} → {week + 1}
-            </button>
-            <button
+            </Button>
+            <Button
+              variant="ax-white" size="ax-compact"
               onClick={() => openCreate(1)}
-              className="flex items-center gap-2 px-4 py-2.5 bg-white hover:bg-white/90 text-[#0A0A0A] text-sm font-bold rounded-xl transition-colors"
+              className="h-auto px-4 py-2 text-sm"
             >
               <Plus size={15} /> Nouvelle séance
-            </button>
+            </Button>
           </div>
         </div>
       </div>
 
-      <div className="px-6 py-6 space-y-6">
+      <div className="px-4 sm:px-6 py-6 space-y-6">
         {selectMode && (
-          <div className="flex flex-wrap items-center gap-2 bg-[#111111] border border-white/15 rounded-xl px-4 py-3">
-            <p className="text-sm font-bold text-white">
+          <Card className="flex flex-wrap items-center gap-2 px-4 py-3">
+            <p className="text-sm font-bold text-ax-text">
               {selectedIds.length} séance{selectedIds.length > 1 ? 's' : ''} sélectionnée{selectedIds.length > 1 ? 's' : ''}
             </p>
-            <button
+            <Button
+              variant="ax-outline" size="ax-compact"
               onClick={() => setSelectedIds(selectedIds.length === semaine.length ? [] : semaine.map(w => w.id))}
-              className="px-3 py-1.5 rounded-xl text-xs font-bold border border-white/10 text-gray-300 hover:text-white hover:border-white/20 transition-colors"
+              className={TOOLBAR_BTN}
             >
               {selectedIds.length === semaine.length && semaine.length > 0 ? 'Tout désélectionner' : 'Toute la semaine'}
-            </button>
-            <button
+            </Button>
+            <Button
+              variant="ax-outline" size="ax-compact"
               onClick={removeSelected}
               disabled={selectedIds.length === 0}
-              className="px-4 py-1.5 rounded-xl text-xs font-bold bg-red-500 hover:bg-red-600 text-white disabled:opacity-40 transition-colors"
+              className="h-auto min-h-[32px] text-xs border-ax-danger bg-ax-danger text-ax-background hover:brightness-110 hover:bg-ax-danger"
             >
               Supprimer la sélection
-            </button>
-          </div>
+            </Button>
+          </Card>
         )}
 
         {notice && (
-          <div className={`border rounded-xl px-4 py-3 text-sm flex items-start justify-between gap-3 ${notice.ok ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-amber-500/10 border-amber-500/20 text-amber-400'}`}>
+          <div className={`border rounded-ax-control px-4 py-3 text-sm flex items-start justify-between gap-3 ${notice.ok ? 'bg-ax-success-soft border-ax-success text-ax-success' : 'bg-ax-warning-soft border-ax-warning text-ax-warning'}`}>
             <p className="font-semibold">{notice.text}</p>
-            <button onClick={() => setNotice(null)} className="text-gray-500 hover:text-white"><X size={13} /></button>
+            <button onClick={() => setNotice(null)} className="text-ax-text-muted hover:text-ax-text"><X size={13} /></button>
           </div>
         )}
 
         {/* Navigation : « Semaine N / X », pas de date — un programme est relatif. */}
-        <div className="flex items-center justify-between bg-[#111111] border border-white/8 rounded-2xl px-5 py-3">
-          <button onClick={() => setWeek(w => Math.max(1, w - 1))} disabled={week <= 1} className="p-2 rounded-xl hover:bg-white/5 text-gray-400 hover:text-white disabled:opacity-30 transition-colors" title="Semaine précédente">
+        <Card className="flex items-center justify-between px-5 py-3">
+          <button onClick={() => setWeek(w => Math.max(1, w - 1))} disabled={week <= 1} className={`${ICON_BTN} p-2 text-ax-text-secondary hover:text-ax-text disabled:opacity-30`} title="Semaine précédente">
             <ChevronLeft size={18} />
           </button>
-          <div className="text-center">
-            <p className="text-sm font-bold text-white">
+          <div className="text-center min-w-0">
+            <p className="text-sm font-bold text-ax-text">
               Semaine {week}{isFixed ? ` / ${totalSemaines}` : ''}
             </p>
-            <p className="text-[11px] text-gray-500 mt-0.5">
+            <p className="text-[11px] text-ax-text-muted mt-0.5">
               {semaine.length} séance{semaine.length > 1 ? 's' : ''} · {reposDeSemaine(restDays, week).length} jour{reposDeSemaine(restDays, week).length > 1 ? 's' : ''} de repos · {program.days_per_week}j/sem annoncés
             </p>
           </div>
-          <button onClick={() => setWeek(w => w + 1)} disabled={!peutAvancer} className="p-2 rounded-xl hover:bg-white/5 text-gray-400 hover:text-white disabled:opacity-30 transition-colors" title="Semaine suivante">
+          <button onClick={() => setWeek(w => w + 1)} disabled={!peutAvancer} className={`${ICON_BTN} p-2 text-ax-text-secondary hover:text-ax-text disabled:opacity-30`} title="Semaine suivante">
             <ChevronRight size={18} />
           </button>
-        </div>
+        </Card>
 
         {loading ? (
-          <div className="flex justify-center py-20"><Loader2 className="animate-spin text-white" size={28} /></div>
+          <div className="flex justify-center py-20"><Loader2 className="animate-spin text-ax-text" size={28} /></div>
         ) : layout === 'columns' ? (
-          <div className="grid grid-cols-7 gap-2 min-h-[400px]">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-7 gap-2 min-h-[400px]">
             {DAY_LABELS.map((label, i) => {
               const day = i + 1;
               const repos = estJourRepos(restDays, week, day);
               const c = { week, day };
               const dayWods = seancesDeCase(wods, week, day);
               return (
-                <div key={day} className={`border rounded-2xl overflow-hidden flex flex-col ${repos ? 'bg-white/[0.01] border-white/[0.03]' : 'bg-[#111111] border-white/8'}`}>
+                <div key={day} className={`border rounded-ax-card overflow-hidden flex flex-col ${repos ? 'bg-transparent border-dashed border-ax-border' : 'bg-ax-surface border-ax-border'}`}>
                   <div className="text-center px-2 py-3 relative">
-                    <p className={`text-xs font-black ${repos ? 'text-gray-600' : 'text-gray-400'}`}>{label}</p>
+                    <p className={`text-xs font-black ${repos ? 'text-ax-text-muted' : 'text-ax-text-secondary'}`}>{label}</p>
                     {repos
-                      ? <p className="text-[9px] font-black text-gray-600 mt-0.5 tracking-wider">REPOS</p>
-                      : <p className="text-[10px] font-bold text-gray-500 mt-0.5">Jour {day}</p>}
+                      ? <p className="text-[9px] font-black text-ax-text-muted mt-0.5 tracking-wider">REPOS</p>
+                      : <p className="text-[10px] font-bold text-ax-text-muted mt-0.5">Jour {day}</p>}
                     <button
                       onClick={() => void toggleRepos(day)}
-                      className={`absolute top-1.5 right-1.5 p-1 rounded-md transition-colors ${repos ? 'text-white bg-white/10' : 'text-gray-600 hover:text-gray-300 hover:bg-white/5'}`}
+                      className={`absolute top-1.5 right-1.5 p-1 rounded-ax-badge transition-colors ${repos ? 'text-ax-text bg-ax-surface-secondary' : 'text-ax-text-muted hover:text-ax-text-secondary hover:bg-ax-hover'}`}
                       title={repos ? 'Retirer le repos' : 'Marquer ce jour en repos'}
                       aria-pressed={repos}
                       aria-label={`Repos ${label}`}
@@ -510,10 +521,10 @@ export default function ProgramSessionsEditor({ program, userId, onClose, onChan
                       <Moon size={11} />
                     </button>
                   </div>
-                  <div className="flex-1 border-t border-white/5 p-2 space-y-2 min-h-[120px]">
+                  <div className="flex-1 border-t border-ax-border p-2 space-y-2 min-h-[120px]">
                     {dayWods.length === 0 ? (
                       repos ? null : (
-                        <button onClick={() => openCreate(day)} className="w-full h-full min-h-[100px] flex flex-col items-center justify-center text-xs text-gray-600 hover:text-gray-400 transition-colors rounded-xl hover:bg-white/5">
+                        <button onClick={() => openCreate(day)} className="w-full h-full min-h-[100px] flex flex-col items-center justify-center text-xs text-ax-text-muted hover:text-ax-text-secondary transition-colors rounded-ax-control hover:bg-ax-hover">
                           <Dumbbell size={16} className="mb-1.5 opacity-40" />
                           Ajouter
                         </button>
@@ -521,28 +532,28 @@ export default function ProgramSessionsEditor({ program, userId, onClose, onChan
                     ) : (
                       <>
                         {dayWods.map((w, wi) => (
-                          <div key={w.id} className={`rounded-xl p-2.5 border border-white/5 bg-white/[0.02] hover:bg-white/[0.04] transition-colors ${w.is_published === false ? 'opacity-50' : ''}`}>
+                          <div key={w.id} className={`rounded-ax-control p-2.5 border border-ax-border bg-ax-surface-secondary hover:bg-ax-hover transition-colors ${w.is_published === false ? 'opacity-50' : ''}`}>
                             <div className="flex items-center gap-1.5 mb-1 flex-wrap"><Badges w={w} /></div>
                             <div className="flex items-start gap-1.5">
                               {selectMode && (
                                 <button onClick={() => toggleSelected(w.id)} className="mt-0.5 shrink-0" title="Sélectionner cette séance">
-                                  {selectedIds.includes(w.id) ? <CheckSquare size={13} className="text-white" /> : <Square size={13} className="text-gray-600" />}
+                                  {selectedIds.includes(w.id) ? <CheckSquare size={13} className="text-ax-text" /> : <Square size={13} className="text-ax-text-muted" />}
                                 </button>
                               )}
-                              <p className="text-xs font-bold text-white truncate">{w.title}</p>
+                              <p className="text-xs font-bold text-ax-text truncate">{w.title}</p>
                             </div>
-                            {w.description && <p className="text-[10px] text-gray-500 truncate mt-0.5">{w.description}</p>}
+                            {w.description && <p className="text-[10px] text-ax-text-muted truncate mt-0.5">{w.description}</p>}
                             <div className="mt-1 flex items-center gap-1 flex-wrap">
                               {chipProgramme}
-                              {w.time_cap_seconds != null && <span className="text-[9px] text-gray-600">{formatCap(w.time_cap_seconds)}</span>}
+                              {w.time_cap_seconds != null && <span className="text-[9px] text-ax-text-muted">{formatCap(w.time_cap_seconds)}</span>}
                             </div>
-                            <div className="flex items-center gap-0.5 mt-2 pt-1.5 border-t border-white/5">
+                            <div className="flex items-center gap-0.5 mt-2 pt-1.5 border-t border-ax-border flex-wrap">
                               <Actions w={w} c={c} index={wi} total={dayWods.length} />
                             </div>
                           </div>
                         ))}
                         {!repos && (
-                          <button onClick={() => openCreate(day)} className="w-full py-1.5 text-center text-[10px] text-white font-semibold rounded-lg hover:bg-white/5 transition-colors">
+                          <button onClick={() => openCreate(day)} className="w-full py-1.5 text-center text-[10px] text-ax-text font-semibold rounded-ax-control hover:bg-ax-hover transition-colors">
                             <Plus size={10} className="inline mr-0.5 -mt-px" /> Ajouter
                           </button>
                         )}
@@ -561,26 +572,26 @@ export default function ProgramSessionsEditor({ program, userId, onClose, onChan
               const c = { week, day };
               const dayWods = seancesDeCase(wods, week, day);
               return (
-                <div key={day} className={`border rounded-2xl overflow-hidden ${repos ? 'bg-white/[0.01] border-white/[0.03]' : 'bg-[#111111] border-white/8'}`}>
-                  <div className="flex items-center justify-between px-5 py-3">
-                    <div className="flex items-center gap-3">
-                      <span className={`text-sm font-black ${repos ? 'text-gray-600' : 'text-gray-400'}`}>{label}</span>
+                <div key={day} className={`border rounded-ax-card overflow-hidden ${repos ? 'bg-transparent border-dashed border-ax-border' : 'bg-ax-surface border-ax-border'}`}>
+                  <div className="flex items-center justify-between gap-2 flex-wrap px-4 sm:px-5 py-3">
+                    <div className="flex items-center gap-3 flex-wrap">
+                      <span className={`text-sm font-black ${repos ? 'text-ax-text-muted' : 'text-ax-text-secondary'}`}>{label}</span>
                       {repos
-                        ? <span className="text-[10px] font-black text-gray-600 bg-white/5 px-2 py-0.5 rounded-full uppercase tracking-wider">Repos</span>
-                        : <span className="text-xs text-gray-500">Jour {day}</span>}
-                      <span className="text-xs text-gray-600">{dayWods.length > 0 ? `${dayWods.length} séance${dayWods.length > 1 ? 's' : ''}` : ''}</span>
+                        ? <span className="text-[10px] font-black text-ax-text-muted bg-ax-surface-secondary px-2 py-0.5 rounded-full uppercase tracking-wider">Repos</span>
+                        : <span className="text-xs text-ax-text-muted">Jour {day}</span>}
+                      <span className="text-xs text-ax-text-muted">{dayWods.length > 0 ? `${dayWods.length} séance${dayWods.length > 1 ? 's' : ''}` : ''}</span>
                     </div>
                     <div className="flex items-center gap-3">
                       <button
                         onClick={() => void toggleRepos(day)}
-                        className={`flex items-center gap-1 text-[11px] font-semibold px-2 py-1 rounded-lg transition-colors ${repos ? 'text-white bg-white/10' : 'text-gray-500 hover:text-gray-300 hover:bg-white/5'}`}
+                        className={`flex items-center gap-1 text-[11px] font-semibold px-2 py-1 rounded-ax-control transition-colors ${repos ? 'text-ax-text bg-ax-surface-secondary' : 'text-ax-text-muted hover:text-ax-text-secondary hover:bg-ax-hover'}`}
                         aria-pressed={repos}
                         aria-label={`Repos ${label}`}
                       >
                         <Moon size={12} /> Repos
                       </button>
                       {!repos && (
-                        <button onClick={() => openCreate(day)} className="flex items-center gap-1.5 text-xs text-white font-semibold transition-colors">
+                        <button onClick={() => openCreate(day)} className="flex items-center gap-1.5 text-xs text-ax-text font-semibold transition-colors">
                           <Plus size={14} /> Ajouter
                         </button>
                       )}
@@ -588,30 +599,30 @@ export default function ProgramSessionsEditor({ program, userId, onClose, onChan
                   </div>
                   {dayWods.length === 0 ? (
                     repos ? null : (
-                      <button onClick={() => openCreate(day)} className="w-full flex items-center justify-center gap-2 py-5 text-sm text-gray-600 hover:text-gray-400 border-t border-white/5 transition-colors">
+                      <button onClick={() => openCreate(day)} className="w-full flex items-center justify-center gap-2 py-5 text-sm text-ax-text-muted hover:text-ax-text-secondary border-t border-ax-border transition-colors">
                         <Dumbbell size={14} /> Aucune séance — cliquez pour en ajouter
                       </button>
                     )
                   ) : (
-                    <div className="border-t border-white/5 divide-y divide-white/5">
+                    <div className="border-t border-ax-border divide-y divide-ax-border">
                       {dayWods.map((w, wi) => {
                         const wt = w.wod_type ?? '';
-                        const color = TYPE_COLOR[wt] ?? '#6B7280';
+                        const color = TYPE_COLOR[wt] ?? 'var(--ax-neutral)';
                         return (
-                          <div key={w.id} className={`flex items-center gap-4 px-5 py-3.5 ${w.is_published === false ? 'opacity-60' : ''}`}>
+                          <div key={w.id} className={`flex items-center gap-3 sm:gap-4 px-4 sm:px-5 py-3.5 flex-wrap ${w.is_published === false ? 'opacity-60' : ''}`}>
                             <div className="w-1 h-10 rounded-full shrink-0" style={{ backgroundColor: w.block_name ? (BLOCK_COLOR[w.block_name] ?? color) : color }} />
                             {selectMode && (
                               <button onClick={() => toggleSelected(w.id)} className="shrink-0 mr-1" title="Sélectionner cette séance">
-                                {selectedIds.includes(w.id) ? <CheckSquare size={16} className="text-white" /> : <Square size={16} className="text-gray-600" />}
+                                {selectedIds.includes(w.id) ? <CheckSquare size={16} className="text-ax-text" /> : <Square size={16} className="text-ax-text-muted" />}
                               </button>
                             )}
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2 mb-0.5 flex-wrap"><Badges w={w} />{chipProgramme}</div>
-                              <p className="text-sm font-bold text-white truncate">{w.title}</p>
-                              {w.description && <p className="text-xs text-gray-500 truncate mt-0.5">{w.description}</p>}
+                              <p className="text-sm font-bold text-ax-text truncate">{w.title}</p>
+                              {w.description && <p className="text-xs text-ax-text-muted truncate mt-0.5">{w.description}</p>}
                             </div>
-                            <div className="flex items-center gap-1 shrink-0">
-                              {w.time_cap_seconds != null && <span className="text-xs text-gray-600 mr-2">{formatCap(w.time_cap_seconds)}</span>}
+                            <div className="flex items-center gap-1 shrink-0 flex-wrap">
+                              {w.time_cap_seconds != null && <span className="text-xs text-ax-text-muted mr-2">{formatCap(w.time_cap_seconds)}</span>}
                               <Actions w={w} c={c} index={wi} total={dayWods.length} size={14} />
                             </div>
                           </div>
@@ -628,61 +639,62 @@ export default function ProgramSessionsEditor({ program, userId, onClose, onChan
         {/* Séances posées avant le modèle relatif : encore datées, toujours lues
             par l'app à leur date. Elles ne sont converties qu'à la main. */}
         {!loading && datees.length > 0 && (
-          <div className="bg-[#111111] border border-amber-500/20 rounded-2xl overflow-hidden">
-            <div className="px-5 py-3 border-b border-white/5">
-              <p className="text-sm font-bold text-amber-400">Séances datées (ancien modèle)</p>
-              <p className="text-xs text-gray-500 mt-0.5">
+          <Card className="border-ax-warning overflow-hidden">
+            <div className="px-5 py-3 border-b border-ax-border">
+              <p className="text-sm font-bold text-ax-warning">Séances datées (ancien modèle)</p>
+              <p className="text-xs text-ax-text-muted mt-0.5">
                 Ces séances sont ancrées sur une date, pas sur une semaine du programme. Les modifier les place en
                 semaine × jour ; les laisser telles quelles ne change rien pour les athlètes.
               </p>
             </div>
-            <div className="divide-y divide-white/5">
+            <div className="divide-y divide-ax-border">
               {datees.map(w => (
-                <div key={w.id} className="flex items-center gap-4 px-5 py-3">
-                  <span className="text-xs font-bold text-gray-400 w-24 shrink-0">
+                <div key={w.id} className="flex items-center gap-3 sm:gap-4 px-4 sm:px-5 py-3 flex-wrap">
+                  <span className="text-xs font-bold text-ax-text-secondary w-24 shrink-0">
                     {new Date(`${w.scheduled_date}T00:00:00`).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' })}
                   </span>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-0.5 flex-wrap"><Badges w={w} /></div>
-                    <p className="text-sm font-bold text-white truncate">{w.title}</p>
+                    <p className="text-sm font-bold text-ax-text truncate">{w.title}</p>
                   </div>
-                  <button onClick={() => openEdit(w)} className="p-2 rounded-xl hover:bg-white/5 transition-colors" title="Placer en semaine × jour">
-                    <Pencil size={14} className="text-white" />
+                  <button onClick={() => openEdit(w)} className={`${ICON_BTN} p-2`} title="Placer en semaine × jour">
+                    <Pencil size={14} className="text-ax-text" />
                   </button>
-                  <button onClick={() => remove(w)} className="p-2 rounded-xl hover:bg-red-500/10 transition-colors" title="Supprimer">
-                    <Trash2 size={14} className="text-red-400" />
+                  <button onClick={() => remove(w)} className={`${ICON_BTN} p-2 hover:bg-ax-danger-soft`} title="Supprimer">
+                    <Trash2 size={14} className="text-ax-danger" />
                   </button>
                 </div>
               ))}
             </div>
-          </div>
+          </Card>
         )}
       </div>
 
       {confirmDialog && (
-        <div className="fixed inset-0 z-[60] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-[#0a0a0a] border border-white/10 rounded-2xl w-full max-w-md p-6">
+        <div className="fixed inset-0 z-[60] bg-ax-overlay backdrop-blur-ax-glass flex items-center justify-center p-4">
+          <Card className="rounded-ax-panel shadow-ax-panel w-full max-w-md p-6">
             <div className="flex items-start gap-3 mb-4">
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 bg-red-500/15">
-                <Trash2 size={18} className="text-red-400" />
+              <div className="w-10 h-10 rounded-ax-card flex items-center justify-center shrink-0 bg-ax-danger-soft">
+                <Trash2 size={18} className="text-ax-danger" />
               </div>
               <div className="flex-1">
-                <h3 className="text-base font-bold text-white mb-1">{confirmDialog.title}</h3>
-                <p className="text-sm text-gray-400 leading-relaxed">{confirmDialog.message}</p>
+                <h3 className="font-display text-lg font-medium uppercase tracking-wide text-ax-text mb-1">{confirmDialog.title}</h3>
+                <p className="text-sm text-ax-text-secondary leading-relaxed">{confirmDialog.message}</p>
               </div>
             </div>
-            <div className="flex gap-2 justify-end">
-              <button onClick={() => setConfirmDialog(null)} className="px-4 py-2 rounded-xl text-sm font-bold border border-white/10 text-gray-300 hover:bg-white/5 transition-colors">
+            <div className="flex gap-2 justify-end flex-wrap">
+              <Button variant="ax-outline" onClick={() => setConfirmDialog(null)}>
                 Annuler
-              </button>
-              <button
+              </Button>
+              <Button
+                variant="ax-outline"
                 onClick={async () => { const cb = confirmDialog.onConfirm; setConfirmDialog(null); await cb(); }}
-                className="px-4 py-2 rounded-xl text-sm font-bold bg-red-500 hover:bg-red-600 text-white transition-colors"
+                className="border-ax-danger bg-ax-danger text-ax-background hover:brightness-110 hover:bg-ax-danger"
               >
                 {confirmDialog.confirmLabel}
-              </button>
+              </Button>
             </div>
-          </div>
+          </Card>
         </div>
       )}
 
