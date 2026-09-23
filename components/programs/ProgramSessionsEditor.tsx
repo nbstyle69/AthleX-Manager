@@ -326,7 +326,7 @@ export default function ProgramSessionsEditor({ program, userId, onClose, onChan
         {wt && (
           <>
             <div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: color }} />
-            <span className="text-[9px] font-black tracking-wider truncate" style={{ color }}>{wt.toUpperCase()}</span>
+            <span className="text-[9px] font-black tracking-wider" style={{ color }}>{wt.toUpperCase()}</span>
           </>
         )}
         {w.video_url && <Video size={9} className="text-ax-danger shrink-0" />}
@@ -540,9 +540,9 @@ export default function ProgramSessionsEditor({ program, userId, onClose, onChan
                                   {selectedIds.includes(w.id) ? <CheckSquare size={13} className="text-ax-text" /> : <Square size={13} className="text-ax-text-muted" />}
                                 </button>
                               )}
-                              <p className="text-xs font-bold text-ax-text truncate">{w.title}</p>
+                              <p className="min-w-0 text-xs font-bold text-ax-text break-words">{w.title}</p>
                             </div>
-                            {w.description && <p className="text-[10px] text-ax-text-muted truncate mt-0.5">{w.description}</p>}
+                            {w.description && <p className="text-[10px] text-ax-text-muted line-clamp-2 break-words mt-0.5">{w.description}</p>}
                             <div className="mt-1 flex items-center gap-1 flex-wrap">
                               {chipProgramme}
                               {w.time_cap_seconds != null && <span className="text-[9px] text-ax-text-muted">{formatCap(w.time_cap_seconds)}</span>}
@@ -618,8 +618,8 @@ export default function ProgramSessionsEditor({ program, userId, onClose, onChan
                             )}
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2 mb-0.5 flex-wrap"><Badges w={w} />{chipProgramme}</div>
-                              <p className="text-sm font-bold text-ax-text truncate">{w.title}</p>
-                              {w.description && <p className="text-xs text-ax-text-muted truncate mt-0.5">{w.description}</p>}
+                              <p className="text-sm font-bold text-ax-text break-words">{w.title}</p>
+                              {w.description && <p className="text-xs text-ax-text-muted line-clamp-2 break-words mt-0.5">{w.description}</p>}
                             </div>
                             <div className="flex items-center gap-1 shrink-0 flex-wrap">
                               {w.time_cap_seconds != null && <span className="text-xs text-ax-text-muted mr-2">{formatCap(w.time_cap_seconds)}</span>}
@@ -655,7 +655,7 @@ export default function ProgramSessionsEditor({ program, userId, onClose, onChan
                   </span>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-0.5 flex-wrap"><Badges w={w} /></div>
-                    <p className="text-sm font-bold text-ax-text truncate">{w.title}</p>
+                    <p className="text-sm font-bold text-ax-text break-words">{w.title}</p>
                   </div>
                   <button onClick={() => openEdit(w)} className={`${ICON_BTN} p-2`} title="Placer en semaine × jour">
                     <Pencil size={14} className="text-ax-text" />

@@ -386,7 +386,7 @@ export default function AthleteProgramsWorkspace() {
                 <div className="flex items-start justify-between gap-3 flex-wrap">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-bold text-ax-text text-base truncate">{p.title}</span>
+                      <span className="font-bold text-ax-text text-base min-w-0 break-words">{p.title}</span>
                       <span className={`text-[10px] px-2 py-0.5 rounded-ax-badge font-bold ${p.type === 'fixed' ? 'bg-ax-info-soft text-ax-info' : 'text-ax-purple'}`}
                         style={p.type === 'fixed' ? undefined : { backgroundColor: 'color-mix(in srgb, var(--ax-purple) 12%, var(--ax-surface))' }}>
                         {p.type === 'fixed' ? `${p.duration_weeks} sem.` : 'Ongoing'}
@@ -395,7 +395,7 @@ export default function AthleteProgramsWorkspace() {
                         <Badge variant="danger" className="text-[10px] px-2 py-0.5 font-semibold">Inactif</Badge>
                       )}
                     </div>
-                    {p.description && <p className="text-xs text-ax-text-muted mt-1 line-clamp-2">{p.description}</p>}
+                    {p.description && <p className="text-xs text-ax-text-muted mt-1 line-clamp-2 break-words">{p.description}</p>}
                   </div>
                   <div className="flex items-center gap-2 sm:ml-4 flex-shrink-0">
                     <span className="text-sm font-black text-ax-success bg-ax-success-soft px-3 py-1.5 rounded-ax-control">
@@ -666,7 +666,7 @@ export default function AthleteProgramsWorkspace() {
                   {accessRows.map(r => (
                     <div key={r.id} className="flex items-center gap-3 flex-wrap rounded-ax-control bg-ax-surface-secondary border border-ax-border px-3 py-2.5">
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold text-ax-text truncate">
+                        <p className="text-sm font-semibold text-ax-text break-words">
                           {r.profile?.username ?? r.user_id.slice(0, 8)}
                         </p>
                         <p className="text-[11px] text-ax-text-muted">

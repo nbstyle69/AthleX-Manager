@@ -295,15 +295,15 @@ function Catalogue({
                 style={cardColor ? { borderColor: cardColor } : undefined}
               >
                 <div className="flex items-start justify-between gap-2 mb-2">
-                  <button onClick={() => setDetail(p)} className="text-left font-bold text-ax-text text-base leading-tight hover:underline">{p.title}</button>
+                  <button onClick={() => setDetail(p)} className="min-w-0 break-words text-left font-bold text-ax-text text-base leading-tight hover:underline">{p.title}</button>
                   {p.billing === 'free'
                     ? <Badge variant="success" className="text-[10px] font-black uppercase px-2 py-0.5">Gratuit</Badge>
                     : <Badge variant="neutral" className="text-[10px] font-black uppercase px-2 py-0.5">{(p.price_cents / 100).toFixed(0)}€{p.billing === 'monthly' ? '/mois' : ''}</Badge>}
                 </div>
                 <p className="text-xs text-ax-text-muted mb-1">par {p.publisher_name}</p>
                 {p.goal
-                  ? <p className="text-sm text-ax-text-secondary mb-1 line-clamp-1" title={p.goal}>Objectif : {p.goal}</p>
-                  : p.description && <p className="text-sm text-ax-text-secondary mb-1 line-clamp-2">{p.description}</p>}
+                  ? <p className="text-sm text-ax-text-secondary mb-1 break-words" title={p.goal}>Objectif : {p.goal}</p>
+                  : p.description && <p className="text-sm text-ax-text-secondary mb-1 line-clamp-2 break-words">{p.description}</p>}
                 <p className="text-xs text-ax-text-muted mb-3">
                   {(p.wods_total ?? 0) === 0
                     ? <span className="text-ax-warning flex items-center gap-1"><AlertTriangle size={11} /> Aucun WOD pour l&apos;instant</span>
@@ -366,7 +366,7 @@ function OfferDetailPanel({ programming: p, subscribed, onClose, onSubscribe }: 
       <Card className="w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-ax-panel shadow-ax-panel p-6" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-start justify-between gap-3 mb-1">
           <div>
-            <h3 className="text-lg font-black text-ax-text">{p.title}</h3>
+            <h3 className="text-lg font-black text-ax-text min-w-0 break-words">{p.title}</h3>
             <p className="text-xs text-ax-text-muted">par {p.publisher_name}</p>
           </div>
           <button onClick={onClose} className="text-ax-text-muted hover:text-ax-text"><X size={18} /></button>
@@ -759,7 +759,7 @@ function MyOffers({ offers, activeBoxId, onChanged }: {
               <div className="flex items-start justify-between gap-3 flex-wrap">
                 <div className="min-w-0">
                   <div className="flex items-center gap-2 mb-1 flex-wrap">
-                    <h3 className="font-bold text-ax-text">{o.title}</h3>
+                    <h3 className="font-bold text-ax-text min-w-0 break-words">{o.title}</h3>
                     {o.is_published
                       ? <Badge variant="success" className="text-[10px] font-black uppercase px-2 py-0.5 gap-1"><Globe size={10} /> Publiée</Badge>
                       : <Badge variant="neutral" className="text-[10px] font-black uppercase px-2 py-0.5 gap-1"><Lock size={10} /> Brouillon</Badge>}
@@ -951,7 +951,7 @@ function OfferEditor({ offer, publisherBoxId, onClose, onSaved }: {
           </Field>
           <Field label="Description">
             <textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })}
-              rows={2} className={INPUT_CLS} placeholder="Ce que contient cette prog, comment elle est construite…" />
+              rows={3} className={INPUT_CLS} placeholder="Ce que contient cette prog, comment elle est construite…" />
           </Field>
           <div className="grid sm:grid-cols-3 gap-3">
             <Field label="Objectif">
@@ -1040,7 +1040,7 @@ function OfferEditor({ offer, publisherBoxId, onClose, onSaved }: {
                         {w.wod_type}
                       </span>
                     )}
-                    <span className="flex-1 text-sm font-semibold text-ax-text truncate">{w.title}</span>
+                    <span className="flex-1 min-w-0 text-sm font-semibold text-ax-text break-words">{w.title}</span>
                     {w.video_url && <Video size={12} className="text-ax-danger shrink-0" />}
                     <Pencil size={13} className="text-ax-text-muted shrink-0" />
                     <span role="button" tabIndex={0}
@@ -1049,7 +1049,7 @@ function OfferEditor({ offer, publisherBoxId, onClose, onSaved }: {
                       className="text-ax-text-muted hover:text-ax-danger shrink-0"><Trash2 size={13} /></span>
                   </div>
                   {w.description && (
-                    <p className="text-xs text-ax-text-secondary whitespace-pre-line line-clamp-4">{w.description}</p>
+                    <p className="text-xs text-ax-text-secondary whitespace-pre-line line-clamp-4 break-words">{w.description}</p>
                   )}
                   <p className="text-[11px] text-ax-text-muted mt-1">
                     {[
