@@ -8,6 +8,7 @@ import { createClient } from '@/lib/supabase/client';
 import { cn } from '@/lib/utils';
 import { useTheme } from '@/components/ThemeProvider';
 import BoxSwitcher, { type SwitcherBox } from '@/components/layout/BoxSwitcher';
+import MobileNavBar, { useMobileMenu } from '@/components/layout/MobileNavBar';
 import { COACH_HREFS } from '@/lib/authz/coach-perimeter';
 import { ATHLETE_HOME } from '@/lib/authz/post-login';
 import { Badge } from '@/components/ui/badge';
@@ -106,6 +107,7 @@ export default function Sidebar({ box, email, unreadCount = 0, supportUnread = 0
   const { theme, toggle } = useTheme();
 
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
+  const { open: menuOpen, setOpen: setMenuOpen, onNavigate, onCloseAutoFocus } = useMobileMenu(pathname);
 
   const groups = useMemo<NavGroup[]>(
     () => (isOwnerAdmin
@@ -197,7 +199,7 @@ export default function Sidebar({ box, email, unreadCount = 0, supportUnread = 0
     const count  = badges[item.href] ?? 0;
     const Icon   = item.icon;
     return (
-      <Link key={item.href} href={item.href} className={linkClass(active)}>
+      <Link key={item.href} href={item.href} className={linkClass(active)} onClick={onNavigate}>
         <Icon size={17} className={active ? 'text-ax-accent-text' : ''} />
         {item.label}
         {count > 0 && badge(count)}
@@ -205,14 +207,20 @@ export default function Sidebar({ box, email, unreadCount = 0, supportUnread = 0
     );
   };
 
-  return (
-    <aside className="fixed top-0 left-0 h-full w-60 bg-ax-glass backdrop-blur-ax-glass border-r border-ax-border flex flex-col z-40">
+  const logo = (
+    <div className="w-full h-full rounded-ax-control overflow-hidden shrink-0 flex items-center justify-center bg-ax-accent-foreground">
+      <img src="/logo.png" alt="AthleX" width={36} height={36} className="object-contain w-full h-full" />
+    </div>
+  );
+
+  const planBadgeClass = cn('text-[10px] font-extrabold uppercase tracking-widest py-0.5', planColor);
+
+  const panel = (
+    <>
       {/* Logo + box */}
       <div className="px-5 py-6 border-b border-ax-border">
         <div className="flex items-center gap-3 mb-3">
-          <div className="w-9 h-9 rounded-ax-control overflow-hidden shrink-0 flex items-center justify-center bg-ax-accent-foreground">
-            <img src="/logo.png" alt="AthleX" width={36} height={36} className="object-contain w-full h-full" />
-          </div>
+          <div className="w-9 h-9 shrink-0">{logo}</div>
           <div className="min-w-0">
             <p className="font-display text-sm font-medium text-ax-text-muted tracking-widest uppercase">AthleX Manager</p>
             <p className="text-sm font-bold text-ax-text truncate leading-tight">
@@ -225,9 +233,7 @@ export default function Sidebar({ box, email, unreadCount = 0, supportUnread = 0
             ne le voyait pas juste : sa lecture de `box_subscriptions` étant
             refusée, le badge lui affichait « Aucun plan » sur une box payée. */}
         {isOwnerAdmin && (
-          <Badge
-            className={cn('text-[10px] font-extrabold uppercase tracking-widest py-0.5', planColor)}
-          >
+          <Badge className={planBadgeClass}>
             {planLabel}
           </Badge>
         )}
@@ -270,7 +276,7 @@ export default function Sidebar({ box, email, unreadCount = 0, supportUnread = 0
         {isOwnerAdmin && PINNED.map(navLink)}
         {navLink(HELP)}
         {isSupportAdmin && (
-          <Link href="/support/admin" className={linkClass(pathname.startsWith('/support/admin'))}>
+          <Link href="/support/admin" className={linkClass(pathname.startsWith('/support/admin'))} onClick={onNavigate}>
             <Inbox size={17} className={pathname.startsWith('/support/admin') ? 'text-ax-accent-text' : ''} />
             Support (Admin)
             {supportAdminUnread > 0 && badge(supportAdminUnread)}
@@ -303,6 +309,7 @@ export default function Sidebar({ box, email, unreadCount = 0, supportUnread = 0
         <Link
           href={ATHLETE_HOME}
           className={cn(buttonVariants({ variant: 'ax-outline', size: 'ax-compact' }), 'w-full justify-start')}
+          onClick={onNavigate}
         >
           <UserCircle size={15} />
           Mon espace athlète
@@ -317,6 +324,24 @@ export default function Sidebar({ box, email, unreadCount = 0, supportUnread = 0
           Déconnexion
         </Button>
       </div>
-    </aside>
+    </>
+  );
+
+  return (
+    <>
+      <MobileNavBar
+        logo={logo}
+        title={box?.name ?? 'Ma Box'}
+        badge={isOwnerAdmin && <Badge className={planBadgeClass}>{planLabel}</Badge>}
+        open={menuOpen}
+        onOpenChange={setMenuOpen}
+        onCloseAutoFocus={onCloseAutoFocus}
+      >
+        {panel}
+      </MobileNavBar>
+      <aside className="hidden lg:flex fixed top-0 left-0 h-full w-60 bg-ax-glass backdrop-blur-ax-glass border-r border-ax-border flex-col z-40">
+        {panel}
+      </aside>
+    </>
   );
 }

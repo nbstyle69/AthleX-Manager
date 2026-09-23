@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
@@ -6,6 +6,7 @@ import { Shield, LayoutDashboard, Swords, Users, Trophy, LogOut, Sun, Moon, Buil
 import { createClient } from '@/lib/supabase/client';
 import { cn } from '@/lib/utils';
 import { useTheme } from '@/components/ThemeProvider';
+import MobileNavBar, { useMobileMenu } from '@/components/layout/MobileNavBar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 
@@ -38,6 +39,7 @@ export default function AdminSidebar({ username, email, supportUnread = 0 }: Adm
   const pathname = usePathname();
   const router   = useRouter();
   const { theme, toggle } = useTheme();
+  const { open: menuOpen, setOpen: setMenuOpen, onNavigate, onCloseAutoFocus } = useMobileMenu(pathname);
 
   async function handleSignOut() {
     const supabase = createClient();
@@ -48,22 +50,30 @@ export default function AdminSidebar({ username, email, supportUnread = 0 }: Adm
     router.refresh();
   }
 
-  return (
-    <aside className="fixed top-0 left-0 h-full w-60 bg-ax-glass backdrop-blur-ax-glass border-r border-ax-border flex flex-col z-40">
+  const logo = (
+    <div className="w-full h-full rounded-ax-control overflow-hidden shrink-0 flex items-center justify-center bg-ax-accent-soft">
+      <Shield size={20} className="text-ax-accent-text" />
+    </div>
+  );
+
+  const adminBadge = (
+    <Badge variant="accent" className="text-[10px] font-extrabold uppercase tracking-widest py-0.5">
+      ADMIN
+    </Badge>
+  );
+
+  const panel = (
+    <>
       {/* Header */}
       <div className="px-5 py-6 border-b border-ax-border">
         <div className="flex items-center gap-3 mb-3">
-          <div className="w-9 h-9 rounded-ax-control overflow-hidden shrink-0 flex items-center justify-center bg-ax-accent-soft">
-            <Shield size={20} className="text-ax-accent-text" />
-          </div>
+          <div className="w-9 h-9 shrink-0">{logo}</div>
           <div className="min-w-0">
             <p className="font-display text-sm font-medium text-ax-text-muted tracking-widest uppercase">AthleX Manager</p>
             <p className="text-sm font-bold text-ax-text truncate leading-tight">Super Admin</p>
           </div>
         </div>
-        <Badge variant="accent" className="text-[10px] font-extrabold uppercase tracking-widest py-0.5">
-          ADMIN
-        </Badge>
+        {adminBadge}
       </div>
 
       {/* Nav */}
@@ -73,6 +83,7 @@ export default function AdminSidebar({ username, email, supportUnread = 0 }: Adm
           return (
             <Link
               key={href} href={href}
+              onClick={onNavigate}
               className={cn(
                 'flex items-center gap-3 px-3 py-2.5 rounded-ax-control text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ax-focus motion-reduce:transition-none',
                 active
@@ -119,9 +130,27 @@ export default function AdminSidebar({ username, email, supportUnread = 0 }: Adm
           className="w-full justify-start min-h-10 px-3 py-2 text-sm hover:text-ax-danger hover:bg-ax-danger-soft"
         >
           <LogOut size={15} />
-          DÃ©connexion
+          Déconnexion
         </Button>
       </div>
-    </aside>
+    </>
+  );
+
+  return (
+    <>
+      <MobileNavBar
+        logo={logo}
+        title="Super Admin"
+        badge={adminBadge}
+        open={menuOpen}
+        onOpenChange={setMenuOpen}
+        onCloseAutoFocus={onCloseAutoFocus}
+      >
+        {panel}
+      </MobileNavBar>
+      <aside className="hidden lg:flex fixed top-0 left-0 h-full w-60 bg-ax-glass backdrop-blur-ax-glass border-r border-ax-border flex-col z-40">
+        {panel}
+      </aside>
+    </>
   );
 }

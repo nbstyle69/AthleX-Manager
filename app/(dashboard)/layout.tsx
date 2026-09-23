@@ -5,6 +5,7 @@ import { boxAccessState } from '@/lib/boxAccess';
 import { syncBoxSubscriptionFromStripe } from '@/lib/syncBoxSubscription';
 import PaymentFailedBanner from '@/components/PaymentFailedBanner';
 import Sidebar from '@/components/layout/Sidebar';
+import { MAIN_CONTENT_ID } from '@/components/layout/mainContent';
 import SessionGate from '@/components/auth/SessionGate';
 import TrialBanner from '@/components/TrialBanner';
 import PaywallOverlay from '@/components/PaywallOverlay';
@@ -66,7 +67,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
   // « aucun abonnement » et l'enfermerait derrière le paywall du gérant.
   if (box.my_role === 'coach') {
     return (
-      <div className="min-h-screen bg-ax-background flex">
+      <div className="min-h-screen bg-ax-background flex flex-col lg:flex-row">
         <Sidebar
           box={{ name: box.name, plan: 'none' }}
           email={user.email ?? ''}
@@ -75,7 +76,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
           activeBoxId={box.id}
           isOwnerAdmin={false}
         />
-        <main className="flex-1 ml-60 min-h-screen p-8 overflow-y-auto">
+        <main id={MAIN_CONTENT_ID} tabIndex={-1} className="flex-1 lg:ml-60 min-h-screen p-4 sm:p-6 lg:p-8 overflow-y-auto outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-ax-focus">
           <SessionGate>{children}</SessionGate>
         </main>
       </div>
@@ -162,7 +163,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
     : { basePrice: 0, extraPerBox: 0 };
 
   return (
-    <div className="min-h-screen bg-ax-background flex">
+    <div className="min-h-screen bg-ax-background flex flex-col lg:flex-row">
       <Sidebar
         box={{ name: box.name, plan: (sub?.plan_tier as string) ?? 'none' }}
         email={user.email ?? ''}
@@ -175,7 +176,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
         activeBoxId={box.id}
         isOwnerAdmin
       />
-      <main className="flex-1 ml-60 min-h-screen p-8 overflow-y-auto">
+      <main id={MAIN_CONTENT_ID} tabIndex={-1} className="flex-1 lg:ml-60 min-h-screen p-4 sm:p-6 lg:p-8 overflow-y-auto outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-ax-focus">
         {showPaymentFailed ? (
           <PaymentFailedBanner boxId={box.id} />
         ) : (
