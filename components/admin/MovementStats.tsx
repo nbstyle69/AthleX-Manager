@@ -4,91 +4,38 @@
 import { useEffect, useState, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { Search, TrendingUp, Users } from 'lucide-react';
-
-type MovementUnit = 'reps' | 'm' | 'cal';
-
-interface MovementStat {
-  movement: string;
-  unit: MovementUnit;
-  /** Total dans `unit` (reps, mètres ou calories). */
-  total_reps: number;
-  athlete_count: number;
-  best_weight: number | null;
-}
-
-interface AthleteMovement {
-  user_id: string;
-  username: string;
-  movement: string;
-  unit: MovementUnit;
-  total_reps: number;
-  best_weight: number | null;
-}
+import {
+  loadMovementAthletes,
+  loadMovementTotals,
+  type AthleteMovement,
+  type MovementStat,
+  type MovementUnit,
+} from '@/lib/admin/movementStats';
 
 export default function MovementStats() {
   const [stats, setStats] = useState<MovementStat[]>([]);
   const [athletes, setAthletes] = useState<AthleteMovement[]>([]);
   const [loading, setLoading] = useState(true);
+  // Une lecture en échec n'est pas une base vide : on l'affiche comme telle.
+  const [statsError, setStatsError] = useState<string | null>(null);
+  const [athletesError, setAthletesError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [selected, setSelected] = useState<{ movement: string; unit: MovementUnit } | null>(null);
   const supabase = createClient();
 
   const load = useCallback(async () => {
     setLoading(true);
-
-    // Fetch all movement stats
-    const { data: rawStats } = await supabase
-      .from('user_movement_stats')
-      .select('movement, unit, total_reps, best_weight, user_id')
-      .order('total_reps', { ascending: false });
-
-    // Aggregate by movement × unit (les mètres et calories d'un Row sont deux compteurs)
-    const movMap = new Map<string, { movement: string; unit: MovementUnit; total_reps: number; athlete_count: number; best_weight: number | null }>();
-    (rawStats ?? []).forEach((r: any) => {
-      const unit: MovementUnit = r.unit ?? 'reps';
-      const key = `${r.movement}|${unit}`;
-      const existing = movMap.get(key) ?? { movement: r.movement, unit, total_reps: 0, athlete_count: 0, best_weight: null };
-      existing.total_reps += Number(r.total_reps);
-      existing.athlete_count += 1;
-      if (r.best_weight && (!existing.best_weight || r.best_weight > existing.best_weight)) {
-        existing.best_weight = r.best_weight;
-      }
-      movMap.set(key, existing);
-    });
-
-    const aggregated: MovementStat[] = Array.from(movMap.values())
-      .sort((a, b) => b.total_reps - a.total_reps);
-
-    setStats(aggregated);
+    const { stats, error } = await loadMovementTotals(supabase);
+    setStats(stats);
+    setStatsError(error);
     setLoading(false);
   }, []);
 
   const loadAthletes = useCallback(async (movement: string, unit: MovementUnit) => {
     setSelected({ movement, unit });
-    const { data } = await supabase
-      .from('user_movement_stats')
-      .select('user_id, movement, unit, total_reps, best_weight')
-      .eq('movement', movement)
-      .eq('unit', unit)
-      .order('total_reps', { ascending: false })
-      .limit(50);
-
-    // Fetch usernames
-    const userIds = (data ?? []).map((d: any) => d.user_id);
-    const { data: profiles } = await supabase
-      .from('profiles')
-      .select('id, username')
-      .in('id', userIds);
-
-    const nameMap = new Map<string, string>();
-    (profiles ?? []).forEach((p: any) => nameMap.set(p.id, p.username));
-
-    setAthletes(
-      (data ?? []).map((d: any) => ({
-        ...d,
-        username: nameMap.get(d.user_id) ?? '?',
-      }))
-    );
+    const { athletes, error } = await loadMovementAthletes(supabase, movement, unit);
+    setAthletes(athletes);
+    setAthletesError(error);
   }, []);
 
   useEffect(() => { load(); }, [load]);
@@ -103,7 +50,7 @@ export default function MovementStats() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-4">
-        <p className="text-sm text-gray-400">{stats.length} mouvements trackés · {totalReps.toLocaleString()} reps au total</p>
+        <p className="text-sm text-gray-400">{statsError ? '—' : `${stats.length} mouvements trackés · ${totalReps.toLocaleString()} reps au total`}</p>
         <div className="relative">
           <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
           <input
@@ -169,7 +116,11 @@ export default function MovementStats() {
                   ))}
                   {filtered.length === 0 && (
                     <tr>
-                      <td colSpan={5} className="px-5 py-10 text-center text-gray-600">Aucun mouvement trouvé</td>
+                      {statsError ? (
+                        <td colSpan={5} role="alert" className="px-5 py-10 text-center text-red-400">{statsError}</td>
+                      ) : (
+                        <td colSpan={5} className="px-5 py-10 text-center text-gray-600">Aucun mouvement trouvé</td>
+                      )}
                     </tr>
                   )}
                 </tbody>
@@ -206,8 +157,9 @@ export default function MovementStats() {
                       <span className="text-sm font-black text-emerald-400">{a.total_reps.toLocaleString()} <span className="text-[10px] text-gray-500 font-normal">{unitLabel(a.unit)}</span></span>
                     </div>
                   ))}
-                  {athletes.length === 0 && (
-                    <p className="text-xs text-gray-600 text-center py-4">Aucun athlète</p>
+                  {athletes.length === 0 && (athletesError
+                    ? <p role="alert" className="text-xs text-red-400 text-center py-4">{athletesError}</p>
+                    : <p className="text-xs text-gray-600 text-center py-4">Aucun athlète</p>
                   )}
                 </div>
               </div>
