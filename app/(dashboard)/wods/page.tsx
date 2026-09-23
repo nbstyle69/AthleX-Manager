@@ -65,7 +65,7 @@ interface BoxWOD {
 /** Provenance d'une carte reçue d'une offre Marketplace (autre box). */
 interface ReceivedInfo { title: string; color: string; textColor: string }
 
-const TOOLBAR_BTN = 'gap-1.5 text-xs text-ax-text-secondary hover:text-ax-text hover:border-ax-input-border';
+const TOOLBAR_BTN = 'h-auto min-h-[32px] gap-1.5 text-xs text-ax-text-secondary hover:text-ax-text hover:border-ax-input-border';
 const TOOLBAR_BTN_ON = 'border-ax-input-border bg-ax-hover text-ax-text';
 const DANGER_OUTLINE = 'border-ax-danger text-ax-danger hover:text-ax-danger hover:bg-ax-danger-soft';
 const ICON_BTN = 'p-1 rounded-ax-control hover:bg-ax-hover transition-colors motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ax-focus focus-visible:ring-offset-2 focus-visible:ring-offset-ax-surface';
