@@ -1,13 +1,12 @@
-﻿'use client';
+'use client';
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
 import { Shield, LayoutDashboard, Swords, Users, Trophy, LogOut, Sun, Moon, Building2, Globe2, Award, Dumbbell, FileText, MapPin, BarChart3, Handshake, Flag, LifeBuoy, Gauge, Sparkles } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { cn } from '@/lib/utils';
 import { useTheme } from '@/components/ThemeProvider';
-import MobileNavBar from '@/components/layout/MobileNavBar';
+import MobileNavBar, { useMobileMenu } from '@/components/layout/MobileNavBar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 
@@ -40,9 +39,7 @@ export default function AdminSidebar({ username, email, supportUnread = 0 }: Adm
   const pathname = usePathname();
   const router   = useRouter();
   const { theme, toggle } = useTheme();
-  const [menuOpen, setMenuOpen] = useState(false);
-
-  useEffect(() => { setMenuOpen(false); }, [pathname]);
+  const { open: menuOpen, setOpen: setMenuOpen, onNavigate, onCloseAutoFocus } = useMobileMenu(pathname);
 
   async function handleSignOut() {
     const supabase = createClient();
@@ -86,7 +83,7 @@ export default function AdminSidebar({ username, email, supportUnread = 0 }: Adm
           return (
             <Link
               key={href} href={href}
-              onClick={() => setMenuOpen(false)}
+              onClick={onNavigate}
               className={cn(
                 'flex items-center gap-3 px-3 py-2.5 rounded-ax-control text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ax-focus motion-reduce:transition-none',
                 active
@@ -133,7 +130,7 @@ export default function AdminSidebar({ username, email, supportUnread = 0 }: Adm
           className="w-full justify-start min-h-10 px-3 py-2 text-sm hover:text-ax-danger hover:bg-ax-danger-soft"
         >
           <LogOut size={15} />
-          DÃ©connexion
+          Déconnexion
         </Button>
       </div>
     </>
@@ -147,6 +144,7 @@ export default function AdminSidebar({ username, email, supportUnread = 0 }: Adm
         badge={adminBadge}
         open={menuOpen}
         onOpenChange={setMenuOpen}
+        onCloseAutoFocus={onCloseAutoFocus}
       >
         {panel}
       </MobileNavBar>

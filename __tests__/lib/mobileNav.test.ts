@@ -32,11 +32,24 @@ describe('Cadre du back-office sur mobile : une seule source pour le menu', () =
     expect(ADMIN).toMatch(/<aside className="hidden lg:flex fixed top-0 left-0 h-full w-60/);
   });
 
-  it('les liens de navigation ferment le menu, et le changement de route aussi', () => {
-    expect(SIDEBAR).toMatch(/onClick=\{\(\) => setMenuOpen\(false\)\}/);
-    expect(ADMIN).toMatch(/onClick=\{\(\) => setMenuOpen\(false\)\}/);
-    expect(SIDEBAR).toMatch(/useEffect\(\(\) => \{ setMenuOpen\(false\); \}, \[pathname\]\)/);
-    expect(ADMIN).toMatch(/useEffect\(\(\) => \{ setMenuOpen\(false\); \}, \[pathname\]\)/);
+  it('les liens de navigation ferment le menu, le changement de route aussi, et le focus va sur <main>', () => {
+    for (const src of [SIDEBAR, ADMIN]) {
+      expect(src).toMatch(/useMobileMenu\(pathname\)/);
+      expect(src).toMatch(/onClick=\{onNavigate\}/);
+      expect(src).toMatch(/onCloseAutoFocus=\{onCloseAutoFocus\}/);
+    }
+    expect(BAR).toMatch(/useEffect\(\(\) => \{\s*setOpen\(false\);/);
+    expect(BAR).toMatch(/getElementById\(MAIN_CONTENT_ID\)\?\.focus\(\{ preventScroll: true \}\)/);
+    for (const src of [OWNER_LAYOUT, ADMIN_LAYOUT]) {
+      expect(src).toMatch(/<main id=\{MAIN_CONTENT_ID\} tabIndex=\{-1\}/);
+    }
+  });
+
+  it('aucune chaîne visible mal encodée dans le périmètre', () => {
+    for (const src of [SIDEBAR, ADMIN, BAR, SHEET, OWNER_LAYOUT, ADMIN_LAYOUT]) {
+      expect(src).not.toMatch(/Ã|â€/);
+    }
+    expect(ADMIN).toMatch(/Déconnexion/);
   });
 
   it('le bouton menu est accessible et le panneau est un Sheet Radix (Échap, fond, focus, scroll)', () => {

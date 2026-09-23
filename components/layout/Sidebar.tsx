@@ -8,7 +8,7 @@ import { createClient } from '@/lib/supabase/client';
 import { cn } from '@/lib/utils';
 import { useTheme } from '@/components/ThemeProvider';
 import BoxSwitcher, { type SwitcherBox } from '@/components/layout/BoxSwitcher';
-import MobileNavBar from '@/components/layout/MobileNavBar';
+import MobileNavBar, { useMobileMenu } from '@/components/layout/MobileNavBar';
 import { COACH_HREFS } from '@/lib/authz/coach-perimeter';
 import { ATHLETE_HOME } from '@/lib/authz/post-login';
 import { Badge } from '@/components/ui/badge';
@@ -107,9 +107,7 @@ export default function Sidebar({ box, email, unreadCount = 0, supportUnread = 0
   const { theme, toggle } = useTheme();
 
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
-  const [menuOpen, setMenuOpen] = useState(false);
-
-  useEffect(() => { setMenuOpen(false); }, [pathname]);
+  const { open: menuOpen, setOpen: setMenuOpen, onNavigate, onCloseAutoFocus } = useMobileMenu(pathname);
 
   const groups = useMemo<NavGroup[]>(
     () => (isOwnerAdmin
@@ -201,7 +199,7 @@ export default function Sidebar({ box, email, unreadCount = 0, supportUnread = 0
     const count  = badges[item.href] ?? 0;
     const Icon   = item.icon;
     return (
-      <Link key={item.href} href={item.href} className={linkClass(active)} onClick={() => setMenuOpen(false)}>
+      <Link key={item.href} href={item.href} className={linkClass(active)} onClick={onNavigate}>
         <Icon size={17} className={active ? 'text-ax-accent-text' : ''} />
         {item.label}
         {count > 0 && badge(count)}
@@ -278,7 +276,7 @@ export default function Sidebar({ box, email, unreadCount = 0, supportUnread = 0
         {isOwnerAdmin && PINNED.map(navLink)}
         {navLink(HELP)}
         {isSupportAdmin && (
-          <Link href="/support/admin" className={linkClass(pathname.startsWith('/support/admin'))} onClick={() => setMenuOpen(false)}>
+          <Link href="/support/admin" className={linkClass(pathname.startsWith('/support/admin'))} onClick={onNavigate}>
             <Inbox size={17} className={pathname.startsWith('/support/admin') ? 'text-ax-accent-text' : ''} />
             Support (Admin)
             {supportAdminUnread > 0 && badge(supportAdminUnread)}
@@ -311,7 +309,7 @@ export default function Sidebar({ box, email, unreadCount = 0, supportUnread = 0
         <Link
           href={ATHLETE_HOME}
           className={cn(buttonVariants({ variant: 'ax-outline', size: 'ax-compact' }), 'w-full justify-start')}
-          onClick={() => setMenuOpen(false)}
+          onClick={onNavigate}
         >
           <UserCircle size={15} />
           Mon espace athlète
@@ -337,6 +335,7 @@ export default function Sidebar({ box, email, unreadCount = 0, supportUnread = 0
         badge={isOwnerAdmin && <Badge className={planBadgeClass}>{planLabel}</Badge>}
         open={menuOpen}
         onOpenChange={setMenuOpen}
+        onCloseAutoFocus={onCloseAutoFocus}
       >
         {panel}
       </MobileNavBar>

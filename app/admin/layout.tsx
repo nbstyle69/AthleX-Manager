@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
 import { createClient, getServerProfile, getServerUser } from '@/lib/supabase/server';
 import AdminSidebar from '@/components/layout/AdminSidebar';
+import { MAIN_CONTENT_ID } from '@/components/layout/mainContent';
 import { Card } from '@/components/ui/card';
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -34,7 +35,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         email={user.email ?? ''}
         supportUnread={supportUnread ?? 0}
       />
-      <main className="flex-1 lg:ml-60 min-h-screen p-4 sm:p-6 lg:p-8 overflow-y-auto">
+      <main id={MAIN_CONTENT_ID} tabIndex={-1} className="flex-1 lg:ml-60 min-h-screen p-4 sm:p-6 lg:p-8 overflow-y-auto outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-ax-focus">
         {children}
       </main>
     </div>
