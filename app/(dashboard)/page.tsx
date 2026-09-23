@@ -4,6 +4,7 @@ import { cookies } from 'next/headers';
 import Link from 'next/link';
 import { Trophy, Users, Clock, MessageSquare, ChevronRight, CheckCircle, XCircle } from 'lucide-react';
 import { formatDateTime, statusBadge } from '@/lib/utils';
+import { softVar } from '@/lib/colorVars';
 import HelpDock from '@/components/help/HelpDock';
 import LogoUploadWidget from '@/components/dashboard/LogoUploadWidget';
 import InviteCodeWidget from '@/components/dashboard/InviteCodeWidget';
@@ -137,7 +138,7 @@ export default async function DashboardPage() {
                       <p className="text-sm font-semibold text-white">{t.name}</p>
                       <p className="text-xs text-gray-500 mt-0.5">{(t.tournament_participants as any)?.[0]?.count ?? 0} / {t.max_participants} participants</p>
                     </div>
-                    <span className="text-xs font-bold px-2 py-0.5 rounded-md" style={{ backgroundColor: `${sb.color}20`, color: sb.color }}>
+                    <span className="text-xs font-bold px-2 py-0.5 rounded-md" style={{ backgroundColor: softVar(sb.color, 32 / 255), color: sb.color }}>
                       {sb.label}
                     </span>
                   </Link>

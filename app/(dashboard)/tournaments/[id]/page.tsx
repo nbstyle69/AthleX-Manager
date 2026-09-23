@@ -6,6 +6,7 @@ import StartTournamentButton from '@/components/tournaments/StartTournamentButto
 import FinishTournamentButton from '@/components/tournaments/FinishTournamentButton';
 import DeleteTournamentButton from '@/components/tournaments/DeleteTournamentButton';
 import { tournamentStatusInfo } from '@/lib/utils';
+import { softVar } from '@/lib/colorVars';
 
 export default async function TournamentDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -41,7 +42,7 @@ export default async function TournamentDetailPage({ params }: { params: Promise
           <div>
             <div className="flex items-center gap-2 mb-2">
               <span className="text-xs font-bold px-2 py-1 rounded-lg"
-                style={{ backgroundColor: `${st.color}20`, color: st.color }}>
+                style={{ backgroundColor: softVar(st.color, 32 / 255), color: st.color }}>
                 {st.label}
               </span>
               <span className="text-xs text-gray-500 font-semibold uppercase">{t.level}</span>
@@ -80,7 +81,7 @@ export default async function TournamentDetailPage({ params }: { params: Promise
 
       {/* Lifecycle guidance */}
       <div className="flex items-start gap-3 rounded-2xl px-5 py-4 border"
-        style={{ backgroundColor: `${st.color}10`, borderColor: `${st.color}30` }}>
+        style={{ backgroundColor: softVar(st.color, 16 / 255), borderColor: softVar(st.color, 48 / 255) }}>
         <span className="mt-0.5 h-2.5 w-2.5 rounded-full shrink-0" style={{ backgroundColor: st.color }} />
         <div className="text-sm">
           <p className="font-bold" style={{ color: st.color }}>{st.label}</p>

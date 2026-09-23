@@ -58,16 +58,16 @@ export const SUB_COLOR_LIGHT: Record<keyof typeof SUB_COLOR_DARK, string> = {
 };
 
 /** `var(--track-functional)` — à poser tel quel dans un style en ligne. */
-export function trackColorVar(track: Track): string {
-  return `var(--track-${track})`;
+export function trackColorVar(track: Track, usage: 'marker' | 'text' = 'marker'): string {
+  return usage === 'text' ? `var(--ax-track-${track}-text)` : `var(--track-${track})`;
 }
 
 /** Fond atténué de la même teinte, sans concaténer un alpha à un `var()`. */
-export function softVar(cssVar: string): string {
-  return `color-mix(in srgb, ${cssVar} 16%, transparent)`;
+export function softVar(cssVar: string, opacity = 0.16): string {
+  return `color-mix(in srgb, ${cssVar} ${opacity * 100}%, transparent)`;
 }
 
-export function subColorVar(color: string | null | undefined): string {
+export function subColorVar(color: string | null | undefined, usage: 'marker' | 'text' = 'marker'): string {
   const key = (color ?? '') in SUB_COLOR_DARK ? (color as keyof typeof SUB_COLOR_DARK) : 'sky';
-  return `var(--sub-${key})`;
+  return usage === 'text' ? `var(--ax-sub-${key}-text)` : `var(--sub-${key})`;
 }

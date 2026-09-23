@@ -135,3 +135,126 @@ body {
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: rgba(128,128,128,0.3); border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: rgba(128,128,128,0.5); }
+
+:root {
+  --ax-background: #101214;
+  --ax-surface: #1C2023;
+  --ax-surface-secondary: #1C2023;
+  --ax-text: #F2F4F4;
+  --ax-text-secondary: #989FA3;
+  --ax-text-muted: #989FA3;
+  --ax-accent: #9AE6D2;
+  --ax-accent-foreground: #101214;
+  --ax-accent-text: #9AE6D2;
+  --ax-focus: #9AE6D2;
+  --ax-border: color-mix(in srgb, var(--ax-text) 12%, transparent);
+  --ax-input-border: #6B7772;
+  --ax-glass: color-mix(in srgb, var(--ax-background) 90%, transparent);
+  --ax-overlay: color-mix(in srgb, #000000 60%, transparent);
+  --ax-shadow-color: color-mix(in srgb, var(--ax-background) 50%, transparent);
+  --ax-hover: color-mix(in srgb, var(--ax-text) 5%, transparent);
+  --ax-success: #4ADE80;
+  --ax-warning: #FBBF24;
+  --ax-danger: #F87171;
+  --ax-info: #60A5FA;
+  --ax-neutral: #989FA3;
+  --ax-purple: #C084FC;
+  --ax-success-soft: color-mix(in srgb, var(--ax-success) 12%, var(--ax-surface));
+  --ax-warning-soft: color-mix(in srgb, var(--ax-warning) 12%, var(--ax-surface));
+  --ax-danger-soft: color-mix(in srgb, var(--ax-danger) 12%, var(--ax-surface));
+  --ax-info-soft: color-mix(in srgb, var(--ax-info) 12%, var(--ax-surface));
+  --ax-neutral-soft: color-mix(in srgb, var(--ax-neutral) 12%, var(--ax-surface));
+  --ax-accent-soft: color-mix(in srgb, var(--ax-accent-text) 12%, var(--ax-surface));
+
+  --ax-status-draft: #6B7280;
+  --ax-status-open: #3B82F6;
+  --ax-status-active: #22C55E;
+  --ax-status-completed: #9CA3AF;
+  --ax-status-pending: #D97706;
+  --ax-status-validated: #22C55E;
+  --ax-status-rejected: #EF4444;
+  --ax-status-closed: #6B7280;
+  --ax-status-review: #F59E0B;
+  --ax-status-ended: #F59E0B;
+
+  --ax-level-scaled: var(--ax-neutral);
+  --ax-level-inter: var(--ax-info);
+  --ax-level-rx: var(--ax-success);
+  --ax-level-rx-plus: var(--ax-purple);
+  --ax-level-gx: var(--ax-warning);
+  --ax-level-pro: var(--ax-danger);
+
+  --ax-track-functional: var(--track-functional);
+  --ax-track-hybrid: var(--track-hybrid);
+  --ax-track-musculation: var(--track-musculation);
+  --ax-track-functional-text: #34D399;
+  --ax-track-hybrid-text: #FB923C;
+  --ax-track-musculation-text: #60A5FA;
+  --ax-sub-sky: var(--sub-sky);
+  --ax-sub-violet: var(--sub-violet);
+  --ax-sub-amber: var(--sub-amber);
+  --ax-sub-rose: var(--sub-rose);
+  --ax-sub-teal: var(--sub-teal);
+  --ax-sub-orange: var(--sub-orange);
+  --ax-sub-lime: var(--sub-lime);
+  --ax-sub-fuchsia: var(--sub-fuchsia);
+  --ax-sub-sky-text: #38BDF8;
+  --ax-sub-violet-text: #A78BFA;
+  --ax-sub-amber-text: #FBBF24;
+  --ax-sub-rose-text: #FB7185;
+  --ax-sub-teal-text: #2DD4BF;
+  --ax-sub-orange-text: #FB923C;
+  --ax-sub-lime-text: #A3E635;
+  --ax-sub-fuchsia-text: #E879F9;
+
+  --ax-radius-control: 5px;
+  --ax-radius-badge: 3px;
+  --ax-radius-card: 10px;
+  --ax-radius-panel: 12px;
+  --ax-blur-glass: 24px;
+  --ax-shadow-panel: 0 16px 60px var(--ax-shadow-color);
+}
+
+html.light {
+  --ax-background: #F3F5F4;
+  --ax-surface: #FFFFFF;
+  --ax-surface-secondary: #E7ECEA;
+  --ax-text: #17201D;
+  --ax-text-secondary: #52605B;
+  --ax-text-muted: #5C6964;
+  --ax-accent-text: #176B57;
+  --ax-focus: #176B57;
+  --ax-border: #D1DAD6;
+  --ax-input-border: #78867F;
+  --ax-glass: color-mix(in srgb, var(--ax-surface) 90%, transparent);
+  --ax-shadow-color: color-mix(in srgb, #17201D 14%, transparent);
+  --ax-success: #166534;
+  --ax-warning: #92400E;
+  --ax-danger: #B91C1C;
+  --ax-info: #1D4ED8;
+  --ax-neutral: #52605B;
+  --ax-purple: #6D28D9;
+
+  --ax-status-draft: #5C6964;
+  --ax-status-open: #1D4ED8;
+  --ax-status-active: #166534;
+  --ax-status-completed: #52605B;
+  --ax-status-pending: #92400E;
+  --ax-status-validated: #166534;
+  --ax-status-rejected: #B91C1C;
+  --ax-status-closed: #5C6964;
+  --ax-status-review: #92400E;
+  --ax-status-ended: #92400E;
+
+  --ax-track-functional-text: #047857;
+  --ax-track-hybrid-text: #9A3412;
+  --ax-track-musculation-text: #1D4ED8;
+  --ax-sub-sky-text: #0369A1;
+  --ax-sub-violet-text: #6D28D9;
+  --ax-sub-amber-text: #92400E;
+  --ax-sub-rose-text: #BE123C;
+  --ax-sub-teal-text: #0F766E;
+  --ax-sub-orange-text: #9A3412;
+  --ax-sub-lime-text: #3F6212;
+  --ax-sub-fuchsia-text: #A21CAF;
+}
