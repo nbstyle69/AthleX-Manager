@@ -288,9 +288,10 @@ export default function Sidebar({ box, email, unreadCount = 0, supportUnread = 0
         <div className="flex items-center gap-2 mb-2">
           <Button
             variant="ax-outline"
+            size="ax-compact"
             onClick={toggle}
             title={theme === 'dark' ? 'Passer en mode clair' : 'Passer en mode sombre'}
-            className="flex-1 justify-start min-h-10 px-3 py-2 text-sm"
+            className="flex-1 justify-start"
           >
             {theme === 'dark' ? <Sun size={15} /> : <Moon size={15} />}
             {theme === 'dark' ? 'Mode clair' : 'Mode sombre'}
@@ -301,15 +302,16 @@ export default function Sidebar({ box, email, unreadCount = 0, supportUnread = 0
             faut taper l'URL pour revenir chez soi. */}
         <Link
           href={ATHLETE_HOME}
-          className={cn(buttonVariants({ variant: 'ax-outline' }), 'w-full justify-start min-h-10 px-3 py-2 text-sm')}
+          className={cn(buttonVariants({ variant: 'ax-outline', size: 'ax-compact' }), 'w-full justify-start')}
         >
           <UserCircle size={15} />
           Mon espace athlète
         </Link>
         <Button
           variant="ax-outline"
+          size="ax-compact"
           onClick={handleSignOut}
-          className="w-full justify-start min-h-10 mt-1 px-3 py-2 text-sm hover:text-ax-danger hover:bg-ax-danger-soft"
+          className="w-full justify-start mt-1 hover:text-ax-danger hover:bg-ax-danger-soft"
         >
           <LogOut size={15} />
           Déconnexion
