@@ -3,6 +3,8 @@
 import { useState } from 'react';
 import { Layers, CreditCard, ArrowLeft } from 'lucide-react';
 import { setActiveBox } from '@/app/(dashboard)/actions';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
 
 interface Props {
   boxName: string;
@@ -46,55 +48,57 @@ export default function MultiBoxUpgradeOverlay({ boxName, boxCount, primaryBoxId
 
   return (
     <div
-      className="fixed inset-0 z-[70] flex items-center justify-center bg-[#0A0A0A]/90 backdrop-blur-sm p-6"
+      className="fixed inset-0 z-[70] flex items-center justify-center bg-ax-overlay backdrop-blur-ax-glass p-6"
       role="dialog" aria-modal="true"
     >
-      <div className="bg-[#111111] border border-white/10 rounded-2xl p-8 max-w-md w-full text-center">
-        <div className="w-14 h-14 rounded-2xl bg-white/8 border border-white/10 flex items-center justify-center mx-auto mb-5">
-          <Layers size={24} className="text-white" />
+      <Card className="rounded-ax-panel shadow-ax-panel p-8 max-w-md w-full max-h-full overflow-y-auto text-center">
+        <div className="w-14 h-14 rounded-ax-card bg-ax-accent-soft border border-ax-border flex items-center justify-center mx-auto mb-5">
+          <Layers size={24} className="text-ax-accent-text" />
         </div>
-        <h2 className="text-xl font-bold text-white mb-2">Débloque le multi-box</h2>
-        <p className="text-sm text-gray-400 mb-1">
+        <h2 className="font-display text-xl font-medium uppercase tracking-wide text-ax-text mb-2">Débloque le multi-box</h2>
+        <p className="text-sm text-ax-text-secondary mb-1">
           « {boxName} » est une box supplémentaire.
         </p>
-        <p className="text-sm text-gray-400 mb-5">
-          Passe au plan <span className="text-white font-semibold">Multi-box</span> pour gérer toutes tes box
+        <p className="text-sm text-ax-text-secondary mb-5">
+          Passe au plan <span className="text-ax-text font-semibold">Multi-box</span> pour gérer toutes tes box
           depuis le même AthleX Manager.
         </p>
 
-        <div className="rounded-xl bg-white/5 border border-white/10 p-4 mb-5 text-left">
-          <div className="flex items-center justify-between text-sm text-gray-300 mb-1">
+        <div className="rounded-ax-card bg-ax-surface-secondary border border-ax-border p-4 mb-5 text-left">
+          <div className="flex items-center justify-between text-sm text-ax-text-secondary mb-1">
             <span>Plan de base</span><span>{basePrice} €</span>
           </div>
-          <div className="flex items-center justify-between text-sm text-gray-300 mb-2">
+          <div className="flex items-center justify-between text-sm text-ax-text-secondary mb-2">
             <span>{extraBoxes} box supplémentaire{extraBoxes > 1 ? 's' : ''} × {extraPerBox} €</span>
             <span>{extraBoxes * extraPerBox} €</span>
           </div>
-          <div className="flex items-center justify-between text-white font-bold border-t border-white/10 pt-2">
+          <div className="flex items-center justify-between text-ax-text font-bold border-t border-ax-border pt-2">
             <span>Total</span><span>{monthly} € / mois</span>
           </div>
         </div>
 
-        <button
+        <Button
+          variant="ax-mint"
           onClick={upgrade} disabled={loading}
-          className="w-full flex items-center justify-center gap-2 bg-white text-[#0A0A0A] font-bold py-3.5 rounded-xl hover:bg-gray-200 transition-colors text-sm mb-3 disabled:opacity-60"
+          className="w-full mb-3"
         >
           <CreditCard size={16} />
           {loading ? 'Redirection…' : 'Passer au plan Multi-box'}
-        </button>
+        </Button>
 
         {primaryBoxId && (
-          <button
+          <Button
+            variant="ax-outline"
             onClick={backToPrimary}
-            className="w-full flex items-center justify-center gap-2 text-gray-400 hover:text-white text-xs font-bold py-2 transition-colors"
+            className="w-full text-xs"
           >
             <ArrowLeft size={13} />
             Revenir à ma box principale
-          </button>
+          </Button>
         )}
 
-        {error && <p className="text-xs text-red-400 mt-2">{error}</p>}
-      </div>
+        {error && <p className="text-xs text-ax-danger mt-2">{error}</p>}
+      </Card>
     </div>
   );
 }

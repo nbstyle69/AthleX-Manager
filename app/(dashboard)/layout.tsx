@@ -66,7 +66,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
   // « aucun abonnement » et l'enfermerait derrière le paywall du gérant.
   if (box.my_role === 'coach') {
     return (
-      <div className="min-h-screen bg-[#0A0A0A] flex">
+      <div className="min-h-screen bg-ax-background flex">
         <Sidebar
           box={{ name: box.name, plan: 'none' }}
           email={user.email ?? ''}
@@ -162,7 +162,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
     : { basePrice: 0, extraPerBox: 0 };
 
   return (
-    <div className="min-h-screen bg-[#0A0A0A] flex">
+    <div className="min-h-screen bg-ax-background flex">
       <Sidebar
         box={{ name: box.name, plan: (sub?.plan_tier as string) ?? 'none' }}
         email={user.email ?? ''}

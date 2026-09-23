@@ -7,6 +7,9 @@ import {
   GENERATION_LABEL, REGEN_CONFIRM_WORD, TRACK_LABEL,
   type AutoRun, type RevealSettings, type Track,
 } from '@/lib/autoProgramming';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
 
 /**
  * Marque discrète d'une carte posée par la génération automatique.
@@ -127,20 +130,21 @@ export default function AutoProgrammingBanner({
 
   return (
     <div className="space-y-2" data-testid="banniere-auto-programmation">
-      <div className="flex items-start gap-3 rounded-xl border border-emerald-500/30 bg-emerald-500/[0.06] px-4 py-3">
-        <Sparkles size={15} className="shrink-0 mt-0.5 text-emerald-400" />
+      <Card className="flex flex-wrap items-start gap-3 border-ax-accent-text bg-ax-accent-soft px-4 py-3">
+        <Sparkles size={15} className="shrink-0 mt-0.5 text-ax-accent-text" />
         <div className="flex-1 min-w-0">
-          <p className="text-sm text-gray-300">
+          <p className="text-sm text-ax-text-secondary">
             Semaine générée automatiquement · générée {GENERATION_LABEL} ·{' '}
-            <span className="text-white font-semibold">visible par les athlètes {revealLabel(reveal)}</span>
+            <span className="text-ax-text font-semibold">visible par les athlètes {revealLabel(reveal)}</span>
           </p>
-          <p className="text-[11px] text-gray-500 mt-0.5">
+          <p className="text-[11px] text-ax-text-muted mt-0.5">
             {tracks.length > 0 ? trackListLabel(tracks) : 'Aucune piste active'}
           </p>
-          {error && !confirm && <p className="text-xs text-red-400 mt-1.5" data-testid="auto-run-error">{error}</p>}
+          {error && !confirm && <p className="text-xs text-ax-danger mt-1.5" data-testid="auto-run-error">{error}</p>}
         </div>
-        <div className="flex items-center gap-2 shrink-0">
-          <button
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            variant="ax-outline"
             type="button"
             onClick={() => open('next')}
             disabled={busy !== null || alreadyGenerated}
@@ -148,51 +152,52 @@ export default function AutoProgrammingBanner({
             title={alreadyGenerated
               ? `La semaine du ${weekLabel} est déjà générée pour toutes les pistes`
               : `Générer la semaine du ${weekLabel}`}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold border border-white/10 text-gray-300 hover:text-white hover:border-white/30 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            className="gap-1.5 text-xs"
           >
             <CalendarPlus size={13} />
             {busy === 'next' ? 'Génération...' : `Générer la semaine du ${weekLabel}`}
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="ax-outline"
             type="button"
             onClick={() => open('regen')}
             disabled={busy !== null}
             data-testid="auto-regenerer"
             title={`Régénérer la semaine du ${weekLabel}`}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold border border-white/10 text-gray-300 hover:text-white hover:border-white/30 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            className="gap-1.5 text-xs"
           >
             <RefreshCw size={13} /> Régénérer la semaine du {weekLabel}
-          </button>
+          </Button>
         </div>
-      </div>
+      </Card>
 
       {confirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-          <div className="bg-[#111111] border border-white/[0.08] rounded-2xl p-6 w-full max-w-md space-y-4" data-testid={`confirmation-${confirm}`}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-ax-overlay backdrop-blur-ax-glass p-4">
+          <Card className="rounded-ax-panel shadow-ax-panel p-6 w-full max-w-md max-h-full overflow-y-auto space-y-4" data-testid={`confirmation-${confirm}`}>
             <div className="flex items-center gap-2">
               {confirm === 'regen'
-                ? <AlertTriangle size={18} className="text-amber-400" />
-                : <CalendarPlus size={18} className="text-emerald-400" />}
-              <h2 className="text-lg font-black text-white">
+                ? <AlertTriangle size={18} className="text-ax-warning" />
+                : <CalendarPlus size={18} className="text-ax-accent-text" />}
+              <h2 className="font-display text-lg font-medium uppercase tracking-wide text-ax-text">
                 {confirm === 'regen' ? 'Régénérer' : 'Générer'} la semaine du {weekLabel} ?
               </h2>
             </div>
 
-            <p className="text-sm text-gray-300">
+            <p className="text-sm text-ax-text-secondary">
               {confirm === 'regen'
                 ? 'Les séances des pistes cochées vont être retirées et remplacées.'
                 : 'Les séances des pistes cochées vont être posées sur la semaine.'}
             </p>
 
             <fieldset className="space-y-2" data-testid="choix-pistes">
-              <legend className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">Pistes</legend>
+              <legend className="text-xs font-bold text-ax-text-secondary uppercase tracking-wider mb-1.5">Pistes</legend>
               {choices.map(({ track, enabled, reason }) => (
                 <label
                   key={track}
-                  className={`flex items-center gap-3 p-2.5 rounded-xl border transition-colors ${
-                    !enabled ? 'opacity-40 cursor-not-allowed border-white/5'
-                      : chosen.includes(track) ? 'border-emerald-500/40 bg-emerald-500/5 cursor-pointer'
-                        : 'border-white/10 bg-white/[0.02] hover:border-white/20 cursor-pointer'}`}
+                  className={`flex items-center gap-3 p-2.5 rounded-ax-control border transition-colors motion-reduce:transition-none ${
+                    !enabled ? 'cursor-not-allowed border-ax-border bg-ax-neutral-soft'
+                      : chosen.includes(track) ? 'border-ax-accent-text bg-ax-accent-soft cursor-pointer'
+                        : 'border-ax-input-border bg-ax-surface hover:bg-ax-hover cursor-pointer'}`}
                 >
                   <input
                     type="checkbox"
@@ -200,59 +205,60 @@ export default function AutoProgrammingBanner({
                     disabled={!enabled}
                     onChange={() => toggle(track)}
                     data-testid={`piste-${track}`}
-                    className="w-4 h-4 accent-emerald-500"
+                    className="w-4 h-4 accent-ax-accent-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ax-focus focus-visible:ring-offset-2 focus-visible:ring-offset-ax-surface"
                   />
-                  <span className="text-sm font-bold text-white">{TRACK_LABEL[track]}</span>
-                  {reason && <span className="text-[11px] text-gray-500 ml-auto">{reason}</span>}
+                  <span className={`text-sm font-bold ${enabled ? 'text-ax-text' : 'text-ax-text-muted'}`}>{TRACK_LABEL[track]}</span>
+                  {reason && <span className="text-[11px] text-ax-text-muted ml-auto">{reason}</span>}
                 </label>
               ))}
             </fieldset>
 
             {confirm === 'regen' && (
               <>
-                <p className="text-sm text-emerald-300">
+                <p className="text-sm text-ax-success">
                   Les jours qui ont déjà un score, ou que tu as modifiés à la main, sont conservés :
                   ils ne seront ni supprimés ni remplacés.
                 </p>
                 <div>
-                  <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">
+                  <label className="block text-xs font-bold text-ax-text-secondary uppercase tracking-wider mb-1.5">
                     Tape {REGEN_CONFIRM_WORD} pour confirmer
                   </label>
-                  <input
+                  <Input
                     value={confirmText}
                     onChange={e => setConfirmText(e.target.value)}
                     autoFocus
                     placeholder={REGEN_CONFIRM_WORD}
                     data-testid="auto-regenerer-saisie"
-                    className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-amber-500/50"
+                    className="px-4"
                   />
                 </div>
               </>
             )}
 
-            {error && <p className="text-xs text-red-400" data-testid="auto-run-error">{error}</p>}
+            {error && <p className="text-xs text-ax-danger" data-testid="auto-run-error">{error}</p>}
 
             <div className="flex items-center gap-3">
-              <button
+              <Button
+                variant="ax-outline"
                 onClick={close}
-                className="flex-1 py-2.5 rounded-xl border border-white/10 text-gray-300 text-sm font-bold hover:text-white transition-colors"
+                className="flex-1"
               >
                 Annuler
-              </button>
-              <button
+              </Button>
+              <Button
+                variant={confirm === 'regen' ? 'ax-white' : 'ax-mint'}
                 onClick={() => void run(confirm)}
                 disabled={!canSubmit}
                 data-testid={confirm === 'regen' ? 'auto-regenerer-confirmer' : 'auto-generer-confirmer'}
                 title={chosen.length === 0 ? 'Coche au moins une piste'
                   : !wordOk ? `Tape ${REGEN_CONFIRM_WORD} pour activer` : undefined}
-                className={`flex-1 py-2.5 rounded-xl disabled:opacity-40 disabled:cursor-not-allowed text-sm font-bold transition-colors ${
-                  confirm === 'regen' ? 'bg-amber-500 hover:bg-amber-600 text-black' : 'bg-emerald-500 hover:bg-emerald-600 text-white'}`}
+                className="flex-1"
               >
                 {busy ? (confirm === 'regen' ? 'Régénération...' : 'Génération...')
                   : `${confirm === 'regen' ? 'Régénérer' : 'Générer'} ${chosen.length > 0 ? trackListLabel(chosen) : ''}`}
-              </button>
+              </Button>
             </div>
-          </div>
+          </Card>
         </div>
       )}
     </div>

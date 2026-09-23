@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Zap, AlertTriangle, Crown, Clock, CreditCard, RefreshCw } from 'lucide-react';
 import Link from 'next/link';
+import { Button, buttonVariants } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 
 interface Props {
   status: string;
@@ -64,27 +66,27 @@ export default function TrialBanner({ status: initialStatus, daysLeft, trialEnds
     return (
       <Link
         href={`/pricing?box_id=${boxId}`}
-        className="flex items-center gap-3 bg-white/8 border border-white/20 rounded-xl px-4 py-3 mb-6 hover:opacity-90 transition-opacity"
+        className="flex items-center gap-3 bg-ax-surface border border-ax-border rounded-ax-card px-4 py-3 mb-6 text-ax-text hover:bg-ax-hover transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ax-focus motion-reduce:transition-none"
       >
-        <Zap size={18} className="text-white shrink-0" />
+        <Zap size={18} className="text-ax-accent-text shrink-0" />
         <div className="flex-1">
-          <p className="text-sm font-bold text-white">Aucun abonnement</p>
-          <p className="text-xs text-gray-400">Active ton essai gratuit de 14 jours ou souscris directement</p>
+          <p className="text-sm font-bold text-ax-text">Aucun abonnement</p>
+          <p className="text-xs text-ax-text-secondary">Active ton essai gratuit de 14 jours ou souscris directement</p>
         </div>
-        <span className="text-xs font-bold text-white">Souscrire →</span>
+        <span className={cn(buttonVariants({ variant: 'ax-mint', className: 'text-xs' }))}>Souscrire →</span>
       </Link>
     );
   }
 
   if (status === 'active') {
     return (
-      <div className="flex items-center gap-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl px-4 py-3 mb-6">
-        <Crown size={18} className="text-emerald-400 shrink-0" />
+      <div className="flex items-center gap-3 bg-ax-success-soft border border-ax-success rounded-ax-card px-4 py-3 mb-6">
+        <Crown size={18} className="text-ax-success shrink-0" />
         <div className="flex-1">
-          <p className="text-sm font-bold text-emerald-400">Plan Complet actif</p>
-          <p className="text-xs text-gray-400">Toutes les fonctionnalités sont débloquées</p>
+          <p className="text-sm font-bold text-ax-success">Plan Complet actif</p>
+          <p className="text-xs text-ax-text-secondary">Toutes les fonctionnalités sont débloquées</p>
         </div>
-        <Link href={`/pricing/manage?box_id=${boxId}`} className="text-xs font-bold text-gray-400 hover:text-white transition-colors">
+        <Link href={`/pricing/manage?box_id=${boxId}`} className={cn(buttonVariants({ variant: 'ax-outline', className: 'text-xs' }))}>
           Gérer →
         </Link>
       </div>
@@ -95,35 +97,36 @@ export default function TrialBanner({ status: initialStatus, daysLeft, trialEnds
     return (
       <Link
         href={`/pricing/manage?box_id=${boxId}`}
-        className="flex items-center gap-3 bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3 mb-6 hover:bg-red-500/15 transition-colors"
+        className="flex items-center gap-3 bg-ax-danger-soft border border-ax-danger rounded-ax-card px-4 py-3 mb-6 hover:bg-ax-hover transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ax-focus motion-reduce:transition-none"
       >
-        <CreditCard size={18} className="text-red-400 shrink-0" />
+        <CreditCard size={18} className="text-ax-danger shrink-0" />
         <div className="flex-1">
-          <p className="text-sm font-bold text-red-400">Paiement échoué</p>
-          <p className="text-xs text-gray-400">Mets à jour ton moyen de paiement pour continuer</p>
+          <p className="text-sm font-bold text-ax-danger">Paiement échoué</p>
+          <p className="text-xs text-ax-text-secondary">Mets à jour ton moyen de paiement pour continuer</p>
         </div>
-        <span className="text-xs font-bold text-red-400">Gérer →</span>
+        <span className={cn(buttonVariants({ variant: 'ax-outline', className: 'text-xs' }))}>Gérer →</span>
       </Link>
     );
   }
 
   if (status === 'canceled' || status === 'expired' || daysLeft <= 0) {
     return (
-      <div className="flex items-center gap-3 bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3 mb-6">
-        <AlertTriangle size={18} className="text-red-400 shrink-0" />
+      <div className="flex items-center gap-3 bg-ax-danger-soft border border-ax-danger rounded-ax-card px-4 py-3 mb-6">
+        <AlertTriangle size={18} className="text-ax-danger shrink-0" />
         <div className="flex-1">
-          <p className="text-sm font-bold text-red-400">Essai terminé</p>
-          <p className="text-xs text-gray-400">Souscris pour continuer à utiliser AthleX Manager</p>
+          <p className="text-sm font-bold text-ax-danger">Essai terminé</p>
+          <p className="text-xs text-ax-text-secondary">Souscris pour continuer à utiliser AthleX Manager</p>
         </div>
-        <button
+        <Button
+          variant="ax-outline"
           onClick={handleSync}
           disabled={syncing}
-          className="text-xs font-bold text-gray-400 hover:text-white transition-colors px-2 py-1 rounded-lg hover:bg-white/5"
+          className="shrink-0 px-3 text-xs"
           title="Vérifier le statut de l'abonnement"
         >
           <RefreshCw size={14} className={syncing ? 'animate-spin' : ''} />
-        </button>
-        <Link href={`/pricing?box_id=${boxId}`} className="text-xs font-bold text-red-400 hover:text-red-300">
+        </Button>
+        <Link href={`/pricing?box_id=${boxId}`} className={cn(buttonVariants({ variant: 'ax-white', className: 'text-xs' }))}>
           Souscrire →
         </Link>
       </div>
@@ -133,9 +136,9 @@ export default function TrialBanner({ status: initialStatus, daysLeft, trialEnds
   const isUrgent = daysLeft <= 3;
   const isWarning = daysLeft <= 7;
 
-  const textColor = isUrgent ? 'text-red-400' : isWarning ? 'text-amber-400' : 'text-white';
-  const bgColor = isUrgent ? 'bg-red-500/10' : isWarning ? 'bg-amber-500/10' : 'bg-white/8';
-  const borderColor = isUrgent ? 'border-red-500/20' : isWarning ? 'border-amber-500/20' : 'border-white/20';
+  const textColor = isUrgent ? 'text-ax-danger' : isWarning ? 'text-ax-warning' : 'text-ax-text';
+  const bgColor = isUrgent ? 'bg-ax-danger-soft' : isWarning ? 'bg-ax-warning-soft' : 'bg-ax-surface';
+  const borderColor = isUrgent ? 'border-ax-danger' : isWarning ? 'border-ax-warning' : 'border-ax-border';
   const Icon = isUrgent ? AlertTriangle : isWarning ? Clock : Zap;
 
   const endsLabel = trialEndsAt
@@ -145,21 +148,21 @@ export default function TrialBanner({ status: initialStatus, daysLeft, trialEnds
   return (
     <Link
       href={`/pricing?box_id=${boxId}`}
-      className={`flex items-center gap-3 ${bgColor} border ${borderColor} rounded-xl px-4 py-3 mb-6 hover:opacity-90 transition-opacity`}
+      className={`flex items-center gap-3 ${bgColor} border ${borderColor} rounded-ax-card px-4 py-3 mb-6 hover:bg-ax-hover transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ax-focus motion-reduce:transition-none`}
     >
       <Icon size={18} className={`${textColor} shrink-0`} />
       <div className="flex-1">
         <p className={`text-sm font-bold ${textColor}`}>
           {isEarlyAdopter ? '🏅 Fondateur · ' : ''}Essai gratuit · J-{daysLeft}
         </p>
-        <p className="text-xs text-gray-400">
+        <p className="text-xs text-ax-text-secondary">
           {isUrgent
             ? 'Plus que quelques jours ! Souscris pour ne rien perdre.'
             : `${daysLeft} jour${daysLeft > 1 ? 's' : ''} restant${daysLeft > 1 ? 's' : ''}`}
           {endsLabel ? ` — Expire le ${endsLabel}` : ''}
         </p>
       </div>
-      <span className={`text-xs font-bold ${textColor}`}>Voir →</span>
+      <span className={cn(buttonVariants({ variant: 'ax-outline', className: 'text-xs' }))}>Voir →</span>
     </Link>
   );
 }

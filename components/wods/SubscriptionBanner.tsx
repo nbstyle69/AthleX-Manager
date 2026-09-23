@@ -1,7 +1,10 @@
 'use client';
 
 import { CalendarPlus, AlertTriangle, Clock, PauseCircle } from 'lucide-react';
-import { addDaysISO, nextMondayISO, subscriptionColorVar, toLocalISO, weekNumberFor } from '@/lib/audience';
+import { addDaysISO, nextMondayISO, toLocalISO, weekNumberFor } from '@/lib/audience';
+import { softVar, subColorVar } from '@/lib/colorVars';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
 
 /**
  * Bannière du Whiteboard quand la box a au moins un abonnement Marketplace
@@ -46,7 +49,7 @@ export default function SubscriptionBanner({
   return (
     <div className="space-y-2" data-testid="banniere-abonnements">
       {subscriptions.map(s => {
-        const color = subscriptionColorVar(s.color);
+        const color = subColorVar(s.color, 'text');
         const empty = s.wodCounts.every(n => n === 0);
         const anchor = s.weekAnchor ?? nextMonday;
         const dueNext = weekNumberFor(anchor, nextMonday, s.weeksCount);
@@ -56,35 +59,36 @@ export default function SubscriptionBanner({
         let icon = <Clock size={15} className="shrink-0 mt-0.5" style={{ color }} />;
         let text: React.ReactNode;
         if (empty) {
-          icon = <AlertTriangle size={15} className="shrink-0 mt-0.5 text-amber-400" />;
+          icon = <AlertTriangle size={15} className="shrink-0 mt-0.5 text-ax-warning" />;
           text = <>« {s.title} » ne contient encore aucun WOD : rien ne se posera tant que {s.publisherBoxName ?? 'la box éditrice'} ne l&apos;a pas remplie.</>;
         } else if (s.autoApplyWeekly) {
-          text = <>Prochaine semaine automatique de « {s.title} » : <span className="text-white font-semibold">semaine {dueNext}</span>, posée le {frDate(nextSunday)} à 18h.</>;
+          text = <>Prochaine semaine automatique de « {s.title} » : <span className="text-ax-text font-semibold">semaine {dueNext}</span>, posée le {frDate(nextSunday)} à 18h.</>;
         } else {
-          icon = <PauseCircle size={15} className="shrink-0 mt-0.5 text-gray-400" />;
+          icon = <PauseCircle size={15} className="shrink-0 mt-0.5 text-ax-text-secondary" />;
           text = <>Application automatique désactivée pour « {s.title} » : pose les semaines depuis « Programmation » (Marketplace pour la réactiver).</>;
         }
 
         return (
-          <div
+          <Card
             key={s.subscriptionId}
-            className="flex items-start gap-3 rounded-xl border bg-white/[0.03] px-4 py-3"
-            style={{ borderColor: `${color}55` }}
+            className="flex flex-wrap items-start gap-3 px-4 py-3"
+            style={{ borderColor: softVar(color, 85 / 255) }}
           >
             {icon}
-            <p className="flex-1 text-sm text-gray-300">{text}</p>
-            <button
+            <p className="flex-1 text-sm text-ax-text-secondary">{text}</p>
+            <Button
+              variant="ax-outline"
               type="button"
               onClick={() => onApplyNow(s.subscriptionId, dueDisplayed)}
               disabled={empty}
               title={empty ? 'Offre vide' : displayedEmpty
                 ? `La semaine ${dueDisplayed} est vide : la modale te laissera en choisir une autre`
                 : `Poser la semaine ${dueDisplayed} sur la semaine affichée`}
-              className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold border border-white/10 text-gray-300 hover:text-white hover:border-white/30 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              className="shrink-0 gap-1.5 text-xs"
             >
               <CalendarPlus size={13} /> Appliquer maintenant
-            </button>
-          </div>
+            </Button>
+          </Card>
         );
       })}
     </div>

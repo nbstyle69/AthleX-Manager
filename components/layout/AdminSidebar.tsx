@@ -6,6 +6,8 @@ import { Shield, LayoutDashboard, Swords, Users, Trophy, LogOut, Sun, Moon, Buil
 import { createClient } from '@/lib/supabase/client';
 import { cn } from '@/lib/utils';
 import { useTheme } from '@/components/ThemeProvider';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 
 const NAV = [
   { href: '/admin',                label: 'Dashboard',      icon: LayoutDashboard },
@@ -47,21 +49,21 @@ export default function AdminSidebar({ username, email, supportUnread = 0 }: Adm
   }
 
   return (
-    <aside className="fixed top-0 left-0 h-full w-60 bg-[#080808] border-r border-white/[0.06] flex flex-col z-40">
+    <aside className="fixed top-0 left-0 h-full w-60 bg-ax-glass backdrop-blur-ax-glass border-r border-ax-border flex flex-col z-40">
       {/* Header */}
-      <div className="px-5 py-6 border-b border-white/[0.06]">
+      <div className="px-5 py-6 border-b border-ax-border">
         <div className="flex items-center gap-3 mb-3">
-          <div className="w-9 h-9 rounded-xl overflow-hidden shrink-0 flex items-center justify-center bg-emerald-500/20">
-            <Shield size={20} className="text-emerald-400" />
+          <div className="w-9 h-9 rounded-ax-control overflow-hidden shrink-0 flex items-center justify-center bg-ax-accent-soft">
+            <Shield size={20} className="text-ax-accent-text" />
           </div>
           <div className="min-w-0">
-            <p className="text-xs font-black text-white/30 tracking-widest uppercase">AthleX Manager</p>
-            <p className="text-sm font-bold text-white truncate leading-tight">Super Admin</p>
+            <p className="font-display text-sm font-medium text-ax-text-muted tracking-widest uppercase">AthleX Manager</p>
+            <p className="text-sm font-bold text-ax-text truncate leading-tight">Super Admin</p>
           </div>
         </div>
-        <span className="text-[10px] font-extrabold uppercase tracking-widest px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-400">
+        <Badge variant="accent" className="text-[10px] font-extrabold uppercase tracking-widest py-0.5">
           ADMIN
-        </span>
+        </Badge>
       </div>
 
       {/* Nav */}
@@ -72,16 +74,16 @@ export default function AdminSidebar({ username, email, supportUnread = 0 }: Adm
             <Link
               key={href} href={href}
               className={cn(
-                'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all',
+                'flex items-center gap-3 px-3 py-2.5 rounded-ax-control text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ax-focus motion-reduce:transition-none',
                 active
-                  ? 'bg-emerald-500/20 text-white'
-                  : 'text-gray-400 hover:text-white hover:bg-white/5'
+                  ? 'bg-ax-accent-soft text-ax-accent-text'
+                  : 'text-ax-text-secondary hover:text-ax-text hover:bg-ax-hover'
               )}
             >
-              <Icon size={17} className={active ? 'text-emerald-400' : ''} />
+              <Icon size={17} className={active ? 'text-ax-accent-text' : ''} />
               {label}
               {label === 'Support' && supportUnread > 0 && (
-                <span className="ml-auto bg-emerald-500 text-[#0A0A0A] text-[10px] font-black rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1">
+                <span className="ml-auto bg-ax-accent text-ax-accent-foreground text-[10px] font-black rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1">
                   {supportUnread > 99 ? '99+' : supportUnread}
                 </span>
               )}
@@ -91,34 +93,35 @@ export default function AdminSidebar({ username, email, supportUnread = 0 }: Adm
       </nav>
 
       {/* Footer */}
-      <div className="px-4 py-4 border-t border-white/[0.06]">
+      <div className="px-4 py-4 border-t border-ax-border">
         <div className="flex items-center gap-3 mb-3">
-          <div className="w-8 h-8 rounded-full bg-emerald-500/30 flex items-center justify-center text-emerald-400 text-xs font-black">
+          <div className="w-8 h-8 rounded-full bg-ax-accent-soft flex items-center justify-center text-ax-accent-text text-xs font-black">
             {username[0]?.toUpperCase() ?? '?'}
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-xs font-bold text-white truncate">{username}</p>
-            <p className="text-[10px] text-gray-500 truncate">{email}</p>
+            <p className="text-xs font-bold text-ax-text truncate">{username}</p>
+            <p className="text-[10px] text-ax-text-muted truncate">{email}</p>
           </div>
         </div>
         <div className="flex items-center gap-2 mb-2">
-          <button
+          <Button
+            variant="ax-outline"
             onClick={toggle}
-            className="flex-1 flex items-center gap-2 px-3 py-2 rounded-xl text-sm text-gray-500 hover:text-gray-300 hover:bg-white/5 transition-all"
+            className="flex-1 justify-start min-h-10 px-3 py-2 text-sm"
           >
             {theme === 'dark' ? <Sun size={15} /> : <Moon size={15} />}
             {theme === 'dark' ? 'Mode clair' : 'Mode sombre'}
-          </button>
+          </Button>
         </div>
-        <button
+        <Button
+          variant="ax-outline"
           onClick={handleSignOut}
-          className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-sm text-gray-500 hover:text-red-400 hover:bg-red-500/10 transition-all"
+          className="w-full justify-start min-h-10 px-3 py-2 text-sm hover:text-ax-danger hover:bg-ax-danger-soft"
         >
           <LogOut size={15} />
           DÃ©connexion
-        </button>
+        </Button>
       </div>
     </aside>
   );
 }
-
