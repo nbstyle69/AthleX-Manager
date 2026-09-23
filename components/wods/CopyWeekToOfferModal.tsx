@@ -92,42 +92,42 @@ export default function CopyWeekToOfferModal({ source, onClose, onCopied }: Prop
     onCopied({ offerTitle: offer.title, week: res.week ?? week, copied: res.copied ?? 0, replaced: res.replaced ?? 0 });
   }
 
-  const inp = 'w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-white transition-colors';
+  const inp = 'w-full bg-ax-surface-secondary border border-ax-border rounded-ax-control px-4 py-3 text-sm text-ax-text focus:outline-none focus:border-ax-focus transition-colors';
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-      <div className="bg-[#111111] border border-white/10 rounded-2xl w-full max-w-md">
-        <div className="flex items-center justify-between px-6 py-5 border-b border-white/8">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-ax-overlay backdrop-blur-ax-glass p-4">
+      <div className="bg-ax-surface border border-ax-border rounded-ax-card w-full max-w-md">
+        <div className="flex items-center justify-between px-6 py-5 border-b border-ax-border">
           <div>
-            <h2 className="text-lg font-black text-white">Copier vers une offre</h2>
-            <p className="text-xs text-gray-500">
+            <h2 className="text-lg font-black text-ax-text">Copier vers une offre</h2>
+            <p className="text-xs text-ax-text-muted">
               {source.kind === 'whiteboard'
                 ? `Semaine du Whiteboard du ${new Date(source.monday + 'T00:00:00').toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })}`
                 : `Semaine type « ${source.templateTitle} »`}
             </p>
           </div>
-          <button onClick={onClose} className="p-1.5 rounded-xl hover:bg-white/5 text-gray-400 hover:text-white transition-colors">
+          <button onClick={onClose} className="p-1.5 rounded-ax-control hover:bg-ax-hover text-ax-text-secondary hover:text-ax-text transition-colors">
             <X size={18} />
           </button>
         </div>
 
         <div className="p-6 space-y-4">
           {error && (
-            <div className="bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3 text-sm text-red-400">{error}</div>
+            <div className="bg-ax-danger-soft border border-ax-danger rounded-ax-control px-4 py-3 text-sm text-ax-danger">{error}</div>
           )}
 
           {loading ? (
-            <div className="flex items-center gap-2 text-sm text-gray-400 py-4 justify-center">
+            <div className="flex items-center gap-2 text-sm text-ax-text-secondary py-4 justify-center">
               <Loader2 size={16} className="animate-spin" /> Chargement des offres…
             </div>
           ) : offers.length === 0 ? (
-            <p className="text-sm text-gray-400 leading-relaxed">
-              Aucune offre Marketplace. Crée-en une dans <span className="text-white font-semibold">Entraînement → Marketplace → Mes offres</span>, puis reviens copier cette semaine dedans.
+            <p className="text-sm text-ax-text-secondary leading-relaxed">
+              Aucune offre Marketplace. Crée-en une dans <span className="text-ax-text font-semibold">Entraînement → Marketplace → Mes offres</span>, puis reviens copier cette semaine dedans.
             </p>
           ) : (
             <>
               <div>
-                <label className="block text-xs font-semibold text-gray-400 mb-1.5 uppercase tracking-wider">Offre</label>
+                <label className="block text-xs font-semibold text-ax-text-secondary mb-1.5 uppercase tracking-wider">Offre</label>
                 <select className={inp} value={offerId} onChange={e => { setOfferId(e.target.value); setWeek(1); }}>
                   <option value="">— Choisir —</option>
                   {offers.map(o => (
@@ -138,7 +138,7 @@ export default function CopyWeekToOfferModal({ source, onClose, onCopied }: Prop
 
               {offer && (
                 <div>
-                  <label className="block text-xs font-semibold text-gray-400 mb-1.5 uppercase tracking-wider">Semaine de l&apos;offre</label>
+                  <label className="block text-xs font-semibold text-ax-text-secondary mb-1.5 uppercase tracking-wider">Semaine de l&apos;offre</label>
                   <select className={inp} value={week} onChange={e => setWeek(parseInt(e.target.value, 10))}>
                     {Array.from({ length: Math.max(1, offer.weeks_count) }, (_, i) => i + 1).map(w => (
                       <option key={w} value={w}>
@@ -150,14 +150,14 @@ export default function CopyWeekToOfferModal({ source, onClose, onCopied }: Prop
               )}
 
               {offer && weekHas > 0 && (
-                <label className="flex items-start gap-2 text-xs text-amber-300 bg-amber-500/5 border border-amber-500/20 rounded-xl px-3 py-2 cursor-pointer">
+                <label className="flex items-start gap-2 text-xs text-ax-warning bg-ax-warning-soft border border-ax-warning rounded-ax-control px-3 py-2 cursor-pointer">
                   <input type="checkbox" checked={replace} onChange={e => setReplace(e.target.checked)} className="mt-0.5" />
                   <span>La semaine {week} porte déjà {weekHas} WOD. Cocher pour les remplacer ; sinon les copies s&apos;ajoutent.</span>
                 </label>
               )}
 
               {offer && (
-                <p className="text-[11px] text-gray-500">
+                <p className="text-[11px] text-ax-text-muted">
                   {source.kind === 'whiteboard'
                     ? 'Les copies restent liées à tes WOD : les modifier met l’offre à jour. Les box abonnées gardent ce qu’elles ont déjà reçu.'
                     : 'Les copies sont indépendantes de la semaine type.'}
@@ -168,14 +168,14 @@ export default function CopyWeekToOfferModal({ source, onClose, onCopied }: Prop
         </div>
 
         {!loading && offers.length > 0 && (
-          <div className="flex gap-2 justify-end px-6 py-4 border-t border-white/8">
-            <button onClick={onClose} className="px-4 py-2.5 rounded-xl text-sm font-bold border border-white/10 text-gray-300 hover:bg-white/5 transition-colors">
+          <div className="flex gap-2 justify-end px-6 py-4 border-t border-ax-border">
+            <button onClick={onClose} className="px-4 py-2.5 rounded-ax-control text-sm font-bold border border-ax-border text-ax-text-secondary hover:bg-ax-hover transition-colors">
               Annuler
             </button>
             <button
               onClick={copy}
               disabled={!offer || saving}
-              className="flex items-center gap-2 px-4 py-2.5 bg-white hover:bg-white/90 disabled:opacity-40 text-[#0A0A0A] text-sm font-bold rounded-xl transition-colors"
+              className="flex items-center gap-2 px-4 py-2.5 bg-ax-text hover:brightness-110 disabled:opacity-40 text-ax-background text-sm font-bold rounded-ax-control transition-colors"
             >
               {saving ? <><Loader2 size={14} className="animate-spin" /> Copie…</> : <><Copy size={14} /> Copier</>}
             </button>

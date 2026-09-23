@@ -31,7 +31,7 @@ export function AutoBadge({ wod }: { wod: { source?: string | null; edited_at?: 
         ? 'Posée automatiquement, puis modifiée : la régénération la conservera'
         : 'Posée par la programmation automatique'}
       className={`text-[8px] font-black tracking-wider px-1 py-0.5 rounded shrink-0 ${
-        edited ? 'text-amber-300 bg-amber-500/15' : 'text-emerald-300 bg-emerald-500/15'}`}
+        edited ? 'text-ax-warning bg-ax-warning-soft' : 'text-ax-success bg-ax-success-soft'}`}
     >
       {edited ? 'AUTO · MODIFIÉE' : 'AUTO'}
     </span>

@@ -18,16 +18,17 @@
  */
 
 import { Audience, audienceBadgeLabel } from '@/lib/audience';
+import { softVar } from '@/lib/colorVars';
 
 export type RestrictionRef = { id: string; name: string; color: string };
 
-const COULEUR_INCONNUE = '#F59E0B';
-const COULEUR_LIBRE = '#6B7280';
-const COULEUR_PERSONNE = '#4B5563';
+const COULEUR_INCONNUE = 'var(--ax-warning)';
+const COULEUR_LIBRE = 'var(--ax-neutral)';
+const COULEUR_PERSONNE = 'var(--ax-text-muted)';
 
 /** Couleur d'un programme selon son type, comme sur la page Programmes. */
 export function programColor(type: string): string {
-  return type === 'fixed' ? '#3B82F6' : '#8B5CF6';
+  return type === 'fixed' ? 'var(--ax-info)' : 'var(--ax-purple)';
 }
 
 function Badge({
@@ -36,10 +37,10 @@ function Badge({
   return (
     <span
       title={title}
-      className={`inline-flex items-center gap-0.5 font-bold rounded-full ${
+      className={`inline-flex items-center gap-0.5 font-bold rounded-ax-badge ${
         compact ? 'text-[8px] px-1.5 py-0.5' : 'text-[9px] px-1.5 py-0.5'
       }`}
-      style={{ backgroundColor: `${color}20`, color }}
+      style={{ backgroundColor: softVar(color, 0.125), color }}
     >
       <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: color }} />
       {label}

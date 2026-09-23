@@ -1,7 +1,7 @@
 'use client';
 
 import { TAB_LABEL, TRACK_LABEL, isTrack, trackOf, type TrackTab } from '@/lib/autoProgramming';
-import { trackColorVar } from '@/lib/colorVars';
+import { softVar, trackColorVar } from '@/lib/colorVars';
 
 /**
  * Barre d'onglets de piste du Whiteboard.
@@ -30,6 +30,7 @@ export default function TrackTabs({
       {tabs.map(tab => {
         const on = tab === active;
         const accent = isTrack(tab) ? trackColorVar(tab) : undefined;
+        const accentText = isTrack(tab) ? trackColorVar(tab, 'text') : undefined;
         return (
           <button
             key={tab}
@@ -38,12 +39,12 @@ export default function TrackTabs({
             aria-selected={on}
             data-testid={`onglet-${tab}`}
             onClick={() => onSelect(tab)}
-            className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs border transition-colors ${
-              on ? 'font-black text-white' : 'font-bold text-gray-400 border-white/10 hover:text-white hover:border-white/20'}`}
-            style={on
-              ? accent
-                ? { borderColor: accent, backgroundColor: `color-mix(in srgb, ${accent} 18%, transparent)`, color: accent }
-                : { borderColor: 'rgba(255,255,255,0.4)', backgroundColor: 'rgba(255,255,255,0.10)' }
+            className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-ax-control text-xs border transition-colors motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ax-focus focus-visible:ring-offset-2 focus-visible:ring-offset-ax-background ${
+              on
+                ? accent ? 'font-black' : 'font-black border-ax-input-border bg-ax-accent-soft text-ax-text'
+                : 'font-bold text-ax-text-secondary border-ax-border hover:text-ax-text hover:border-ax-input-border'}`}
+            style={on && accent && accentText
+              ? { borderColor: accent, backgroundColor: softVar(accent, 0.12), color: accentText }
               : undefined}
           >
             {accent && !on && (
@@ -70,12 +71,13 @@ export function TrackBadge({ wod }: { wod: { track?: string | null } }) {
   const track = trackOf(wod);
   if (!track) return null;
   const accent = trackColorVar(track);
+  const accentText = trackColorVar(track, 'text');
   return (
     <span
       data-testid={`badge-piste-${track}`}
       title={`Piste ${TRACK_LABEL[track]}`}
-      className="text-[8px] font-black tracking-wider px-1 py-0.5 rounded shrink-0"
-      style={{ color: accent, backgroundColor: `color-mix(in srgb, ${accent} 16%, transparent)` }}
+      className="text-[8px] font-black tracking-wider px-1 py-0.5 rounded-ax-badge shrink-0"
+      style={{ color: accentText, backgroundColor: softVar(accent, 0.12) }}
     >
       {TRACK_LABEL[track].toUpperCase()}
     </span>

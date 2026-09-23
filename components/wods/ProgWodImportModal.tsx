@@ -43,7 +43,7 @@ interface ParsedPdfWod {
   block_name: string | null;
 }
 
-const INPUT_CLS = 'w-full px-2 py-1.5 rounded-lg bg-black/40 border border-white/10 text-xs text-white';
+const INPUT_CLS = 'w-full px-2 py-1.5 rounded-ax-control bg-ax-overlay border border-ax-border text-xs text-ax-text';
 
 function mondayOfToday(): string {
   const d = new Date();
@@ -191,27 +191,27 @@ export default function ProgWodImportModal({
   const keptCount = rows?.filter((r) => r.keep).length ?? 0;
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 p-4" onClick={onClose}>
-      <div className="w-full max-w-3xl max-h-[90vh] overflow-y-auto rounded-2xl bg-[#111] border border-white/10 p-6"
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-ax-overlay p-4" onClick={onClose}>
+      <div className="w-full max-w-3xl max-h-[90vh] overflow-y-auto rounded-ax-card bg-ax-surface border border-ax-border p-6"
         onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-black text-white">Importer des WOD</h3>
-          <button onClick={onClose} className="text-gray-500 hover:text-white"><X size={18} /></button>
+          <h3 className="text-lg font-black text-ax-text">Importer des WOD</h3>
+          <button onClick={onClose} className="text-ax-text-muted hover:text-ax-text"><X size={18} /></button>
         </div>
 
         {!rows && (
           <div className="space-y-3">
-            <p className="text-xs text-gray-400">
-              CSV/JSON avec les colonnes <span className="text-white font-semibold">week,day,title,type,description,timecap,rounds,notes,block</span>,
+            <p className="text-xs text-ax-text-secondary">
+              CSV/JSON avec les colonnes <span className="text-ax-text font-semibold">week,day,title,type,description,timecap,rounds,notes,block</span>,
               ou un PDF analysé par l&apos;IA. La semaine et le jour restent modifiables avant l&apos;écriture.
             </p>
             <div className="flex flex-wrap gap-2">
               <button onClick={() => downloadWodCsvTemplate('programming')}
-                className="px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-xs font-bold text-gray-300 hover:text-white flex items-center gap-2">
+                className="px-3 py-2 rounded-ax-control bg-ax-surface-secondary border border-ax-border text-xs font-bold text-ax-text-secondary hover:text-ax-text flex items-center gap-2">
                 <FileText size={13} /> Template CSV
               </button>
               <button onClick={() => fileRef.current?.click()} disabled={analyzing}
-                className="px-3 py-2 rounded-xl bg-white text-black text-xs font-bold hover:bg-gray-200 disabled:opacity-50 flex items-center gap-2">
+                className="px-3 py-2 rounded-ax-control bg-ax-text text-ax-background text-xs font-bold hover:brightness-110 disabled:opacity-50 flex items-center gap-2">
                 {analyzing ? <><Loader2 size={13} className="animate-spin" /> Analyse du PDF…</> : <><Upload size={13} /> Choisir un fichier</>}
               </button>
               <input ref={fileRef} type="file" accept=".csv,.json,.pdf" onChange={handleFile} className="hidden" />
@@ -220,36 +220,36 @@ export default function ProgWodImportModal({
         )}
 
         {warnings.length > 0 && (
-          <div className="mt-3 rounded-xl bg-amber-500/10 border border-amber-500/20 px-3 py-2">
-            <p className="text-xs font-bold text-amber-400 flex items-center gap-1.5">
+          <div className="mt-3 rounded-ax-control bg-ax-warning-soft border border-ax-warning px-3 py-2">
+            <p className="text-xs font-bold text-ax-warning flex items-center gap-1.5">
               <AlertTriangle size={12} /> {warnings.length} ligne(s) ignorée(s)
             </p>
-            {warnings.map((w, i) => <p key={i} className="text-[11px] text-amber-400/80 mt-0.5">{w}</p>)}
+            {warnings.map((w, i) => <p key={i} className="text-[11px] text-ax-warning mt-0.5">{w}</p>)}
           </div>
         )}
 
-        {error && <p className="mt-3 text-xs text-red-400">{error}</p>}
+        {error && <p className="mt-3 text-xs text-ax-danger">{error}</p>}
 
         {rows && (
           <div className="mt-4">
             {aiSource && (
-              <p className="text-xs text-gray-400 mb-2 flex items-center gap-1.5">
-                <Sparkles size={12} className="text-white" />
+              <p className="text-xs text-ax-text-secondary mb-2 flex items-center gap-1.5">
+                <Sparkles size={12} className="text-ax-text" />
                 Répartition proposée par l&apos;IA depuis les dates du PDF — vérifiez semaine et jour avant d&apos;importer.
               </p>
             )}
             <div className="space-y-2">
               {rows.map((r, i) => (
-                <div key={i} className="rounded-xl bg-white/[0.03] border border-white/10 p-3">
+                <div key={i} className="rounded-ax-control bg-ax-surface-secondary border border-ax-border p-3">
                   <div className="flex items-center gap-2 mb-2">
                     <input type="checkbox" checked={r.keep} aria-label={`Importer ${r.title}`}
                       onChange={(e) => setRows((prev) => prev?.map((x, j) => (j === i ? { ...x, keep: e.target.checked } : x)) ?? null)} />
-                    <span className="flex-1 text-sm font-semibold text-white truncate">{r.title}</span>
-                    <span className="text-[10px] font-black uppercase px-1.5 py-0.5 rounded bg-white/10 text-gray-300">{r.type}</span>
+                    <span className="flex-1 text-sm font-semibold text-ax-text truncate">{r.title}</span>
+                    <span className="text-[10px] font-black uppercase px-1.5 py-0.5 rounded-ax-badge bg-ax-hover text-ax-text-secondary">{r.type}</span>
                   </div>
                   <div className="grid grid-cols-2 gap-2">
                     <label className="block">
-                      <span className="text-[11px] text-gray-500">Semaine</span>
+                      <span className="text-[11px] text-ax-text-muted">Semaine</span>
                       <select value={r.week} className={INPUT_CLS}
                         onChange={(e) => setRows((prev) => prev?.map((x, j) => (j === i ? { ...x, week: Number(e.target.value) } : x)) ?? null)}>
                         {Array.from({ length: weeksCount }, (_, w) => w + 1).map((w) => (
@@ -258,7 +258,7 @@ export default function ProgWodImportModal({
                       </select>
                     </label>
                     <label className="block">
-                      <span className="text-[11px] text-gray-500">Jour</span>
+                      <span className="text-[11px] text-ax-text-muted">Jour</span>
                       <select value={r.day} className={INPUT_CLS}
                         onChange={(e) => setRows((prev) => prev?.map((x, j) => (j === i ? { ...x, day: Number(e.target.value) } : x)) ?? null)}>
                         {DAY_LABELS.map((d, k) => <option key={d} value={k + 1}>{d}</option>)}
@@ -266,18 +266,18 @@ export default function ProgWodImportModal({
                     </label>
                   </div>
                   {r.description && (
-                    <p className="text-[11px] text-gray-500 whitespace-pre-line line-clamp-3 mt-2">{r.description}</p>
+                    <p className="text-[11px] text-ax-text-muted whitespace-pre-line line-clamp-3 mt-2">{r.description}</p>
                   )}
                 </div>
               ))}
             </div>
             <div className="flex gap-2 mt-4">
               <button onClick={() => { setRows(null); setWarnings([]); }}
-                className="flex-1 py-2.5 rounded-xl bg-white/5 border border-white/10 text-sm font-bold text-gray-300 hover:text-white">
+                className="flex-1 py-2.5 rounded-ax-control bg-ax-surface-secondary border border-ax-border text-sm font-bold text-ax-text-secondary hover:text-ax-text">
                 Choisir un autre fichier
               </button>
               <button onClick={insertRows} disabled={busy || keptCount === 0}
-                className="flex-1 py-2.5 rounded-xl bg-white text-black text-sm font-bold hover:bg-gray-200 disabled:opacity-40 flex items-center justify-center gap-2">
+                className="flex-1 py-2.5 rounded-ax-control bg-ax-text text-ax-background text-sm font-bold hover:brightness-110 disabled:opacity-40 flex items-center justify-center gap-2">
                 {busy && <Loader2 size={14} className="animate-spin" />}
                 Importer {keptCount} WOD
               </button>

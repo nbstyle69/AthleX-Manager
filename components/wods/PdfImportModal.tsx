@@ -14,6 +14,8 @@ import {
 import type { ImportEntry, ImportResult, ImportWarning, ParsedMovement, ParsedStrength } from '@/lib/pdfImport/types';
 import { assignRestrictions, libelleAssignation } from '@/lib/wodAssignment';
 import { RestDay, estJourRepos, rattacherAuProgramme } from '@/lib/programContent';
+import { softVar } from '@/lib/colorVars';
+import { programColor } from '@/components/wods/RestrictionBadges';
 
 /**
  * Import PDF de programmation hebdo (spec v2) : le PDF est analysé côté
@@ -61,8 +63,8 @@ const WARNING_LABEL: Record<ImportWarning, string> = {
   'generic-profile': 'Source générique',
 };
 
-const INPUT = 'px-2 py-1.5 rounded-lg bg-black/40 border border-white/10 text-xs text-white focus:outline-none focus:border-white/30';
-const ORANGE = 'border-orange-500/60 bg-orange-500/10 text-orange-300';
+const INPUT = 'px-2 py-1.5 rounded-ax-control bg-ax-overlay border border-ax-border text-xs text-ax-text focus:outline-none focus:border-ax-focus';
+const ORANGE = 'border-ax-warning bg-ax-warning-soft text-ax-warning';
 const NOTES_MIN_ROWS = 3;
 const NOTES_MAX_ROWS = 10;
 
@@ -284,27 +286,27 @@ export default function PdfImportModal({ file, boxId, userId, target, onClose, o
   }
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="bg-[#0a0a0a] border border-white/10 rounded-2xl w-full max-w-5xl max-h-[92vh] flex flex-col">
+    <div className="fixed inset-0 z-50 bg-ax-overlay backdrop-blur-ax-glass flex items-center justify-center p-4">
+      <div className="bg-ax-surface border border-ax-border rounded-ax-card w-full max-w-5xl max-h-[92vh] flex flex-col">
         {/* Header */}
-        <div className="flex items-start justify-between gap-4 px-6 py-4 border-b border-white/8">
+        <div className="flex items-start justify-between gap-4 px-6 py-4 border-b border-ax-border">
           <div className="flex-1 min-w-0">
-            <h3 className="text-lg font-bold text-white truncate">Import PDF — {file.name}</h3>
+            <h3 className="text-lg font-bold text-ax-text truncate">Import PDF — {file.name}</h3>
             <div className="flex flex-wrap items-center gap-3 mt-2">
               {target.kind === 'whiteboard' ? (
-                <label className="text-xs text-gray-400 flex items-center gap-2">
+                <label className="text-xs text-ax-text-secondary flex items-center gap-2">
                   Lundi de la semaine
                   <input type="date" value={weekStart} onChange={e => setWeekStart(e.target.value)} className={INPUT} disabled={analyzing || inserting} />
                 </label>
               ) : (
-                <label className="text-xs text-gray-400 flex items-center gap-2">
+                <label className="text-xs text-ax-text-secondary flex items-center gap-2">
                   Semaine cible
                   <select value={semaineCible} onChange={e => changerSemaineCible(parseInt(e.target.value, 10))} className={INPUT} disabled={analyzing || inserting} data-testid="semaine-cible">
                     {semainesProposees.map(w => <option key={w} value={w}>Semaine {w}{target.program.type === 'fixed' ? ` / ${target.weeksCount}` : ''}</option>)}
                   </select>
                 </label>
               )}
-              <label className="text-xs text-gray-400 flex items-center gap-2">
+              <label className="text-xs text-ax-text-secondary flex items-center gap-2">
                 Source
                 <select value={forcedProfile} onChange={e => setForcedProfile(e.target.value)} className={INPUT} disabled={analyzing || inserting}>
                   {PROFILES.map(p => <option key={p.slug} value={p.slug}>{p.label}</option>)}
@@ -313,53 +315,53 @@ export default function PdfImportModal({ file, boxId, userId, target, onClose, o
               <button
                 onClick={() => void analyze(forcedProfile)}
                 disabled={analyzing || inserting}
-                className="text-xs font-bold px-3 py-1.5 rounded-lg border border-white/15 text-gray-200 hover:text-white hover:border-white/30 disabled:opacity-40 flex items-center gap-1.5"
+                className="text-xs font-bold px-3 py-1.5 rounded-ax-control border border-ax-border text-ax-text hover:text-ax-text hover:border-ax-input-border disabled:opacity-40 flex items-center gap-1.5"
               >
                 {analyzing ? <Loader2 size={12} className="animate-spin" /> : <RefreshCw size={12} />} Ré-analyser
               </button>
               {result && (
-                <span className="text-[11px] text-gray-500">
-                  Détecté : <span className="text-gray-300 font-bold">{profileLabel[result.source_profile] ?? result.source_profile}</span>
+                <span className="text-[11px] text-ax-text-muted">
+                  Détecté : <span className="text-ax-text-secondary font-bold">{profileLabel[result.source_profile] ?? result.source_profile}</span>
                   {Object.entries(result.detected_scores).map(([k, v]) => ` · ${k} ${Math.round(v * 100)}%`).join('')}
                   {result.llm_used && ' · découpage IA (Haiku)'}
                 </span>
               )}
             </div>
           </div>
-          <button onClick={() => !inserting && onClose()} disabled={inserting} className="text-gray-500 hover:text-white disabled:opacity-40"><X size={18} /></button>
+          <button onClick={() => !inserting && onClose()} disabled={inserting} className="text-ax-text-muted hover:text-ax-text disabled:opacity-40"><X size={18} /></button>
         </div>
 
         {/* Body */}
         <div className="flex-1 overflow-y-auto px-6 py-4 space-y-3">
           {error && (
-            <div className="flex items-start gap-2 text-xs text-red-300 bg-red-500/10 border border-red-500/30 rounded-lg px-3 py-2">
+            <div className="flex items-start gap-2 text-xs text-ax-danger bg-ax-danger-soft border border-ax-danger rounded-ax-control px-3 py-2">
               <AlertTriangle size={14} className="mt-0.5 shrink-0" /> {error}
             </div>
           )}
           {isGeneric && result && (
-            <div className={`flex items-start gap-2 text-xs rounded-lg px-3 py-2 border ${ORANGE}`}>
+            <div className={`flex items-start gap-2 text-xs rounded-ax-control px-3 py-2 border ${ORANGE}`}>
               <AlertTriangle size={14} className="mt-0.5 shrink-0" />
               Source non reconnue : découpage générique, ordre des charges H/F incertain — vérifie chaque carte avant d&apos;insérer.
             </div>
           )}
           {isProgram && result && semaines.length > 1 && (
-            <div className="text-xs text-gray-300 bg-white/[0.03] border border-white/8 rounded-lg px-3 py-2">
+            <div className="text-xs text-ax-text-secondary bg-ax-surface-secondary border border-ax-border rounded-ax-control px-3 py-2">
               Le document couvre {semaines.length} semaines : elles sont posées en semaines {semaines.join(', ')} du programme
               (semaine cible = première semaine du document). Ajuste la semaine et le jour carte par carte si besoin.
             </div>
           )}
           {result?.week_notes && (
-            <div className="text-xs text-gray-300 bg-white/[0.03] border border-white/8 rounded-lg px-3 py-2 whitespace-pre-line">
-              <span className="text-[10px] font-black uppercase tracking-wider text-gray-500 block mb-1">Notes de la semaine</span>
+            <div className="text-xs text-ax-text-secondary bg-ax-surface-secondary border border-ax-border rounded-ax-control px-3 py-2 whitespace-pre-line">
+              <span className="text-[10px] font-black uppercase tracking-wider text-ax-text-muted block mb-1">Notes de la semaine</span>
               {result.week_notes}
             </div>
           )}
           {analyzing && !result && (
-            <div className="py-16 text-center text-sm text-gray-400 flex flex-col items-center gap-3">
-              <Loader2 size={32} className="animate-spin text-white" /> Analyse du PDF…
+            <div className="py-16 text-center text-sm text-ax-text-secondary flex flex-col items-center gap-3">
+              <Loader2 size={32} className="animate-spin text-ax-text" /> Analyse du PDF…
             </div>
           )}
-          {result && entries.length === 0 && <p className="text-sm text-gray-400 py-8 text-center">Aucun WOD détecté dans ce PDF.</p>}
+          {result && entries.length === 0 && <p className="text-sm text-ax-text-secondary py-8 text-center">Aucun WOD détecté dans ce PDF.</p>}
 
           {entries.map(e => {
             const warnings = [...e.warnings];
@@ -368,9 +370,9 @@ export default function PdfImportModal({ file, boxId, userId, target, onClose, o
             const checked = keep[e.key];
             const errs = fieldErrors[e.key] ?? [];
             return (
-              <div key={e.key} className={`rounded-xl border ${errs.length ? 'border-red-500/60' : orange ? 'border-orange-500/50' : 'border-white/10'} ${checked ? '' : 'opacity-50'} bg-[#111111]`}>
-                <div className="flex items-center gap-2 px-3 py-2 border-b border-white/5">
-                  <input type="checkbox" checked={checked} onChange={ev => setKeep(k => ({ ...k, [e.key]: ev.target.checked }))} className="accent-white" />
+              <div key={e.key} className={`rounded-ax-control border ${errs.length ? 'border-ax-danger' : orange ? 'border-ax-warning' : 'border-ax-border'} ${checked ? '' : 'opacity-50'} bg-ax-surface`}>
+                <div className="flex items-center gap-2 px-3 py-2 border-b border-ax-border">
+                  <input type="checkbox" checked={checked} onChange={ev => setKeep(k => ({ ...k, [e.key]: ev.target.checked }))} className="accent-ax-accent-text" />
                   {target.kind === 'whiteboard' ? (
                     <input type="date" value={e.date} onChange={ev => patch(e.key, { date: ev.target.value })} className={INPUT} />
                   ) : (() => {
@@ -396,47 +398,47 @@ export default function PdfImportModal({ file, boxId, userId, target, onClose, o
                     <option value="">Type…</option>
                     {WOD_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
                   </select>
-                  <span className="text-[10px] text-gray-600 shrink-0">p.{e.source_page}</span>
+                  <span className="text-[10px] text-ax-text-muted shrink-0">p.{e.source_page}</span>
                 </div>
 
                 <div className="px-3 py-2 space-y-2">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <label className="text-[11px] text-gray-400 flex items-center gap-1">TC
+                    <label className="text-[11px] text-ax-text-secondary flex items-center gap-1">TC
                       <input value={e.timecap ?? ''} onChange={ev => patch(e.key, { timecap: ev.target.value || null })} className={`${INPUT} w-20 ${warnings.includes('timecap-unparsed') ? ORANGE : ''}`} placeholder="MM:SS" />
                     </label>
-                    <label className="text-[11px] text-gray-400 flex items-center gap-1">Rounds
+                    <label className="text-[11px] text-ax-text-secondary flex items-center gap-1">Rounds
                       <input value={e.rounds ?? ''} onChange={ev => patch(e.key, { rounds: ev.target.value ? parseInt(ev.target.value, 10) : null })} className={`${INPUT} w-14`} />
                     </label>
                     {e.type === 'emom' && (
-                      <label className="text-[11px] text-gray-400 flex items-center gap-1">Toutes les (min)
+                      <label className="text-[11px] text-ax-text-secondary flex items-center gap-1">Toutes les (min)
                         <input value={e.emom_interval_minutes ?? ''} onChange={ev => patch(e.key, { emom_interval_minutes: ev.target.value ? parseInt(ev.target.value, 10) : null })} className={`${INPUT} w-12`} />
                       </label>
                     )}
                     {e.type === 'tabata' && (
-                      <label className="text-[11px] text-gray-400 flex items-center gap-1">Work/Rest (s)
+                      <label className="text-[11px] text-ax-text-secondary flex items-center gap-1">Work/Rest (s)
                         <input value={e.tabata_work_seconds ?? ''} onChange={ev => patch(e.key, { tabata_work_seconds: ev.target.value ? parseInt(ev.target.value, 10) : null })} className={`${INPUT} w-12`} />
                         <input value={e.tabata_rest_seconds ?? ''} onChange={ev => patch(e.key, { tabata_rest_seconds: ev.target.value ? parseInt(ev.target.value, 10) : null })} className={`${INPUT} w-12`} />
                       </label>
                     )}
-                    <label className="text-[11px] text-gray-400 flex items-center gap-1">
-                      <input type="checkbox" checked={e.rank} onChange={ev => patch(e.key, { rank: ev.target.checked })} className="accent-white" /> Classement
+                    <label className="text-[11px] text-ax-text-secondary flex items-center gap-1">
+                      <input type="checkbox" checked={e.rank} onChange={ev => patch(e.key, { rank: ev.target.checked })} className="accent-ax-accent-text" /> Classement
                     </label>
                   </div>
 
                   <div className="space-y-1.5">
-                    {e.musculation.length > 0 && <p className="text-[10px] font-black uppercase tracking-wider text-gray-500">Musculation</p>}
+                    {e.musculation.length > 0 && <p className="text-[10px] font-black uppercase tracking-wider text-ax-text-muted">Musculation</p>}
                     {e.musculation.map((s, i) => (
                       <div key={i} className="flex items-center gap-1">
                         <input value={s.exercise} onChange={ev => patchStrength(e.key, i, { exercise: ev.target.value, resolved: false })} className={`${INPUT} flex-1 ${s.resolved ? '' : ORANGE}`} placeholder="Exercice" title={s.resolved ? '' : 'Hors catalogue — conservé tel quel'} />
                         <input value={s.sets ?? ''} onChange={ev => patchStrength(e.key, i, { sets: ev.target.value ? parseInt(ev.target.value, 10) : null })} className={`${INPUT} w-12`} placeholder="Sér." />
-                        <span className="text-gray-600 text-xs">×</span>
+                        <span className="text-ax-text-muted text-xs">×</span>
                         <input value={s.reps ?? ''} onChange={ev => patchStrength(e.key, i, { reps: ev.target.value ? parseInt(ev.target.value, 10) : null })} className={`${INPUT} w-12`} placeholder="Reps" />
                         <input value={s.percent ?? ''} onChange={ev => patchStrength(e.key, i, { percent: ev.target.value ? parseFloat(ev.target.value) : null })} className={`${INPUT} w-14`} placeholder="%1RM" />
                         <input value={s.rpe ?? s.charge_note ?? ''} onChange={ev => patchStrength(e.key, i, { charge_note: ev.target.value || null, rpe: null })} className={`${INPUT} w-24`} placeholder="RPE / note" />
-                        <button onClick={() => patchStrength(e.key, i, null)} className="text-gray-600 hover:text-red-400"><Trash2 size={12} /></button>
+                        <button onClick={() => patchStrength(e.key, i, null)} className="text-ax-text-muted hover:text-ax-danger"><Trash2 size={12} /></button>
                       </div>
                     ))}
-                    {e.movements.length > 0 && <p className="text-[10px] font-black uppercase tracking-wider text-gray-500 pt-1">Mouvements</p>}
+                    {e.movements.length > 0 && <p className="text-[10px] font-black uppercase tracking-wider text-ax-text-muted pt-1">Mouvements</p>}
                     {e.movements.map((m, i) => (
                       <div key={i} className="flex items-center gap-1">
                         <input value={m.reps ?? ''} onChange={ev => patchMovement(e.key, i, { reps: ev.target.value || null })} className={`${INPUT} w-32 shrink-0`} placeholder="Reps" title={m.reps ?? ''} />
@@ -444,22 +446,22 @@ export default function PdfImportModal({ file, boxId, userId, target, onClose, o
                         <input value={m.charge_h ?? ''} onChange={ev => patchMovement(e.key, i, { charge_h: ev.target.value || null })} className={`${INPUT} w-16`} placeholder="♂" />
                         <input value={m.charge_f ?? ''} onChange={ev => patchMovement(e.key, i, { charge_f: ev.target.value || null })} className={`${INPUT} w-16`} placeholder="♀" />
                         <input value={m.note ?? ''} onChange={ev => patchMovement(e.key, i, { note: ev.target.value || null })} className={`${INPUT} flex-1 min-w-0`} placeholder="Note" title={m.note ?? ''} />
-                        <button onClick={() => patchMovement(e.key, i, null)} className="text-gray-600 hover:text-red-400"><Trash2 size={12} /></button>
+                        <button onClick={() => patchMovement(e.key, i, null)} className="text-ax-text-muted hover:text-ax-danger"><Trash2 size={12} /></button>
                       </div>
                     ))}
                     <div className="flex gap-2 pt-1">
-                      <button onClick={() => patch(e.key, { movements: [...e.movements, emptyMovement()] })} className="text-[11px] text-gray-400 hover:text-white flex items-center gap-1"><Plus size={11} /> mouvement</button>
-                      <button onClick={() => patch(e.key, { musculation: [...e.musculation, emptyStrength()] })} className="text-[11px] text-gray-400 hover:text-white flex items-center gap-1"><Plus size={11} /> muscu</button>
+                      <button onClick={() => patch(e.key, { movements: [...e.movements, emptyMovement()] })} className="text-[11px] text-ax-text-secondary hover:text-ax-text flex items-center gap-1"><Plus size={11} /> mouvement</button>
+                      <button onClick={() => patch(e.key, { musculation: [...e.musculation, emptyStrength()] })} className="text-[11px] text-ax-text-secondary hover:text-ax-text flex items-center gap-1"><Plus size={11} /> muscu</button>
                     </div>
                   </div>
 
                   <div className="space-y-1">
-                    <p className="text-[10px] font-black uppercase tracking-wider text-gray-500">Notes coach</p>
+                    <p className="text-[10px] font-black uppercase tracking-wider text-ax-text-muted">Notes coach</p>
                     <NotesTextarea value={e.notes_coach} onChange={v => patch(e.key, { notes_coach: v })} />
                     {(warnings.length > 0 || errs.length > 0) && (
                       <div className="flex flex-wrap gap-1">
-                        {warnings.map(w => <span key={w} className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${ORANGE}`}>{WARNING_LABEL[w]}</span>)}
-                        {errs.map(er => <span key={er} className="text-[10px] font-bold px-1.5 py-0.5 rounded border border-red-500/60 bg-red-500/10 text-red-300">{er}</span>)}
+                        {warnings.map(w => <span key={w} className={`text-[10px] font-bold px-1.5 py-0.5 rounded-ax-badge border ${ORANGE}`}>{WARNING_LABEL[w]}</span>)}
+                        {errs.map(er => <span key={er} className="text-[10px] font-bold px-1.5 py-0.5 rounded-ax-badge border border-ax-danger bg-ax-danger-soft text-ax-danger">{er}</span>)}
                       </div>
                     )}
                   </div>
@@ -471,53 +473,53 @@ export default function PdfImportModal({ file, boxId, userId, target, onClose, o
 
         {/* Destinataires — Programme : verrouillé sur le programme courant. */}
         {result && target.kind === 'program' && (
-          <div className="px-6 py-3 border-t border-white/8 space-y-2" data-testid="destinataire-verrouille">
-            <p className="text-xs font-black uppercase tracking-wider text-gray-500">Qui verra ces séances</p>
+          <div className="px-6 py-3 border-t border-ax-border space-y-2" data-testid="destinataire-verrouille">
+            <p className="text-xs font-black uppercase tracking-wider text-ax-text-muted">Qui verra ces séances</p>
             <div className="flex flex-wrap items-center gap-2">
-              <span className="text-xs font-semibold px-2.5 py-1.5 rounded-full border border-white/40 text-white cursor-default"
-                style={{ backgroundColor: `${target.program.type === 'fixed' ? '#3B82F6' : '#8B5CF6'}25` }}>
+              <span className="text-xs font-semibold px-2.5 py-1.5 rounded-full border border-ax-input-border text-ax-text cursor-default"
+                style={{ backgroundColor: softVar(programColor(target.program.type), 0.145) }}>
                 Programme : {target.program.title}
               </span>
-              <span className="text-[11px] text-gray-500">Les acheteurs du programme, à la semaine × jour indiqués depuis leur démarrage — pas de groupe, pas d&apos;autre programme.</span>
+              <span className="text-[11px] text-ax-text-muted">Les acheteurs du programme, à la semaine × jour indiqués depuis leur démarrage — pas de groupe, pas d&apos;autre programme.</span>
             </div>
           </div>
         )}
         {result && target.kind === 'whiteboard' && (
-          <div className="px-6 py-3 border-t border-white/8 space-y-2">
-            <p className="text-xs font-black uppercase tracking-wider text-gray-500">Qui verra ces WOD</p>
+          <div className="px-6 py-3 border-t border-ax-border space-y-2">
+            <p className="text-xs font-black uppercase tracking-wider text-ax-text-muted">Qui verra ces WOD</p>
             <div className="flex flex-wrap gap-2">
               {groups.map(g => (
                 <button key={g.id} onClick={() => setDestGroups(prev => prev.includes(g.id) ? prev.filter(x => x !== g.id) : [...prev, g.id])}
-                  className={`text-xs font-semibold px-2.5 py-1.5 rounded-full border transition-colors ${destGroups.includes(g.id) ? 'border-white/40 text-white' : 'border-white/10 text-gray-400'}`}
-                  style={destGroups.includes(g.id) ? { backgroundColor: `${g.color}25` } : undefined}>
+                  className={`text-xs font-semibold px-2.5 py-1.5 rounded-full border transition-colors ${destGroups.includes(g.id) ? 'border-ax-input-border text-ax-text' : 'border-ax-border text-ax-text-secondary'}`}
+                  style={destGroups.includes(g.id) ? { backgroundColor: softVar(g.color, 0.145) } : undefined}>
                   Groupe : {g.name}
                 </button>
               ))}
               {programs.map(p => (
                 <button key={p.id} onClick={() => setDestPrograms(prev => prev.includes(p.id) ? prev.filter(x => x !== p.id) : [...prev, p.id])}
-                  className={`text-xs font-semibold px-2.5 py-1.5 rounded-full border transition-colors ${destPrograms.includes(p.id) ? 'border-white/40 text-white' : 'border-white/10 text-gray-400'}`}
-                  style={destPrograms.includes(p.id) ? { backgroundColor: `${p.color}25` } : undefined}>
+                  className={`text-xs font-semibold px-2.5 py-1.5 rounded-full border transition-colors ${destPrograms.includes(p.id) ? 'border-ax-input-border text-ax-text' : 'border-ax-border text-ax-text-secondary'}`}
+                  style={destPrograms.includes(p.id) ? { backgroundColor: softVar(p.color, 0.145) } : undefined}>
                   Programme : {p.name}
                 </button>
               ))}
-              {groups.length === 0 && programs.length === 0 && <p className="text-xs text-gray-600">Aucun groupe ni programme dans cette box.</p>}
+              {groups.length === 0 && programs.length === 0 && <p className="text-xs text-ax-text-muted">Aucun groupe ni programme dans cette box.</p>}
             </div>
           </div>
         )}
 
         {/* Footer */}
-        <div className="flex items-center gap-3 px-6 py-4 border-t border-white/8">
+        <div className="flex items-center gap-3 px-6 py-4 border-t border-ax-border">
           <button
             onClick={() => { const all = entries.every(e => keep[e.key]); setKeep(Object.fromEntries(entries.map(e => [e.key, !all]))); }}
             disabled={entries.length === 0}
-            className="px-4 py-2.5 rounded-xl text-xs font-bold border border-white/10 text-gray-300 hover:text-white hover:border-white/20 disabled:opacity-40"
+            className="px-4 py-2.5 rounded-ax-control text-xs font-bold border border-ax-border text-ax-text-secondary hover:text-ax-text hover:border-ax-input-border disabled:opacity-40"
           >
             {entries.length > 0 && entries.every(e => keep[e.key]) ? 'Tout décocher' : 'Tout cocher'}
           </button>
           <button
             onClick={() => void insertAll()}
             disabled={inserting || analyzing || selected.length === 0}
-            className="flex-1 px-4 py-2.5 rounded-xl text-sm font-bold bg-white text-black hover:bg-[#b89222] disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            className="flex-1 px-4 py-2.5 rounded-ax-control text-sm font-bold bg-ax-text text-ax-background hover:brightness-110 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           >
             {inserting ? <><Loader2 size={14} className="animate-spin" /> Insertion…</> : <>Insérer {selected.length} {isProgram ? 'séance(s)' : 'WOD(s)'}</>}
           </button>
