@@ -522,7 +522,7 @@ export default function WODForm({ tournamentId, divisions = [], isLeague = false
               <div key={i} className="flex gap-2 items-center">
                 <input
                   type="number" min={0} inputMode="numeric"
-                  className={`${inp} !w-16 shrink-0 text-center px-2`}
+                  className={`${inp} !w-24 shrink-0 text-center px-2`}
                   value={parsed.reps ?? ''}
                   onChange={e => update(e.target.value === '' ? null : parseInt(e.target.value, 10), parsed.name, parsed.weightKg, parsed.weightKgWomen)}
                   placeholder="Reps" aria-label="Répétitions" />
