@@ -97,6 +97,17 @@ export interface ParsedMovementRow {
 // parentheses ("(60/50 cm)") is not a load and is dropped like any other note.
 export function parseMovementRow(line: string): ParsedMovementRow {
   let s = (line ?? '').trim();
+  // Une quantité seule (« 40 », « 20/15 ») : les reps saisies avant le nom dans
+  // l'éditeur. Sans ce cas, « 40 » se lisait 4 reps d'un mouvement nommé « 0 »,
+  // et « 4 » un nom sans reps : le chiffre passait dans le champ du nom.
+  const lone = s.match(/^(\d+)(?:\s*\/\s*(\d+))?$/);
+  if (lone) {
+    return {
+      reps: parseInt(lone[1], 10),
+      repsWomen: lone[2] != null ? parseInt(lone[2], 10) : null,
+      unit: 'reps', name: '', weightKg: null, weightKgWomen: null,
+    };
+  }
   // weight: "(43 kg)" / "(43/30 kg)" or "@ 43kg" / "@ 42.5/30 kg"
   let weightKg: number | null = null;
   let weightKgWomen: number | null = null;
