@@ -76,6 +76,33 @@ export function serializeMovement(
   return base;
 }
 
+/**
+ * Réécrit une ligne de l'éditeur après une saisie (reps, nom, charges) en
+ * gardant l'unité et la quantité ♀ qu'elle portait. Sans elles, « 500 m Row »
+ * devenait « 500 Row », relu en 500 cal (unité par défaut du Row), et un split
+ * « 20/15 » perdait sa valeur ♀ à la première modification de la charge.
+ *
+ * Si le nom change pour un mouvement du catalogue qui ne se mesure pas dans
+ * cette unité, la ligne prend l'unité par défaut du nouveau mouvement. Une
+ * ligne sans quantité ou sans nom ne porte pas d'unité.
+ */
+export function editMovementLine(
+  line: string,
+  next: { reps: number | null; name: string; weightKg: number | null; weightKgWomen: number | null },
+): string {
+  if (next.reps == null) {
+    return serializeMovement(0, next.name, next.weightKg, next.weightKgWomen).replace(/^0\s*/, '').trim();
+  }
+  const prev = parseMovementRow(line);
+  let unit = prev.unit;
+  if (next.name !== prev.name) {
+    const mv = findCatalogMovement(next.name);
+    if (!next.name.trim()) unit = 'reps';
+    else if (mv && !(mv.unitsAllowed ?? [mv.unit ?? 'reps']).includes(unit)) unit = mv.unit ?? 'reps';
+  }
+  return serializeMovement(next.reps, next.name, next.weightKg, next.weightKgWomen, unit, prev.repsWomen);
+}
+
 export interface ParsedMovementRow {
   /** Quantité ♂ (ou unique) dans `unit`. */
   reps: number | null;
@@ -120,7 +147,9 @@ export function parseMovementRow(line: string): ParsedMovementRow {
     if (w[2] != null) weightKgWomen = parseFloat(w[2]);
   }
   s = s.replace(/\((?:[^)]*)\)/g, '').replace(/@.*$/, '').trim();
-  const cardio = s.match(/^(\d+)(?:\s*\/\s*(\d+))?\s*(m|cals?|kcal|s|secs?)\b\.?\s+(.+)$/i);
+  // Le séparateur facultatif après l'unité (« 200m — Run », sortie du
+  // générateur) n'appartient pas au nom : sans lui, le nom lu était « — Run ».
+  const cardio = s.match(/^(\d+)(?:\s*\/\s*(\d+))?\s*(m|cals?|kcal|s|secs?)\b\.?\s+(?:[—\-:]\s*)?(.+)$/i);
   if (cardio) {
     return {
       reps: parseInt(cardio[1], 10),

@@ -182,3 +182,20 @@ describe('AMRAP / Max Reps score helpers', () => {
     expect(isRepsScoredType(null)).toBe(false);
   });
 });
+
+describe('parseMovementRow — séparateur après l’unité cardio', () => {
+  // Le générateur écrit « 200m — Run » : le nom lu était « — Run », hors
+  // catalogue. Seul le nom change ; reps, unité et split restent identiques.
+  it.each([
+    ['200m — Run', 200, null, 'm', 'Run'],
+    ['1000m — SkiErg', 1000, null, 'm', 'SkiErg'],
+    ['20/15 cal — Bike Erg', 20, 15, 'cal', 'Bike Erg'],
+    ['200m - Run', 200, null, 'm', 'Run'],
+    ['25m — Sled Push @ 152 kg', 25, null, 'm', 'Sled Push'],
+    ['30 s — Plank Hold', 30, null, 's', 'Plank Hold'],
+    ['500 m Run', 500, null, 'm', 'Run'],
+  ])('« %s »', (line, reps, repsWomen, unit, name) => {
+    const r = parseMovementRow(line);
+    expect([r.reps, r.repsWomen, r.unit, r.name]).toEqual([reps, repsWomen, unit, name]);
+  });
+});
