@@ -44,7 +44,7 @@ export default function TrackTabs({
                 ? accent ? 'font-black' : 'font-black border-ax-input-border bg-ax-accent-soft text-ax-text'
                 : 'font-bold text-ax-text-secondary border-ax-border hover:text-ax-text hover:border-ax-input-border'}`}
             style={on && accent && accentText
-              ? { borderColor: accent, backgroundColor: softVar(accent, 0.18), color: accentText }
+              ? { borderColor: accent, backgroundColor: softVar(accent, 0.12), color: accentText }
               : undefined}
           >
             {accent && !on && (
@@ -77,7 +77,7 @@ export function TrackBadge({ wod }: { wod: { track?: string | null } }) {
       data-testid={`badge-piste-${track}`}
       title={`Piste ${TRACK_LABEL[track]}`}
       className="text-[8px] font-black tracking-wider px-1 py-0.5 rounded-ax-badge shrink-0"
-      style={{ color: accentText, backgroundColor: softVar(accent, 0.16) }}
+      style={{ color: accentText, backgroundColor: softVar(accent, 0.12) }}
     >
       {TRACK_LABEL[track].toUpperCase()}
     </span>
