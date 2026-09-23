@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Trash2, Loader2, AlertTriangle } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
+import { deleteTournamentAndLeave } from '@/lib/tournaments/deleteTournament';
 
 interface Props { tournamentId: string }
 
@@ -16,12 +17,10 @@ export default function DeleteTournamentButton({ tournamentId }: Props) {
   async function handleDelete() {
     setDeleting(true);
     setError(null);
-    const supabase = createClient();
-    const { error: err } = await supabase.from('tournaments').delete().eq('id', tournamentId);
+    const err = await deleteTournamentAndLeave(createClient(), tournamentId, router);
     setDeleting(false);
-    if (err) { setError(err.message); return; }
-    router.push('/tournaments');
-    router.refresh();
+    if (err) { setError(err); return; }
+    setOpen(false);
   }
 
   return (

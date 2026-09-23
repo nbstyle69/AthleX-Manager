@@ -7,6 +7,7 @@ import { ChevronLeft, Trash2, Trophy, Loader2, AlertTriangle } from 'lucide-reac
 import { createClient } from '@/lib/supabase/client';
 import { getMyBox } from '@/lib/getMyBox';
 import TournamentForm from '@/components/tournaments/TournamentForm';
+import { deleteTournamentAndLeave } from '@/lib/tournaments/deleteTournament';
 
 export default function EditTournamentPage() {
   const router = useRouter();
@@ -49,12 +50,10 @@ export default function EditTournamentPage() {
     if (!tournament) return;
     setDeleting(true);
     setError(null);
-    const supabase = createClient();
-    const { error: err } = await supabase.from('tournaments').delete().eq('id', id);
+    const err = await deleteTournamentAndLeave(createClient(), id, router);
     setDeleting(false);
-    if (err) { setError(err.message); return; }
-    router.push('/tournaments');
-    router.refresh();
+    if (err) { setError(err); return; }
+    setShowConfirm(false);
   }
 
   if (loading) {
