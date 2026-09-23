@@ -36,16 +36,43 @@ export interface StatsReader {
 
 export const STATS_READ_ERROR = 'Lecture des statistiques impossible';
 
-/** Tous les cumuls, agrégés par mouvement × unité (mètres et calories d'un Row sont deux compteurs). */
+/** Lignes demandées par page ; le serveur peut en rendre moins (plafond `max-rows`). */
+export const STATS_PAGE_SIZE = 1000;
+
+/**
+ * Tous les cumuls, agrégés par mouvement × unité (mètres et calories d'un Row
+ * sont deux compteurs).
+ *
+ * Lus par pages jusqu'au nombre total annoncé par la base : une seule requête
+ * était plafonnée par PostgREST (1 000 lignes par défaut), et les totaux au-delà
+ * étaient tronqués sans erreur. L'ordre (user_id, movement, unit) est celui de
+ * la contrainte d'unicité : aucune ligne n'est sautée ni lue deux fois d'une
+ * page à l'autre. Le nombre total, plutôt qu'une page incomplète, dit quand
+ * s'arrêter : un plafond serveur plus bas que la page ne tronque donc rien.
+ */
 export async function loadMovementTotals(supabase: StatsReader): Promise<{ stats: MovementStat[]; error: string | null }> {
-  const { data, error } = await (supabase
-    .from('user_movement_stats')
-    .select('movement, unit, total_reps, best_weight, user_id')
-    .order('total_reps', { ascending: false }) as Result<any>);
-  if (error) return { stats: [], error: `${STATS_READ_ERROR} : ${error.message}` };
+  const rows: any[] = [];
+  let total: number | null = null;
+  do {
+    const { data, error, count } = await (supabase
+      .from('user_movement_stats')
+      .select('movement, unit, total_reps, best_weight, user_id', { count: 'exact' })
+      .order('user_id', { ascending: true })
+      .order('movement', { ascending: true })
+      .order('unit', { ascending: true })
+      .range(rows.length, rows.length + STATS_PAGE_SIZE - 1) as PromiseLike<{ data: any[] | null; error: { message: string } | null; count: number | null }>);
+    if (error) return { stats: [], error: `${STATS_READ_ERROR} : ${error.message}` };
+    total ??= count;
+    if (!data || data.length === 0) break;
+    rows.push(...data);
+    // Sans nombre total (réponse sans `count`), on lit jusqu'à une page vide.
+  } while (total == null || rows.length < total);
+  if (total != null && rows.length < total) {
+    return { stats: [], error: `${STATS_READ_ERROR} : ${rows.length} lignes lues sur ${total}, totaux incomplets` };
+  }
 
   const byKey = new Map<string, MovementStat>();
-  for (const r of data ?? []) {
+  for (const r of rows) {
     const unit: MovementUnit = r.unit ?? 'reps';
     const key = `${r.movement}|${unit}`;
     const agg = byKey.get(key) ?? { movement: r.movement, unit, total_reps: 0, athlete_count: 0, best_weight: null };
