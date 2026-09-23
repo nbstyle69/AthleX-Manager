@@ -12,6 +12,10 @@ import {
   AlertTriangle, Loader2, Dumbbell,
 } from 'lucide-react';
 import ProgramSessionsEditor from '@/components/programs/ProgramSessionsEditor';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
 
 interface Program {
   id: string;
@@ -357,90 +361,91 @@ export default function AthleteProgramsWorkspace() {
     <div className="space-y-8">
       {/* Programs */}
       <div>
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <h2 className="text-lg font-black text-white">Programmes athlètes</h2>
-            <p className="text-xs text-gray-500 mt-1">Offres vendues ou assignées à tes membres</p>
+        <div className="flex items-center justify-between gap-3 flex-wrap mb-4">
+          <div className="min-w-0">
+            <h2 className="text-lg font-black text-ax-text">Programmes athlètes</h2>
+            <p className="text-xs text-ax-text-muted mt-1">Offres vendues ou assignées à tes membres</p>
           </div>
-          <button onClick={openNew} className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold transition-all">
+          <Button variant="ax-mint" size="ax-compact" onClick={openNew} className="h-auto px-4 py-2 text-sm">
             <Plus size={16} /> Créer un programme
-          </button>
+          </Button>
         </div>
 
         {loading ? (
-          <div className="text-center py-16 text-gray-500">Chargement…</div>
+          <div className="text-center py-16 text-ax-text-muted">Chargement…</div>
         ) : programs.length === 0 ? (
           <div className="text-center py-16">
-            <BookOpen size={40} className="mx-auto text-gray-600 mb-3" />
-            <p className="text-gray-500 text-sm">Aucun programme</p>
-            <p className="text-gray-600 text-xs mt-1">Créez votre premier programme de coaching</p>
+            <BookOpen size={40} className="mx-auto text-ax-text-muted mb-3" />
+            <p className="text-ax-text-muted text-sm">Aucun programme</p>
+            <p className="text-ax-text-muted text-xs mt-1">Créez votre premier programme de coaching</p>
           </div>
         ) : (
           <div className="grid gap-3">
             {programs.map(p => (
-              <div key={p.id} className={`bg-[#111] border border-white/[0.06] rounded-2xl p-5 ${!p.is_active ? 'opacity-50' : ''}`}>
-                <div className="flex items-start justify-between">
+              <Card key={p.id} className={`p-5 ${!p.is_active ? 'opacity-50' : ''}`}>
+                <div className="flex items-start justify-between gap-3 flex-wrap">
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="font-bold text-white text-base truncate">{p.title}</span>
-                      <span className={`text-[10px] px-2 py-0.5 rounded-md font-bold ${p.type === 'fixed' ? 'bg-blue-500/10 text-blue-400' : 'bg-purple-500/10 text-purple-400'}`}>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-bold text-ax-text text-base min-w-0 break-words">{p.title}</span>
+                      <span className={`text-[10px] px-2 py-0.5 rounded-ax-badge font-bold ${p.type === 'fixed' ? 'bg-ax-info-soft text-ax-info' : 'text-ax-purple'}`}
+                        style={p.type === 'fixed' ? undefined : { backgroundColor: 'color-mix(in srgb, var(--ax-purple) 12%, var(--ax-surface))' }}>
                         {p.type === 'fixed' ? `${p.duration_weeks} sem.` : 'Ongoing'}
                       </span>
                       {!p.is_active && (
-                        <span className="text-[10px] px-2 py-0.5 rounded-md bg-red-500/10 text-red-400 font-semibold">Inactif</span>
+                        <Badge variant="danger" className="text-[10px] px-2 py-0.5 font-semibold">Inactif</Badge>
                       )}
                     </div>
-                    {p.description && <p className="text-xs text-gray-500 mt-1 line-clamp-2">{p.description}</p>}
+                    {p.description && <p className="text-xs text-ax-text-muted mt-1 line-clamp-2 break-words">{p.description}</p>}
                   </div>
-                  <div className="flex items-center gap-2 ml-4 flex-shrink-0">
-                    <span className="text-sm font-black text-emerald-400 bg-emerald-500/10 px-3 py-1.5 rounded-xl">
+                  <div className="flex items-center gap-2 sm:ml-4 flex-shrink-0">
+                    <span className="text-sm font-black text-ax-success bg-ax-success-soft px-3 py-1.5 rounded-ax-control">
                       {formatPrice(p.price_cents)}
                     </span>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-4 mt-3">
-                  <div className="flex items-center gap-1.5 text-xs text-gray-500">
+                <div className="flex items-center gap-x-4 gap-y-2 mt-3 flex-wrap">
+                  <div className="flex items-center gap-1.5 text-xs text-ax-text-muted">
                     <Users size={13} /> <span className="font-semibold">{p.member_count ?? 0} acheteurs</span>
                   </div>
-                  <div className="flex items-center gap-1.5 text-xs text-gray-500">
+                  <div className="flex items-center gap-1.5 text-xs text-ax-text-muted">
                     <Calendar size={13} /> <span className="font-semibold">{p.days_per_week}j/sem</span>
                   </div>
-                  <div className="flex items-center gap-1.5 text-xs text-gray-500">
+                  <div className="flex items-center gap-1.5 text-xs text-ax-text-muted">
                     <Dumbbell size={13} />
-                    <span className={`font-semibold ${(p.wod_count ?? 0) === 0 ? 'text-amber-400' : ''}`}>
+                    <span className={`font-semibold ${(p.wod_count ?? 0) === 0 ? 'text-ax-warning' : ''}`}>
                       {p.wod_count ?? 0} WOD{(p.wod_count ?? 0) > 1 ? 's' : ''} liés
                     </span>
                   </div>
-                  <button onClick={() => copyCode(p.invite_code)} className="flex items-center gap-1.5 text-xs font-bold text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-lg hover:bg-emerald-500/20 transition-all">
+                  <button onClick={() => copyCode(p.invite_code)} className="flex items-center gap-1.5 text-xs font-bold text-ax-success bg-ax-success-soft px-2.5 py-1 rounded-ax-control hover:bg-ax-hover transition-all">
                     {codeCopied === p.invite_code ? <Check size={12} /> : <Hash size={12} />}
                     {codeCopied === p.invite_code ? 'Copié !' : p.invite_code}
                   </button>
                 </div>
 
-                <div className="flex items-center gap-2 mt-4 pt-3 border-t border-white/[0.06]">
-                  <button onClick={() => openEditor(p)} className="flex items-center gap-1.5 px-3 py-2 rounded-lg hover:bg-emerald-500/10 text-emerald-400 hover:text-emerald-300 text-xs font-semibold transition-all">
+                <div className="flex items-center gap-2 mt-4 pt-3 border-t border-ax-border flex-wrap">
+                  <button onClick={() => openEditor(p)} className="flex items-center gap-1.5 px-3 py-2 rounded-ax-control hover:bg-ax-accent-soft text-ax-accent-text text-xs font-semibold transition-all">
                     <FileText size={13} /> Séances
                   </button>
-                  <Link href="/wods" className="flex items-center gap-1.5 px-3 py-2 rounded-lg hover:bg-white/5 text-gray-400 hover:text-white text-xs font-semibold transition-all">
+                  <Link href="/wods" className="flex items-center gap-1.5 px-3 py-2 rounded-ax-control hover:bg-ax-hover text-ax-text-secondary hover:text-ax-text text-xs font-semibold transition-all">
                     <Dumbbell size={13} /> Whiteboard
                   </Link>
-                  <button onClick={() => openAccess(p)} className="flex items-center gap-1.5 px-3 py-2 rounded-lg hover:bg-emerald-500/10 text-emerald-400 hover:text-emerald-300 text-xs font-semibold transition-all">
+                  <button onClick={() => openAccess(p)} className="flex items-center gap-1.5 px-3 py-2 rounded-ax-control hover:bg-ax-accent-soft text-ax-accent-text text-xs font-semibold transition-all">
                     <Users size={13} /> Accès
                   </button>
-                  <button onClick={() => openEdit(p)} className="flex items-center gap-1.5 px-3 py-2 rounded-lg hover:bg-white/5 text-gray-400 hover:text-white text-xs font-semibold transition-all">
+                  <button onClick={() => openEdit(p)} className="flex items-center gap-1.5 px-3 py-2 rounded-ax-control hover:bg-ax-hover text-ax-text-secondary hover:text-ax-text text-xs font-semibold transition-all">
                     <Pencil size={13} /> Modifier
                   </button>
-                  <button onClick={() => toggleActive(p)} className="flex items-center gap-1.5 px-3 py-2 rounded-lg hover:bg-white/5 text-gray-400 hover:text-white text-xs font-semibold transition-all">
+                  <button onClick={() => toggleActive(p)} className="flex items-center gap-1.5 px-3 py-2 rounded-ax-control hover:bg-ax-hover text-ax-text-secondary hover:text-ax-text text-xs font-semibold transition-all">
                     {p.is_active ? 'Désactiver' : 'Activer'}
                   </button>
-                  <button onClick={() => handleDelete(p.id)} className="flex items-center gap-1.5 px-3 py-2 rounded-lg hover:bg-red-500/10 text-gray-500 hover:text-red-400 text-xs font-semibold transition-all">
+                  <button onClick={() => handleDelete(p.id)} className="flex items-center gap-1.5 px-3 py-2 rounded-ax-control hover:bg-ax-danger-soft text-ax-text-muted hover:text-ax-danger text-xs font-semibold transition-all">
                     <Trash2 size={13} /> Supprimer
                   </button>
-                  <div className="flex-1" />
-                  <span className="text-[10px] text-gray-600">Commission plateforme : 4%</span>
+                  <div className="flex-1 basis-full sm:basis-auto" />
+                  <span className="text-[10px] text-ax-text-muted">Commission plateforme : 4%</span>
                 </div>
-              </div>
+              </Card>
             ))}
           </div>
         )}
@@ -448,60 +453,59 @@ export default function AthleteProgramsWorkspace() {
 
       {/* Modal form */}
       {showForm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-          <div className="w-full max-w-lg bg-[#111] border border-white/[0.06] rounded-2xl p-6 max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-ax-overlay backdrop-blur-ax-glass p-4">
+          <Card className="w-full max-w-lg rounded-ax-panel shadow-ax-panel p-6 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-lg font-black text-white">
+              <h2 className="text-lg font-black text-ax-text">
                 {editId ? 'Modifier le programme' : 'Nouveau programme'}
               </h2>
-              <button onClick={() => setShowForm(false)} className="text-gray-500 hover:text-white"><X size={20} /></button>
+              <button onClick={() => setShowForm(false)} className="text-ax-text-muted hover:text-ax-text"><X size={20} /></button>
             </div>
 
             <div className="space-y-4">
               <div>
-                <label className="text-xs font-bold text-gray-400 mb-1 block">Titre *</label>
-                <input
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white outline-none focus:border-emerald-500/50"
+                <label className="text-xs font-bold text-ax-text-secondary mb-1 block">Titre *</label>
+                <Input
+                  
                   value={form.title} onChange={e => setForm({ ...form, title: e.target.value })}
                   placeholder="Force 6 semaines"
                 />
               </div>
 
               <div>
-                <label className="text-xs font-bold text-gray-400 mb-1 block">Description</label>
+                <label className="text-xs font-bold text-ax-text-secondary mb-1 block">Description</label>
                 <textarea
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white outline-none focus:border-emerald-500/50 min-h-[80px]"
+                  className="w-full min-h-[80px] [field-sizing:content] rounded-ax-control border border-ax-input-border bg-ax-surface px-3 py-2.5 text-base sm:text-sm text-ax-text placeholder:text-ax-text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ax-focus focus-visible:ring-offset-2 focus-visible:ring-offset-ax-surface transition-colors"
                   value={form.description} onChange={e => setForm({ ...form, description: e.target.value })}
                   placeholder="Programme de force progressive…"
                 />
               </div>
 
               <div>
-                <label className="text-xs font-bold text-gray-400 mb-1 block">Prix (€) *</label>
-                <input
+                <label className="text-xs font-bold text-ax-text-secondary mb-1 block">Prix (€) *</label>
+                <Input
                   type="number" step="0.01"
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white outline-none focus:border-emerald-500/50"
                   value={form.price} onChange={e => setForm({ ...form, price: e.target.value })}
                   placeholder="49.00"
                 />
               </div>
 
               <div>
-                <label className="text-xs font-bold text-gray-400 mb-2 block">Type de programme</label>
+                <label className="text-xs font-bold text-ax-text-secondary mb-2 block">Type de programme</label>
                 <div className="grid grid-cols-2 gap-3">
                   <button
                     onClick={() => setForm({ ...form, type: 'fixed' })}
-                    className={`p-3 rounded-xl border-2 text-left transition-all ${form.type === 'fixed' ? 'border-emerald-500 bg-emerald-500/10' : 'border-white/10 hover:border-white/20'}`}
+                    className={`p-3 rounded-ax-control border-2 text-left transition-all ${form.type === 'fixed' ? 'border-ax-accent bg-ax-accent-soft' : 'border-ax-border hover:border-ax-input-border'}`}
                   >
-                    <span className="text-sm font-bold text-white block">Programme fixe</span>
-                    <span className="text-xs text-gray-500">Durée définie (6, 8, 12 sem.)</span>
+                    <span className="text-sm font-bold text-ax-text block">Programme fixe</span>
+                    <span className="text-xs text-ax-text-muted">Durée définie (6, 8, 12 sem.)</span>
                   </button>
                   <button
                     onClick={() => setForm({ ...form, type: 'ongoing' })}
-                    className={`p-3 rounded-xl border-2 text-left transition-all ${form.type === 'ongoing' ? 'border-emerald-500 bg-emerald-500/10' : 'border-white/10 hover:border-white/20'}`}
+                    className={`p-3 rounded-ax-control border-2 text-left transition-all ${form.type === 'ongoing' ? 'border-ax-accent bg-ax-accent-soft' : 'border-ax-border hover:border-ax-input-border'}`}
                   >
-                    <span className="text-sm font-bold text-white block">Ongoing</span>
-                    <span className="text-xs text-gray-500">Programme continu</span>
+                    <span className="text-sm font-bold text-ax-text block">Ongoing</span>
+                    <span className="text-xs text-ax-text-muted">Programme continu</span>
                   </button>
                 </div>
               </div>
@@ -509,19 +513,17 @@ export default function AthleteProgramsWorkspace() {
               {form.type === 'fixed' && (
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="text-xs font-bold text-gray-400 mb-1 block">Durée (semaines)</label>
-                    <input
+                    <label className="text-xs font-bold text-ax-text-secondary mb-1 block">Durée (semaines)</label>
+                    <Input
                       type="number"
-                      className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white outline-none focus:border-emerald-500/50"
                       value={form.duration_weeks} onChange={e => setForm({ ...form, duration_weeks: e.target.value })}
                       placeholder="6"
                     />
                   </div>
                   <div>
-                    <label className="text-xs font-bold text-gray-400 mb-1 block">Jours / semaine</label>
-                    <input
+                    <label className="text-xs font-bold text-ax-text-secondary mb-1 block">Jours / semaine</label>
+                    <Input
                       type="number"
-                      className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white outline-none focus:border-emerald-500/50"
                       value={form.days_per_week} onChange={e => setForm({ ...form, days_per_week: e.target.value })}
                       placeholder="5"
                     />
@@ -534,24 +536,24 @@ export default function AthleteProgramsWorkspace() {
                   <input
                     type="checkbox" checked={form.is_active}
                     onChange={e => setForm({ ...form, is_active: e.target.checked })}
-                    className="w-4 h-4 rounded accent-emerald-500"
+                    className="w-4 h-4 rounded accent-ax-accent"
                   />
-                  <span className="text-sm text-gray-300 font-semibold">Actif (visible pour les athlètes)</span>
+                  <span className="text-sm text-ax-text-secondary font-semibold">Actif (visible pour les athlètes)</span>
                 </label>
               </div>
             </div>
 
-            <div className="flex justify-end gap-3 mt-6">
-              <button onClick={() => setShowForm(false)} className="px-4 py-2.5 rounded-xl text-sm font-bold text-gray-400 hover:text-white hover:bg-white/5 transition-all">Annuler</button>
-              <button
+            <div className="flex justify-end gap-3 mt-6 flex-wrap">
+              <Button variant="ax-outline" onClick={() => setShowForm(false)}>Annuler</Button>
+              <Button
+                variant="ax-mint"
                 onClick={handleSave}
                 disabled={saving || !form.title.trim()}
-                className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white text-sm font-bold transition-all"
               >
                 {saving ? 'Enregistrement…' : editId ? 'Modifier' : 'Créer le programme'}
-              </button>
+              </Button>
             </div>
-          </div>
+          </Card>
         </div>
       )}
 
@@ -568,26 +570,26 @@ export default function AthleteProgramsWorkspace() {
 
       {/* Accès au programme : acheteurs + assignation par le gérant */}
       {accessProgram && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-          <div className="w-full max-w-lg bg-[#111] border border-white/[0.06] rounded-2xl p-6 max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-ax-overlay backdrop-blur-ax-glass p-4">
+          <Card className="w-full max-w-lg rounded-ax-panel shadow-ax-panel p-6 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-1">
-              <h2 className="text-lg font-black text-white">Accès au programme</h2>
-              <button onClick={() => setAccessProgram(null)} className="text-gray-500 hover:text-white"><X size={20} /></button>
+              <h2 className="text-lg font-black text-ax-text">Accès au programme</h2>
+              <button onClick={() => setAccessProgram(null)} className="text-ax-text-muted hover:text-ax-text"><X size={20} /></button>
             </div>
-            <p className="text-xs text-gray-500 mb-5">{accessProgram.title}</p>
+            <p className="text-xs text-ax-text-muted mb-5">{accessProgram.title}</p>
 
             {accessError && (
-              <div className="mb-4 flex items-start gap-2 rounded-xl bg-red-500/10 border border-red-500/20 px-3 py-2.5 text-xs text-red-300">
+              <div className="mb-4 flex items-start gap-2 rounded-ax-control bg-ax-danger-soft border border-ax-danger px-3 py-2.5 text-xs text-ax-danger">
                 <AlertTriangle size={14} className="mt-0.5 flex-shrink-0" />
                 <span>{accessError}</span>
               </div>
             )}
 
             <div className="mb-6">
-              <label className="text-xs font-bold text-gray-400 mb-1 block">Donner l&apos;accès à un membre</label>
-              <div className="flex gap-2">
+              <label className="text-xs font-bold text-ax-text-secondary mb-1 block">Donner l&apos;accès à un membre</label>
+              <div className="flex gap-2 flex-wrap sm:flex-nowrap">
                 <select
-                  className="flex-1 bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white outline-none focus:border-emerald-500/50"
+                  className="flex-1 min-w-0 min-h-11 rounded-ax-control border border-ax-input-border bg-ax-surface px-3 py-2.5 text-base sm:text-sm text-ax-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ax-focus focus-visible:ring-offset-2 focus-visible:ring-offset-ax-surface transition-colors"
                   value={accessPick}
                   onChange={e => setAccessPick(e.target.value)}
                 >
@@ -598,15 +600,16 @@ export default function AthleteProgramsWorkspace() {
                       <option key={m.id} value={m.id}>{m.username ?? m.id.slice(0, 8)}</option>
                     ))}
                 </select>
-                <button
+                <Button
+                  variant="ax-mint"
                   onClick={assignerAcces}
                   disabled={!accessPick || accessBusyId !== null}
-                  className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white text-sm font-bold transition-all"
+                  className="h-11"
                 >
                   {accessBusyId === accessPick ? 'Attribution…' : 'Assigner (offert)'}
-                </button>
+                </Button>
               </div>
-              <p className="text-[11px] text-gray-600 mt-2">
+              <p className="text-[11px] text-ax-text-muted mt-2">
                 L&apos;accès offert est gratuit et tracé comme tel : il ne remplace jamais un achat.
                 Seul un gérant ou un co-gérant peut l&apos;attribuer.
               </p>
@@ -616,29 +619,30 @@ export default function AthleteProgramsWorkspace() {
                   encaissement d'abonnement. Un programme sans prix ne s'encaisse
                   pas : il n'y a pas de référence à laquelle borner la remise. */}
               {accessProgram.price_cents > 0 && (
-                <div className="mt-3 pt-3 border-t border-white/[0.06]">
-                  <div className="flex gap-2 items-center">
-                    <div className="relative flex-1">
-                      <input
+                <div className="mt-3 pt-3 border-t border-ax-border">
+                  <div className="flex gap-2 items-center flex-wrap sm:flex-nowrap">
+                    <div className="relative flex-1 min-w-[120px]">
+                      <Input
                         type="number"
                         step="0.01"
                         min="0"
                         max={(accessProgram.price_cents / 100).toFixed(2)}
                         value={accessCashAmount}
                         onChange={e => setAccessCashAmount(e.target.value)}
-                        className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 pr-8 text-sm text-white outline-none focus:border-emerald-500/50"
+                        className="pr-8"
                       />
-                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-500">€</span>
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-ax-text-muted">€</span>
                     </div>
-                    <button
+                    <Button
+                      variant="ax-outline"
                       onClick={encaisserAcces}
                       disabled={!accessPick || accessBusyId !== null}
-                      className="px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/10 disabled:opacity-50 text-white text-sm font-bold transition-all whitespace-nowrap"
+                      className="h-11 whitespace-nowrap"
                     >
                       {accessBusyId === accessPick ? 'Encaissement…' : 'Assigner — payé au comptoir'}
-                    </button>
+                    </Button>
                   </div>
-                  <p className="text-[11px] text-gray-600 mt-2">
+                  <p className="text-[11px] text-ax-text-muted mt-2">
                     Pré-rempli au prix du programme ({formatPrice(accessProgram.price_cents)}) et modifiable
                     à la baisse. Le montant part dans le journal de caisse, qui est en ajout seul :
                     une fois enregistré, il ne se corrige plus.
@@ -648,31 +652,31 @@ export default function AthleteProgramsWorkspace() {
             </div>
 
             <div>
-              <p className="text-xs font-bold text-gray-400 mb-2">
+              <p className="text-xs font-bold text-ax-text-secondary mb-2">
                 Ont accès ({accessRows.filter(r => r.status === 'active').length})
               </p>
               {accessLoading ? (
-                <div className="flex items-center gap-2 text-sm text-gray-500 py-6">
+                <div className="flex items-center gap-2 text-sm text-ax-text-muted py-6">
                   <Loader2 size={14} className="animate-spin" /> Chargement…
                 </div>
               ) : accessRows.length === 0 ? (
-                <p className="text-sm text-gray-600 py-6">Personne pour l&apos;instant.</p>
+                <p className="text-sm text-ax-text-muted py-6">Personne pour l&apos;instant.</p>
               ) : (
                 <div className="space-y-2">
                   {accessRows.map(r => (
-                    <div key={r.id} className="flex items-center gap-3 rounded-xl bg-white/[0.03] border border-white/[0.06] px-3 py-2.5">
+                    <div key={r.id} className="flex items-center gap-3 flex-wrap rounded-ax-control bg-ax-surface-secondary border border-ax-border px-3 py-2.5">
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold text-white truncate">
+                        <p className="text-sm font-semibold text-ax-text break-words">
                           {r.profile?.username ?? r.user_id.slice(0, 8)}
                         </p>
-                        <p className="text-[11px] text-gray-500">
+                        <p className="text-[11px] text-ax-text-muted">
                           {LIBELLE_PROVENANCE[r.provenance ?? ''] ?? 'Origine inconnue'}
                           {r.provenance === 'stripe' && r.amount_cents != null && ` · ${formatPrice(r.amount_cents)}`}
                           {r.status !== 'active' && ' · accès retiré'}
                         </p>
                       </div>
                       {r.status === 'active' && r.provenance === 'stripe' && (
-                        <span className="text-[11px] text-gray-600 whitespace-nowrap">
+                        <span className="text-[11px] text-ax-text-muted whitespace-nowrap">
                           {MENTION_ACCES_STRIPE}
                         </span>
                       )}
@@ -680,7 +684,7 @@ export default function AthleteProgramsWorkspace() {
                         <button
                           onClick={() => retirerAcces(r)}
                           disabled={accessBusyId !== null}
-                          className="px-2.5 py-1.5 rounded-lg text-[11px] font-bold text-gray-500 hover:text-red-400 hover:bg-red-500/10 disabled:opacity-50 transition-all"
+                          className="px-2.5 py-1.5 rounded-ax-control text-[11px] font-bold text-ax-text-muted hover:text-ax-danger hover:bg-ax-danger-soft disabled:opacity-50 transition-all"
                         >
                           {accessBusyId === r.id ? '…' : 'Retirer'}
                         </button>
@@ -690,7 +694,7 @@ export default function AthleteProgramsWorkspace() {
                 </div>
               )}
             </div>
-          </div>
+          </Card>
         </div>
       )}
     </div>

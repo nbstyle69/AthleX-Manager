@@ -26,20 +26,20 @@ export default function MarketplaceShell({
   children: ReactNode;
 }) {
   return (
-    <div className="max-w-6xl mx-auto px-6 py-8">
+    <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
       <div className="flex items-center gap-3 mb-1">
-        <Store className="text-white" size={26} />
-        <h1 className="text-2xl font-black text-white">Marketplace</h1>
+        <Store className="text-ax-text" size={26} />
+        <h1 className="text-2xl font-black text-ax-text">Marketplace</h1>
         <HelpButton />
       </div>
-      <p className="text-sm text-gray-400 mb-6">{SUBTITLES[tab]}</p>
+      <p className="text-sm text-ax-text-secondary mb-6">{SUBTITLES[tab]}</p>
 
-      <div className="flex gap-1 mb-6 border-b border-white/10">
+      <div className="flex gap-1 mb-6 border-b border-ax-border overflow-x-auto overflow-y-hidden">
         {TABS.map((t) => (
           <Link key={t.tab} href={t.href}
             aria-current={t.tab === tab ? 'page' : undefined}
-            className={`px-4 py-2.5 text-sm font-bold border-b-2 -mb-px transition-colors ${
-              t.tab === tab ? 'border-white text-white' : 'border-transparent text-gray-500 hover:text-gray-300'}`}>
+            className={`shrink-0 whitespace-nowrap px-3 sm:px-4 py-2.5 text-sm font-bold border-b-2 -mb-px transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ax-focus focus-visible:ring-offset-2 focus-visible:ring-offset-ax-background ${
+              t.tab === tab ? 'border-ax-text text-ax-text' : 'border-transparent text-ax-text-muted hover:text-ax-text-secondary'}`}>
             {t.label}
           </Link>
         ))}
