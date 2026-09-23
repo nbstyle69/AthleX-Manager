@@ -27,7 +27,7 @@ const buttonVariants = cva(
     compoundVariants: [
       {
         variant: ['ax-white', 'ax-mint', 'ax-outline'],
-        className: 'h-auto min-h-[46px] whitespace-normal rounded-ax-control px-[19px] py-[13px] font-semibold leading-5 duration-200 focus-visible:ring-ax-focus focus-visible:ring-offset-ax-background motion-reduce:transition-none',
+        className: 'h-auto min-h-[46px] whitespace-normal rounded-[var(--ax-radius-control)] px-[19px] py-[13px] font-semibold leading-5 duration-200 focus-visible:ring-ax-focus focus-visible:ring-offset-ax-background motion-reduce:transition-none',
       },
     ],
     defaultVariants: {
