@@ -35,6 +35,8 @@ export interface CatalogMovement {
   cardio?: boolean;
   /** Unité par défaut d'une ligne ; `reps` hors m/cal. */
   unit?: MovementUnit;
+  /** Unités dans lesquelles le mouvement se mesure (`units_allowed`). */
+  unitsAllowed?: MovementUnit[];
   /** `movement_catalog.id` ; `null` pour une entrée hors catalogue. */
   id: string | null;
   family: string | null;
@@ -56,6 +58,8 @@ export function catalogMovementFromRow(row: MovementCatalogRow): CatalogMovement
     weighted: row.load_unit === 'kg',
     cardio: cardio || undefined,
     unit: toUnit(row.unit_default),
+    // Colonne vide : seule l'unité par défaut est admise.
+    unitsAllowed: (row.units_allowed?.length ? row.units_allowed : [row.unit_default]).map(toUnit),
     active: row.active,
   };
 }

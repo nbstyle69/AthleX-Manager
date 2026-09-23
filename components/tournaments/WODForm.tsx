@@ -5,7 +5,8 @@ import { createClient } from '@/lib/supabase/client';
 import { Plus, Trash2, Loader2, X, Sparkles, ChevronDown, ChevronUp, Timer } from 'lucide-react';
 import { useMovementCatalog } from '@/lib/useMovementCatalog';
 import { boGenerateFunctional, boGenerateHybrid } from '@/lib/wod/boAdapter';
-import { isWeightedMovement, serializeMovement, parseMovementRow, repsPerRoundFromMovements, isRepsScoredType } from '@/lib/movements';
+import { isWeightedMovement, editMovementLine, parseMovementRow, repsPerRoundFromMovements, isRepsScoredType } from '@/lib/movements';
+import { buildMovementLines, generatedForTimeRounds, parseForTimeRounds } from '@/lib/tournaments/movementLines';
 import { toDatetimeLocal, fromDatetimeLocal, isScheduledAhead } from '@/lib/datetime';
 import { formatCap, parseCap } from '@/lib/wodFields';
 import { scoringLabel, TOURNAMENT_WOD_TYPES } from '@/lib/tournaments/scoring';
@@ -85,6 +86,9 @@ export default function WODForm({ tournamentId, divisions = [], isLeague = false
     // réécrivait un cap de 12:30 en 12:00 au premier « Enregistrer ».
     time_cap:         initial?.time_cap_seconds ? formatCap(initial.time_cap_seconds) : '20:00',
     rounds:           initial?.rounds           ?? 8,
+    // Tours d'un For Time : champ à part, vide par défaut — le 8 ci-dessus est
+    // celui du Tabata. Vide = `null`, que la base lit comme un seul tour.
+    ft_rounds:        initial?.type === 'For Time' && initial?.rounds != null ? String(initial.rounds) : '',
     work_seconds:     initial?.work_seconds     ?? 20,
     rest_seconds:     initial?.rest_seconds     ?? 10,
     division_id:      initial?.division_id      ?? '',
@@ -160,6 +164,10 @@ export default function WODForm({ tournamentId, divisions = [], isLeague = false
 
       // Le type vient du générateur : pour un WOD hybride, celui de sa structure.
       const usedType = data.type;
+      // Le générateur écrit les tours d'un For Time dans une ligne de texte
+      // (« 5 rounds for time ») : on la reporte dans le champ, à la génération
+      // seulement — rien n'est déduit du texte à l'enregistrement.
+      const ftRounds = usedType === 'For Time' ? generatedForTimeRounds(data.movements) : '';
 
       setForm(f => ({
         ...f,
@@ -170,6 +178,7 @@ export default function WODForm({ tournamentId, divisions = [], isLeague = false
         duration_minutes: data.duration_minutes ?? (genSport === 'hybrid' ? genHybridDur : genDuration),
         time_cap:        formatCap(data.time_cap_seconds ?? (genSport === 'hybrid' ? genHybridDur : genDuration) * 60),
         rounds:          data.rounds ?? f.rounds,
+        ft_rounds:       ftRounds,
         work_seconds:    data.work_seconds ?? f.work_seconds,
         rest_seconds:    data.rest_seconds ?? f.rest_seconds,
       }));
@@ -184,8 +193,15 @@ export default function WODForm({ tournamentId, divisions = [], isLeague = false
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setSaving(true);
     setError(null);
+    // Nombre de tours d'un For Time : entier ≥ 1, ou vide. La colonne est
+    // entière ; mieux vaut le dire ici qu'en erreur de base.
+    const ftRounds = parseForTimeRounds(form.ft_rounds);
+    if (form.type === 'For Time' && !ftRounds.ok) {
+      setError('Nombre de tours : un entier supérieur ou égal à 1, ou vide pour un seul tour.');
+      return;
+    }
+    setSaving(true);
     const supabase = createClient();
 
     const timeCap = (form.type === 'For Time' || form.type === 'AMRAP' || form.type === 'EMOM' || form.type === 'Max Reps')
@@ -206,9 +222,14 @@ export default function WODForm({ tournamentId, divisions = [], isLeague = false
       opens_at:         fromDatetimeLocal(form.opens_at),
       closes_at:        fromDatetimeLocal(form.closes_at),
       movements:        movements.filter(Boolean),
+      // Description structurée que lit le crédit des cumuls à la validation
+      // d'un score ; `null` quand aucune ligne n'est exploitable.
+      movement_lines:   buildMovementLines(movements.filter(Boolean)),
       timer_type:       form.timer_type,
       time_cap_seconds: timeCap,
-      rounds:           ['EMOM', 'Tabata'].includes(form.type) ? form.rounds : null,
+      rounds:           form.type === 'For Time'
+        ? (ftRounds.ok ? ftRounds.value : null)
+        : ['EMOM', 'Tabata'].includes(form.type) ? form.rounds : null,
       work_seconds:     form.type === 'Tabata' ? form.work_seconds : null,
       rest_seconds:     form.type === 'Tabata' ? form.rest_seconds : null,
       division_id:      isLeague ? (form.division_id || null) : null,
@@ -234,7 +255,6 @@ export default function WODForm({ tournamentId, divisions = [], isLeague = false
 
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
-      {error && <div className="bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3 text-sm text-red-400">{error}</div>}
 
       {/* ── AI Generator panel ── */}
       <div className="border border-white/30 rounded-xl overflow-hidden">
@@ -467,6 +487,16 @@ export default function WODForm({ tournamentId, divisions = [], isLeague = false
               value={form.time_cap} onChange={e => set('time_cap', e.target.value)} />
           </div>
         )}
+        {form.type === 'For Time' && (
+          <div>
+            <label className={lbl}>Nombre de tours · Rounds</label>
+            <input type="number" min={1} step={1} inputMode="numeric" placeholder="1" className={inp}
+              value={form.ft_rounds} onChange={e => set('ft_rounds', e.target.value)} />
+            <p className="text-[11px] text-gray-500 mt-1.5">
+              Tours complets de la liste de mouvements. Vide = un seul tour. · Full rounds of the movement list. Empty = one round.
+            </p>
+          </div>
+        )}
         {form.type === 'Tabata' && (
           <div className="grid grid-cols-3 gap-3">
             <div>
@@ -510,13 +540,11 @@ export default function WODForm({ tournamentId, divisions = [], isLeague = false
             const parsed = parseMovementRow(line);
             const showWeight = parsed.weightKg != null || parsed.weightKgWomen != null || isWeightedMovement(parsed.name);
             const update = (reps: number | null, name: string, weightKg: number | null, weightKgWomen: number | null) => {
-              const w  = showWeight ? weightKg : null;
-              const wW = showWeight ? weightKgWomen : null;
-              if (reps == null) {
-                setMovement(i, serializeMovement(0, name, w, wW).replace(/^0\s*/, '').trim());
-              } else {
-                setMovement(i, serializeMovement(reps, name, w, wW));
-              }
+              setMovement(i, editMovementLine(line, {
+                reps, name,
+                weightKg:      showWeight ? weightKg : null,
+                weightKgWomen: showWeight ? weightKgWomen : null,
+              }));
             };
             return (
               <div key={i} className="flex gap-2 items-center">
@@ -615,6 +643,10 @@ export default function WODForm({ tournamentId, divisions = [], isLeague = false
           <input type="number" min={1} max={720} className={inp} value={form.deadline_hours} onChange={e => set('deadline_hours', parseInt(e.target.value))} />
         </div>
       </div>
+
+      {/* Au plus près du bouton : en tête d'un formulaire aussi long, un refus
+          de la base (ex. 23514 sur movement_lines) passait inaperçu. */}
+      {error && <div role="alert" className="bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3 text-sm text-red-400">{error}</div>}
 
       <div className="flex justify-end gap-3 pt-2">
         <button type="button" onClick={onCancel} className="px-4 py-2.5 rounded-xl text-sm font-semibold text-gray-400 hover:text-white border border-white/10 hover:border-white/20 transition-colors flex items-center gap-1.5">
