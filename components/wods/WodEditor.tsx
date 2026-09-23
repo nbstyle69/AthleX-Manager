@@ -2,7 +2,8 @@
 
 import { Dispatch, SetStateAction, useEffect, useState } from 'react';
 import { Plus, Trash2, X, Loader2, Video, Dumbbell, HeartPulse, ChevronDown, ChevronRight, Info } from 'lucide-react';
-import { CARDIO_UNITS, MovementUnit } from '@/lib/movements';
+import { CARDIO_UNITS } from '@/lib/movements';
+import MovementUnitSelect from '@/components/wods/MovementUnitSelect';
 import { useMovementCatalog } from '@/lib/useMovementCatalog';
 import {
   EMPTY_MOVEMENT_ROW,
@@ -363,11 +364,15 @@ export default function WodEditor({
                             onChange={e => patchMovement(i, { repsWomen: e.target.value === '' ? null : parseInt(e.target.value, 10) })}
                             placeholder="F" aria-label="Quantité femmes" />
                         </div>
-                        <select className={`${inp} !w-20 shrink-0 px-2`} value={parsed.unit === 'reps' ? 'm' : parsed.unit}
-                          onChange={e => patchMovement(i, { unit: e.target.value as MovementUnit })}
-                          aria-label="Unité de la quantité">
-                          {CARDIO_UNITS.map(u => <option key={u.value} value={u.value} className="text-ax-text bg-ax-surface">{u.label}</option>)}
-                        </select>
+                        {/* Seulement les unités permises du mouvement (Row, SkiErg,
+                            Bike Erg : cal ou m) ; rien pour une machine à unité
+                            unique — avant, m · cal · s pour toute ligne cardio. */}
+                        <MovementUnitSelect
+                          name={parsed.name}
+                          unit={parsed.unit}
+                          disabled={parsed.reps == null}
+                          onChange={u => patchMovement(i, { unit: u })}
+                          className={`${inp} !w-20 shrink-0 px-2 disabled:opacity-50`} />
                       </>
                     ) : (
                       <input type="number" min={0} inputMode="numeric"
