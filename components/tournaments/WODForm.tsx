@@ -489,11 +489,11 @@ export default function WODForm({ tournamentId, divisions = [], isLeague = false
         )}
         {form.type === 'For Time' && (
           <div>
-            <label className={lbl}>Nombre de tours · Rounds</label>
+            <label className={lbl}>Nombre de tours</label>
             <input type="number" min={1} step={1} inputMode="numeric" placeholder="1" className={inp}
               value={form.ft_rounds} onChange={e => set('ft_rounds', e.target.value)} />
             <p className="text-[11px] text-gray-500 mt-1.5">
-              Tours complets de la liste de mouvements. Vide = un seul tour. · Full rounds of the movement list. Empty = one round.
+              Tours complets de la liste de mouvements. Vide = un seul tour.
             </p>
           </div>
         )}
