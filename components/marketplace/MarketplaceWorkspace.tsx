@@ -1040,7 +1040,7 @@ function OfferEditor({ offer, publisherBoxId, onClose, onSaved }: {
                         {w.wod_type}
                       </span>
                     )}
-                    <span className="flex-1 min-w-0 text-sm font-semibold text-ax-text break-words">{w.title}</span>
+                    <span className="basis-full sm:basis-0 sm:flex-1 min-w-0 text-sm font-semibold text-ax-text break-words">{w.title}</span>
                     {w.video_url && <Video size={12} className="text-ax-danger shrink-0" />}
                     <Pencil size={13} className="text-ax-text-muted shrink-0" />
                     <span role="button" tabIndex={0}
