@@ -853,7 +853,7 @@ export default function SchedulesPage() {
       {/* Modal */}
       {modal && (
         <div className={OVERLAY_CLS}>
-          <Card className={`${PANEL_CLS} max-w-md`}>
+          <Card className={`${PANEL_CLS} max-w-lg`}>
             <div className="flex items-center justify-between gap-3 px-5 sm:px-6 py-5 border-b border-ax-border">
               <h2 className="text-lg font-black text-ax-text">
                 {editItem ? 'Modifier le créneau' : 'Nouveau créneau'}
