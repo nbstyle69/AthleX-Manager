@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { CreditCard, ExternalLink } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 interface Props {
   boxId: string;
@@ -40,25 +41,26 @@ export default function PaymentFailedBanner({ boxId }: Props) {
   return (
     <div
       data-testid="payment-failed-banner"
-      className="flex items-center gap-3 bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-3 mb-6"
+      className="flex flex-wrap items-center gap-3 bg-ax-danger-soft border border-ax-danger rounded-ax-card px-4 py-3 mb-6"
     >
-      <CreditCard size={18} className="text-red-400 shrink-0" />
+      <CreditCard size={18} className="text-ax-danger shrink-0" />
       <div className="flex-1">
-        <p className="text-sm font-bold text-red-400">Paiement en échec — mettre à jour la carte</p>
-        <p className="text-xs text-gray-400">
+        <p className="text-sm font-bold text-ax-danger">Paiement en échec — mettre à jour la carte</p>
+        <p className="text-xs text-ax-text-secondary">
           Le renouvellement de ton abonnement n&apos;a pas pu être prélevé. L&apos;accès est maintenu le temps de régulariser.
           {error ? ` · ${error}` : ''}
         </p>
       </div>
-      <button
+      <Button
+        variant="ax-white"
         type="button"
         onClick={openPortal}
         disabled={loading}
-        className="flex items-center gap-1.5 text-xs font-bold text-white bg-red-500 hover:bg-red-400 disabled:opacity-60 px-3 py-1.5 rounded-lg transition-colors"
+        className="gap-1.5 text-xs"
       >
         {loading ? 'Ouverture…' : 'Mettre à jour la carte'}
         <ExternalLink size={12} />
-      </button>
+      </Button>
     </div>
   );
 }

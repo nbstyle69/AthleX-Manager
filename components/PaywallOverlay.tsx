@@ -4,6 +4,9 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Lock, CreditCard, RefreshCw } from 'lucide-react';
+import { Button, buttonVariants } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { cn } from '@/lib/utils';
 
 interface Props {
   boxId: string;
@@ -43,50 +46,51 @@ export default function PaywallOverlay({ boxId, trialEndsAt }: Props) {
 
   return (
     <div
-      className="fixed inset-0 z-[70] flex items-center justify-center bg-[#0A0A0A]/90 backdrop-blur-sm p-6"
+      className="fixed inset-0 z-[70] flex items-center justify-center bg-ax-overlay backdrop-blur-ax-glass p-6"
       role="dialog"
       aria-modal="true"
       aria-labelledby="paywall-title"
     >
-      <div className="bg-[#111111] border border-white/10 rounded-2xl p-8 max-w-md w-full text-center">
-        <div className="w-14 h-14 rounded-2xl bg-white/8 border border-white/10 flex items-center justify-center mx-auto mb-5">
-          <Lock size={24} className="text-white" />
+      <Card className="rounded-ax-panel shadow-ax-panel p-8 max-w-md w-full max-h-full overflow-y-auto text-center">
+        <div className="w-14 h-14 rounded-ax-card bg-ax-accent-soft border border-ax-border flex items-center justify-center mx-auto mb-5">
+          <Lock size={24} className="text-ax-accent-text" />
         </div>
-        <h2 id="paywall-title" className="text-xl font-bold text-white mb-2">
+        <h2 id="paywall-title" className="font-display text-xl font-medium uppercase tracking-wide text-ax-text mb-2">
           Ton essai gratuit est terminé
         </h2>
-        <p className="text-sm text-gray-400 mb-1">
+        <p className="text-sm text-ax-text-secondary mb-1">
           {endedLabel
             ? `L'essai s'est terminé le ${endedLabel}.`
             : 'Ton essai gratuit est arrivé à échéance.'}
         </p>
-        <p className="text-sm text-gray-400 mb-6">
+        <p className="text-sm text-ax-text-secondary mb-6">
           Souscris au Plan Complet pour retrouver l&apos;accès à AthleX Manager. Tes données sont conservées.
         </p>
 
         <Link
           href={`/pricing?box_id=${boxId}`}
-          className="w-full flex items-center justify-center gap-2 bg-white text-[#0A0A0A] font-bold py-3.5 rounded-xl hover:bg-gray-200 transition-colors text-sm mb-3"
+          className={cn(buttonVariants({ variant: 'ax-mint', className: 'w-full mb-3' }))}
         >
           <CreditCard size={16} />
           Souscrire maintenant
         </Link>
 
-        <button
+        <Button
+          variant="ax-outline"
           onClick={handleRefresh}
           disabled={syncing}
-          className="w-full flex items-center justify-center gap-2 text-gray-400 hover:text-white text-xs font-bold py-2 transition-colors disabled:opacity-50"
+          className="w-full text-xs"
         >
           <RefreshCw size={13} className={syncing ? 'animate-spin' : ''} />
           J&apos;ai déjà payé — actualiser
-        </button>
+        </Button>
 
         {notFound && (
-          <p className="text-xs text-red-400 mt-2">
+          <p className="text-xs text-ax-danger mt-2">
             Aucun abonnement actif détecté. Si tu viens de payer, patiente quelques secondes puis réessaie.
           </p>
         )}
-      </div>
+      </Card>
     </div>
   );
 }

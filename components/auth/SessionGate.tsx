@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react';
 import { AlertCircle, Loader2 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
+import { buttonVariants } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 
 /**
  * Aligne la session du navigateur sur celle du serveur avant de rendre une page
@@ -60,7 +62,7 @@ export default function SessionGate({ children }: { children: React.ReactNode })
   if (!ready) {
     return (
       <div className="flex items-center justify-center h-64">
-        <Loader2 className="animate-spin text-white/40" />
+        <Loader2 className="animate-spin text-ax-text-muted" />
       </div>
     );
   }
@@ -68,12 +70,12 @@ export default function SessionGate({ children }: { children: React.ReactNode })
   return (
     <>
       {failed && (
-        <div className="flex items-start gap-3 bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3 mb-6">
-          <AlertCircle size={16} className="text-red-400 shrink-0 mt-0.5" />
-          <p className="text-sm text-red-300">
+        <div className="flex items-start gap-3 bg-ax-danger-soft border border-ax-danger rounded-ax-card px-4 py-3 mb-6">
+          <AlertCircle size={16} className="text-ax-danger shrink-0 mt-0.5" />
+          <p className="text-sm text-ax-danger">
             Ta session a expiré côté navigateur : les listes de cette page peuvent
             s&apos;afficher vides alors que les données existent.{' '}
-            <a href="/login" className="underline font-bold">Reconnecte-toi</a> pour la rétablir.
+            <a href="/login" className={cn(buttonVariants({ variant: 'ax-outline' }))}>Reconnecte-toi</a> pour la rétablir.
           </p>
         </div>
       )}

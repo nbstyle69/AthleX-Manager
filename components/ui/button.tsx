@@ -13,6 +13,9 @@ const buttonVariants = cva(
         outline: 'border border-border bg-transparent text-foreground hover:bg-accent hover:text-accent-foreground',
         ghost: 'text-foreground hover:bg-accent hover:text-accent-foreground',
         link: 'text-foreground underline-offset-4 hover:underline',
+        'ax-white': 'border border-ax-text bg-ax-text text-ax-background hover:brightness-110',
+        'ax-mint': 'border border-ax-accent bg-ax-accent text-ax-accent-foreground hover:brightness-110',
+        'ax-outline': 'border border-ax-input-border bg-transparent text-ax-text hover:bg-ax-hover',
       },
       size: {
         default: 'h-10 px-5 py-2',
@@ -21,6 +24,12 @@ const buttonVariants = cva(
         icon: 'h-10 w-10',
       },
     },
+    compoundVariants: [
+      {
+        variant: ['ax-white', 'ax-mint', 'ax-outline'],
+        className: 'h-auto min-h-[46px] whitespace-normal rounded-ax-control px-[19px] py-[13px] font-semibold leading-5 duration-200 focus-visible:ring-ax-focus focus-visible:ring-offset-ax-background motion-reduce:transition-none',
+      },
+    ],
     defaultVariants: {
       variant: 'default',
       size: 'default',

@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
 import { createClient, getServerProfile, getServerUser } from '@/lib/supabase/server';
 import AdminSidebar from '@/components/layout/AdminSidebar';
+import { Card } from '@/components/ui/card';
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const user = await getServerUser();
@@ -11,12 +12,12 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
   if (!profile || (profile.role !== 'super_admin' && profile.role !== 'admin')) {
     return (
-      <div className="min-h-screen bg-[#0A0A0A] flex items-center justify-center">
-        <div className="bg-[#111111] border border-white/8 rounded-2xl p-10 text-center max-w-sm">
+      <div className="min-h-screen bg-ax-background flex items-center justify-center">
+        <Card className="p-10 text-center max-w-sm">
           <p className="text-4xl mb-4">🔒</p>
-          <h2 className="text-lg font-bold text-white mb-2">Accès refusé</h2>
-          <p className="text-sm text-gray-400">Cette section est réservée aux super administrateurs.</p>
-        </div>
+          <h2 className="font-display text-lg font-medium uppercase tracking-wide text-ax-text mb-2">Accès refusé</h2>
+          <p className="text-sm text-ax-text-secondary">Cette section est réservée aux super administrateurs.</p>
+        </Card>
       </div>
     );
   }
@@ -27,7 +28,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     .eq('admin_unread', true);
 
   return (
-    <div className="min-h-screen bg-[#0A0A0A] flex">
+    <div className="min-h-screen bg-ax-background flex">
       <AdminSidebar
         username={profile.username ?? 'Admin'}
         email={user.email ?? ''}

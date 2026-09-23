@@ -4,6 +4,8 @@ import { useState, useRef, useEffect, useTransition } from 'react';
 import { Check, ChevronsUpDown } from 'lucide-react';
 import { setActiveBox } from '@/app/(dashboard)/actions';
 import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
 
 export interface SwitcherBox {
   id: string;
@@ -44,35 +46,36 @@ export default function BoxSwitcher({
 
   return (
     <div ref={ref} className="relative mt-3">
-      <button
+      <Button
+        variant="ax-outline"
         type="button"
         onClick={() => setOpen((o) => !o)}
         disabled={pending}
-        className="w-full flex items-center gap-2 px-2.5 py-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/[0.06] transition-colors disabled:opacity-60"
+        className="w-full min-h-10 px-2.5 py-2"
       >
-        <span className="text-xs font-semibold text-white truncate flex-1 text-left">
+        <span className="text-xs font-semibold text-ax-text truncate flex-1 text-left">
           {active?.name}
         </span>
-        <ChevronsUpDown size={14} className="text-white/40 shrink-0" />
-      </button>
+        <ChevronsUpDown size={14} className="text-ax-text-muted shrink-0" />
+      </Button>
 
       {open && (
-        <div className="absolute left-0 right-0 mt-1 z-50 rounded-lg bg-[#111111] border border-white/10 shadow-xl py-1 max-h-72 overflow-y-auto">
+        <Card className="absolute left-0 right-0 mt-1 z-50 shadow-ax-panel py-1 max-h-72 overflow-y-auto">
           {boxes.map((b) => (
             <button
               key={b.id}
               type="button"
               onClick={() => select(b.id)}
               className={cn(
-                'w-full flex items-center gap-2 px-3 py-2 text-left text-xs font-semibold transition-colors',
-                b.id === activeBoxId ? 'text-white bg-white/5' : 'text-gray-400 hover:text-white hover:bg-white/5',
+                'w-full flex items-center gap-2 px-3 py-2 text-left text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ax-focus motion-reduce:transition-none',
+                b.id === activeBoxId ? 'text-ax-accent-text bg-ax-accent-soft' : 'text-ax-text-secondary hover:text-ax-text hover:bg-ax-hover',
               )}
             >
               <span className="truncate flex-1">{b.name}</span>
-              {b.id === activeBoxId && <Check size={13} className="text-white shrink-0" />}
+              {b.id === activeBoxId && <Check size={13} className="text-ax-accent-text shrink-0" />}
             </button>
           ))}
-        </div>
+        </Card>
       )}
     </div>
   );
