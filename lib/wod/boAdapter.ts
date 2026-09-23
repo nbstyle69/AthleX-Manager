@@ -12,6 +12,8 @@ import { randomSeed } from './rng';
 
 export interface BOGenResult {
   title: string;
+  /** Type du WOD généré (« AMRAP », « For Time »…), cohérent avec sa structure. */
+  type: string;
   movements: string[];
   scoring: string;
   description: string;
@@ -24,6 +26,22 @@ export interface BOGenResult {
 }
 
 const cap1 = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+
+/**
+ * Type d'un WOD hybride, d'après la structure de sa partie notée. Il était
+ * toujours « For Time », y compris pour un AMRAP (environ un WOD hybride sur
+ * quatre) : le type enregistré contredisait alors le WOD, et le crédit des
+ * cumuls d'un For Time terminé (prescription complète) n'est pas celui d'un
+ * AMRAP. Une structure sans type correspondant (intervalles) reste For Time.
+ */
+export function hybridTypeFor(structure: string): string {
+  switch (structure.toUpperCase()) {
+    case 'AMRAP':    return 'AMRAP';
+    case 'EMOM':     return 'EMOM';
+    case 'STRENGTH': return 'Strength';
+    default:         return 'For Time';
+  }
+}
 
 function cfMovementLine(m: CFMovement): string {
   let line = `${m.prescription} — ${m.name}`;
@@ -95,6 +113,7 @@ export function boGenerateFunctional(type: string, level: string, duration: numb
 
   return {
     title: wod.title,
+    type,
     movements,
     scoring: (CF_SCORING[type] ?? CF_SCORING['For Time'])(duration),
     description: [wod.stimulus, wod.coach_notes[0]].filter(Boolean).join(' '),
@@ -134,12 +153,14 @@ export function boGenerateHybrid(type: string, level: string, format: string, du
   wod.blocks.forEach(b => movements.push(...hyBlockLines(b)));
   if (wod.modifiers.length > 0) movements.push(`⚙️ ${wod.modifiers.join(' · ')}`);
 
+  const wodType = hybridTypeFor(wod.structure);
   return {
     title: wod.title,
+    type: wodType,
     movements,
     scoring: `${cap1(wod.score_type)} (cap ${wod.time_cap_min} min)`,
     description: `${type} — ${format} — ${level} — ${duration} min. ${wod.coach_notes[0] ?? wod.stimulus}`,
-    timer_type: 'countdown',
+    timer_type: CF_TIMER[wodType] ?? 'countdown',
     time_cap_seconds: duration * 60,
     rounds: null,
     work_seconds: null,

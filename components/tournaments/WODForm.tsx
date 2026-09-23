@@ -8,8 +8,9 @@ import { boGenerateFunctional, boGenerateHybrid } from '@/lib/wod/boAdapter';
 import { isWeightedMovement, serializeMovement, parseMovementRow, repsPerRoundFromMovements, isRepsScoredType } from '@/lib/movements';
 import { toDatetimeLocal, fromDatetimeLocal, isScheduledAhead } from '@/lib/datetime';
 import { formatCap, parseCap } from '@/lib/wodFields';
+import { scoringLabel, TOURNAMENT_WOD_TYPES } from '@/lib/tournaments/scoring';
 
-const WOD_TYPES = ['AMRAP', 'For Time', 'EMOM', 'Tabata', 'Max Reps', 'Strength'];
+const WOD_TYPES = TOURNAMENT_WOD_TYPES;
 const LEVELS    = ['scaled', 'inter', 'rx', 'rx+', 'gx', 'pro'];
 const EQUIPMENT_FF = ['Barbell', 'Haltères', 'Kettlebell', 'Box', 'Corde à sauter', 'Barre de traction', 'Anneaux', 'Erg', 'Med Ball', 'GHD', 'Worm', 'Benchmark', 'Sans matériel'];
 const DURATIONS = [5, 8, 10, 12, 15, 20, 25, 30];
@@ -75,7 +76,6 @@ export default function WODForm({ tournamentId, divisions = [], isLeague = false
     description:      initial?.description      ?? '',
     type:             initial?.type             ?? 'AMRAP',
     duration_minutes: initial?.duration_minutes ?? 12,
-    scoring:          initial?.scoring          ?? '',
     deadline_hours:   initial?.deadline_hours   ?? 24,
     status:           initial?.status           ?? 'pending',
     opens_at:         toDatetimeLocal(initial?.opens_at),
@@ -114,6 +114,13 @@ export default function WODForm({ tournamentId, divisions = [], isLeague = false
 
   const set = (k: string, v: any) => setForm(f => ({ ...f, [k]: v }));
 
+  // Libellé de score dérivé du type : affiché tel qu'il sera enregistré, il ne
+  // peut plus contredire le type (ex. « For time » sur un AMRAP).
+  const scoring = scoringLabel(form.type, {
+    durationMinutes: form.duration_minutes,
+    capSeconds: parseCap(form.time_cap),
+  });
+
   function onTypeChange(type: string) {
     const timerMap: Record<string, string> = {
       'AMRAP':    'stopwatch',
@@ -151,13 +158,13 @@ export default function WODForm({ tournamentId, divisions = [], isLeague = false
         'Tabata': 'tabata', 'Max Reps': 'countdown', 'Strength': 'none',
       };
 
-      const usedType = genSport === 'hybrid' ? 'For Time' : genType;
+      // Le type vient du générateur : pour un WOD hybride, celui de sa structure.
+      const usedType = data.type;
 
       setForm(f => ({
         ...f,
         title:           data.title,
         description:     data.description,
-        scoring:         data.scoring,
         type:            usedType,
         timer_type:      data.timer_type ?? timerMap[usedType] ?? 'stopwatch',
         duration_minutes: data.duration_minutes ?? (genSport === 'hybrid' ? genHybridDur : genDuration),
@@ -193,7 +200,7 @@ export default function WODForm({ tournamentId, divisions = [], isLeague = false
       duration_minutes: form.type === 'AMRAP' || form.type === 'EMOM'
         ? form.duration_minutes
         : Math.round((parseCap(form.time_cap) ?? 0) / 60),
-      scoring:          form.scoring,
+      scoring,
       deadline_hours:   form.deadline_hours,
       status:           form.status,
       opens_at:         fromDatetimeLocal(form.opens_at),
@@ -571,7 +578,8 @@ export default function WODForm({ tournamentId, divisions = [], isLeague = false
       <div className="grid grid-cols-2 gap-4">
         <div className="col-span-2">
           <label className={lbl}>Scoring</label>
-          <input className={inp} value={form.scoring} onChange={e => set('scoring', e.target.value)} placeholder="ex: Score = temps total (cap 20 min)" />
+          <div className={`${inp} text-gray-300`} aria-readonly="true">{scoring ?? '—'}</div>
+          <p className="text-[11px] text-gray-600 pt-1">Déduit du type et de la durée : il suit automatiquement le type choisi.</p>
         </div>
         {isRepsScoredType(form.type) && (
           <div className="col-span-2">
