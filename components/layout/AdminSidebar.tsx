@@ -119,7 +119,7 @@ export default function AdminSidebar({ username, email, supportUnread = 0 }: Adm
           className="w-full justify-start min-h-10 px-3 py-2 text-sm hover:text-ax-danger hover:bg-ax-danger-soft"
         >
           <LogOut size={15} />
-          DÃ©connexion
+          Déconnexion
         </Button>
       </div>
     </aside>
