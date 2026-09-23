@@ -1,6 +1,7 @@
 import {
   MovementUnit,
   defaultUnitFor,
+  findCatalogMovement,
   isCardioMovement,
   isWeightedMovement,
   parseMovementRow,
@@ -69,7 +70,11 @@ export function updateMovementRow(rows: MovementRow[], index: number, patch: Par
     const next = { ...row, ...patch };
     if (patch.name !== undefined && patch.unit === undefined) {
       const wasDefault = row.unit === defaultUnitFor(row.name);
-      if (wasDefault || !isCardioMovement(next.name)) next.unit = defaultUnitFor(next.name);
+      // Une unité que la nouvelle machine ne permet pas (un Row en mètres
+      // renommé Echo Bike, qui ne se mesure qu'en calories) n'est pas gardée.
+      const allowed = findCatalogMovement(next.name)?.unitsAllowed;
+      const notAllowed = !!allowed && !allowed.includes(next.unit);
+      if (wasDefault || notAllowed || !isCardioMovement(next.name)) next.unit = defaultUnitFor(next.name);
     }
     if (next.unit === 'reps') next.repsWomen = null;
     return next;
