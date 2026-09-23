@@ -32,6 +32,8 @@ import {
   splitStrengthLines,
 } from '@/lib/strengthBlock';
 import { BLOCKS, DAY_LABELS, WOD_TYPES, WodFormState } from '@/lib/wodFields';
+import { softVar } from '@/lib/colorVars';
+import { programColor } from '@/components/wods/RestrictionBadges';
 import { RestDay, estJourRepos } from '@/lib/programContent';
 import {
   AUDIENCES, AUDIENCE_LABEL, Audience, isoDow, offerWeekStorageKey, recapLine,
@@ -94,7 +96,7 @@ interface WodEditorProps {
   offers?: WodEditorOffer[];
 }
 
-const inp = 'w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-white transition-colors';
+const inp = 'w-full bg-ax-surface-secondary border border-ax-border rounded-ax-control px-4 py-3 text-sm text-ax-text placeholder:text-ax-text-muted focus:outline-none focus:border-ax-focus focus-visible:ring-2 focus-visible:ring-ax-focus focus-visible:ring-offset-2 focus-visible:ring-offset-ax-surface disabled:cursor-not-allowed disabled:bg-ax-neutral-soft [html.light_&]:disabled:bg-ax-surface-secondary disabled:text-ax-text-muted aria-[invalid=true]:border-ax-danger transition-colors motion-reduce:transition-none';
 
 export default function WodEditor({
   mode, heading, submitLabel, form, setForm, movements, setMovements,
@@ -168,18 +170,18 @@ export default function WodEditor({
   const canSubmit = !!form.title.trim() && !saving && (!isWhiteboard || !!form.date) && audienceChosen && groupsChosen;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-      <div className="bg-[#111111] border border-white/10 rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between px-6 py-5 border-b border-white/8">
-          <h2 className="text-lg font-black text-white">{heading}</h2>
-          <button onClick={onClose} className="p-1.5 rounded-xl hover:bg-white/5 text-gray-400 hover:text-white transition-colors">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-ax-overlay backdrop-blur-ax-glass p-4">
+      <div className="bg-ax-surface border border-ax-border rounded-ax-card w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between px-6 py-5 border-b border-ax-border">
+          <h2 className="text-lg font-black text-ax-text">{heading}</h2>
+          <button onClick={onClose} className="p-1.5 rounded-ax-control hover:bg-ax-hover text-ax-text-secondary hover:text-ax-text transition-colors">
             <X size={18} />
           </button>
         </div>
 
         <div className="p-6 space-y-5">
           {error && (
-            <div className="bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3 text-sm text-red-400">{error}</div>
+            <div className="bg-ax-danger-soft border border-ax-danger rounded-ax-control px-4 py-3 text-sm text-ax-danger">{error}</div>
           )}
 
           {/* Qui reçoit ce WOD ? — Whiteboard uniquement (le mode `program`
@@ -199,35 +201,35 @@ export default function WodEditor({
               appartient au programme de la page, et à lui seul. */}
           {isProgram && lockedProgram && (
             <div data-testid="programme-verrouille">
-              <label className="block text-xs font-semibold text-gray-400 mb-2 uppercase tracking-wider">Programme</label>
+              <label className="block text-xs font-semibold text-ax-text-secondary mb-2 uppercase tracking-wider">Programme</label>
               <span
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold border cursor-default"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-ax-control text-xs font-bold border cursor-default"
                 style={{
-                  backgroundColor: `${lockedProgram.type === 'fixed' ? '#3B82F6' : '#8B5CF6'}25`,
-                  color: lockedProgram.type === 'fixed' ? '#3B82F6' : '#8B5CF6',
-                  borderColor: `${lockedProgram.type === 'fixed' ? '#3B82F6' : '#8B5CF6'}50`,
+                  backgroundColor: softVar(programColor(lockedProgram.type), 0.145),
+                  color: programColor(lockedProgram.type),
+                  borderColor: softVar(programColor(lockedProgram.type), 0.31),
                 }}
               >
-                <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: lockedProgram.type === 'fixed' ? '#3B82F6' : '#8B5CF6' }} />
+                <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: programColor(lockedProgram.type) }} />
                 {lockedProgram.title}
               </span>
-              <p className="text-[11px] text-gray-500 mt-1.5">Visible par les acheteurs de ce programme uniquement — pas de groupe, pas d&apos;autre programme.</p>
+              <p className="text-[11px] text-ax-text-muted mt-1.5">Visible par les acheteurs de ce programme uniquement — pas de groupe, pas d&apos;autre programme.</p>
             </div>
           )}
 
           {isWhiteboard ? (
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-semibold text-gray-400 mb-1.5 uppercase tracking-wider">Date *</label>
+                <label className="block text-xs font-semibold text-ax-text-secondary mb-1.5 uppercase tracking-wider">Date *</label>
                 <input type="date" className={inp} value={form.date}
                   onChange={e => setForm(f => ({ ...f, date: e.target.value }))} required />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-gray-400 mb-1.5 uppercase tracking-wider">Block</label>
+                <label className="block text-xs font-semibold text-ax-text-secondary mb-1.5 uppercase tracking-wider">Block</label>
                 <select className={inp} value={form.block}
                   onChange={e => setForm(f => ({ ...f, block: e.target.value }))}>
-                  <option value="" className="text-black">— Aucun —</option>
-                  {BLOCKS.map(b => <option key={b.value} value={b.value} className="text-black">{b.label}</option>)}
+                  <option value="" className="text-ax-text bg-ax-surface">— Aucun —</option>
+                  {BLOCKS.map(b => <option key={b.value} value={b.value} className="text-ax-text bg-ax-surface">{b.label}</option>)}
                 </select>
               </div>
             </div>
@@ -235,20 +237,20 @@ export default function WodEditor({
             <>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-semibold text-gray-400 mb-1.5 uppercase tracking-wider">Semaine *</label>
+                  <label className="block text-xs font-semibold text-ax-text-secondary mb-1.5 uppercase tracking-wider">Semaine *</label>
                   <select className={inp} value={form.week}
                     onChange={e => setForm(f => ({ ...f, week: parseInt(e.target.value, 10) }))}>
                     {Array.from({ length: Math.max(1, weeksCount) }, (_, i) => i + 1).map(w => (
-                      <option key={w} value={w} className="text-black">Semaine {w}</option>
+                      <option key={w} value={w} className="text-ax-text bg-ax-surface">Semaine {w}</option>
                     ))}
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-gray-400 mb-1.5 uppercase tracking-wider">Jour *</label>
+                  <label className="block text-xs font-semibold text-ax-text-secondary mb-1.5 uppercase tracking-wider">Jour *</label>
                   <select className={inp} value={form.dayOfWeek}
                     onChange={e => setForm(f => ({ ...f, dayOfWeek: parseInt(e.target.value, 10) }))}>
                     {DAY_LABELS.map((d, i) => (
-                      <option key={d} value={i + 1} className="text-black">
+                      <option key={d} value={i + 1} className="text-ax-text bg-ax-surface">
                         {d}{isProgram && estJourRepos(restDays, form.week, i + 1) ? ' — repos' : ''}
                       </option>
                     ))}
@@ -256,11 +258,11 @@ export default function WodEditor({
                 </div>
               </div>
               <div>
-                <label className="block text-xs font-semibold text-gray-400 mb-1.5 uppercase tracking-wider">Block</label>
+                <label className="block text-xs font-semibold text-ax-text-secondary mb-1.5 uppercase tracking-wider">Block</label>
                 <select className={inp} value={form.block}
                   onChange={e => setForm(f => ({ ...f, block: e.target.value }))}>
-                  <option value="" className="text-black">— Aucun —</option>
-                  {BLOCKS.map(b => <option key={b.value} value={b.value} className="text-black">{b.label}</option>)}
+                  <option value="" className="text-ax-text bg-ax-surface">— Aucun —</option>
+                  {BLOCKS.map(b => <option key={b.value} value={b.value} className="text-ax-text bg-ax-surface">{b.label}</option>)}
                 </select>
               </div>
             </>
@@ -268,18 +270,18 @@ export default function WodEditor({
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-semibold text-gray-400 mb-1.5 uppercase tracking-wider">Type <span className="text-gray-600 normal-case tracking-normal">(optionnel)</span></label>
+              <label className="block text-xs font-semibold text-ax-text-secondary mb-1.5 uppercase tracking-wider">Type <span className="text-ax-text-muted normal-case tracking-normal">(optionnel)</span></label>
               <select className={inp} value={form.wod_type}
                 onChange={e => setForm(f => ({ ...f, wod_type: e.target.value }))}>
-                <option value="" className="text-black">— Aucun —</option>
-                {WOD_TYPES.map(t => <option key={t.value} value={t.value} className="text-black">{t.label}</option>)}
+                <option value="" className="text-ax-text bg-ax-surface">— Aucun —</option>
+                {WOD_TYPES.map(t => <option key={t.value} value={t.value} className="text-ax-text bg-ax-surface">{t.label}</option>)}
               </select>
             </div>
           </div>
 
           {form.wod_type === 'emom' && (
             <div>
-              <label className="block text-xs font-semibold text-gray-400 mb-1.5 uppercase tracking-wider">Intervalle EMOM</label>
+              <label className="block text-xs font-semibold text-ax-text-secondary mb-1.5 uppercase tracking-wider">Intervalle EMOM</label>
               <div className="grid grid-cols-5 gap-2">
                 {[1, 2, 3, 4, 5].map(v => {
                   const selected = parseInt(form.emomInterval) === v;
@@ -288,31 +290,32 @@ export default function WodEditor({
                       key={v}
                       type="button"
                       onClick={() => setForm(f => ({ ...f, emomInterval: String(v) }))}
-                      className={`py-2 rounded-lg text-xs font-bold border transition-colors ${
+                      className={`py-2 rounded-ax-control text-xs font-bold border transition-colors ${
                         selected
-                          ? 'bg-[#8B5CF6]/25 text-[#C4B5FD] border-[#8B5CF6]/60'
-                          : 'bg-white/5 text-gray-400 border-white/10 hover:text-white hover:border-white/20'
+                          ? 'text-ax-purple'
+                          : 'bg-ax-surface-secondary text-ax-text-secondary border-ax-border hover:text-ax-text hover:border-ax-input-border'
                       }`}
+                      style={selected ? { backgroundColor: softVar('var(--ax-purple)', 0.145), borderColor: softVar('var(--ax-purple)', 0.6) } : undefined}
                     >
                       {v === 1 ? 'EMOM' : `E${v}MOM`}
                     </button>
                   );
                 })}
               </div>
-              <p className="text-[11px] text-gray-500 mt-1.5">Un intervalle = {form.emomInterval} min entre chaque départ.</p>
+              <p className="text-[11px] text-ax-text-muted mt-1.5">Un intervalle = {form.emomInterval} min entre chaque départ.</p>
             </div>
           )}
 
           {form.wod_type === 'tabata' && (
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-semibold text-gray-400 mb-1.5 uppercase tracking-wider">Travail (sec)</label>
+                <label className="block text-xs font-semibold text-ax-text-secondary mb-1.5 uppercase tracking-wider">Travail (sec)</label>
                 <input type="number" min={5} max={300} className={inp} value={form.tabataWork}
                   onChange={e => setForm(f => ({ ...f, tabataWork: e.target.value }))}
                   placeholder="20" />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-gray-400 mb-1.5 uppercase tracking-wider">Repos (sec)</label>
+                <label className="block text-xs font-semibold text-ax-text-secondary mb-1.5 uppercase tracking-wider">Repos (sec)</label>
                 <input type="number" min={0} max={300} className={inp} value={form.tabataRest}
                   onChange={e => setForm(f => ({ ...f, tabataRest: e.target.value }))}
                   placeholder="10" />
@@ -321,15 +324,15 @@ export default function WodEditor({
           )}
 
           <div>
-            <label className="block text-xs font-semibold text-gray-400 mb-1.5 uppercase tracking-wider">Titre *</label>
+            <label className="block text-xs font-semibold text-ax-text-secondary mb-1.5 uppercase tracking-wider">Titre *</label>
             <input className={inp} value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
               placeholder="Fran, Cindy, Helen…" />
           </div>
 
           <div>
             <div className="flex items-center justify-between mb-1.5">
-              <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider">Programme / Mouvements</label>
-              <button type="button" onClick={addMovement} className="text-xs text-white font-semibold flex items-center gap-1 hover:opacity-80">
+              <label className="block text-xs font-semibold text-ax-text-secondary uppercase tracking-wider">Programme / Mouvements</label>
+              <button type="button" onClick={addMovement} className="text-xs text-ax-text font-semibold flex items-center gap-1 hover:opacity-80">
                 <Plus size={12} /> Ajouter
               </button>
             </div>
@@ -345,7 +348,7 @@ export default function WodEditor({
                     {showUnit ? (
                       <>
                         <div className="relative w-24 shrink-0">
-                          <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-semibold text-gray-400 pointer-events-none">♂</span>
+                          <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-semibold text-ax-text-secondary pointer-events-none">♂</span>
                           <input type="number" min={0} inputMode="numeric"
                             className={`${inp} !px-0 !pl-7 !pr-2 text-center`}
                             value={parsed.reps ?? ''}
@@ -353,7 +356,7 @@ export default function WodEditor({
                             placeholder="H" aria-label="Quantité hommes" />
                         </div>
                         <div className="relative w-24 shrink-0">
-                          <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-semibold text-gray-400 pointer-events-none">♀</span>
+                          <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-semibold text-ax-text-secondary pointer-events-none">♀</span>
                           <input type="number" min={0} inputMode="numeric"
                             className={`${inp} !px-0 !pl-7 !pr-2 text-center`}
                             value={parsed.repsWomen ?? ''}
@@ -363,7 +366,7 @@ export default function WodEditor({
                         <select className={`${inp} !w-20 shrink-0 px-2`} value={parsed.unit === 'reps' ? 'm' : parsed.unit}
                           onChange={e => patchMovement(i, { unit: e.target.value as MovementUnit })}
                           aria-label="Unité de la quantité">
-                          {CARDIO_UNITS.map(u => <option key={u.value} value={u.value} className="text-black">{u.label}</option>)}
+                          {CARDIO_UNITS.map(u => <option key={u.value} value={u.value} className="text-ax-text bg-ax-surface">{u.label}</option>)}
                         </select>
                       </>
                     ) : (
@@ -384,26 +387,26 @@ export default function WodEditor({
                       {showWeight && (
                         <>
                           <div className="relative w-24 shrink-0">
-                            <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-semibold text-gray-400 pointer-events-none">♂</span>
+                            <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-semibold text-ax-text-secondary pointer-events-none">♂</span>
                             <input type="number" min={0} step={0.5} inputMode="decimal"
                               className={`${inp} !px-0 !pl-7 !pr-6 text-center`}
                               value={parsed.weightKg ?? ''}
                               onChange={e => patchMovement(i, { weightKg: e.target.value === '' ? null : parseFloat(e.target.value) })}
                               placeholder="H" aria-label="Charge hommes en kilos" />
-                            <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-gray-500 pointer-events-none">kg</span>
+                            <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-ax-text-muted pointer-events-none">kg</span>
                           </div>
                           <div className="relative w-24 shrink-0">
-                            <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-semibold text-gray-400 pointer-events-none">♀</span>
+                            <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-semibold text-ax-text-secondary pointer-events-none">♀</span>
                             <input type="number" min={0} step={0.5} inputMode="decimal"
                               className={`${inp} !px-0 !pl-7 !pr-6 text-center`}
                               value={parsed.weightKgWomen ?? ''}
                               onChange={e => patchMovement(i, { weightKgWomen: e.target.value === '' ? null : parseFloat(e.target.value) })}
                               placeholder="F" aria-label="Charge femmes en kilos" />
-                            <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-gray-500 pointer-events-none">kg</span>
+                            <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-ax-text-muted pointer-events-none">kg</span>
                           </div>
                         </>
                       )}
-                      <button type="button" onClick={() => removeMovement(i)} className="p-3 rounded-xl bg-white/5 border border-white/10 text-gray-500 hover:text-red-400 transition-colors">
+                      <button type="button" onClick={() => removeMovement(i)} className="p-3 rounded-ax-control bg-ax-surface-secondary border border-ax-border text-ax-text-muted hover:text-ax-danger transition-colors">
                         <Trash2 size={14} />
                       </button>
                     </div>
@@ -412,11 +415,11 @@ export default function WodEditor({
               })}
               {wodRows.length === 0 && (
                 <button type="button" onClick={addMovement}
-                  className="w-full py-3 rounded-xl border border-dashed border-white/10 text-xs text-gray-600 hover:border-white/30 hover:text-white/60 transition-colors">
+                  className="w-full py-3 rounded-ax-control border border-dashed border-ax-border text-xs text-ax-text-muted hover:border-ax-input-border hover:text-ax-text-secondary transition-colors">
                   + Ajouter un mouvement
                 </button>
               )}
-              <p className="text-[11px] text-gray-600 pt-1">
+              <p className="text-[11px] text-ax-text-muted pt-1">
                 Reps + exercice (liste officielle) + charges ♂ hommes / ♀ femmes : garantit le comptage des badges de mouvement des athlètes.
                 Les exercices cardio (Row, Bike, SkiErg, Run…) se comptent en mètres ou calories, avec une quantité ♂/♀ séparée si besoin.
               </p>
@@ -426,23 +429,23 @@ export default function WodEditor({
           {/* Bloc Musculation — séries × reps × charge (kg ou %1RM) */}
           <div>
             <div className="flex items-center justify-between mb-1.5">
-              <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider flex items-center gap-1.5">
-                <Dumbbell size={13} /> Musculation <span className="text-gray-600 normal-case tracking-normal">(optionnel)</span>
+              <label className="block text-xs font-semibold text-ax-text-secondary uppercase tracking-wider flex items-center gap-1.5">
+                <Dumbbell size={13} /> Musculation <span className="text-ax-text-muted normal-case tracking-normal">(optionnel)</span>
               </label>
-              <button type="button" onClick={addStrength} className="text-xs text-white font-semibold flex items-center gap-1 hover:opacity-80">
+              <button type="button" onClick={addStrength} className="text-xs text-ax-text font-semibold flex items-center gap-1 hover:opacity-80">
                 <Plus size={12} /> Ajouter une série
               </button>
             </div>
             <div className="space-y-2">
               {strengthRows.map((e, i) => (
-                <div key={i} className="bg-white/5 border border-white/10 rounded-xl p-3 space-y-2">
+                <div key={i} className="bg-ax-surface-secondary border border-ax-border rounded-ax-control p-3 space-y-2">
                   <div className="flex gap-2 items-center">
                     <input list="box-movement-catalog"
                       className={`${inp} flex-1 min-w-0`}
                       value={e.name}
                       onChange={ev => updateStrength(i, { name: ev.target.value })}
                       placeholder="Exercice (rechercher…)" aria-label="Exercice de musculation" />
-                    <button type="button" onClick={() => removeStrength(i)} className="p-3 rounded-xl bg-white/5 border border-white/10 text-gray-500 hover:text-red-400 transition-colors">
+                    <button type="button" onClick={() => removeStrength(i)} className="p-3 rounded-ax-control bg-ax-surface-secondary border border-ax-border text-ax-text-muted hover:text-ax-danger transition-colors">
                       <Trash2 size={14} />
                     </button>
                   </div>
@@ -452,13 +455,13 @@ export default function WodEditor({
                       value={e.sets}
                       onChange={ev => updateStrength(i, { sets: parseInt(ev.target.value, 10) || 1 })}
                       placeholder="5" aria-label="Séries" />
-                    <span className="text-gray-500 text-sm">×</span>
+                    <span className="text-ax-text-muted text-sm">×</span>
                     <input type="number" min={1} inputMode="numeric"
                       className={`${inp} !w-20 shrink-0 text-center px-2`}
                       value={e.reps}
                       onChange={ev => updateStrength(i, { reps: parseInt(ev.target.value, 10) || 1 })}
                       placeholder="3" aria-label="Répétitions par série" />
-                    <span className="text-gray-500 text-sm">@</span>
+                    <span className="text-ax-text-muted text-sm">@</span>
                     <input type="number" min={0} step={0.5} inputMode="decimal"
                       className={`${inp} !w-20 shrink-0 text-center px-2`}
                       value={e.load ?? ''}
@@ -467,8 +470,8 @@ export default function WodEditor({
                     <select className={`${inp} !w-24 shrink-0 px-2`} value={e.unit}
                       onChange={ev => updateStrength(i, { unit: ev.target.value as StrengthLoadUnit })}
                       aria-label="Unité de charge">
-                      <option value="kg" className="text-black">kg</option>
-                      <option value="%1RM" className="text-black">%1RM</option>
+                      <option value="kg" className="text-ax-text bg-ax-surface">kg</option>
+                      <option value="%1RM" className="text-ax-text bg-ax-surface">%1RM</option>
                     </select>
                   </div>
                   <div className="flex gap-2 items-center">
@@ -488,16 +491,16 @@ export default function WodEditor({
                       onChange={ev => updateStrength(i, { loadNote: ev.target.value || null })}
                       placeholder="Charge libre (RPE 9, RM du jour…)" aria-label="Charge libre" />
                   </div>
-                  <p className="text-[11px] text-gray-600">{serializeStrength(e) || 'Nomme l’exercice pour enregistrer cette série.'}</p>
+                  <p className="text-[11px] text-ax-text-muted">{serializeStrength(e) || 'Nomme l’exercice pour enregistrer cette série.'}</p>
                 </div>
               ))}
               {strengthRows.length === 0 && (
                 <button type="button" onClick={addStrength}
-                  className="w-full py-3 rounded-xl border border-dashed border-white/10 text-xs text-gray-600 hover:border-white/30 hover:text-white/60 transition-colors">
+                  className="w-full py-3 rounded-ax-control border border-dashed border-ax-border text-xs text-ax-text-muted hover:border-ax-input-border hover:text-ax-text-secondary transition-colors">
                   + Ajouter une série de musculation
                 </button>
               )}
-              <p className="text-[11px] text-gray-600 pt-1">
+              <p className="text-[11px] text-ax-text-muted pt-1">
                 Une charge en %1RM s’affiche en kilos chez l’athlète, calculée sur son propre 1RM.
                 Ces séries ne comptent pas de reps de badge : ce n’est pas du metcon.
               </p>
@@ -507,10 +510,10 @@ export default function WodEditor({
           {/* Bloc Cardio — séries × quantité (m ou cal) × cible watts ou allure */}
           <div>
             <div className="flex items-center justify-between mb-1.5">
-              <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider flex items-center gap-1.5">
-                <HeartPulse size={13} /> Cardio <span className="text-gray-600 normal-case tracking-normal">(optionnel)</span>
+              <label className="block text-xs font-semibold text-ax-text-secondary uppercase tracking-wider flex items-center gap-1.5">
+                <HeartPulse size={13} /> Cardio <span className="text-ax-text-muted normal-case tracking-normal">(optionnel)</span>
               </label>
-              <button type="button" onClick={addCardio} className="text-xs text-white font-semibold flex items-center gap-1 hover:opacity-80">
+              <button type="button" onClick={addCardio} className="text-xs text-ax-text font-semibold flex items-center gap-1 hover:opacity-80">
                 <Plus size={12} /> Ajouter une série cardio
               </button>
             </div>
@@ -519,7 +522,7 @@ export default function WodEditor({
                 const targetMode = e.pace ? 'pace' : 'watts';
                 const paceRef = e.pace?.per ?? (/run|course/i.test(e.name) ? 'km' : '500 m');
                 return (
-                  <div key={i} className="bg-white/5 border border-white/10 rounded-xl p-3 space-y-2">
+                  <div key={i} className="bg-ax-surface-secondary border border-ax-border rounded-ax-control p-3 space-y-2">
                     <div className="flex gap-2 items-center">
                       <select className={`${inp} flex-1 min-w-0`} value={e.name}
                         onChange={ev => {
@@ -528,10 +531,10 @@ export default function WodEditor({
                           updateCardio(i, { name, unit: (cat?.unit as CardioUnit | undefined) ?? e.unit });
                         }}
                         aria-label="Exercice cardio">
-                        <option value="" className="text-black">— Exercice —</option>
-                        {cardioCatalog.map(mv => <option key={mv.name} value={mv.name} className="text-black">{mv.name}</option>)}
+                        <option value="" className="text-ax-text bg-ax-surface">— Exercice —</option>
+                        {cardioCatalog.map(mv => <option key={mv.name} value={mv.name} className="text-ax-text bg-ax-surface">{mv.name}</option>)}
                       </select>
-                      <button type="button" onClick={() => removeCardio(i)} className="p-3 rounded-xl bg-white/5 border border-white/10 text-gray-500 hover:text-red-400 transition-colors">
+                      <button type="button" onClick={() => removeCardio(i)} className="p-3 rounded-ax-control bg-ax-surface-secondary border border-ax-border text-ax-text-muted hover:text-ax-danger transition-colors">
                         <Trash2 size={14} />
                       </button>
                     </div>
@@ -541,7 +544,7 @@ export default function WodEditor({
                         value={e.sets}
                         onChange={ev => updateCardio(i, { sets: parseInt(ev.target.value, 10) || 1 })}
                         placeholder="2" aria-label="Séries cardio" />
-                      <span className="text-gray-500 text-sm">×</span>
+                      <span className="text-ax-text-muted text-sm">×</span>
                       <input type="number" min={1} inputMode="numeric"
                         className={`${inp} !w-24 shrink-0 text-center px-2`}
                         value={e.quantity}
@@ -550,7 +553,7 @@ export default function WodEditor({
                       <select className={`${inp} !w-20 shrink-0 px-2`} value={e.unit}
                         onChange={ev => updateCardio(i, { unit: ev.target.value as CardioUnit })}
                         aria-label="Unité cardio">
-                        {CARDIO_UNITS.map(u => <option key={u.value} value={u.value} className="text-black">{u.label}</option>)}
+                        {CARDIO_UNITS.map(u => <option key={u.value} value={u.value} className="text-ax-text bg-ax-surface">{u.label}</option>)}
                       </select>
                     </div>
                     <div className="flex gap-2 items-center">
@@ -559,8 +562,8 @@ export default function WodEditor({
                           ? updateCardio(i, { watts: null, pace: { mmss: '', per: paceRef } })
                           : updateCardio(i, { pace: null }))}
                         aria-label="Type de cible">
-                        <option value="watts" className="text-black">Watts</option>
-                        <option value="pace" className="text-black">Allure</option>
+                        <option value="watts" className="text-ax-text bg-ax-surface">Watts</option>
+                        <option value="pace" className="text-ax-text bg-ax-surface">Allure</option>
                       </select>
                       {targetMode === 'watts' ? (
                         <div className="relative flex-1 min-w-0">
@@ -569,7 +572,7 @@ export default function WodEditor({
                             value={e.watts ?? ''}
                             onChange={ev => updateCardio(i, { watts: ev.target.value === '' ? null : parseInt(ev.target.value, 10) })}
                             placeholder="Cible (250)" aria-label="Cible en watts" />
-                          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-gray-500 pointer-events-none">W</span>
+                          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-ax-text-muted pointer-events-none">W</span>
                         </div>
                       ) : (
                         <>
@@ -581,8 +584,8 @@ export default function WodEditor({
                           <select className={`${inp} !w-24 shrink-0 px-2`} value={paceRef}
                             onChange={ev => updateCardio(i, { pace: { mmss: e.pace?.mmss ?? '', per: ev.target.value as '500 m' | 'km' } })}
                             aria-label="Référence d’allure">
-                            <option value="500 m" className="text-black">/500 m</option>
-                            <option value="km" className="text-black">/km</option>
+                            <option value="500 m" className="text-ax-text bg-ax-surface">/500 m</option>
+                            <option value="km" className="text-ax-text bg-ax-surface">/km</option>
                           </select>
                         </>
                       )}
@@ -606,17 +609,17 @@ export default function WodEditor({
                         onChange={ev => updateCardio(i, { rpe: ev.target.value || null })}
                         placeholder="RPE (6)" aria-label="RPE" />
                     </div>
-                    <p className="text-[11px] text-gray-600">{serializeCardio(e) || 'Choisis l’exercice pour enregistrer cette série.'}</p>
+                    <p className="text-[11px] text-ax-text-muted">{serializeCardio(e) || 'Choisis l’exercice pour enregistrer cette série.'}</p>
                   </div>
                 );
               })}
               {cardioRows.length === 0 && (
                 <button type="button" onClick={addCardio}
-                  className="w-full py-3 rounded-xl border border-dashed border-white/10 text-xs text-gray-600 hover:border-white/30 hover:text-white/60 transition-colors">
+                  className="w-full py-3 rounded-ax-control border border-dashed border-ax-border text-xs text-ax-text-muted hover:border-ax-input-border hover:text-ax-text-secondary transition-colors">
                   + Ajouter une série cardio
                 </button>
               )}
-              <p className="text-[11px] text-gray-600 pt-1">
+              <p className="text-[11px] text-ax-text-muted pt-1">
                 Les mètres et calories de ces séries comptent dans les badges cardio de l’athlète.
               </p>
             </div>
@@ -624,26 +627,26 @@ export default function WodEditor({
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-semibold text-gray-400 mb-1.5 uppercase tracking-wider">Time Cap (mm:ss)</label>
+              <label className="block text-xs font-semibold text-ax-text-secondary mb-1.5 uppercase tracking-wider">Time Cap (mm:ss)</label>
               <input type="text" inputMode="numeric" className={inp} value={form.timeCap}
                 onChange={e => setForm(f => ({ ...f, timeCap: e.target.value }))} placeholder="12:30" />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-gray-400 mb-1.5 uppercase tracking-wider">Rounds <span className="text-gray-600 normal-case tracking-normal">(optionnel)</span></label>
+              <label className="block text-xs font-semibold text-ax-text-secondary mb-1.5 uppercase tracking-wider">Rounds <span className="text-ax-text-muted normal-case tracking-normal">(optionnel)</span></label>
               <input type="number" className={inp} value={form.rounds}
                 onChange={e => setForm(f => ({ ...f, rounds: e.target.value }))} placeholder="—" min="0" />
             </div>
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-gray-400 mb-1.5 uppercase tracking-wider">Notes Coach</label>
+            <label className="block text-xs font-semibold text-ax-text-secondary mb-1.5 uppercase tracking-wider">Notes Coach</label>
             <textarea rows={2} className={`${inp} resize-none`} value={form.notes}
               onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
               placeholder="Conseils, scaling options…" />
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-gray-400 mb-1.5 uppercase tracking-wider flex items-center gap-1.5"><Video size={13} className="text-red-400" /> Vidéo YouTube <span className="text-gray-600 normal-case tracking-normal">(optionnel)</span></label>
+            <label className="block text-xs font-semibold text-ax-text-secondary mb-1.5 uppercase tracking-wider flex items-center gap-1.5"><Video size={13} className="text-ax-danger" /> Vidéo YouTube <span className="text-ax-text-muted normal-case tracking-normal">(optionnel)</span></label>
             <input className={inp} value={form.videoUrl}
               onChange={e => setForm(f => ({ ...f, videoUrl: e.target.value }))}
               placeholder="https://www.youtube.com/watch?v=..." />
@@ -654,71 +657,71 @@ export default function WodEditor({
               par la box. L'heure programmée n'existe que datée (Whiteboard). */}
           {(isWhiteboard || isProgram) && (
             <div className="space-y-3">
-              <div className="flex items-center justify-between bg-white/5 rounded-xl px-4 py-3">
+              <div className="flex items-center justify-between bg-ax-surface-secondary rounded-ax-control px-4 py-3">
                 <div>
-                  <p className="text-sm font-semibold text-white">Publier</p>
-                  <p className="text-xs text-gray-500">{isProgram ? 'Visible par les acheteurs du programme' : 'Visible par les athlètes de la box'}</p>
+                  <p className="text-sm font-semibold text-ax-text">Publier</p>
+                  <p className="text-xs text-ax-text-muted">{isProgram ? 'Visible par les acheteurs du programme' : 'Visible par les athlètes de la box'}</p>
                 </div>
                 <button
                   type="button"
                   onClick={() => setForm(f => ({ ...f, published: !f.published }))}
-                  className={`relative w-11 h-6 rounded-full transition-colors ${form.published ? 'bg-emerald-500' : 'bg-white/10'}`}
+                  className={`relative w-11 h-6 rounded-full transition-colors ${form.published ? 'bg-ax-success' : 'bg-ax-hover'}`}
                 >
-                  <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${form.published ? 'translate-x-5' : 'translate-x-0.5'}`} />
+                  <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-ax-text shadow transition-transform ${form.published ? 'translate-x-5' : 'translate-x-0.5'}`} />
                 </button>
               </div>
             </div>
           )}
           {isWhiteboard && form.published && (
-            <div className="bg-white/5 rounded-xl px-4 py-3 space-y-3">
+            <div className="bg-ax-surface-secondary rounded-ax-control px-4 py-3 space-y-3">
               <div className="flex gap-2">
                 {(['now', 'scheduled'] as const).map(mode2 => (
                   <button key={mode2} type="button"
                     onClick={() => setForm(f => ({ ...f, publishMode: mode2 }))}
-                    className={`flex-1 py-2 rounded-lg text-xs font-bold transition-colors ${form.publishMode === mode2 ? 'bg-white/20 text-white border border-white/40' : 'bg-white/5 text-gray-400 border border-white/10 hover:text-white'}`}>
+                    className={`flex-1 py-2 rounded-ax-control text-xs font-bold transition-colors ${form.publishMode === mode2 ? 'bg-ax-accent-soft text-ax-text border border-ax-input-border' : 'bg-ax-surface-secondary text-ax-text-secondary border border-ax-border hover:text-ax-text'}`}>
                     {mode2 === 'now' ? 'Maintenant' : 'Programmer'}
                   </button>
                 ))}
               </div>
               {form.publishMode === 'scheduled' && (
                 <div className="flex items-center gap-2">
-                  <span className="text-xs text-gray-500">Heure :</span>
+                  <span className="text-xs text-ax-text-muted">Heure :</span>
                   <input type="number" min={0} max={23} value={form.publishHour}
                     onChange={e => setForm(f => ({ ...f, publishHour: e.target.value }))}
-                    className="w-14 bg-[#0A0A0A] border border-white/10 rounded-lg px-2 py-1.5 text-xs text-white text-center focus:outline-none focus:border-white/50" />
-                  <span className="text-gray-500 font-bold">:</span>
+                    className="w-14 bg-ax-surface border border-ax-border rounded-ax-control px-2 py-1.5 text-xs text-ax-text text-center focus:outline-none focus:border-ax-focus" />
+                  <span className="text-ax-text-muted font-bold">:</span>
                   <input type="number" min={0} max={59} value={form.publishMin}
                     onChange={e => setForm(f => ({ ...f, publishMin: e.target.value }))}
-                    className="w-14 bg-[#0A0A0A] border border-white/10 rounded-lg px-2 py-1.5 text-xs text-white text-center focus:outline-none focus:border-white/50" />
-                  <span className="text-[10px] text-gray-600 ml-1">Le WOD sera visible à cette heure le jour programmé</span>
+                    className="w-14 bg-ax-surface border border-ax-border rounded-ax-control px-2 py-1.5 text-xs text-ax-text text-center focus:outline-none focus:border-ax-focus" />
+                  <span className="text-[10px] text-ax-text-muted ml-1">Le WOD sera visible à cette heure le jour programmé</span>
                 </div>
               )}
             </div>
           )}
 
-          <div className="flex items-center justify-between bg-white/5 rounded-xl px-4 py-3">
+          <div className="flex items-center justify-between bg-ax-surface-secondary rounded-ax-control px-4 py-3">
             <div>
-              <p className="text-sm font-semibold text-white">Classement</p>
-              <p className="text-xs text-gray-500">{form.leaderboard ? 'Les scores sont classés entre membres' : 'Scores enregistrés en historique uniquement'}</p>
+              <p className="text-sm font-semibold text-ax-text">Classement</p>
+              <p className="text-xs text-ax-text-muted">{form.leaderboard ? 'Les scores sont classés entre membres' : 'Scores enregistrés en historique uniquement'}</p>
             </div>
             <button
               type="button"
               onClick={() => setForm(f => ({ ...f, leaderboard: !f.leaderboard }))}
-              className={`relative w-11 h-6 rounded-full transition-colors ${form.leaderboard ? 'bg-white' : 'bg-white/10'}`}
+              className={`relative w-11 h-6 rounded-full transition-colors ${form.leaderboard ? 'bg-ax-text' : 'bg-ax-hover'}`}
             >
-              <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${form.leaderboard ? 'translate-x-5' : 'translate-x-0.5'}`} />
+              <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-ax-text shadow transition-transform ${form.leaderboard ? 'translate-x-5' : 'translate-x-0.5'}`} />
             </button>
           </div>
 
           {isProgram && (
-            <p className="text-[11px] text-gray-500">
+            <p className="text-[11px] text-ax-text-muted">
               Une séance de programme n&apos;a pas de date : chaque acheteur la reçoit la semaine {form.week},
               le {DAY_LABELS[form.dayOfWeek - 1] ?? ''}, comptés depuis son propre démarrage — en plus des WOD du Whiteboard de la box.
             </p>
           )}
 
           {mode === 'programming' && (
-            <p className="text-[11px] text-gray-500">
+            <p className="text-[11px] text-ax-text-muted">
               Une programmation n&apos;a ni date ni accès : la box abonnée choisit la semaine
               calendaire et les groupes au moment où elle applique la semaine sur son Whiteboard.
             </p>
@@ -727,10 +730,10 @@ export default function WodEditor({
           {isWhiteboard && (
             <p
               data-testid="recap-visibilite"
-              className={`text-xs rounded-xl px-3 py-2 border ${
+              className={`text-xs rounded-ax-control px-3 py-2 border ${
                 form.audience === ''
-                  ? 'text-amber-300 bg-amber-500/5 border-amber-500/20'
-                  : 'text-gray-300 bg-white/5 border-white/10'
+                  ? 'text-ax-warning bg-ax-warning-soft border-ax-warning'
+                  : 'text-ax-text-secondary bg-ax-surface-secondary border-ax-border'
               }`}
             >
               {recapLine({
@@ -746,13 +749,13 @@ export default function WodEditor({
 
           <div className="flex gap-3 pt-2">
             <button onClick={onClose}
-              className="flex-1 py-3 rounded-xl border border-white/10 text-sm text-gray-400 hover:text-white transition-colors">
+              className="flex-1 py-3 rounded-ax-control border border-ax-border text-sm text-ax-text-secondary hover:text-ax-text transition-colors">
               Annuler
             </button>
             <button
               onClick={onSubmit}
               disabled={!canSubmit}
-              className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-white hover:bg-white disabled:opacity-50 text-[#0A0A0A] text-sm font-bold transition-colors"
+              className="flex-1 flex items-center justify-center gap-2 py-3 rounded-ax-control bg-ax-text hover:brightness-110 disabled:opacity-50 text-ax-background text-sm font-bold transition-colors"
             >
               {saving && <Loader2 size={15} className="animate-spin" />}
               {submitLabel}
@@ -765,14 +768,14 @@ export default function WodEditor({
 }
 
 const chip = (selected: boolean, color: string) => ({
-  className: `flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all border ${
-    selected ? 'border-transparent scale-105' : 'border-white/10 text-gray-400 hover:text-white hover:border-white/20'
+  className: `flex items-center gap-1.5 px-3 py-1.5 rounded-ax-control text-xs font-bold transition-all border ${
+    selected ? 'border-transparent scale-105' : 'border-ax-border text-ax-text-secondary hover:text-ax-text hover:border-ax-input-border'
   }`,
-  style: selected ? { backgroundColor: `${color}25`, color, borderColor: `${color}50` } : {},
+  style: selected ? { backgroundColor: softVar(color, 0.145), color, borderColor: softVar(color, 0.31) } : {},
 });
 
 function Tip({ text }: { text: string }) {
-  return <Info size={12} className="text-gray-500 shrink-0 cursor-help" aria-label={text} />;
+  return <Info size={12} className="text-ax-text-muted shrink-0 cursor-help" aria-label={text} />;
 }
 
 /**
@@ -827,13 +830,13 @@ function AudienceBlock({
   const dayLabel = form.date ? DAY_LABELS[isoDow(form.date) - 1] : null;
 
   return (
-    <div className="space-y-4 bg-white/[0.03] border border-white/10 rounded-2xl p-4" data-testid="qui-recoit">
-      <p className="text-xs font-semibold text-gray-300 uppercase tracking-wider">Qui reçoit ce WOD ?</p>
+    <div className="space-y-4 bg-ax-surface-secondary border border-ax-border rounded-ax-card p-4" data-testid="qui-recoit">
+      <p className="text-xs font-semibold text-ax-text-secondary uppercase tracking-wider">Qui reçoit ce WOD ?</p>
 
       {/* 1. Dans ma box */}
       <div>
         <div className="flex items-center gap-1.5 mb-2">
-          <label className="text-xs font-semibold text-gray-400">Dans ma box</label>
+          <label className="text-xs font-semibold text-ax-text-secondary">Dans ma box</label>
           <Tip text="Qui voit ce WOD dans le Whiteboard de la box. Sans choix, le WOD ne s'enregistre pas." />
         </div>
         <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Dans ma box">
@@ -844,8 +847,8 @@ function AudienceBlock({
               <button key={a} type="button" role="radio" aria-checked={selected} disabled={disabled}
                 onClick={() => setAudience(a)}
                 title={disabled ? 'Aucun groupe dans cette box' : undefined}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-colors disabled:opacity-40 ${
-                  selected ? 'bg-white text-black border-white' : 'bg-white/5 text-gray-400 border-white/10 hover:text-white'
+                className={`px-3 py-1.5 rounded-ax-control text-xs font-bold border transition-colors disabled:opacity-40 ${
+                  selected ? 'bg-ax-text text-ax-background border-ax-text' : 'bg-ax-surface-secondary text-ax-text-secondary border-ax-border hover:text-ax-text'
                 }`}>
                 {AUDIENCE_LABEL[a]}
               </button>
@@ -868,12 +871,12 @@ function AudienceBlock({
               );
             })}
             {form.groupIds.length === 0 && (
-              <p className="text-[11px] text-amber-300 w-full">Coche au moins un groupe.</p>
+              <p className="text-[11px] text-ax-warning w-full">Coche au moins un groupe.</p>
             )}
           </div>
         )}
         {form.audience === 'none' && (
-          <p className="text-[11px] text-gray-500 mt-1.5">Personne dans la box ne le voit pour l&apos;instant ; tu pourras l&apos;ouvrir plus tard.</p>
+          <p className="text-[11px] text-ax-text-muted mt-1.5">Personne dans la box ne le voit pour l&apos;instant ; tu pourras l&apos;ouvrir plus tard.</p>
         )}
       </div>
 
@@ -881,21 +884,21 @@ function AudienceBlock({
       {programs.length > 0 && (
         <div>
           <button type="button" onClick={() => setProgramsOpen(o => !o)}
-            className="flex items-center gap-1.5 text-xs font-semibold text-gray-400 hover:text-white">
+            className="flex items-center gap-1.5 text-xs font-semibold text-ax-text-secondary hover:text-ax-text">
             {programsOpen ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
             Mes programmes athlètes
-            {form.programIds.length > 0 && <span className="text-gray-500">({form.programIds.length})</span>}
+            {form.programIds.length > 0 && <span className="text-ax-text-muted">({form.programIds.length})</span>}
           </button>
           {programsOpen && (
             <div className="mt-2">
               <div className="flex items-center gap-1.5 mb-2">
-                <p className="text-[11px] text-gray-500">Les membres actifs de ces programmes reçoivent ce WOD en plus, quel que soit le choix ci-dessus.</p>
+                <p className="text-[11px] text-ax-text-muted">Les membres actifs de ces programmes reçoivent ce WOD en plus, quel que soit le choix ci-dessus.</p>
                 <Tip text="S'ajoute à la visibilité dans la box : un WOD « Personne encore » reste visible par les membres du programme coché." />
               </div>
               <div className="flex flex-wrap gap-2">
                 {programs.map(p => {
                   const selected = form.programIds.includes(p.id);
-                  const pColor = p.type === 'fixed' ? '#3B82F6' : '#8B5CF6';
+                  const pColor = programColor(p.type);
                   return (
                     <button key={p.id} type="button" {...chip(selected, pColor)}
                       onClick={() => setForm(f => ({
@@ -917,25 +920,25 @@ function AudienceBlock({
       {offers.length > 0 && (
         <div>
           <button type="button" onClick={() => setOffersOpen(o => !o)}
-            className="flex items-center gap-1.5 text-xs font-semibold text-gray-400 hover:text-white">
+            className="flex items-center gap-1.5 text-xs font-semibold text-ax-text-secondary hover:text-ax-text">
             {offersOpen ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
             Mes offres Marketplace
-            {selectedOffers.length > 0 && <span className="text-gray-500">({selectedOffers.length})</span>}
+            {selectedOffers.length > 0 && <span className="text-ax-text-muted">({selectedOffers.length})</span>}
           </button>
           {offersOpen && (
             <div className="mt-2 space-y-2">
               <div className="flex items-center gap-1.5">
-                <p className="text-[11px] text-gray-500">Copie ce WOD dans la semaine choisie de l&apos;offre ; le jour vient de la date. Tes modifications suivent, les box abonnées gardent ce qu&apos;elles ont déjà reçu.</p>
+                <p className="text-[11px] text-ax-text-muted">Copie ce WOD dans la semaine choisie de l&apos;offre ; le jour vient de la date. Tes modifications suivent, les box abonnées gardent ce qu&apos;elles ont déjà reçu.</p>
                 <Tip text="La copie reste liée à ce WOD : titre, contenu et notes se mettent à jour dans l'offre. Décocher retire la copie." />
               </div>
               {!form.date && (
-                <p className="text-[11px] text-amber-300">Choisis d&apos;abord une date : la copie a besoin du jour de la semaine.</p>
+                <p className="text-[11px] text-ax-warning">Choisis d&apos;abord une date : la copie a besoin du jour de la semaine.</p>
               )}
               <div className="flex flex-wrap gap-2">
                 {offers.map(o => {
                   const selected = form.offerWeeks[o.id] !== undefined;
                   return (
-                    <button key={o.id} type="button" {...chip(selected, '#38BDF8')} disabled={!form.date}
+                    <button key={o.id} type="button" {...chip(selected, 'var(--ax-info)')} disabled={!form.date}
                       onClick={() => toggleOffer(o)}>
                       {o.title}
                     </button>
@@ -943,19 +946,19 @@ function AudienceBlock({
                 })}
               </div>
               {selectedOffers.map(o => (
-                <div key={o.id} className="flex items-center gap-2 text-xs text-gray-300">
+                <div key={o.id} className="flex items-center gap-2 text-xs text-ax-text-secondary">
                   <span className="truncate">{o.title}</span>
                   <select
                     value={form.offerWeeks[o.id]}
                     onChange={e => setOfferWeek(o, parseInt(e.target.value, 10))}
-                    className="bg-[#0A0A0A] border border-white/10 rounded-lg px-2 py-1 text-xs text-white"
+                    className="bg-ax-surface border border-ax-border rounded-ax-control px-2 py-1 text-xs text-ax-text"
                     aria-label={`Semaine dans ${o.title}`}
                   >
                     {Array.from({ length: Math.max(1, o.weeksCount) }, (_, i) => i + 1).map(w => (
-                      <option key={w} value={w} className="text-black">Semaine {w}</option>
+                      <option key={w} value={w} className="text-ax-text bg-ax-surface">Semaine {w}</option>
                     ))}
                   </select>
-                  {dayLabel && <span className="text-gray-500">· {dayLabel}</span>}
+                  {dayLabel && <span className="text-ax-text-muted">· {dayLabel}</span>}
                 </div>
               ))}
             </div>

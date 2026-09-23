@@ -33,6 +33,11 @@ import {
 } from '@/lib/wodFields';
 import { downloadWodCsvTemplate, parseWodImportFile, VALID_WOD_TYPES } from '@/lib/wodImport';
 import { stripWodJson, withWodJson, writeWithWodJsonFallback } from '@/lib/wodJson';
+import { softVar, subColorVar } from '@/lib/colorVars';
+import { cn } from '@/lib/utils';
+import { Button, buttonVariants } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
 
 interface BoxWOD {
   id: string; box_id: string; created_by: string;
@@ -58,7 +63,12 @@ interface BoxWOD {
 }
 
 /** Provenance d'une carte reçue d'une offre Marketplace (autre box). */
-interface ReceivedInfo { title: string; color: string }
+interface ReceivedInfo { title: string; color: string; textColor: string }
+
+const TOOLBAR_BTN = 'gap-1.5 text-xs text-ax-text-secondary hover:text-ax-text hover:border-ax-input-border';
+const TOOLBAR_BTN_ON = 'border-ax-input-border bg-ax-hover text-ax-text';
+const DANGER_OUTLINE = 'border-ax-danger text-ax-danger hover:text-ax-danger hover:bg-ax-danger-soft';
+const ICON_BTN = 'p-1 rounded-ax-control hover:bg-ax-hover transition-colors motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ax-focus focus-visible:ring-offset-2 focus-visible:ring-offset-ax-surface';
 
 function getWeekDates(offset = 0): Date[] {
   const today = new Date();
@@ -273,7 +283,7 @@ export default function WODsPage() {
       // le verrou serveur s'applique, le titre seul manque.
       const map: Record<string, ReceivedInfo> = {};
       srcIds.filter(id => !mine.has(id)).forEach(id => {
-        map[id] = { title: titleBy[id] ?? 'programmation Marketplace', color: subscriptionColorVar(colorBy[id]) };
+        map[id] = { title: titleBy[id] ?? 'programmation Marketplace', color: subscriptionColorVar(colorBy[id]), textColor: subColorVar(colorBy[id], 'text') };
       });
       setReceivedMap(map);
     } else {
@@ -722,11 +732,11 @@ export default function WODsPage() {
   return (
     <div className="space-y-6 relative">
       {dragOver && (
-        <div className="fixed inset-0 z-40 bg-black/70 backdrop-blur-sm flex items-center justify-center pointer-events-none">
-          <div className="border-2 border-dashed border-white/40 rounded-2xl px-10 py-8 text-center bg-[#111111]/80">
-            <Upload size={28} className="text-white mx-auto mb-2" />
-            <p className="text-base font-bold text-white">Lâche ton fichier pour l&apos;importer</p>
-            <p className="text-xs text-gray-400 mt-1">PDF, CSV ou JSON — même parseur que le bouton « Importer ».</p>
+        <div className="fixed inset-0 z-40 bg-ax-overlay backdrop-blur-ax-glass flex items-center justify-center pointer-events-none">
+          <div className="border-2 border-dashed border-ax-input-border rounded-ax-panel px-10 py-8 text-center bg-ax-glass">
+            <Upload size={28} className="text-ax-text mx-auto mb-2" />
+            <p className="text-base font-bold text-ax-text">Lâche ton fichier pour l&apos;importer</p>
+            <p className="text-xs text-ax-text-secondary mt-1">PDF, CSV ou JSON — même parseur que le bouton « Importer ».</p>
           </div>
         </div>
       )}
@@ -734,102 +744,111 @@ export default function WODsPage() {
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-black text-white">Whiteboard</h1>
+            <h1 className="font-display text-2xl font-medium uppercase tracking-wide text-ax-text">Whiteboard</h1>
             <HelpButton />
           </div>
-          <p className="text-sm text-gray-500 mt-0.5">Calendrier des WODs de la semaine</p>
+          <p className="text-sm text-ax-text-muted mt-0.5">Calendrier des WODs de la semaine</p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
-          <button onClick={downloadTemplate}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold border border-white/10 text-gray-400 hover:text-white hover:border-white/20 transition-colors">
+          <Button variant="ax-outline" size="ax-compact" onClick={downloadTemplate} className={TOOLBAR_BTN}>
             <FileText size={13} /> Template CSV
-          </button>
-          <button onClick={exportCSV} disabled={!wods.length}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold border border-white/10 text-gray-400 hover:text-white hover:border-white/20 disabled:opacity-40 transition-colors">
+          </Button>
+          <Button variant="ax-outline" size="ax-compact" onClick={exportCSV} disabled={!wods.length} className={TOOLBAR_BTN}>
             <Download size={13} /> Exporter
-          </button>
-          <label className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold border border-white/10 text-gray-400 hover:text-white hover:border-white/20 transition-colors cursor-pointer ${importing ? 'opacity-60 pointer-events-none' : ''}`}>
+          </Button>
+          <label className={cn(buttonVariants({ variant: 'ax-outline', size: 'ax-compact' }), TOOLBAR_BTN, 'cursor-pointer', importing && 'opacity-60 pointer-events-none')}>
             {importing ? <Loader2 size={13} className="animate-spin" /> : <Upload size={13} />}
             {importing ? 'Import…' : 'Importer'}
             <input ref={fileInputRef} type="file" accept=".csv,.json,.pdf" className="hidden" onChange={handleImport} />
           </label>
-          <button
+          <Button
+            variant="ax-outline"
+            size="ax-compact"
             onClick={() => { setSelectMode(m => !m); setSelectedIds([]); }}
             title="Sélectionner plusieurs WOD pour les assigner à un groupe ou un programme"
-            className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold border transition-colors ${
-              selectMode ? 'border-white/40 text-white bg-white/10' : 'border-white/10 text-gray-400 hover:text-white hover:border-white/20'
-            }`}
+            className={cn(TOOLBAR_BTN, selectMode && TOOLBAR_BTN_ON)}
           >
             <CheckSquare size={13} /> {selectMode ? 'Quitter la sélection' : 'Sélectionner'}
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="ax-outline"
+            size="ax-compact"
             onClick={() => setLayout(l => l === 'rows' ? 'columns' : 'rows')}
             title={layout === 'rows' ? 'Vue colonnes' : 'Vue lignes'}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold border border-white/10 text-gray-400 hover:text-white hover:border-white/20 transition-colors"
+            className={TOOLBAR_BTN}
           >
             {layout === 'rows' ? <LayoutGrid size={13} /> : <List size={13} />}
             {layout === 'rows' ? 'Colonnes' : 'Lignes'}
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="ax-outline"
+            size="ax-compact"
             onClick={deleteAllWodsThisWeek}
             disabled={!wods.length}
             title="Supprimer tous les WODs de la semaine affichée"
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold border border-red-500/20 text-red-400 hover:text-red-300 hover:border-red-500/40 hover:bg-red-500/5 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            className={cn(TOOLBAR_BTN, DANGER_OUTLINE)}
           >
             <Trash2 size={13} /> Tout supprimer
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="ax-outline"
+            size="ax-compact"
             onClick={() => setApplyModal({})}
             title="Poser une semaine type ou une programmation Marketplace"
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold border border-white/10 text-gray-400 hover:text-white hover:border-white/20 transition-colors"
+            className={TOOLBAR_BTN}
           >
             <CalendarPlus size={13} /> Programmation
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="ax-outline"
+            size="ax-compact"
             onClick={() => setTemplateModal(true)}
             disabled={!wods.length}
             title="Recopier la semaine affichée dans une semaine type réutilisable"
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold border border-white/10 text-gray-400 hover:text-white hover:border-white/20 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            className={TOOLBAR_BTN}
           >
             <BookmarkPlus size={13} /> Enregistrer comme semaine type
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="ax-outline"
+            size="ax-compact"
             onClick={() => boxId && setCopySource({ kind: 'whiteboard', boxId, monday: toISO(weekDates[0]) })}
             disabled={!wods.length || offers.length === 0}
             title={offers.length === 0 ? 'Crée d’abord une offre dans Marketplace → Mes offres' : 'Copier la semaine affichée dans une semaine d’une de tes offres Marketplace'}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold border border-white/10 text-gray-400 hover:text-white hover:border-white/20 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            className={TOOLBAR_BTN}
           >
             <Copy size={13} /> Copier vers une offre
-          </button>
-          <button
-            onClick={() => openCreate(todayISO)}
-            className="flex items-center gap-2 px-4 py-2.5 bg-white hover:bg-white/90 text-[#0A0A0A] text-sm font-bold rounded-xl transition-colors"
-          >
+          </Button>
+          <Button variant="ax-white" size="ax-compact" onClick={() => openCreate(todayISO)} className="h-auto px-4 py-2 text-sm">
             <Plus size={15} /> Nouveau WOD
-          </button>
+          </Button>
         </div>
       </div>
 
       {/* Sélection multiple : le geste d'assignation et son compte-rendu */}
       {selectMode && (
-        <div className="flex flex-wrap items-center gap-2 bg-[#111111] border border-white/15 rounded-xl px-4 py-3">
-          <p className="text-sm font-bold text-white">
+        <Card className="flex flex-wrap items-center gap-2 px-4 py-3">
+          <p className="text-sm font-bold text-ax-text">
             {selectedIds.length} WOD{selectedIds.length > 1 ? 's' : ''} sélectionné{selectedIds.length > 1 ? 's' : ''}
           </p>
-          <button
+          <Button
+            variant="ax-outline"
+            size="ax-compact"
             onClick={() => setSelectedIds(selectedIds.length === wods.length ? [] : wods.map(w => w.id))}
-            className="px-3 py-1.5 rounded-xl text-xs font-bold border border-white/10 text-gray-300 hover:text-white hover:border-white/20 transition-colors"
+            className={TOOLBAR_BTN}
           >
             {selectedIds.length === wods.length && wods.length > 0 ? 'Tout désélectionner' : 'Toute la semaine'}
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="ax-white"
+            size="ax-compact"
             onClick={() => setAssignModal(true)}
             disabled={selectedIds.length === 0}
-            className="px-4 py-1.5 rounded-xl text-xs font-bold bg-white text-black disabled:opacity-40 transition-colors"
+            className="px-4 text-xs"
           >
             Assigner à…
-          </button>
-        </div>
+          </Button>
+        </Card>
       )}
 
       {assignModal && (
@@ -928,36 +947,34 @@ export default function WODsPage() {
 
       {/* Confirm dialog (custom — replaces native confirm() which can be blocked by browser) */}
       {confirmDialog && (
-        <div className="fixed inset-0 z-[60] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-[#0a0a0a] border border-white/10 rounded-2xl w-full max-w-md p-6">
+        <div className="fixed inset-0 z-[60] bg-ax-overlay backdrop-blur-ax-glass flex items-center justify-center p-4">
+          <Card className="rounded-ax-panel shadow-ax-panel w-full max-w-md p-6">
             <div className="flex items-start gap-3 mb-4">
-              <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${confirmDialog.danger ? 'bg-red-500/15' : 'bg-white/15'}`}>
-                <Trash2 size={18} className={confirmDialog.danger ? 'text-red-400' : 'text-white'} />
+              <div className={`w-10 h-10 rounded-ax-card flex items-center justify-center shrink-0 ${confirmDialog.danger ? 'bg-ax-danger-soft' : 'bg-ax-accent-soft'}`}>
+                <Trash2 size={18} className={confirmDialog.danger ? 'text-ax-danger' : 'text-ax-accent-text'} />
               </div>
               <div className="flex-1">
-                <h3 className="text-base font-bold text-white mb-1">{confirmDialog.title}</h3>
-                <p className="text-sm text-gray-400 leading-relaxed">{confirmDialog.message}</p>
+                <h3 className="font-display text-lg font-medium uppercase tracking-wide text-ax-text mb-1">{confirmDialog.title}</h3>
+                <p className="text-sm text-ax-text-secondary leading-relaxed">{confirmDialog.message}</p>
               </div>
             </div>
             <div className="flex gap-2 justify-end">
-              <button
-                onClick={() => setConfirmDialog(null)}
-                className="px-4 py-2 rounded-xl text-sm font-bold border border-white/10 text-gray-300 hover:bg-white/5 transition-colors"
-              >
+              <Button variant="ax-outline" onClick={() => setConfirmDialog(null)}>
                 Annuler
-              </button>
-              <button
+              </Button>
+              <Button
+                variant={confirmDialog.danger ? 'ax-outline' : 'ax-white'}
                 onClick={async () => {
                   const cb = confirmDialog.onConfirm;
                   setConfirmDialog(null);
                   await cb();
                 }}
-                className={`px-4 py-2 rounded-xl text-sm font-bold transition-colors ${confirmDialog.danger ? 'bg-red-500 hover:bg-red-600 text-white' : 'bg-white hover:bg-white/90 text-black'}`}
+                className={confirmDialog.danger ? 'border-ax-danger bg-ax-danger text-ax-background hover:brightness-110 hover:bg-ax-danger' : undefined}
               >
                 {confirmDialog.confirmLabel ?? 'Confirmer'}
-              </button>
+              </Button>
             </div>
-          </div>
+          </Card>
         </div>
       )}
 
@@ -974,9 +991,9 @@ export default function WODsPage() {
 
       {/* Import result */}
       {importResult && (
-        <div className={`border rounded-xl px-4 py-3 text-sm ${importResult.errors.length > 0 ? 'bg-amber-500/10 border-amber-500/20' : 'bg-emerald-500/10 border-emerald-500/20'}`}>
+        <Card className={`px-4 py-3 text-sm ${importResult.errors.length > 0 ? 'bg-ax-warning-soft border-ax-warning' : 'bg-ax-success-soft border-ax-success'}`}>
           <div className="flex items-center justify-between">
-            <p className={`font-bold ${importResult.errors.length > 0 ? 'text-amber-400' : 'text-emerald-400'}`}>
+            <p className={`font-bold ${importResult.errors.length > 0 ? 'text-ax-warning' : 'text-ax-success'}`}>
               {/* Zéro WOD posé n'est pas un enregistrement : un refus annoncé
                   par « ✅ Enregistré » se lit comme un import réussi. */}
               {importResult.ok > 0
@@ -984,59 +1001,58 @@ export default function WODsPage() {
                 : importResult.errors.length > 0 ? '⚠️ Rien n\u2019a été posé' : '✅ Fait'}
               {importResult.errors.length > 0 && ` — ⚠️ ${importResult.errors.length} erreur(s)`}
             </p>
-            <button onClick={() => setImportResult(null)} className="text-gray-500 hover:text-white"><X size={13} /></button>
+            <button onClick={() => setImportResult(null)} className={cn(ICON_BTN, 'text-ax-text-muted hover:text-ax-text')}><X size={13} /></button>
           </div>
           {importResult.errors.map((e, i) => (
-            <p key={i} className="text-xs text-amber-400/80 mt-1">{e}</p>
+            <p key={i} className="text-xs text-ax-warning mt-1">{e}</p>
           ))}
           {(importResult.notes ?? []).map((n, i) => (
-            <p key={`n${i}`} className="text-xs text-emerald-400/80 mt-1">{n}</p>
+            <p key={`n${i}`} className="text-xs text-ax-success mt-1">{n}</p>
           ))}
-        </div>
+        </Card>
       )}
 
       {/* Week nav */}
       <div className="relative">
-        <div className="flex items-center justify-between bg-[#111111] border border-white/8 rounded-2xl px-5 py-3">
-          <button onClick={() => setWeek(w => w - 1)} className="p-2 rounded-xl hover:bg-white/5 text-gray-400 hover:text-white transition-colors">
+        <Card className="flex items-center justify-between px-5 py-3">
+          <button onClick={() => setWeek(w => w - 1)} className={cn(ICON_BTN, 'p-2 text-ax-text-secondary hover:text-ax-text')}>
             <ChevronLeft size={18} />
           </button>
-          <button onClick={() => setShowDateNav(v => !v)} className="text-center hover:opacity-80 transition-opacity group">
+          <button onClick={() => setShowDateNav(v => !v)} className={cn(ICON_BTN, 'text-center hover:opacity-80 hover:bg-transparent transition-opacity group')}>
             <div className="flex items-center gap-2 justify-center">
-              <Calendar size={14} className="text-gray-500 group-hover:text-white transition-colors" />
-              <p className="text-sm font-bold text-white">
+              <Calendar size={14} className="text-ax-text-muted group-hover:text-ax-text transition-colors" />
+              <p className="text-sm font-bold text-ax-text">
                 {weekDates[0].toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })}
                 {' — '}
                 {weekDates[6].toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}
               </p>
             </div>
-            {weekOffset === 0 && <p className="text-xs text-white font-semibold mt-0.5">Semaine actuelle</p>}
+            {weekOffset === 0 && <p className="text-xs text-ax-text font-semibold mt-0.5">Semaine actuelle</p>}
           </button>
-          <button onClick={() => setWeek(w => w + 1)} className="p-2 rounded-xl hover:bg-white/5 text-gray-400 hover:text-white transition-colors">
+          <button onClick={() => setWeek(w => w + 1)} className={cn(ICON_BTN, 'p-2 text-ax-text-secondary hover:text-ax-text')}>
             <ChevronRight size={18} />
           </button>
-        </div>
+        </Card>
         {showDateNav && (
-          <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 bg-[#1a1a1a] border border-white/10 rounded-2xl p-4 shadow-2xl z-30 min-w-[280px]">
-            <p className="text-xs font-semibold text-gray-400 mb-2 uppercase tracking-wider">Aller à une date</p>
-            <input
+          <Card className="absolute top-full left-1/2 -translate-x-1/2 mt-2 rounded-ax-panel p-4 shadow-ax-panel z-30 min-w-[280px]">
+            <p className="text-xs font-semibold text-ax-text-secondary mb-2 uppercase tracking-wider">Aller à une date</p>
+            <Input
               type="date"
-              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-white transition-colors"
               onChange={(e) => { if (e.target.value) jumpToDate(e.target.value); }}
             />
             <div className="flex gap-2 mt-3">
-              <button onClick={() => { setWeek(0); setShowDateNav(false); }} className="flex-1 py-2 text-xs font-semibold text-white rounded-xl hover:bg-white/10 transition-colors">
+              <Button variant="ax-outline" size="ax-compact" onClick={() => { setWeek(0); setShowDateNav(false); }} className="flex-1 text-xs">
                 Aujourd&#39;hui
-              </button>
-              <button onClick={() => setShowDateNav(false)} className="flex-1 py-2 text-xs font-semibold text-gray-400 rounded-xl hover:bg-white/5 transition-colors">
+              </Button>
+              <Button variant="ax-outline" size="ax-compact" onClick={() => setShowDateNav(false)} className="flex-1 text-xs text-ax-text-secondary hover:text-ax-text">
                 Fermer
-              </button>
+              </Button>
             </div>
-          </div>
+          </Card>
         )}
         {weekOffset !== 0 && !showDateNav && (
           <div className="text-center mt-1">
-            <button onClick={() => setWeek(0)} className="text-xs text-gray-500 hover:text-white font-semibold transition-colors">
+            <button onClick={() => setWeek(0)} className={cn(ICON_BTN, 'px-2 text-xs text-ax-text-muted hover:text-ax-text font-semibold')}>
               ← Revenir à la semaine actuelle
             </button>
           </div>
@@ -1047,7 +1063,7 @@ export default function WODsPage() {
       <TrackTabs tabs={tabs} active={activeTab} counts={tabCounts} onSelect={setTab} />
 
       {loading ? (
-        <div className="flex justify-center py-20"><Loader2 className="animate-spin text-white" size={28} /></div>
+        <div className="flex justify-center py-20"><Loader2 className="animate-spin text-ax-text" size={28} /></div>
       ) : layout === 'columns' ? (
         <div className="grid grid-cols-7 gap-2 min-h-[400px]">
           {weekDates.map((d, i) => {
@@ -1055,17 +1071,17 @@ export default function WODsPage() {
             const isToday = iso === todayISO;
             const dayWODs = shownWods.filter(w => w.scheduled_date === iso);
             return (
-              <div key={iso} className={`bg-[#111111] border rounded-2xl overflow-hidden flex flex-col ${isToday ? 'border-white/50' : 'border-white/8'}`}>
-                <div className={`text-center px-2 py-3 ${isToday ? 'bg-white/20' : ''}`}>
-                  <p className={`text-xs font-black ${isToday ? 'text-white' : 'text-gray-400'}`}>{DAY_LABELS[i]}</p>
-                  <p className={`text-sm font-bold mt-0.5 ${isToday ? 'text-white' : 'text-gray-300'}`}>
+              <div key={iso} className={`bg-ax-surface border rounded-ax-card overflow-hidden flex flex-col ${isToday ? 'border-ax-accent-text' : 'border-ax-border'}`}>
+                <div className={`text-center px-2 py-3 ${isToday ? 'bg-ax-accent-soft' : ''}`}>
+                  <p className={`text-xs font-black ${isToday ? 'text-ax-text' : 'text-ax-text-secondary'}`}>{DAY_LABELS[i]}</p>
+                  <p className={`text-sm font-bold mt-0.5 ${isToday ? 'text-ax-text' : 'text-ax-text-secondary'}`}>
                     {d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}
                   </p>
-                  {isToday && <span className="text-[9px] font-black text-white mt-0.5 block">Aujourd&#39;hui</span>}
+                  {isToday && <span className="text-[9px] font-black text-ax-accent-text mt-0.5 block">Aujourd&#39;hui</span>}
                 </div>
-                <div className="flex-1 border-t border-white/5 p-2 space-y-2 min-h-[120px]">
+                <div className="flex-1 border-t border-ax-border p-2 space-y-2 min-h-[120px]">
                   {dayWODs.length === 0 ? (
-                    <button onClick={() => openCreate(iso)} className="w-full h-full min-h-[100px] flex flex-col items-center justify-center text-xs text-gray-600 hover:text-gray-400 transition-colors rounded-xl hover:bg-white/5">
+                    <button onClick={() => openCreate(iso)} className={cn(ICON_BTN, 'w-full h-full min-h-[100px] flex flex-col items-center justify-center text-xs text-ax-text-muted hover:text-ax-text-secondary')}>
                       <Dumbbell size={16} className="mb-1.5 opacity-40" />
                       Ajouter
                     </button>
@@ -1073,13 +1089,13 @@ export default function WODsPage() {
                     <>
                       {dayWODs.map((wod, wi) => {
                         const wt = wod.wod_type ?? '';
-                        const color = TYPE_COLOR[wt] ?? '#6B7280';
+                        const color = TYPE_COLOR[wt] ?? 'var(--ax-neutral)';
                         const received = wod.source_programming_id ? receivedMap[wod.source_programming_id] : undefined;
                         return (
                           <div
                             key={wod.id}
                             data-received={received ? 'true' : undefined}
-                            className={`rounded-xl p-2.5 border bg-white/[0.02] hover:bg-white/[0.04] transition-colors ${received ? 'border-2' : 'border-white/5'} ${!wod.is_published ? 'opacity-50' : ''}`}
+                            className={`rounded-ax-card p-2.5 border bg-ax-surface-secondary hover:border-ax-input-border transition-colors motion-reduce:transition-none ${received ? 'border-2' : 'border-ax-border'} ${!wod.is_published ? 'opacity-50' : ''}`}
                             style={{
                               ...(received ? { borderColor: received.color } : {}),
                               // Liseré de piste : lisible en vue « Tout », où
@@ -1088,30 +1104,30 @@ export default function WODsPage() {
                             }}
                           >
                             {received && (
-                              <p className="text-[9px] font-bold truncate mb-1 flex items-center gap-1" style={{ color: received.color }} title={`Reçu de la programmation « ${received.title} »`}>
+                              <p className="text-[9px] font-bold truncate mb-1 flex items-center gap-1" style={{ color: received.textColor }} title={`Reçu de la programmation « ${received.title} »`}>
                                 <Lock size={8} /> Prog : {received.title}
                               </p>
                             )}
                             <div className="flex items-center gap-1.5 mb-1 flex-wrap">
                               <TrackBadge wod={wod} />
                               <AutoBadge wod={wod} />
-                              {wod.block_name && <span className="text-[8px] font-black tracking-wider px-1 py-0.5 rounded" style={{ backgroundColor: `${BLOCK_COLOR[wod.block_name]}20`, color: BLOCK_COLOR[wod.block_name] }}>{BLOCK_LABEL[wod.block_name]}</span>}
+                              {wod.block_name && <span className="text-[8px] font-black tracking-wider px-1 py-0.5 rounded-ax-badge" style={{ backgroundColor: softVar(BLOCK_COLOR[wod.block_name], 0.125), color: BLOCK_COLOR[wod.block_name] }}>{BLOCK_LABEL[wod.block_name]}</span>}
                               {wt && <><div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: color }} /><span className="text-[9px] font-black tracking-wider truncate" style={{ color }}>{wt.toUpperCase()}</span></>}
-                              {wod.video_url && <Video size={9} className="text-red-400 shrink-0" />}
-                              {!wod.is_published && <EyeOff size={9} className="text-amber-500 shrink-0" />}
-                              {wod.publish_at && new Date(wod.publish_at) > new Date() && <span className="text-[8px] font-bold text-blue-400">⏰ {new Date(wod.publish_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</span>}
+                              {wod.video_url && <Video size={9} className="text-ax-danger shrink-0" />}
+                              {!wod.is_published && <EyeOff size={9} className="text-ax-warning shrink-0" />}
+                              {wod.publish_at && new Date(wod.publish_at) > new Date() && <span className="text-[8px] font-bold text-ax-info">⏰ {new Date(wod.publish_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</span>}
                             </div>
                             <div className="flex items-start gap-1.5">
                               {selectMode && (
                                 <button onClick={() => toggleSelected(wod.id)} className="mt-0.5 shrink-0" title="Sélectionner ce WOD">
                                   {selectedIds.includes(wod.id)
-                                    ? <CheckSquare size={13} className="text-white" />
-                                    : <Square size={13} className="text-gray-600" />}
+                                    ? <CheckSquare size={13} className="text-ax-text" />
+                                    : <Square size={13} className="text-ax-text-muted" />}
                                 </button>
                               )}
-                              <p className="text-xs font-bold text-white truncate">{wod.title}</p>
+                              <p className="text-xs font-bold text-ax-text truncate">{wod.title}</p>
                             </div>
-                            {wod.description && <p className="text-[10px] text-gray-500 truncate mt-0.5">{wod.description}</p>}
+                            {wod.description && <p className="text-[10px] text-ax-text-muted truncate mt-0.5">{wod.description}</p>}
                             <div className="mt-1">
                               <RestrictionBadges
                                 compact
@@ -1122,42 +1138,42 @@ export default function WODsPage() {
                                 programs={refPrograms}
                               />
                             </div>
-                            <div className="flex items-center gap-0.5 mt-2 pt-1.5 border-t border-white/5">
-                              <button onClick={() => moveWodToDay(wod, 'prev')} className="p-1 rounded-lg hover:bg-white/10 transition-colors" title="Jour précédent">
-                                <ArrowLeft size={11} className="text-gray-400" />
+                            <div className="flex items-center gap-0.5 mt-2 pt-1.5 border-t border-ax-border">
+                              <button onClick={() => moveWodToDay(wod, 'prev')} className={ICON_BTN} title="Jour précédent">
+                                <ArrowLeft size={11} className="text-ax-text-secondary" />
                               </button>
-                              <button onClick={() => moveWodToDay(wod, 'next')} className="p-1 rounded-lg hover:bg-white/10 transition-colors" title="Jour suivant">
-                                <ArrowRight size={11} className="text-gray-400" />
+                              <button onClick={() => moveWodToDay(wod, 'next')} className={ICON_BTN} title="Jour suivant">
+                                <ArrowRight size={11} className="text-ax-text-secondary" />
                               </button>
                               {dayWODs.length > 1 && (
                                 <>
-                                  <button onClick={() => moveWod(iso, wi, 'up')} disabled={wi === 0} className="p-1 rounded-lg hover:bg-white/10 transition-colors disabled:opacity-25" title="Monter">
-                                    <ChevronUp size={11} className="text-gray-400" />
+                                  <button onClick={() => moveWod(iso, wi, 'up')} disabled={wi === 0} className={cn(ICON_BTN, 'disabled:opacity-25')} title="Monter">
+                                    <ChevronUp size={11} className="text-ax-text-secondary" />
                                   </button>
-                                  <button onClick={() => moveWod(iso, wi, 'down')} disabled={wi === dayWODs.length - 1} className="p-1 rounded-lg hover:bg-white/10 transition-colors disabled:opacity-25" title="Descendre">
-                                    <ChevronDown size={11} className="text-gray-400" />
+                                  <button onClick={() => moveWod(iso, wi, 'down')} disabled={wi === dayWODs.length - 1} className={cn(ICON_BTN, 'disabled:opacity-25')} title="Descendre">
+                                    <ChevronDown size={11} className="text-ax-text-secondary" />
                                   </button>
                                 </>
                               )}
-                              <button onClick={() => togglePublish(wod)} className="p-1 rounded-lg hover:bg-white/10 transition-colors" title={wod.is_published ? 'Dépublier' : 'Publier'}>
-                                {wod.is_published ? <Eye size={11} className="text-emerald-400" /> : <EyeOff size={11} className="text-gray-500" />}
+                              <button onClick={() => togglePublish(wod)} className={ICON_BTN} title={wod.is_published ? 'Dépublier' : 'Publier'}>
+                                {wod.is_published ? <Eye size={11} className="text-ax-success" /> : <EyeOff size={11} className="text-ax-text-muted" />}
                               </button>
                               <button
                                 onClick={() => openEdit(wod)}
                                 disabled={!!received}
                                 title={received ? 'Programmation Marketplace, non modifiable' : 'Modifier'}
-                                className="p-1 rounded-lg hover:bg-white/10 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                                className={cn(ICON_BTN, 'disabled:opacity-30 disabled:cursor-not-allowed')}
                               >
-                                <Pencil size={11} className="text-white" />
+                                <Pencil size={11} className="text-ax-text" />
                               </button>
-                              <button onClick={() => deleteWOD(wod)} className="p-1 rounded-lg hover:bg-red-500/10 transition-colors">
-                                <Trash2 size={11} className="text-red-400" />
+                              <button onClick={() => deleteWOD(wod)} className={cn(ICON_BTN, 'hover:bg-ax-danger-soft')}>
+                                <Trash2 size={11} className="text-ax-danger" />
                               </button>
                             </div>
                           </div>
                         );
                       })}
-                      <button onClick={() => openCreate(iso)} className="w-full py-1.5 text-center text-[10px] text-white font-semibold rounded-lg hover:bg-white/5 transition-colors">
+                      <button onClick={() => openCreate(iso)} className={cn(ICON_BTN, 'w-full py-1.5 text-center text-[10px] text-ax-text font-semibold')}>
                         <Plus size={10} className="inline mr-0.5 -mt-px" /> Ajouter
                       </button>
                     </>
@@ -1174,26 +1190,26 @@ export default function WODsPage() {
             const isToday = iso === todayISO;
             const dayWODs = shownWods.filter(w => w.scheduled_date === iso);
             return (
-              <div key={iso} className={`bg-[#111111] border rounded-2xl overflow-hidden ${isToday ? 'border-white/50' : 'border-white/8'}`}>
+              <div key={iso} className={`bg-ax-surface border rounded-ax-card overflow-hidden ${isToday ? 'border-ax-accent-text' : 'border-ax-border'}`}>
                 {/* Day header */}
-                <div className={`flex items-center justify-between px-5 py-3 ${isToday ? 'bg-white/20' : ''}`}>
+                <div className={`flex items-center justify-between px-5 py-3 ${isToday ? 'bg-ax-accent-soft' : ''}`}>
                   <div className="flex items-center gap-3">
-                    <span className={`text-sm font-black ${isToday ? 'text-white' : 'text-gray-400'}`}>
+                    <span className={`text-sm font-black ${isToday ? 'text-ax-text' : 'text-ax-text-secondary'}`}>
                       {DAY_LABELS[i]}
                     </span>
-                    <span className={`text-sm font-bold ${isToday ? 'text-white' : 'text-gray-300'}`}>
+                    <span className={`text-sm font-bold ${isToday ? 'text-ax-text' : 'text-ax-text-secondary'}`}>
                       {d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}
                     </span>
                     {isToday && (
-                      <span className="text-[10px] font-black text-white bg-white/20 px-2 py-0.5 rounded-full uppercase tracking-wider">
+                      <span className="text-[10px] font-black text-ax-accent-text bg-ax-accent-soft border border-current px-2 py-0.5 rounded-ax-badge uppercase tracking-wider">
                         Aujourd'hui
                       </span>
                     )}
-                    <span className="text-xs text-gray-600">{dayWODs.length > 0 ? `${dayWODs.length} WOD${dayWODs.length > 1 ? 's' : ''}` : ''}</span>
+                    <span className="text-xs text-ax-text-muted">{dayWODs.length > 0 ? `${dayWODs.length} WOD${dayWODs.length > 1 ? 's' : ''}` : ''}</span>
                   </div>
                   <button
                     onClick={() => openCreate(iso)}
-                    className="flex items-center gap-1.5 text-xs text-white hover:text-white font-semibold transition-colors"
+                    className={cn(ICON_BTN, 'flex items-center gap-1.5 px-2 text-xs text-ax-text font-semibold')}
                   >
                     <Plus size={14} /> Ajouter
                   </button>
@@ -1203,37 +1219,37 @@ export default function WODsPage() {
                 {dayWODs.length === 0 ? (
                   <button
                     onClick={() => openCreate(iso)}
-                    className="w-full flex items-center justify-center gap-2 py-5 text-sm text-gray-600 hover:text-gray-400 border-t border-white/5 transition-colors"
+                    className={cn(ICON_BTN, 'w-full flex items-center justify-center gap-2 py-5 text-sm text-ax-text-muted hover:text-ax-text-secondary border-t border-ax-border rounded-none')}
                   >
                     <Dumbbell size={14} /> Aucun WOD — cliquez pour en ajouter
                   </button>
                 ) : (
-                  <div className="border-t border-white/5 divide-y divide-white/5">
+                  <div className="border-t border-ax-border divide-y divide-ax-border">
                     {dayWODs.map((wod, wi) => {
                       const wt = wod.wod_type ?? '';
-                      const color = TYPE_COLOR[wt] ?? '#6B7280';
+                      const color = TYPE_COLOR[wt] ?? 'var(--ax-neutral)';
                       const received = wod.source_programming_id ? receivedMap[wod.source_programming_id] : undefined;
                       return (
                         <div
                           key={wod.id}
                           data-received={received ? 'true' : undefined}
-                          className={`flex items-center gap-4 px-5 py-3.5 ${received ? 'border-2 rounded-xl my-1 mx-1' : ''} ${!wod.is_published ? 'opacity-60' : ''}`}
+                          className={`flex items-center gap-4 px-5 py-3.5 ${received ? 'border-2 rounded-ax-card my-1 mx-1' : ''} ${!wod.is_published ? 'opacity-60' : ''}`}
                           style={received ? { borderColor: received.color } : undefined}
                         >
                           <div className="flex flex-col gap-0.5 shrink-0">
-                            <button onClick={() => moveWod(iso, wi, 'up')} disabled={wi === 0 || dayWODs.length < 2} className="p-1 rounded-lg hover:bg-white/10 transition-colors disabled:opacity-25" title="Monter">
-                              <ChevronUp size={14} className="text-gray-400" />
+                            <button onClick={() => moveWod(iso, wi, 'up')} disabled={wi === 0 || dayWODs.length < 2} className={cn(ICON_BTN, 'disabled:opacity-25')} title="Monter">
+                              <ChevronUp size={14} className="text-ax-text-secondary" />
                             </button>
-                            <button onClick={() => moveWod(iso, wi, 'down')} disabled={wi === dayWODs.length - 1 || dayWODs.length < 2} className="p-1 rounded-lg hover:bg-white/10 transition-colors disabled:opacity-25" title="Descendre">
-                              <ChevronDown size={14} className="text-gray-400" />
+                            <button onClick={() => moveWod(iso, wi, 'down')} disabled={wi === dayWODs.length - 1 || dayWODs.length < 2} className={cn(ICON_BTN, 'disabled:opacity-25')} title="Descendre">
+                              <ChevronDown size={14} className="text-ax-text-secondary" />
                             </button>
                           </div>
                           <div className="flex gap-1 shrink-0">
-                            <button onClick={() => moveWodToDay(wod, 'prev')} className="p-1 rounded-lg hover:bg-white/10 transition-colors" title="Jour précédent">
-                              <ArrowLeft size={14} className="text-gray-400" />
+                            <button onClick={() => moveWodToDay(wod, 'prev')} className={ICON_BTN} title="Jour précédent">
+                              <ArrowLeft size={14} className="text-ax-text-secondary" />
                             </button>
-                            <button onClick={() => moveWodToDay(wod, 'next')} className="p-1 rounded-lg hover:bg-white/10 transition-colors" title="Jour suivant">
-                              <ArrowRight size={14} className="text-gray-400" />
+                            <button onClick={() => moveWodToDay(wod, 'next')} className={ICON_BTN} title="Jour suivant">
+                              <ArrowRight size={14} className="text-ax-text-secondary" />
                             </button>
                           </div>
                           {/* Le liseré de cette vue portait la couleur du bloc ;
@@ -1242,8 +1258,8 @@ export default function WODsPage() {
                           {selectMode && (
                             <button onClick={() => toggleSelected(wod.id)} className="shrink-0 mr-1" title="Sélectionner ce WOD">
                               {selectedIds.includes(wod.id)
-                                ? <CheckSquare size={16} className="text-white" />
-                                : <Square size={16} className="text-gray-600" />}
+                                ? <CheckSquare size={16} className="text-ax-text" />
+                                : <Square size={16} className="text-ax-text-muted" />}
                             </button>
                           )}
                           <div className="flex-1 min-w-0">
@@ -1251,7 +1267,7 @@ export default function WODsPage() {
                               <TrackBadge wod={wod} />
                               <AutoBadge wod={wod} />
                               {wod.block_name && (
-                                <span className="text-[10px] font-black tracking-wider px-1.5 py-0.5 rounded" style={{ backgroundColor: `${BLOCK_COLOR[wod.block_name]}20`, color: BLOCK_COLOR[wod.block_name] }}>
+                                <span className="text-[10px] font-black tracking-wider px-1.5 py-0.5 rounded-ax-badge" style={{ backgroundColor: softVar(BLOCK_COLOR[wod.block_name], 0.125), color: BLOCK_COLOR[wod.block_name] }}>
                                   {BLOCK_LABEL[wod.block_name]}
                                 </span>
                               )}
@@ -1261,17 +1277,17 @@ export default function WODsPage() {
                                 </span>
                               )}
                               {wod.video_url && (
-                                <span className="text-[9px] font-black text-red-400 bg-red-500/10 px-1.5 py-0.5 rounded uppercase tracking-wider flex items-center gap-0.5">
+                                <span className="text-[9px] font-black text-ax-danger bg-ax-danger-soft border border-current px-1.5 py-0.5 rounded-ax-badge uppercase tracking-wider flex items-center gap-0.5">
                                   <Video size={9} /> Vidéo
                                 </span>
                               )}
                               {!wod.is_published && (
-                                <span className="text-[9px] font-black text-amber-500 bg-amber-500/10 px-1.5 py-0.5 rounded uppercase tracking-wider">
+                                <span className="text-[9px] font-black text-ax-warning bg-ax-warning-soft border border-current px-1.5 py-0.5 rounded-ax-badge uppercase tracking-wider">
                                   Brouillon
                                 </span>
                               )}
                               {received && (
-                                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded flex items-center gap-1" style={{ color: received.color, backgroundColor: `${received.color}20` }} title={`Reçu de la programmation « ${received.title} »`}>
+                                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-ax-badge flex items-center gap-1" style={{ color: received.textColor, backgroundColor: softVar(received.color, 0.125) }} title={`Reçu de la programmation « ${received.title} »`}>
                                   <Lock size={9} /> Prog : {received.title}
                                 </span>
                               )}
@@ -1283,34 +1299,34 @@ export default function WODsPage() {
                                 programs={refPrograms}
                               />
                             </div>
-                            <p className="text-sm font-bold text-white truncate">{wod.title}</p>
+                            <p className="text-sm font-bold text-ax-text truncate">{wod.title}</p>
                             {wod.description && (
-                              <p className="text-xs text-gray-500 truncate mt-0.5">{wod.description}</p>
+                              <p className="text-xs text-ax-text-muted truncate mt-0.5">{wod.description}</p>
                             )}
                           </div>
                           <div className="flex items-center gap-1 shrink-0">
                             {wod.time_cap_seconds && (
-                              <span className="text-xs text-gray-600 mr-2">{formatCap(wod.time_cap_seconds)}</span>
+                              <span className="text-xs text-ax-text-muted mr-2">{formatCap(wod.time_cap_seconds)}</span>
                             )}
                             <button
                               onClick={() => togglePublish(wod)}
                               title={wod.is_published ? 'Dépublier' : 'Publier'}
-                              className="p-2 rounded-xl hover:bg-white/5 transition-colors"
+                              className={cn(ICON_BTN, 'p-2')}
                             >
                               {wod.is_published
-                                ? <Eye size={15} className="text-emerald-400" />
-                                : <EyeOff size={15} className="text-gray-500" />}
+                                ? <Eye size={15} className="text-ax-success" />
+                                : <EyeOff size={15} className="text-ax-text-muted" />}
                             </button>
                             <button
                               onClick={() => openEdit(wod)}
                               disabled={!!received}
                               title={received ? 'Programmation Marketplace, non modifiable' : 'Modifier'}
-                              className="p-2 rounded-xl hover:bg-white/5 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                              className={cn(ICON_BTN, 'p-2 disabled:opacity-30 disabled:cursor-not-allowed')}
                             >
-                              <Pencil size={14} className="text-white" />
+                              <Pencil size={14} className="text-ax-text" />
                             </button>
-                            <button onClick={() => deleteWOD(wod)} className="p-2 rounded-xl hover:bg-red-500/10 transition-colors">
-                              <Trash2 size={14} className="text-red-400" />
+                            <button onClick={() => deleteWOD(wod)} className={cn(ICON_BTN, 'p-2 hover:bg-ax-danger-soft')}>
+                              <Trash2 size={14} className="text-ax-danger" />
                             </button>
                           </div>
                         </div>

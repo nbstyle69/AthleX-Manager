@@ -251,7 +251,7 @@ export default function ApplyProgramWeekModal({
     onTemplateDeleted?.();
   }
 
-  const inp = 'w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-white transition-colors';
+  const inp = 'w-full bg-ax-surface-secondary border border-ax-border rounded-ax-control px-4 py-3 text-sm text-ax-text focus:outline-none focus:border-ax-focus transition-colors';
   const canApply = !!selected && !applying && audience !== '' && !offerEmpty && !weekEmpty
     && (audience !== 'groups' || groupIds.length > 0);
 
@@ -263,14 +263,14 @@ export default function ApplyProgramWeekModal({
         <button
           type="button"
           onClick={() => { setSourceKey(on ? '' : keyOf(i)); setWeek(1); }}
-          className={`flex-1 flex items-center gap-2 px-3 py-2 rounded-xl border text-left text-sm transition-colors ${
-            on ? 'border-white/40 bg-white/10 text-white' : 'border-white/10 bg-white/[0.02] text-gray-300 hover:bg-white/5'}`}
+          className={`flex-1 flex items-center gap-2 px-3 py-2 rounded-ax-control border text-left text-sm transition-colors ${
+            on ? 'border-ax-input-border bg-ax-hover text-ax-text' : 'border-ax-border bg-ax-surface-secondary text-ax-text-secondary hover:bg-ax-hover'}`}
         >
           {color && <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: color }} />}
           <span className="font-semibold truncate">{i.title}</span>
-          {i.subtitle && <span className="text-xs text-gray-500 truncate">— {i.subtitle}</span>}
+          {i.subtitle && <span className="text-xs text-ax-text-muted truncate">— {i.subtitle}</span>}
           {i.kind === 'subscription' && (
-            <span className="ml-auto text-[11px] text-gray-500 shrink-0">
+            <span className="ml-auto text-[11px] text-ax-text-muted shrink-0">
               {i.wodCounts.reduce((a, b) => a + b, 0)} WOD · {i.weeksCount} sem
             </span>
           )}
@@ -280,7 +280,7 @@ export default function ApplyProgramWeekModal({
             type="button"
             onClick={() => onCopyTemplateToOffer({ id: i.sourceId, title: i.title })}
             title="Copier cette semaine type vers une offre Marketplace"
-            className="p-2 rounded-xl border border-white/10 text-gray-500 hover:text-white hover:border-white/30"
+            className="p-2 rounded-ax-control border border-ax-border text-ax-text-muted hover:text-ax-text hover:border-ax-input-border"
           >
             <Copy size={14} />
           </button>
@@ -291,7 +291,7 @@ export default function ApplyProgramWeekModal({
             onClick={() => deleteTemplate(i)}
             disabled={deleting === i.sourceId}
             title="Supprimer cette semaine type"
-            className="p-2 rounded-xl border border-white/10 text-gray-500 hover:text-red-400 hover:border-red-400/40 disabled:opacity-40"
+            className="p-2 rounded-ax-control border border-ax-border text-ax-text-muted hover:text-ax-danger hover:border-ax-danger disabled:opacity-40"
           >
             {deleting === i.sourceId ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
           </button>
@@ -301,50 +301,50 @@ export default function ApplyProgramWeekModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-      <div className="bg-[#111111] border border-white/10 rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between px-6 py-5 border-b border-white/8">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-ax-overlay backdrop-blur-ax-glass p-4">
+      <div className="bg-ax-surface border border-ax-border rounded-ax-card w-full max-w-lg max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between px-6 py-5 border-b border-ax-border">
           <div>
-            <h2 className="text-lg font-black text-white">Programmation</h2>
-            <p className="text-xs text-gray-500">Poser une semaine type ou une programmation Marketplace</p>
+            <h2 className="text-lg font-black text-ax-text">Programmation</h2>
+            <p className="text-xs text-ax-text-muted">Poser une semaine type ou une programmation Marketplace</p>
           </div>
-          <button onClick={onClose} className="p-1.5 rounded-xl hover:bg-white/5 text-gray-400 hover:text-white transition-colors">
+          <button onClick={onClose} className="p-1.5 rounded-ax-control hover:bg-ax-hover text-ax-text-secondary hover:text-ax-text transition-colors">
             <X size={18} />
           </button>
         </div>
 
         <div className="p-6 space-y-5">
           {error && (
-            <div className="bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3 text-sm text-red-400">{error}</div>
+            <div className="bg-ax-danger-soft border border-ax-danger rounded-ax-control px-4 py-3 text-sm text-ax-danger">{error}</div>
           )}
 
           {loading ? (
-            <div className="flex items-center gap-2 text-sm text-gray-400 py-6 justify-center">
+            <div className="flex items-center gap-2 text-sm text-ax-text-secondary py-6 justify-center">
               <Loader2 size={16} className="animate-spin" /> Chargement des sources…
             </div>
           ) : items.length === 0 ? (
-            <p className="text-sm text-gray-400 leading-relaxed py-4">
-              Aucune semaine type ni programmation souscrite. Enregistre une semaine du Whiteboard comme <span className="text-white font-semibold">semaine type</span>, ou abonne-toi à une offre dans <span className="text-white font-semibold">Entraînement → Marketplace</span>.
+            <p className="text-sm text-ax-text-secondary leading-relaxed py-4">
+              Aucune semaine type ni programmation souscrite. Enregistre une semaine du Whiteboard comme <span className="text-ax-text font-semibold">semaine type</span>, ou abonne-toi à une offre dans <span className="text-ax-text font-semibold">Entraînement → Marketplace</span>.
             </p>
           ) : (
             <>
               <div className="space-y-4">
                 <div>
-                  <label className="block text-xs font-semibold text-gray-400 mb-1.5 uppercase tracking-wider">Mes semaines types</label>
+                  <label className="block text-xs font-semibold text-ax-text-secondary mb-1.5 uppercase tracking-wider">Mes semaines types</label>
                   {templates.length === 0
-                    ? <p className="text-xs text-gray-600">Aucune — « Enregistrer comme semaine type » depuis le Whiteboard.</p>
+                    ? <p className="text-xs text-ax-text-muted">Aucune — « Enregistrer comme semaine type » depuis le Whiteboard.</p>
                     : <div className="space-y-1.5">{templates.map(i => <SourceRow key={i.sourceId} i={i} />)}</div>}
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-gray-400 mb-1.5 uppercase tracking-wider">Programmations Marketplace</label>
+                  <label className="block text-xs font-semibold text-ax-text-secondary mb-1.5 uppercase tracking-wider">Programmations Marketplace</label>
                   {subscriptions.length === 0
-                    ? <p className="text-xs text-gray-600">Aucun abonnement actif.</p>
+                    ? <p className="text-xs text-ax-text-muted">Aucun abonnement actif.</p>
                     : <div className="space-y-1.5">{subscriptions.map(i => <SourceRow key={i.sourceId} i={i} />)}</div>}
                 </div>
               </div>
 
               {offerEmpty && (
-                <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl px-4 py-3 text-sm text-amber-300 flex gap-2.5">
+                <div className="bg-ax-warning-soft border border-ax-warning rounded-ax-control px-4 py-3 text-sm text-ax-warning flex gap-2.5">
                   <AlertTriangle size={16} className="shrink-0 mt-0.5" />
                   <span>Cette offre ne contient encore aucun WOD. La box éditrice doit la remplir avant que tu puisses la poser.</span>
                 </div>
@@ -353,7 +353,7 @@ export default function ApplyProgramWeekModal({
               {selected && !offerEmpty && (
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-xs font-semibold text-gray-400 mb-1.5 uppercase tracking-wider">Semaine source</label>
+                    <label className="block text-xs font-semibold text-ax-text-secondary mb-1.5 uppercase tracking-wider">Semaine source</label>
                     <select
                       className={inp}
                       value={week}
@@ -368,7 +368,7 @@ export default function ApplyProgramWeekModal({
                     </select>
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-gray-400 mb-1.5 uppercase tracking-wider">Semaine cible</label>
+                    <label className="block text-xs font-semibold text-ax-text-secondary mb-1.5 uppercase tracking-wider">Semaine cible</label>
                     <input
                       type="date"
                       className={inp}
@@ -380,12 +380,12 @@ export default function ApplyProgramWeekModal({
               )}
 
               {selected && !offerEmpty && weekEmpty && (
-                <p className="text-xs text-amber-300">La semaine {week} est vide : choisis une autre semaine.</p>
+                <p className="text-xs text-ax-warning">La semaine {week} est vide : choisis une autre semaine.</p>
               )}
 
               {selected && !offerEmpty && (
-                <p className="text-xs text-gray-500">
-                  Les WOD se poseront à partir du lundi <span className="text-gray-300">{frDate(monday)}</span>, aux jours définis dans la source.
+                <p className="text-xs text-ax-text-muted">
+                  Les WOD se poseront à partir du lundi <span className="text-ax-text-secondary">{frDate(monday)}</span>, aux jours définis dans la source.
                   {selected.kind === 'template'
                     ? ' Ils restent éditables ensuite comme des WOD maison.'
                     : ' Leur contenu reste celui de l’éditeur (non modifiable) ; tu peux les déplacer ou les supprimer.'}
@@ -394,7 +394,7 @@ export default function ApplyProgramWeekModal({
 
               {selected && !offerEmpty && (
                 <div>
-                  <label className="block text-xs font-semibold text-gray-400 mb-2 uppercase tracking-wider">Qui voit ces WOD ?</label>
+                  <label className="block text-xs font-semibold text-ax-text-secondary mb-2 uppercase tracking-wider">Qui voit ces WOD ?</label>
                   <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Qui voit ces WOD ?">
                     {AUDIENCES.map(a => {
                       const on = audience === a;
@@ -403,8 +403,8 @@ export default function ApplyProgramWeekModal({
                         <button key={a} type="button" role="radio" aria-checked={on} disabled={disabled}
                           onClick={() => { setAudience(a); if (a !== 'groups') setGroupIds([]); }}
                           title={disabled ? 'Aucun groupe dans cette box' : undefined}
-                          className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-colors disabled:opacity-40 ${
-                            on ? 'bg-white text-black border-white' : 'bg-white/5 text-gray-400 border-white/10 hover:text-white'}`}>
+                          className={`px-3 py-1.5 rounded-ax-control text-xs font-bold border transition-colors disabled:opacity-40 ${
+                            on ? 'bg-ax-text text-ax-background border-ax-text' : 'bg-ax-surface-secondary text-ax-text-secondary border-ax-border hover:text-ax-text'}`}>
                           {AUDIENCE_LABEL[a]}
                         </button>
                       );
@@ -419,7 +419,7 @@ export default function ApplyProgramWeekModal({
                             key={g.id}
                             type="button"
                             onClick={() => setGroupIds(ids => on ? ids.filter(x => x !== g.id) : [...ids, g.id])}
-                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold border transition-colors ${on ? 'border-transparent' : 'border-white/10 text-gray-400 hover:text-white hover:border-white/20'}`}
+                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-ax-control text-xs font-bold border transition-colors ${on ? 'border-transparent' : 'border-ax-border text-ax-text-secondary hover:text-ax-text hover:border-ax-input-border'}`}
                             style={on ? { backgroundColor: `${g.color}25`, color: g.color, borderColor: `${g.color}50` } : {}}
                           >
                             <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: g.color }} />
@@ -427,12 +427,12 @@ export default function ApplyProgramWeekModal({
                           </button>
                         );
                       })}
-                      {groupIds.length === 0 && <p className="text-[11px] text-amber-300 w-full">Coche au moins un groupe.</p>}
+                      {groupIds.length === 0 && <p className="text-[11px] text-ax-warning w-full">Coche au moins un groupe.</p>}
                     </div>
                   )}
-                  {audience === '' && <p className="text-[11px] text-amber-300 mt-1.5">Choisis qui voit ces WOD avant d&apos;appliquer.</p>}
+                  {audience === '' && <p className="text-[11px] text-ax-warning mt-1.5">Choisis qui voit ces WOD avant d&apos;appliquer.</p>}
                   {selected.kind === 'subscription' && (
-                    <p className="text-[11px] text-gray-500 mt-1.5">Ce choix devient la visibilité par défaut de l&apos;application automatique de cet abonnement.</p>
+                    <p className="text-[11px] text-ax-text-muted mt-1.5">Ce choix devient la visibilité par défaut de l&apos;application automatique de cet abonnement.</p>
                   )}
                 </div>
               )}
@@ -441,7 +441,7 @@ export default function ApplyProgramWeekModal({
                   coach choisit en connaissance. Ce bloc ne promet jamais une
                   suppression que le serveur refusera. */}
               {selected && !offerEmpty && conflictCount > 0 && (
-                <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl px-4 py-3 text-sm text-amber-300 space-y-2">
+                <div className="bg-ax-warning-soft border border-ax-warning rounded-ax-control px-4 py-3 text-sm text-ax-warning space-y-2">
                   <div className="flex gap-2.5">
                     <AlertTriangle size={16} className="shrink-0 mt-0.5" />
                     <span>
@@ -452,10 +452,10 @@ export default function ApplyProgramWeekModal({
                     {conflicts?.map(c => (
                       <li key={c.wod_id}>
                         <span className="capitalize">{dayLabel(c.scheduled_date)}</span> : {c.title}{' '}
-                        <span className="text-amber-300/60">
+                        <span className="text-ax-warning">
                           ({ORIGIN_LABEL[c.origin]}{c.origin_title ? ` « ${c.origin_title} »` : ''})
                         </span>
-                        {c.has_results && <span className="text-white font-semibold"> — porte un résultat, conservé</span>}
+                        {c.has_results && <span className="text-ax-text font-semibold"> — porte un résultat, conservé</span>}
                       </li>
                     ))}
                   </ul>
@@ -463,10 +463,10 @@ export default function ApplyProgramWeekModal({
               )}
 
               {selected && !offerEmpty && protectedCount > 0 && (
-                <div className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-gray-300 flex gap-2.5">
-                  <ShieldCheck size={16} className="shrink-0 mt-0.5 text-white" />
+                <div className="bg-ax-surface-secondary border border-ax-border rounded-ax-control px-4 py-3 text-sm text-ax-text-secondary flex gap-2.5">
+                  <ShieldCheck size={16} className="shrink-0 mt-0.5 text-ax-text" />
                   <span>
-                    <span className="font-bold text-white">{protectedCount} WOD</span> porte{protectedCount > 1 ? 'nt' : ''} un score ou une complétion : le remplacement ne {protectedCount > 1 ? 'les' : 'le'} touchera pas. Un score alimente l&apos;ELO et l&apos;historique de l&apos;athlète — pour le supprimer, il faut supprimer ce WOD-là, délibérément.
+                    <span className="font-bold text-ax-text">{protectedCount} WOD</span> porte{protectedCount > 1 ? 'nt' : ''} un score ou une complétion : le remplacement ne {protectedCount > 1 ? 'les' : 'le'} touchera pas. Un score alimente l&apos;ELO et l&apos;historique de l&apos;athlète — pour le supprimer, il faut supprimer ce WOD-là, délibérément.
                   </span>
                 </div>
               )}
@@ -475,17 +475,17 @@ export default function ApplyProgramWeekModal({
         </div>
 
         {!loading && items.length > 0 && (
-          <div className="flex gap-2 justify-end px-6 py-4 border-t border-white/8">
+          <div className="flex gap-2 justify-end px-6 py-4 border-t border-ax-border">
             <button
               onClick={onClose}
-              className="px-4 py-2.5 rounded-xl text-sm font-bold border border-white/10 text-gray-300 hover:bg-white/5 transition-colors"
+              className="px-4 py-2.5 rounded-ax-control text-sm font-bold border border-ax-border text-ax-text-secondary hover:bg-ax-hover transition-colors"
             >
               Annuler
             </button>
             <button
               onClick={() => apply(conflictCount > 0)}
               disabled={!canApply}
-              className="flex items-center gap-2 px-4 py-2.5 bg-white hover:bg-white/90 disabled:opacity-40 text-[#0A0A0A] text-sm font-bold rounded-xl transition-colors"
+              className="flex items-center gap-2 px-4 py-2.5 bg-ax-text hover:brightness-110 disabled:opacity-40 text-ax-background text-sm font-bold rounded-ax-control transition-colors"
             >
               {applying
                 ? <><Loader2 size={14} className="animate-spin" /> Application…</>
