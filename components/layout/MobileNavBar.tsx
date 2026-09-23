@@ -19,20 +19,42 @@ const STRINGS = {
  */
 export function useMobileMenu(pathname: string) {
   const [open, setOpen] = useState(false);
+  // Deux drapeaux : l'un consommé par Radix à la fermeture, l'autre par le
+  // changement de route (l'ordre des deux n'est pas garanti).
   const focusMainOnRoute = useRef(false);
+  const focusMainOnClose = useRef(false);
+
+  const onOpenChange = useCallback((next: boolean) => {
+    if (next) {
+      focusMainOnRoute.current = false;
+      focusMainOnClose.current = false;
+    }
+    setOpen(next);
+  }, []);
 
   const onNavigate = useCallback(() => {
-    if (open) focusMainOnRoute.current = true;
+    if (open) {
+      focusMainOnRoute.current = true;
+      focusMainOnClose.current = true;
+    }
     setOpen(false);
   }, [open]);
 
   const focusMain = useCallback(() => {
-    document.getElementById(MAIN_CONTENT_ID)?.focus({ preventScroll: true });
+    const main = document.getElementById(MAIN_CONTENT_ID);
+    if (!main) return;
+    main.focus({ preventScroll: true });
+    // Radix rend le focus au déclencheur dans un setTimeout après la
+    // fermeture ; on repasse après lui pour que <main> garde le focus.
+    window.setTimeout(() => {
+      if (document.activeElement === document.body) main.focus({ preventScroll: true });
+    }, 0);
   }, []);
 
   const onCloseAutoFocus = useCallback(
     (e: Event) => {
-      if (!focusMainOnRoute.current) return;
+      if (!focusMainOnClose.current) return;
+      focusMainOnClose.current = false;
       e.preventDefault();
       focusMain();
     },
@@ -46,7 +68,7 @@ export function useMobileMenu(pathname: string) {
     focusMain();
   }, [pathname, focusMain]);
 
-  return { open, setOpen, onNavigate, onCloseAutoFocus };
+  return { open, setOpen: onOpenChange, onNavigate, onCloseAutoFocus };
 }
 
 interface MobileNavBarProps {

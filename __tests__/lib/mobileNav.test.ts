@@ -39,7 +39,7 @@ describe('Cadre du back-office sur mobile : une seule source pour le menu', () =
       expect(src).toMatch(/onCloseAutoFocus=\{onCloseAutoFocus\}/);
     }
     expect(BAR).toMatch(/useEffect\(\(\) => \{\s*setOpen\(false\);/);
-    expect(BAR).toMatch(/getElementById\(MAIN_CONTENT_ID\)\?\.focus\(\{ preventScroll: true \}\)/);
+    expect(BAR).toMatch(/getElementById\(MAIN_CONTENT_ID\)[\s\S]{0,200}main\.focus\(\{ preventScroll: true \}\)/);
     for (const src of [OWNER_LAYOUT, ADMIN_LAYOUT]) {
       expect(src).toMatch(/<main id=\{MAIN_CONTENT_ID\} tabIndex=\{-1\}/);
     }
