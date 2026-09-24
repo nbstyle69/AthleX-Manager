@@ -443,7 +443,7 @@ describe('POST /api/stripe-connect-webhook', () => {
     });
     mockConstructEvent.mockReturnValue({
       type: 'invoice.payment_failed',
-      data: { object: { id: 'in_1', subscription: 'sub_1', last_payment_error: { message: 'insufficient_funds' } } },
+      data: { object: { id: 'in_1', subscription: 'sub_1', last_finalization_error: { message: 'finalization_failed' } } },
     });
 
     const res = (await POST(makeReq() as any)) as any;
@@ -453,7 +453,7 @@ describe('POST /api/stripe-connect-webhook', () => {
       expect.objectContaining({
         subscription_status: 'past_due',
         dunning_attempts: 1,
-        last_payment_error: 'insufficient_funds',
+        last_payment_error: 'finalization_failed',
         past_due_since: expect.any(String),
       }),
     );
@@ -558,5 +558,117 @@ describe('POST /api/stripe-connect-webhook', () => {
 
     expect(res._status).toBe(500);
     expect(res._data.error).toBe('boom');
+  });
+
+  // ── Lien facture → abonnement selon la version d'API de la destination ──
+  // Avant 2025-03-31.basil : `invoice.subscription`. Depuis (dahlia compris) :
+  // `invoice.parent.subscription_details.subscription`.
+
+  const oldInvoice = (id: string, sub: string) => ({ id, subscription: sub });
+  const dahliaInvoice = (id: string, sub: string) => ({
+    id,
+    parent: { type: 'subscription_details', subscription_details: { subscription: sub } },
+  });
+
+  describe.each([
+    ['ancienne version (invoice.subscription)', oldInvoice],
+    ['version dahlia (parent.subscription_details.subscription)', dahliaInvoice],
+  ])('facture en %s', (_label, invoiceOf) => {
+    it.each(['invoice.payment_failed', 'invoice.payment_action_required'])(
+      '%s enregistre l’impayé de l’abonnement de la facture',
+      async (type) => {
+        chains.box_members = makeChain({
+          maybeSingle: { data: { id: 'bm-1', past_due_since: null, dunning_attempts: 0 } },
+          awaited: { error: null },
+        });
+        mockConstructEvent.mockReturnValue({ id: 'evt_1', type, data: { object: invoiceOf('in_1', 'sub_7') } });
+
+        const res = (await POST(makeReq() as any)) as any;
+
+        expect(res._status).toBe(200);
+        expect(chains.box_members.eq).toHaveBeenCalledWith('stripe_subscription_id', 'sub_7');
+        expect(chains.box_members.update).toHaveBeenCalledWith(
+          expect.objectContaining({ subscription_status: 'past_due', dunning_attempts: 1 }),
+        );
+      },
+    );
+
+    it('invoice.paid rétablit l’abonnement de la facture', async () => {
+      chains.box_members = makeChain({ awaited: { error: null } });
+      mockConstructEvent.mockReturnValue({ id: 'evt_2', type: 'invoice.paid', data: { object: invoiceOf('in_2', 'sub_7') } });
+
+      const res = (await POST(makeReq() as any)) as any;
+
+      expect(res._status).toBe(200);
+      expect(chains.box_members.update).toHaveBeenCalledWith(
+        expect.objectContaining({ subscription_status: 'active', past_due_since: null, dunning_attempts: 0 }),
+      );
+      expect(chains.box_members.eq).toHaveBeenCalledWith('stripe_subscription_id', 'sub_7');
+    });
+  });
+
+  it.each(['invoice.payment_failed', 'invoice.payment_action_required', 'invoice.paid'])(
+    '%s sans abonnement : avertissement sans donnée personnelle, 200, aucune écriture',
+    async (type) => {
+      const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+      mockConstructEvent.mockReturnValue({
+        id: 'evt_9',
+        type,
+        data: { object: { id: 'in_9', parent: null, customer_email: 'membre@exemple.fr', customer_name: 'Nom Membre' } },
+      });
+
+      const res = (await POST(makeReq() as any)) as any;
+
+      expect(res._status).toBe(200);
+      expect(fromSpy).not.toHaveBeenCalled();
+      expect(warn).toHaveBeenCalledTimes(1);
+      const message = String(warn.mock.calls[0][0]);
+      expect(message).toContain(type);
+      expect(message).toContain('evt_9');
+      expect(message).toContain('in_9');
+      expect(message).not.toMatch(/membre@exemple\.fr|Nom Membre/);
+      warn.mockRestore();
+    },
+  );
+
+  it('ne lit pas last_payment_error sur la facture (champ inexistant)', async () => {
+    chains.box_members = makeChain({
+      maybeSingle: { data: { id: 'bm-1', past_due_since: null, dunning_attempts: 0 } },
+      awaited: { error: null },
+    });
+    mockConstructEvent.mockReturnValue({
+      id: 'evt_3',
+      type: 'invoice.payment_failed',
+      data: { object: { ...dahliaInvoice('in_3', 'sub_7'), last_payment_error: { message: 'insufficient_funds' } } },
+    });
+
+    await POST(makeReq() as any);
+
+    expect(chains.box_members.update).toHaveBeenCalledWith(expect.objectContaining({ last_payment_error: null }));
+  });
+
+  // ── Fin programmée : cancel_at_period_end OU cancel_at ─────────────────
+
+  const subscriptionEvent = (fields: Record<string, unknown>) => ({
+    id: 'evt_4',
+    type: 'customer.subscription.updated',
+    data: { object: { id: 'sub_1', status: 'active', items: { data: [{ current_period_end: 1785000000 }] }, metadata: {}, ...fields } },
+  });
+
+  it.each([
+    ['cancel_at seul', { cancel_at_period_end: false, cancel_at: 1785000000 }, true],
+    ['cancel_at_period_end seul', { cancel_at_period_end: true, cancel_at: null }, true],
+    ['ni l’un ni l’autre', { cancel_at_period_end: false, cancel_at: null }, false],
+  ])('fin programmée avec %s', async (_label, fields, expected) => {
+    chains.program_members = makeChain({ awaited: { error: null } });
+    chains.box_members = makeChain({ awaited: { error: null } });
+    mockConstructEvent.mockReturnValue(subscriptionEvent(fields));
+
+    const res = (await POST(makeReq() as any)) as any;
+
+    expect(res._status).toBe(200);
+    expect(chains.box_members.update).toHaveBeenCalledWith(
+      expect.objectContaining({ subscription_cancel_at_period_end: expected }),
+    );
   });
 });

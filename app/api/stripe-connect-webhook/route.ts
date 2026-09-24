@@ -16,6 +16,13 @@ function subscriptionPeriodEnd(sub: any): string | null {
   return epoch ? new Date(epoch * 1000).toISOString() : null;
 }
 
+// Lien facture → abonnement : `invoice.subscription` a été retiré en
+// 2025-03-31.basil au profit de `invoice.parent.subscription_details.subscription`.
+// La charge utile suit la version de la destination webhook : on lit les deux.
+function invoiceSubscriptionId(inv: any): string | null {
+  return inv?.parent?.subscription_details?.subscription ?? inv?.subscription ?? null;
+}
+
 /**
  * Webhook dédié aux comptes connectés (Stripe Connect).
  * Gère l'achat de programmes (charge directe sur le compte de la box) :
@@ -484,7 +491,8 @@ export async function POST(req: NextRequest) {
                 }
               : {}),
             subscription_current_period_end: periodEnd,
-            subscription_cancel_at_period_end: !!sub.cancel_at_period_end,
+            // Fin programmée : à la fin de la période, ou à une date (`cancel_at`).
+            subscription_cancel_at_period_end: !!sub.cancel_at_period_end || sub.cancel_at != null,
             ...(memberStatus !== 'cancelled' ? planPatch : {}),
           })
           .eq('stripe_subscription_id', sub.id);
@@ -512,8 +520,11 @@ export async function POST(req: NextRequest) {
       case 'invoice.payment_failed':
       case 'invoice.payment_action_required': {
         const invoice = event.data.object as any;
-        const subId = (invoice.subscription as string) ?? null;
-        if (!subId) break;
+        const subId = invoiceSubscriptionId(invoice);
+        if (!subId) {
+          console.warn(`${event.type} ${event.id}: invoice ${invoice.id} has no subscription — nothing updated.`);
+          break;
+        }
 
         const { data: member } = await supabase
           .from('box_members')
@@ -523,10 +534,10 @@ export async function POST(req: NextRequest) {
         const m = member as { id: string; past_due_since: string | null; dunning_attempts: number | null } | null;
         if (!m) break;
 
+        // La facture ne porte pas de `last_payment_error` (il est sur le
+        // PaymentIntent) : seul l'échec de finalisation est lisible ici.
         const reason: string | null =
-          (invoice.last_payment_error?.message as string | undefined) ??
-          (invoice.last_finalization_error?.message as string | undefined) ??
-          null;
+          (invoice.last_finalization_error?.message as string | undefined) ?? null;
 
         const { error: dunErr } = await supabase
           .from('box_members')
@@ -549,8 +560,11 @@ export async function POST(req: NextRequest) {
       // NULL (le blocage est dérivé, aucun cron de réactivation nécessaire).
       case 'invoice.paid': {
         const invoice = event.data.object as any;
-        const subId = (invoice.subscription as string) ?? null;
-        if (!subId) break;
+        const subId = invoiceSubscriptionId(invoice);
+        if (!subId) {
+          console.warn(`${event.type} ${event.id}: invoice ${invoice.id} has no subscription — nothing updated.`);
+          break;
+        }
 
         const { error: paidErr } = await supabase
           .from('box_members')
