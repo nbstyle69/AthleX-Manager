@@ -119,6 +119,17 @@ export function unitChoicesFor(name: string): MovementUnit[] {
   return allowed.length > 1 ? allowed : [];
 }
 
+/**
+ * Unité unique d'un mouvement du catalogue (« m » pour Run, « reps » pour
+ * Thruster), affichée en texte là où un mouvement à plusieurs unités a son
+ * sélecteur. `null` hors catalogue, ou quand il y a un choix à faire.
+ */
+export function fixedUnitFor(name: string): MovementUnit | null {
+  const mv = findCatalogMovement(name);
+  if (!mv || unitChoicesFor(name).length > 0) return null;
+  return mv.unit ?? 'reps';
+}
+
 export interface ParsedMovementRow {
   /** Quantité ♂ (ou unique) dans `unit`. */
   reps: number | null;
@@ -195,10 +206,21 @@ export function parseMovementRow(line: string): ParsedMovementRow {
 // decide stay coherent whether the athlete entered "rounds + reps" or a raw
 // total. reps_per_round converts between the two representations.
 
+// Un tour qui contient une distance (« 200 m Run ») n'a pas de somme
+// automatique : 200 m + 10 burpees ne font pas « 210 reps ». Le gérant
+// déclare lui-même le tour, ou laisse vide (score saisi en total). Les
+// calories, elles, restent comptées comme des reps.
+export function hasDistanceLine(movements: string[] | null | undefined): boolean {
+  return Array.isArray(movements) && movements.some(l => {
+    const p = parseMovementRow(l);
+    return p.reps != null && p.unit === 'm';
+  });
+}
+
 // Sum of leading rep counts across the movement lines (one full round).
-// Returns 0 when no rep-based movement is found.
+// Returns 0 when no rep-based movement is found, or when a line is a distance.
 export function repsPerRoundFromMovements(movements: string[] | null | undefined): number {
-  if (!Array.isArray(movements)) return 0;
+  if (!Array.isArray(movements) || hasDistanceLine(movements)) return 0;
   return movements.reduce((acc, line) => {
     const { reps } = parseMovementRow(line);
     return acc + (reps ?? 0);

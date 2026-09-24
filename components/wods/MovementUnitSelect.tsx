@@ -1,13 +1,13 @@
 'use client';
 
-import { unitChoicesFor, type MovementUnit } from '@/lib/movements';
+import { fixedUnitFor, unitChoicesFor, type MovementUnit } from '@/lib/movements';
 
 /**
- * Choix de l'unité d'une ligne de mouvement, parmi les unités permises au
- * catalogue. N'apparaît que pour un mouvement qui en a plusieurs (Row, SkiErg,
- * Bike Erg : cal ou m) : ailleurs il n'y a rien à choisir, et le sélecteur
- * encombrerait la ligne. Partagé par l'éditeur de WOD de tournoi et celui du
- * Whiteboard.
+ * Unité d'une ligne de mouvement du catalogue, toujours visible. Sélecteur
+ * pour un mouvement qui en a plusieurs (Row, SkiErg, Bike Erg : cal ou m) ;
+ * sinon l'unité fixe en texte discret, à la même place (« m » pour Run,
+ * « reps » pour Thruster). Rien hors catalogue. Partagé par l'éditeur de WOD
+ * de tournoi et celui du Whiteboard.
  */
 export default function MovementUnitSelect({
   name,
@@ -26,7 +26,16 @@ export default function MovementUnitSelect({
   className?: string;
 }) {
   const choices = unitChoicesFor(name);
-  if (choices.length === 0) return null;
+  if (choices.length === 0) {
+    const fixed = fixedUnitFor(name);
+    if (!fixed) return null;
+    // Sans quantité, l'unité qu'aura la ligne : celle du catalogue.
+    return (
+      <span title="Unité" className="w-20 shrink-0 px-2 text-center text-xs text-ax-text-muted">
+        {disabled ? fixed : unit}
+      </span>
+    );
+  }
   return (
     <select
       aria-label="Unité"

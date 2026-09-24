@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/client';
 import { Plus, Trash2, Loader2, X, Sparkles, ChevronDown, ChevronUp, Timer } from 'lucide-react';
 import { useMovementCatalog } from '@/lib/useMovementCatalog';
 import { boGenerateFunctional, boGenerateHybrid } from '@/lib/wod/boAdapter';
-import { isWeightedMovement, editMovementLine, parseMovementRow, repsPerRoundFromMovements, isRepsScoredType, type MovementUnit } from '@/lib/movements';
+import { isWeightedMovement, editMovementLine, parseMovementRow, repsPerRoundFromMovements, hasDistanceLine, isRepsScoredType, type MovementUnit } from '@/lib/movements';
 import MovementUnitSelect from '@/components/wods/MovementUnitSelect';
 import { buildMovementLines, generatedForTimeRounds, parseForTimeRounds } from '@/lib/tournaments/movementLines';
 import { toDatetimeLocal, fromDatetimeLocal, isScheduledAhead } from '@/lib/datetime';
@@ -625,11 +625,17 @@ export default function WODForm({ tournamentId, divisions = [], isLeague = false
               className={inp}
               value={form.reps_per_round}
               onChange={e => set('reps_per_round', e.target.value)}
-              placeholder={`auto : ${repsPerRoundFromMovements(movements.filter(Boolean)) || '—'} (somme des mouvements)`}
+              placeholder={hasDistanceLine(movements) ? '' : `auto : ${repsPerRoundFromMovements(movements.filter(Boolean)) || '—'} (somme des mouvements)`}
             />
-            <p className="text-[11px] text-gray-600 pt-1">
-              Sert à convertir « tours + reps » ⇄ « reps totaux » à la saisie du score athlète (classement cohérent). Laisse vide pour utiliser la somme auto des mouvements ; corrige-la si un tour mélange reps et cardio (cal / m).
-            </p>
+            {hasDistanceLine(movements) ? (
+              <p className="text-[11px] text-amber-400/90 pt-1">
+                Ce tour contient une distance : indique combien de reps compte un tour complet, ou laisse vide si le score se saisit en total.
+              </p>
+            ) : (
+              <p className="text-[11px] text-gray-600 pt-1">
+                Sert à convertir « tours + reps » ⇄ « reps totaux » à la saisie du score athlète (classement cohérent). Laisse vide pour utiliser la somme auto des mouvements (les calories comptent comme des reps).
+              </p>
+            )}
           </div>
         )}
         <div>
