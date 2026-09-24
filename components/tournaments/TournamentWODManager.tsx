@@ -196,7 +196,7 @@ export default function TournamentWODManager({ tournamentId, initialWODs, divisi
           <p className="text-white font-bold text-lg mb-1">
             {isLeague ? `Aucun WOD pour la saison ${selectedSeason}` : 'Aucun WOD pour ce tournoi'}
           </p>
-          <p className="text-gray-500 text-sm mb-6">Créez manuellement ou laissez l&apos;IA générer le programme.</p>
+          <p className="text-gray-500 text-sm mb-6">Créez-les manuellement ou avec le générateur de WOD.</p>
           <button onClick={openAdd}
             className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold bg-white text-[#0A0A0A]">
             <Plus size={15} /> Créer le premier WOD
