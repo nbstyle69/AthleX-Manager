@@ -6,6 +6,8 @@ import { Building2, Search, Users, Calendar, CheckCircle, XCircle, ChevronRight,
 import Link from 'next/link';
 import { FREE_TIER, formatExpiredSince, planTierClasses } from '@/lib/boxPlanTier';
 import { Sparkles, Archive } from 'lucide-react';
+import { useConfirmDialog } from '@/components/ui/confirm-dialog';
+import { ERROR_TITLE } from '@/lib/confirmDialog';
 
 interface BoxItem {
   id: string;
@@ -28,6 +30,7 @@ interface BoxItem {
 }
 
 export default function AdminBoxesPage() {
+  const { dialog, inform } = useConfirmDialog();
   const [boxes, setBoxes] = useState<BoxItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -136,13 +139,13 @@ export default function AdminBoxesPage() {
       const res = await fetch('/api/admin/geocode-boxes', { method: 'POST' });
       const json = await res.json();
       if (!res.ok) {
-        alert(`Erreur: ${json.error ?? 'géocodage échoué'}`);
+        inform({ kind: 'error', title: ERROR_TITLE, body: `Erreur: ${json.error ?? 'géocodage échoué'}` });
       } else {
-        alert(`Géocodage terminé : ${json.updated}/${json.total} boxs mises à jour` + (json.failed ? `, ${json.failed} adresse(s) introuvable(s)` : ''));
+        inform({ kind: 'info', title: 'Géocodage terminé', body: `Géocodage terminé : ${json.updated}/${json.total} boxs mises à jour` + (json.failed ? `, ${json.failed} adresse(s) introuvable(s)` : '') });
         load();
       }
     } catch (e: any) {
-      alert(`Erreur: ${e?.message ?? e}`);
+      inform({ kind: 'error', title: ERROR_TITLE, body: `Erreur: ${e?.message ?? e}` });
     } finally {
       setGeocoding(false);
     }
@@ -150,6 +153,7 @@ export default function AdminBoxesPage() {
 
   return (
     <div className="space-y-6">
+      {dialog}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-orange-500/20 flex items-center justify-center">

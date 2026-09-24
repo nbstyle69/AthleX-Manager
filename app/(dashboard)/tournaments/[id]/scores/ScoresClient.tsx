@@ -8,6 +8,8 @@ import {
 } from 'lucide-react';
 import { isRepsScoredType, formatAmrapScore } from '@/lib/movements';
 import { rankClassique, parseScoreVal, type RawScore } from '@/lib/tournamentScoring';
+import { useConfirmDialog } from '@/components/ui/confirm-dialog';
+import { INPUT_TITLE } from '@/lib/confirmDialog';
 
 export interface ScoreRow {
   id: string;
@@ -43,6 +45,7 @@ interface Props {
 }
 
 export default function ScoresClient({ tournamentId, initialScores, requireVideoProof = false }: Props) {
+  const { dialog, inform } = useConfirmDialog();
   const supabase = createClient();
   const [scores,      setScores]      = useState<ScoreRow[]>(initialScores);
   const [processing,  setProcessing]  = useState<string | null>(null);
@@ -77,7 +80,7 @@ export default function ScoresClient({ tournamentId, initialScores, requireVideo
     if (newStatus === 'validated' && requireVideoProof) {
       const score = scores.find(s => s.id === scoreId);
       if (!String(score?.video_url ?? '').trim()) {
-        alert("Preuve vidéo requise : ce tournoi exige une preuve vidéo. Impossible de valider un score sans lien vidéo — demande à l'athlète de soumettre sa vidéo, ou rejette le score.");
+        inform({ kind: 'info', title: 'Preuve vidéo requise', body: "Preuve vidéo requise : ce tournoi exige une preuve vidéo. Impossible de valider un score sans lien vidéo — demande à l'athlète de soumettre sa vidéo, ou rejette le score." });
         return;
       }
     }
@@ -99,7 +102,7 @@ export default function ScoresClient({ tournamentId, initialScores, requireVideo
     if (typed.includes(':')) {
       const seconds = parseScoreVal(typed);
       if (seconds == null) {
-        alert(`Score illisible : « ${typed} ». Saisis un temps en mm:ss ou un nombre.`);
+        inform({ kind: 'info', title: INPUT_TITLE, body: `Score illisible : « ${typed} ». Saisis un temps en mm:ss ou un nombre.` });
         return;
       }
       newVal = String(seconds);
@@ -141,6 +144,7 @@ export default function ScoresClient({ tournamentId, initialScores, requireVideo
 
   return (
     <>
+      {dialog}
       <p className="text-xs text-gray-500 -mt-4 mb-2">{pendingCount} score(s) en attente de validation</p>
 
       {/* Filter tabs */}

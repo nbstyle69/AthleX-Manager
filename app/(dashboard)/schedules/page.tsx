@@ -18,7 +18,7 @@ import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { useConfirmDialog } from '@/components/ui/confirm-dialog';
-import { fullDate, hhmm } from '@/lib/confirmDialog';
+import { fullDate, hhmm, ERROR_TITLE } from '@/lib/confirmDialog';
 
 const FOCUS_CLS = 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ax-focus focus-visible:ring-offset-2 focus-visible:ring-offset-ax-surface';
 const ICON_BTN = `rounded-ax-control text-ax-text-secondary hover:text-ax-text hover:bg-ax-hover transition-colors motion-reduce:transition-none ${FOCUS_CLS}`;
@@ -122,7 +122,7 @@ const EMPTY_FORM = {
 
 export default function SchedulesPage() {
   const supabase = createClient();
-  const { dialog, ask } = useConfirmDialog();
+  const { dialog, ask, inform } = useConfirmDialog();
 
   const [schedules,  setSchedules]  = useState<ClassSchedule[]>([]);
   const [loading,    setLoading]    = useState(true);
@@ -339,7 +339,7 @@ export default function SchedulesPage() {
       .limit(1);
 
     if (!tpls || tpls.length === 0) {
-      alert('Aucun modèle actif. Crée des créneaux types dans "Modèle semaine" d\'abord.');
+      inform({ kind: 'info', title: 'Aucun créneau type actif', body: 'Aucun modèle actif. Crée des créneaux types dans "Modèle semaine" d\'abord.' });
       setGenerating(false);
       return;
     }
@@ -352,13 +352,13 @@ export default function SchedulesPage() {
     });
 
     setGenerating(false);
-    if (error) { alert('Erreur : ' + error.message); return; }
+    if (error) { inform({ kind: 'error', title: ERROR_TITLE, body: 'Erreur : ' + error.message }); return; }
 
     const inserted = (data as number) ?? 0;
     if (inserted === 0) {
-      alert('Tous les créneaux des 8 prochaines semaines sont déjà générés.');
+      inform({ kind: 'info', title: 'Créneaux déjà générés', body: 'Tous les créneaux des 8 prochaines semaines sont déjà générés.' });
     } else {
-      alert(`${inserted} créneaux générés sur 8 semaines.\nLa génération se prolongera automatiquement chaque jour.`);
+      inform({ kind: 'info', title: 'Créneaux générés', body: `${inserted} créneaux générés sur 8 semaines.\nLa génération se prolongera automatiquement chaque jour.` });
     }
     load();
     loadCoverage();
@@ -408,7 +408,7 @@ export default function SchedulesPage() {
       .select('id');
     const fail = writeFailure(error, data);
     if (fail) {
-      alert('Erreur : ' + fail);
+      inform({ kind: 'error', title: ERROR_TITLE, body: 'Erreur : ' + fail });
       setParticipants(prev => prev.map(p => p.reservation_id === reservationId ? { ...p, attended: current } : p));
     } else {
       await syncProspectStatus(reservationId, next);
@@ -435,7 +435,7 @@ export default function SchedulesPage() {
       .update({ status: attended ? 'venu' : 'pas_venu' })
       .eq('id', p.prospect_id)
       .in('status', ['essai_reserve', 'venu', 'pas_venu', 'relance']);
-    if (error) alert('Statut du prospect non mis à jour : ' + error.message);
+    if (error) inform({ kind: 'error', title: ERROR_TITLE, body: 'Statut du prospect non mis à jour : ' + error.message });
   }
 
   function exportAttendanceCSV() {
@@ -492,13 +492,13 @@ export default function SchedulesPage() {
       .select('id, status')
       .single();
     if (error) {
-      if (error.code === '23505') alert('Ce membre est déjà inscrit à ce créneau.');
-      else alert('Erreur : ' + error.message);
+      if (error.code === '23505') inform({ kind: 'info', title: 'Déjà inscrit', body: 'Ce membre est déjà inscrit à ce créneau.' });
+      else inform({ kind: 'error', title: ERROR_TITLE, body: 'Erreur : ' + error.message });
       return;
     }
     const savedStatus = inserted?.status ?? 'confirmed';
     if (savedStatus !== 'confirmed') {
-      alert(`Créneau complet (${detailItem.max_capacity} places) : ${username} est placé en liste d'attente.`);
+      inform({ kind: 'info', title: 'Placé en liste d’attente', body: `Créneau complet (${detailItem.max_capacity} places) : ${username} est placé en liste d'attente.` });
     }
     setParticipants(prev => [
       ...prev,
@@ -535,7 +535,7 @@ export default function SchedulesPage() {
       .from('class_reservations').delete().eq('id', reservationId).select('id');
     const fail = writeFailure(error, data);
     if (fail) {
-      alert(`Impossible de retirer ce membre : ${fail}`);
+      inform({ kind: 'error', title: ERROR_TITLE, body: `Impossible de retirer ce membre : ${fail}` });
       setKicking(null);
       return;
     }
@@ -579,7 +579,7 @@ export default function SchedulesPage() {
     const { data, error } = await supabase
       .from('class_schedules').delete().eq('id', item.id).select('id');
     const fail = writeFailure(error, data);
-    if (fail) { alert(`Suppression impossible : ${fail}`); return; }
+    if (fail) { inform({ kind: 'error', title: ERROR_TITLE, body: `Suppression impossible : ${fail}` }); return; }
     load();
   }
 

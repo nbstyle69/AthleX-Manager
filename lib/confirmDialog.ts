@@ -40,6 +40,8 @@ export interface InfoRequest {
   body: string;
   /** Erreur : bouton « Fermer » ; information : « OK ». */
   kind: 'error' | 'info';
+  /** Libellé du bouton, pour une page traduite (sinon « Fermer » ou « OK »). */
+  closeLabel?: string;
 }
 
 export type DialogState =
@@ -62,6 +64,8 @@ export interface DialogController {
 }
 
 export const ERROR_TITLE = 'L’action n’a pas abouti';
+/** Titre des alertes de saisie ou de règle (fichier trop lourd, champ invalide…). */
+export const INPUT_TITLE = 'Vérifie ta saisie';
 
 export function createDialogController(): DialogController {
   let state: DialogState = { kind: 'idle' };
@@ -151,6 +155,11 @@ export function dialogHandlers(ctrl: DialogController) {
     onSecondaryClick() { return ctrl.confirmSecondary(); },
     onCloseClick() { ctrl.close(); },
   };
+}
+
+/** Libellé du bouton de la boîte d'information : « Fermer » pour une erreur, « OK » sinon (D8). */
+export function infoButtonLabel(req: InfoRequest): string {
+  return req.closeLabel ?? (req.kind === 'error' ? 'Fermer' : 'OK');
 }
 
 /** Date complète affichée dans les confirmations : « mardi 29 septembre 2026 ». */

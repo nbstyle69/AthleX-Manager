@@ -5,9 +5,12 @@ import { createClient } from '@/lib/supabase/client';
 import { writeFailure } from '@/lib/writeGuard';
 import { SITE_URL } from '@/lib/site-url';
 import { Globe, Pencil, Eye, Copy, Check } from 'lucide-react';
+import { useConfirmDialog } from '@/components/ui/confirm-dialog';
+import { ERROR_TITLE } from '@/lib/confirmDialog';
 
 /** Adresse publique de la box (`/box/<slug>`), où les offres sont vendues. */
 export default function PublicPageSection({ boxId }: { boxId: string | null }) {
+  const { dialog, inform } = useConfirmDialog();
   const supabase = createClient();
   const [slug, setSlug] = useState('');
   const [slugSaved, setSlugSaved] = useState('');
@@ -36,7 +39,7 @@ export default function PublicPageSection({ boxId }: { boxId: string | null }) {
     const { data, error } = await supabase
       .from('boxes').update({ slug: clean }).eq('id', boxId).select('id');
     const fail = writeFailure(error, data);
-    if (fail) alert(`Impossible d'enregistrer l'adresse publique : ${fail}`);
+    if (fail) inform({ kind: 'error', title: ERROR_TITLE, body: `Impossible d'enregistrer l'adresse publique : ${fail}` });
     else { setSlug(clean); setSlugSaved(clean); setEditing(false); }
     setSaving(false);
   }
@@ -49,6 +52,7 @@ export default function PublicPageSection({ boxId }: { boxId: string | null }) {
 
   return (
     <div className="bg-[#111111] border border-white/[0.06] rounded-2xl p-6 space-y-5">
+      {dialog}
       <div>
         <div className="flex items-center gap-2 mb-1">
           <Globe size={15} className="text-emerald-400" />

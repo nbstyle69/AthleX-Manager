@@ -7,6 +7,7 @@ import { softVar } from '@/lib/colorVars';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useConfirmDialog } from '@/components/ui/confirm-dialog';
+import { ERROR_TITLE } from '@/lib/confirmDialog';
 import {
   Plus, Pencil, Trash2, X, Calendar, CreditCard,
 } from 'lucide-react';
@@ -66,7 +67,7 @@ function planWriteMessage(error: { code?: string; message?: string } | null, fai
 
 export default function MembershipPlansSection({ boxId }: { boxId: string | null }) {
   const supabase = createClient();
-  const { dialog, ask } = useConfirmDialog();
+  const { dialog, ask, inform } = useConfirmDialog();
   const [plans, setPlans] = useState<MembershipPlan[]>([]);
   const [loading, setLoading] = useState(true);
   const [showPlanForm, setShowPlanForm] = useState(false);
@@ -215,7 +216,7 @@ export default function MembershipPlansSection({ boxId }: { boxId: string | null
     const { data, error } = await supabase
       .from('membership_plans').delete().eq('id', id).select('id');
     const fail = writeFailure(error, data);
-    if (fail) { alert(`Suppression impossible : ${fail}`); return; }
+    if (fail) { inform({ kind: 'error', title: ERROR_TITLE, body: `Suppression impossible : ${fail}` }); return; }
     if (boxId) await loadPlans(boxId);
   }
 
@@ -223,7 +224,7 @@ export default function MembershipPlansSection({ boxId }: { boxId: string | null
     const { data, error } = await supabase
       .from('membership_plans').update({ is_active: !pl.is_active }).eq('id', pl.id).select('id');
     const fail = writeFailure(error, data);
-    if (fail) { alert(`Impossible de changer l'état de la formule : ${fail}`); return; }
+    if (fail) { inform({ kind: 'error', title: ERROR_TITLE, body: `Impossible de changer l'état de la formule : ${fail}` }); return; }
     if (boxId) await loadPlans(boxId);
   }
 

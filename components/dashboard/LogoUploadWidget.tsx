@@ -5,8 +5,11 @@ import { createClient } from '@/lib/supabase/client';
 import { getMyBox } from '@/lib/getMyBox';
 import { writeFailure } from '@/lib/writeGuard';
 import { Upload, ImageIcon, Trash2, CheckCircle } from 'lucide-react';
+import { useConfirmDialog } from '@/components/ui/confirm-dialog';
+import { ERROR_TITLE, INPUT_TITLE } from '@/lib/confirmDialog';
 
 export default function LogoUploadWidget() {
+  const { dialog, inform } = useConfirmDialog();
   const supabase = createClient();
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -39,11 +42,11 @@ export default function LogoUploadWidget() {
     if (!file || !boxId) return;
 
     if (!file.type.startsWith('image/')) {
-      alert('Veuillez sélectionner une image (PNG, JPG, WEBP).');
+      inform({ kind: 'info', title: INPUT_TITLE, body: 'Veuillez sélectionner une image (PNG, JPG, WEBP).' });
       return;
     }
     if (file.size > 2 * 1024 * 1024) {
-      alert("L'image ne doit pas dépasser 2 Mo.");
+      inform({ kind: 'info', title: INPUT_TITLE, body: "L'image ne doit pas dépasser 2 Mo." });
       return;
     }
 
@@ -58,7 +61,7 @@ export default function LogoUploadWidget() {
       .upload(path, file, { upsert: true, contentType: file.type });
 
     if (uploadError) {
-      alert(`Erreur upload: ${uploadError.message}`);
+      inform({ kind: 'error', title: ERROR_TITLE, body: `Erreur upload: ${uploadError.message}` });
       setUploading(false);
       return;
     }
@@ -77,7 +80,7 @@ export default function LogoUploadWidget() {
 
     const updateFail = writeFailure(updateError, updated);
     if (updateFail) {
-      alert(`Erreur mise à jour: ${updateFail}`);
+      inform({ kind: 'error', title: ERROR_TITLE, body: `Erreur mise à jour: ${updateFail}` });
     } else {
       setLogoUrl(publicUrl);
       setSaved(true);
@@ -98,13 +101,14 @@ export default function LogoUploadWidget() {
       .select('id');
 
     const fail = writeFailure(error, data);
-    if (fail) alert(`Suppression du logo impossible : ${fail}`);
+    if (fail) inform({ kind: 'error', title: ERROR_TITLE, body: `Suppression du logo impossible : ${fail}` });
     else setLogoUrl(null);
     setUploading(false);
   }
 
   return (
     <div className="bg-[#111111] border border-white/8 rounded-2xl p-6">
+      {dialog}
       <h2 className="text-sm font-bold text-white mb-1">Logo de la box</h2>
       <p className="text-xs text-gray-500 mb-4">
         Visible par tous les membres dans l&apos;app mobile. Carré, 512×512px min, max 2 Mo.

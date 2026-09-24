@@ -10,6 +10,8 @@ import {
   Loader2, UserPlus, Star, CalendarPlus, CalendarClock, Trash2, Check, X, Send, Users,
   Mail, Phone, Sparkles,
 } from 'lucide-react';
+import { useConfirmDialog } from '@/components/ui/confirm-dialog';
+import { ERROR_TITLE } from '@/lib/confirmDialog';
 
 const supabase = createClient();
 
@@ -96,6 +98,7 @@ function fmt(dt: string) {
 }
 
 export default function ProspectsPage() {
+  const { dialog, inform } = useConfirmDialog();
   const [boxId, setBoxId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<'essais' | 'pipeline' | 'slots'>('essais');
@@ -201,7 +204,7 @@ export default function ProspectsPage() {
       .eq('id', p.id)
       .select('id');
     const fail = writeFailure(error, data);
-    if (fail) { alert(`Impossible de mettre à jour ce prospect : ${fail}`); return; }
+    if (fail) { inform({ kind: 'error', title: ERROR_TITLE, body: `Impossible de mettre à jour ce prospect : ${fail}` }); return; }
     if (boxId) await load(boxId);
   }
 
@@ -211,7 +214,7 @@ export default function ProspectsPage() {
       .eq('id', f.id)
       .select('id');
     const fail = writeFailure(error, data);
-    if (fail) { alert(`Impossible de mettre à jour ce prospect : ${fail}`); return; }
+    if (fail) { inform({ kind: 'error', title: ERROR_TITLE, body: `Impossible de mettre à jour ce prospect : ${fail}` }); return; }
     if (boxId) await load(boxId);
   }
 
@@ -224,6 +227,7 @@ export default function ProspectsPage() {
 
   return (
     <div>
+      {dialog}
       <div className="flex flex-wrap items-start justify-between gap-4 mb-6">
         <div className="min-w-0">
           <h1 className="font-display text-2xl font-medium uppercase tracking-wide text-ax-text flex items-center gap-2">
@@ -532,6 +536,7 @@ function Slots({
   onRemoved: (id: string) => void;
   onChange: () => Promise<void>;
 }) {
+  const { dialog, inform } = useConfirmDialog();
   const [date, setDate] = useState('');
   const [start, setStart] = useState('');
   const [end, setEnd] = useState('');
@@ -567,13 +572,14 @@ function Slots({
     const { data, error } = await supabase
       .from('box_appointment_slots').delete().eq('id', id).select('id');
     const fail = writeFailure(error, data);
-    if (fail) { alert(`Suppression du créneau impossible : ${fail}`); return; }
+    if (fail) { inform({ kind: 'error', title: ERROR_TITLE, body: `Suppression du créneau impossible : ${fail}` }); return; }
     onRemoved(id);
     void onChange();
   }
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      {dialog}
       <div className="bg-ax-surface border border-ax-border rounded-ax-card p-4">
         <p className="text-sm font-black text-ax-text flex items-center gap-2 mb-3">
           <CalendarPlus size={16} /> Ouvrir un créneau

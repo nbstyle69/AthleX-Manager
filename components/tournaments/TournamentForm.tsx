@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { Loader2, Upload, ImageIcon, Trash2, Lock } from 'lucide-react';
 import { toDateInput, fromDateInput } from '@/lib/datetime';
+import { useConfirmDialog } from '@/components/ui/confirm-dialog';
+import { ERROR_TITLE, INPUT_TITLE } from '@/lib/confirmDialog';
 
 const LEVELS = ['scaled','inter','rx','rx+','gx','pro'];
 // Must stay aligned with tournaments_status_check (open | active | completed).
@@ -31,6 +33,7 @@ interface Props {
 }
 
 export default function TournamentForm({ boxId, initial, allowedFormats = ['simple'] }: Props) {
+  const { dialog, inform } = useConfirmDialog();
   const router = useRouter();
   const fileRef = useRef<HTMLInputElement>(null);
   const [saving, setSaving] = useState(false);
@@ -80,11 +83,11 @@ export default function TournamentForm({ boxId, initial, allowedFormats = ['simp
     const file = e.target.files?.[0];
     if (!file) return;
     if (!file.type.startsWith('image/')) {
-      alert('Veuillez sélectionner une image (PNG, JPG, WEBP).');
+      inform({ kind: 'info', title: INPUT_TITLE, body: 'Veuillez sélectionner une image (PNG, JPG, WEBP).' });
       return;
     }
     if (file.size > 2 * 1024 * 1024) {
-      alert("L'image ne doit pas dépasser 2 Mo.");
+      inform({ kind: 'info', title: INPUT_TITLE, body: "L'image ne doit pas dépasser 2 Mo." });
       return;
     }
     setUploading(true);
@@ -95,7 +98,7 @@ export default function TournamentForm({ boxId, initial, allowedFormats = ['simp
       .from('tournament-banners')
       .upload(path, file, { upsert: true, contentType: file.type });
     if (uploadError) {
-      alert(`Erreur upload: ${uploadError.message}`);
+      inform({ kind: 'error', title: ERROR_TITLE, body: `Erreur upload: ${uploadError.message}` });
       setUploading(false);
       return;
     }
@@ -159,6 +162,7 @@ export default function TournamentForm({ boxId, initial, allowedFormats = ['simp
 
   return (
     <form onSubmit={handleSubmit} className="space-y-8">
+      {dialog}
       <div ref={errorRef}>
         {error && (
           <div className="bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3 text-sm text-red-400">
