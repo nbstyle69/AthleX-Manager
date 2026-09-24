@@ -809,12 +809,13 @@ export default function SchedulesPage() {
                                 </div>
                               )}
                             </div>
-                            {/* Actions : toujours visibles sous 1024 px ; au-dessus, au survol ou au focus clavier */}
+                            {/* Actions : toujours visibles sous 1024 px ; au-dessus, au survol ou au focus clavier.
+                                Le clic (souris, Entrée, Espace) s'arrête au bouton : la carte, elle, ouvre la feuille de présence. */}
                             <div className="mt-1.5 flex justify-end gap-1 lg:mt-0 lg:absolute lg:top-1 lg:right-1 lg:opacity-0 lg:pointer-events-none lg:group-hover:opacity-100 lg:group-hover:pointer-events-auto lg:group-focus-within:opacity-100 lg:group-focus-within:pointer-events-auto transition-opacity motion-reduce:transition-none">
-                              <button onClick={() => openEdit(item)} aria-label="Modifier" className={`inline-flex items-center justify-center w-8 h-8 bg-ax-surface-secondary ${ICON_BTN}`}>
+                              <button onClick={(e) => { e.stopPropagation(); openEdit(item); }} aria-label="Modifier" className={`inline-flex items-center justify-center w-8 h-8 bg-ax-surface-secondary ${ICON_BTN}`}>
                                 <Pencil size={12} />
                               </button>
-                              <button onClick={() => handleDelete(item)} aria-label="Supprimer" className={`inline-flex items-center justify-center w-8 h-8 rounded-ax-control bg-ax-surface-secondary text-ax-text-secondary hover:bg-ax-danger-soft hover:text-ax-danger transition-colors ${FOCUS_CLS}`}>
+                              <button onClick={(e) => { e.stopPropagation(); handleDelete(item); }} aria-label="Supprimer" className={`inline-flex items-center justify-center w-8 h-8 rounded-ax-control bg-ax-surface-secondary text-ax-text-secondary hover:bg-ax-danger-soft hover:text-ax-danger transition-colors ${FOCUS_CLS}`}>
                                 <Trash2 size={12} />
                               </button>
                             </div>
