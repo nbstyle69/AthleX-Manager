@@ -62,6 +62,15 @@ export function trackColorVar(track: Track, usage: 'marker' | 'text' = 'marker')
   return usage === 'text' ? `var(--ax-track-${track}-text)` : `var(--track-${track})`;
 }
 
+/**
+ * Texte à la teinte d'une couleur de sens (type de WOD, bloc, groupe), lisible
+ * dans les deux thèmes : la teinte est rapprochée de `--ax-text`, donc éclaircie
+ * en sombre et assombrie en clair. À utiliser pour le texte, jamais pour un fond.
+ */
+export function textTint(color: string): string {
+  return `color-mix(in srgb, ${color} 55%, var(--ax-text))`;
+}
+
 /** Fond atténué de la même teinte, sans concaténer un alpha à un `var()`. */
 export function softVar(cssVar: string, opacity = 0.16): string {
   return `color-mix(in srgb, ${cssVar} ${opacity * 100}%, transparent)`;

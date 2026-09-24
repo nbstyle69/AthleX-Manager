@@ -46,7 +46,7 @@ export default function MovementUnitSelect({
       onChange={e => onChange(e.target.value as MovementUnit)}
     >
       {choices.map(u => (
-        <option key={u} value={u} className="text-black">{u}</option>
+        <option key={u} value={u} className="text-ax-text bg-ax-surface">{u}</option>
       ))}
     </select>
   );

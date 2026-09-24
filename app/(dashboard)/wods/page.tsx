@@ -33,7 +33,7 @@ import {
 } from '@/lib/wodFields';
 import { downloadWodCsvTemplate, parseWodImportFile, VALID_WOD_TYPES } from '@/lib/wodImport';
 import { stripWodJson, withWodJson, writeWithWodJsonFallback } from '@/lib/wodJson';
-import { softVar, subColorVar } from '@/lib/colorVars';
+import { softVar, subColorVar, textTint } from '@/lib/colorVars';
 import { cn } from '@/lib/utils';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -1065,7 +1065,8 @@ export default function WODsPage() {
       {loading ? (
         <div className="flex justify-center py-20"><Loader2 className="animate-spin text-ax-text" size={28} /></div>
       ) : layout === 'columns' ? (
-        <div className="grid grid-cols-7 gap-2 min-h-[400px]">
+        <div className="overflow-x-auto pb-2" data-testid="grille-whiteboard">
+        <div className="grid grid-cols-7 gap-2 min-h-[400px] min-w-[56rem]">
           {weekDates.map((d, i) => {
             const iso     = toISO(d);
             const isToday = iso === todayISO;
@@ -1095,7 +1096,7 @@ export default function WODsPage() {
                           <div
                             key={wod.id}
                             data-received={received ? 'true' : undefined}
-                            className={`rounded-ax-card p-2.5 border bg-ax-surface-secondary hover:border-ax-input-border transition-colors motion-reduce:transition-none ${received ? 'border-2' : 'border-ax-border'} ${!wod.is_published ? 'opacity-50' : ''}`}
+                            className={`rounded-ax-card p-2.5 border bg-ax-surface-secondary hover:border-ax-input-border transition-colors motion-reduce:transition-none ${received ? 'border-2' : 'border-ax-border'} ${!wod.is_published ? 'border-dashed' : ''}`}
                             style={{
                               ...(received ? { borderColor: received.color } : {}),
                               // Liseré de piste : lisible en vue « Tout », où
@@ -1104,15 +1105,15 @@ export default function WODsPage() {
                             }}
                           >
                             {received && (
-                              <p className="text-[9px] font-bold truncate mb-1 flex items-center gap-1" style={{ color: received.textColor }} title={`Reçu de la programmation « ${received.title} »`}>
-                                <Lock size={8} /> Prog : {received.title}
+                              <p className="text-[9px] font-bold break-words mb-1 flex items-start gap-1" style={{ color: received.textColor }} title={`Reçu de la programmation « ${received.title} »`}>
+                                <Lock size={8} className="shrink-0 mt-px" /> <span className="min-w-0">Prog : {received.title}</span>
                               </p>
                             )}
                             <div className="flex items-center gap-1.5 mb-1 flex-wrap">
                               <TrackBadge wod={wod} />
                               <AutoBadge wod={wod} />
-                              {wod.block_name && <span className="text-[8px] font-black tracking-wider px-1 py-0.5 rounded-ax-badge" style={{ backgroundColor: softVar(BLOCK_COLOR[wod.block_name], 0.125), color: BLOCK_COLOR[wod.block_name] }}>{BLOCK_LABEL[wod.block_name]}</span>}
-                              {wt && <><div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: color }} /><span className="text-[9px] font-black tracking-wider truncate" style={{ color }}>{wt.toUpperCase()}</span></>}
+                              {wod.block_name && <span className="text-[8px] font-black tracking-wider px-1 py-0.5 rounded-ax-badge" style={{ backgroundColor: softVar(BLOCK_COLOR[wod.block_name], 0.125), color: textTint(BLOCK_COLOR[wod.block_name]) }}>{BLOCK_LABEL[wod.block_name]}</span>}
+                              {wt && <><div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: color }} /><span className="text-[9px] font-black tracking-wider" style={{ color: textTint(color) }}>{wt.toUpperCase()}</span></>}
                               {wod.video_url && <Video size={9} className="text-ax-danger shrink-0" />}
                               {!wod.is_published && <EyeOff size={9} className="text-ax-warning shrink-0" />}
                               {wod.publish_at && new Date(wod.publish_at) > new Date() && <span className="text-[8px] font-bold text-ax-info">⏰ {new Date(wod.publish_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</span>}
@@ -1125,9 +1126,9 @@ export default function WODsPage() {
                                     : <Square size={13} className="text-ax-text-muted" />}
                                 </button>
                               )}
-                              <p className="text-xs font-bold text-ax-text truncate">{wod.title}</p>
+                              <p className="text-xs font-bold text-ax-text break-words min-w-0">{wod.title}</p>
                             </div>
-                            {wod.description && <p className="text-[10px] text-ax-text-muted truncate mt-0.5">{wod.description}</p>}
+                            {wod.description && <p className="text-[10px] text-ax-text-muted whitespace-pre-line break-words mt-0.5">{wod.description}</p>}
                             <div className="mt-1">
                               <RestrictionBadges
                                 compact
@@ -1183,6 +1184,7 @@ export default function WODsPage() {
             );
           })}
         </div>
+        </div>
       ) : (
         <div className="space-y-3">
           {weekDates.map((d, i) => {
@@ -1233,7 +1235,7 @@ export default function WODsPage() {
                         <div
                           key={wod.id}
                           data-received={received ? 'true' : undefined}
-                          className={`flex items-center gap-4 px-5 py-3.5 ${received ? 'border-2 rounded-ax-card my-1 mx-1' : ''} ${!wod.is_published ? 'opacity-60' : ''}`}
+                          className={`flex flex-wrap sm:flex-nowrap items-center gap-x-4 gap-y-2 px-4 sm:px-5 py-3.5 ${received ? 'border-2 rounded-ax-card my-1 mx-1' : ''} ${!wod.is_published ? 'bg-ax-surface-secondary' : ''}`}
                           style={received ? { borderColor: received.color } : undefined}
                         >
                           <div className="flex flex-col gap-0.5 shrink-0">
@@ -1262,17 +1264,17 @@ export default function WODsPage() {
                                 : <Square size={16} className="text-ax-text-muted" />}
                             </button>
                           )}
-                          <div className="flex-1 min-w-0">
+                          <div className="flex-1 min-w-0 basis-full sm:basis-auto">
                             <div className="flex items-center gap-2 mb-0.5 flex-wrap">
                               <TrackBadge wod={wod} />
                               <AutoBadge wod={wod} />
                               {wod.block_name && (
-                                <span className="text-[10px] font-black tracking-wider px-1.5 py-0.5 rounded-ax-badge" style={{ backgroundColor: softVar(BLOCK_COLOR[wod.block_name], 0.125), color: BLOCK_COLOR[wod.block_name] }}>
+                                <span className="text-[10px] font-black tracking-wider px-1.5 py-0.5 rounded-ax-badge" style={{ backgroundColor: softVar(BLOCK_COLOR[wod.block_name], 0.125), color: textTint(BLOCK_COLOR[wod.block_name]) }}>
                                   {BLOCK_LABEL[wod.block_name]}
                                 </span>
                               )}
                               {wt && (
-                                <span className="text-[10px] font-black tracking-wider" style={{ color }}>
+                                <span className="text-[10px] font-black tracking-wider" style={{ color: textTint(color) }}>
                                   {wt.toUpperCase()}
                                 </span>
                               )}
@@ -1299,12 +1301,12 @@ export default function WODsPage() {
                                 programs={refPrograms}
                               />
                             </div>
-                            <p className="text-sm font-bold text-ax-text truncate">{wod.title}</p>
+                            <p className="text-sm font-bold text-ax-text break-words">{wod.title}</p>
                             {wod.description && (
-                              <p className="text-xs text-ax-text-muted truncate mt-0.5">{wod.description}</p>
+                              <p className="text-xs text-ax-text-muted whitespace-pre-line break-words mt-0.5">{wod.description}</p>
                             )}
                           </div>
-                          <div className="flex items-center gap-1 shrink-0">
+                          <div className="flex items-center gap-1 shrink-0 ml-auto sm:ml-0">
                             {wod.time_cap_seconds && (
                               <span className="text-xs text-ax-text-muted mr-2">{formatCap(wod.time_cap_seconds)}</span>
                             )}

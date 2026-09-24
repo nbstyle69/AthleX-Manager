@@ -51,7 +51,7 @@ export default function TrackTabs({
               <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: accent }} />
             )}
             {TAB_LABEL[tab]}
-            <span className="opacity-60">{counts[tab] ?? 0}</span>
+            <span className="font-bold text-ax-text-secondary">{counts[tab] ?? 0}</span>
           </button>
         );
       })}
@@ -77,7 +77,7 @@ export function TrackBadge({ wod }: { wod: { track?: string | null } }) {
       data-testid={`badge-piste-${track}`}
       title={`Piste ${TRACK_LABEL[track]}`}
       className="text-[8px] font-black tracking-wider px-1 py-0.5 rounded-ax-badge shrink-0"
-      style={{ color: accentText, backgroundColor: softVar(accent, 0.12) }}
+      style={{ color: accentText, backgroundColor: `color-mix(in srgb, ${accent} 12%, var(--ax-surface))` }}
     >
       {TRACK_LABEL[track].toUpperCase()}
     </span>

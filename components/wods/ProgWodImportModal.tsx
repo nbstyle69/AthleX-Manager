@@ -244,7 +244,7 @@ export default function ProgWodImportModal({
                   <div className="flex items-center gap-2 mb-2">
                     <input type="checkbox" checked={r.keep} aria-label={`Importer ${r.title}`}
                       onChange={(e) => setRows((prev) => prev?.map((x, j) => (j === i ? { ...x, keep: e.target.checked } : x)) ?? null)} />
-                    <span className="flex-1 text-sm font-semibold text-ax-text truncate">{r.title}</span>
+                    <span className="flex-1 min-w-0 text-sm font-semibold text-ax-text break-words">{r.title}</span>
                     <span className="text-[10px] font-black uppercase px-1.5 py-0.5 rounded-ax-badge bg-ax-hover text-ax-text-secondary">{r.type}</span>
                   </div>
                   <div className="grid grid-cols-2 gap-2">
@@ -266,7 +266,7 @@ export default function ProgWodImportModal({
                     </label>
                   </div>
                   {r.description && (
-                    <p className="text-[11px] text-ax-text-muted whitespace-pre-line line-clamp-3 mt-2">{r.description}</p>
+                    <p className="text-[11px] text-ax-text-muted whitespace-pre-line break-words mt-2">{r.description}</p>
                   )}
                 </div>
               ))}
