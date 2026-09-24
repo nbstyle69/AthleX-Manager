@@ -408,7 +408,7 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
                     <p className="text-sm font-semibold text-ax-text break-words min-w-0">{m.username}</p>
                     <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-ax-badge" style={{ color: lvlColor, backgroundColor: softVar(lvlColor, 0.125) }}>{LEVEL_LABEL[m.level] ?? m.level.toUpperCase()}</span>
                     {m.groups.map(g => (
-                      <span key={g.id} className="text-[10px] font-bold px-1.5 py-0.5 rounded-ax-badge break-words" style={{ color: textTint(g.color), backgroundColor: softVar(g.color, 0.125) }}>{g.name}</span>
+                      <span key={g.id} className="text-[10px] font-bold px-1.5 py-0.5 rounded-ax-badge break-words" style={{ color: textTint(g.color), backgroundColor: softVar(g.color, 0.08) }}>{g.name}</span>
                     ))}
                   </div>
                   <p className="text-xs text-ax-text-muted">⭐ ELO {m.elo}</p>
