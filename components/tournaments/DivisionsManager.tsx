@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import { useConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Loader2, UserPlus, ArrowUp, ArrowDown, X, AlertTriangle, Trophy, Plus, Crown, History, RefreshCw } from 'lucide-react';
 
 interface Division {
@@ -58,6 +59,7 @@ export default function DivisionsManager({
 }: Props) {
   const router = useRouter();
   const supabase = createClient();
+  const { dialog, ask } = useConfirmDialog();
   const [divisions, setDivisions] = useState<Division[]>(initialDivisions);
   const [members, setMembers] = useState<MemberRow[]>(initialMembers);
   const [unassigned, setUnassigned] = useState<Profile[]>(initialUnassigned);
@@ -95,8 +97,18 @@ export default function DivisionsManager({
     setAddingTo(null);
   }
 
+  function askRemoveMember(memberRowId: string, athlete: Profile, division: string, points: number, rank: number) {
+    ask({
+      title: `Retirer ${athlete.username} de sa division ?`,
+      element: `${athlete.username} · ${division} · ${points} pts · ${rank}${rank === 1 ? 'er' : 'e'}`,
+      body: 'Il reste inscrit au tournoi et ses scores sont conservés, mais il n’a plus de division ni de points. Il sera replacé automatiquement selon son ELO à la prochaine inscription d’un athlète.',
+      confirmLabel: 'Retirer',
+      danger: true,
+      run: () => removeMember(memberRowId, athlete),
+    });
+  }
+
   async function removeMember(memberRowId: string, athlete: Profile) {
-    if (!confirm(`Retirer ${athlete.username} de la division ?`)) return;
     setBusy(`del-${memberRowId}`); setError(null);
     const { error: err } = await supabase.from('tournament_division_members').delete().eq('id', memberRowId);
     setBusy(null);
@@ -124,13 +136,18 @@ export default function DivisionsManager({
     setMembers(prev => prev.map(m => m.id === memberRowId ? { ...m, points } : m));
   }
 
+  function askEndSeason() {
+    ask({
+      title: `Clôturer la saison ${currentSeason} ?`,
+      element: `${divisions.length} division(s) · ${members.length} athlète(s) · la saison ${currentSeason + 1} commence ensuite`,
+      body: `Le classement final est archivé, les promus et relégués changent de division et tous les points repartent de 0. Les scores de la saison ${currentSeason} ne compteront plus. C’est définitif.`,
+      confirmLabel: 'Clôturer la saison',
+      danger: true,
+      run: endSeasonAndAdvance,
+    });
+  }
+
   async function endSeasonAndAdvance() {
-    const msg = `Clôturer la saison ${currentSeason} et démarrer la saison ${currentSeason + 1} ?\n\n` +
-                `• Snapshot du classement final dans l'historique\n` +
-                `• Promus / relégués déplacés entre divisions\n` +
-                `• Points remis à 0 pour tous les athlètes\n\n` +
-                `Cette action est irréversible.`;
-    if (!confirm(msg)) return;
     setBusy('promote'); setError(null);
     const { error: err } = await supabase.rpc('end_season_and_advance', { p_tournament_id: tournamentId });
     setBusy(null);
@@ -139,9 +156,21 @@ export default function DivisionsManager({
     window.location.reload();
   }
 
-  async function addDivision() {
+  // Création avec un champ : « Annuler » ne crée rien (comme le prompt annulé).
+  function askAddDivision() {
     const nextLevel = (divisions[divisions.length - 1]?.level ?? 0) + 1;
-    const name = prompt('Nom de la division :', `D${nextLevel}`);
+    const last = divisions[divisions.length - 1]?.name;
+    ask({
+      title: 'Créer une nouvelle division ?',
+      element: last ? `Niveau ${nextLevel}, sous « ${last} »` : `Niveau ${nextLevel}`,
+      body: 'Elle aura 16 places, 3 promus par saison et aucun relégué : réglages modifiables ensuite. Les athlètes non assignés n’y sont pas placés automatiquement.',
+      field: { label: 'Nom de la division', defaultValue: `D${nextLevel}` },
+      confirmLabel: 'Créer la division',
+      run: name => addDivision(nextLevel, name),
+    });
+  }
+
+  async function addDivision(nextLevel: number, name: string) {
     if (!name) return;
     setBusy('add-div'); setError(null);
     const { data, error: err } = await supabase.from('tournament_divisions').insert({
@@ -164,6 +193,7 @@ export default function DivisionsManager({
 
   return (
     <div className="space-y-6">
+      {dialog}
       {error && (
         <div className="bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3 text-sm text-red-400 flex items-center gap-2">
           <AlertTriangle size={14} /> {error}
@@ -186,11 +216,11 @@ export default function DivisionsManager({
             className="inline-flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold bg-white/5 hover:bg-white/10 text-white border border-white/10 transition-colors">
             <RefreshCw size={12} /> Rafraîchir
           </button>
-          <button onClick={addDivision} disabled={busy === 'add-div'}
+          <button onClick={askAddDivision} disabled={busy === 'add-div'}
             className="inline-flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold bg-white/5 hover:bg-white/10 text-white border border-white/10 transition-colors">
             <Plus size={12} /> Division
           </button>
-          <button onClick={endSeasonAndAdvance} disabled={busy === 'promote' || members.length === 0}
+          <button onClick={askEndSeason} disabled={busy === 'promote' || members.length === 0}
             className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold bg-white hover:bg-[#e0b730] text-[#0A0A0A] disabled:opacity-50 transition-colors">
             {busy === 'promote' ? <Loader2 size={12} className="animate-spin" /> : <Trophy size={12} />}
             Clôturer saison {currentSeason} → {currentSeason + 1}
@@ -326,9 +356,13 @@ export default function DivisionsManager({
                                     setError(`${target.name} est pleine (${targetCount}/${target.max_members}).`);
                                     return;
                                   }
-                                  if (confirm(`Déplacer ${p?.username ?? 'cet athlète'} vers ${target?.name ?? '?'} ?\nLes points seront remis à 0.`)) {
-                                    moveMember(row.id, next);
-                                  }
+                                  ask({
+                                    title: `Changer ${p?.username ?? 'cet athlète'} de division ?`,
+                                    element: `${p?.username ?? 'Cet athlète'} : ${d.name} → ${target?.name ?? '?'} · ${row.points} pts actuellement`,
+                                    body: `Ses points passent à 0 jusqu’au prochain score enregistré dans le tournoi : ils seront alors recalculés, et ses scores déjà envoyés resteront classés dans ${d.name}. Il ne sera plus déplacé automatiquement.`,
+                                    confirmLabel: 'Déplacer',
+                                    run: () => moveMember(row.id, next),
+                                  });
                                 }
                               }}
                               title="Déplacer vers une autre division"
@@ -338,7 +372,7 @@ export default function DivisionsManager({
                                 <option key={dd.id} value={dd.id}>{dd.name}</option>
                               ))}
                             </select>
-                            <button onClick={() => removeMember(row.id, p)} disabled={busy === `del-${row.id}`}
+                            <button onClick={() => askRemoveMember(row.id, p, d.name, row.points, rIdx + 1)} disabled={busy === `del-${row.id}`} aria-label={`Retirer ${p?.username ?? 'cet athlète'} de la division`}
                               className="text-red-400 hover:text-red-300 disabled:opacity-50">
                               <X size={14} />
                             </button>

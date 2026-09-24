@@ -148,6 +148,7 @@ export default async function TournamentParticipantsPage({ params }: { params: P
                   tournamentId={tournamentId}
                   athleteId={p.athlete_id}
                   username={p.profile?.username ?? '?'}
+                  tournamentName={(tournament as any).name}
                 />
               </div>
             );

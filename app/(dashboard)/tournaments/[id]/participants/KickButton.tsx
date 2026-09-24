@@ -4,22 +4,36 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { UserX, Loader2 } from 'lucide-react';
+import { useConfirmDialog } from '@/components/ui/confirm-dialog';
 
 export default function KickButton({
   tournamentId,
   athleteId,
   username,
+  tournamentName,
 }: {
   tournamentId: string;
   athleteId: string;
   username: string;
+  tournamentName: string;
 }) {
   const router = useRouter();
   const supabase = createClient();
   const [kicking, setKicking] = useState(false);
+  const { dialog, ask } = useConfirmDialog();
+
+  function askKick() {
+    ask({
+      title: `Exclure ${username} du tournoi ?`,
+      element: `${username} · ${tournamentName}`,
+      body: 'Il disparaît de la liste des inscrits, ne pourra plus envoyer de score et ne recevra plus les notifications du tournoi. Ses scores déjà envoyés, sa division et ses matchs du tableau sont conservés. Il pourra se réinscrire tant que les inscriptions sont ouvertes.',
+      confirmLabel: 'Exclure',
+      danger: true,
+      run: handleKick,
+    });
+  }
 
   async function handleKick() {
-    if (!confirm(`Exclure ${username} du tournoi ?`)) return;
     setKicking(true);
     const { error } = await supabase
       .from('tournament_participants')
@@ -35,8 +49,10 @@ export default function KickButton({
   }
 
   return (
+    <>
+    {dialog}
     <button
-      onClick={handleKick}
+      onClick={askKick}
       disabled={kicking}
       className="shrink-0 flex items-center gap-1.5 px-3 py-2 text-xs font-bold text-red-400 border border-red-500/20 rounded-xl hover:bg-red-500/10 transition-colors disabled:opacity-50"
       title="Exclure du tournoi"
@@ -44,5 +60,6 @@ export default function KickButton({
       {kicking ? <Loader2 size={13} className="animate-spin" /> : <UserX size={13} />}
       Exclure
     </button>
+    </>
   );
 }

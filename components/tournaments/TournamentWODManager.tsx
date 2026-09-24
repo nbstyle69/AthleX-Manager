@@ -5,6 +5,8 @@ import { createClient } from '@/lib/supabase/client';
 import { Plus, Pencil, Trash2, Timer, CheckCircle, Clock, Layers, Globe, Calendar, Trophy } from 'lucide-react';
 import WODForm from './WODForm';
 import { isScheduledAhead } from '@/lib/datetime';
+import { useConfirmDialog } from '@/components/ui/confirm-dialog';
+import { ERROR_TITLE } from '@/lib/confirmDialog';
 
 function formatSchedule(value: string) {
   return new Date(value).toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' });
@@ -57,6 +59,7 @@ export default function TournamentWODManager({ tournamentId, initialWODs, divisi
   const [eloBusy, setEloBusy]   = useState<string | null>(null);
   const [eloMsg,  setEloMsg]    = useState<{ id: string; text: string; ok: boolean } | null>(null);
   const [statusErr, setStatusErr] = useState<{ id: string; text: string } | null>(null);
+  const { dialog, ask, inform } = useConfirmDialog();
 
   useEffect(() => {
     if (!isLeague) return;
@@ -113,30 +116,51 @@ export default function TournamentWODManager({ tournamentId, initialWODs, divisi
   function onSaved()       { setShowForm(false); reload(); }
   function onCancel()      { setShowForm(false); }
 
+  function askDeleteWOD(wod: any) {
+    const where = wod.division_id && divisionMap[wod.division_id]
+      ? divisionMap[wod.division_id].name
+      : wod.bracket_stage ? (stageMap[wod.bracket_stage] ?? `Étape ${wod.bracket_stage}`) : null;
+    ask({
+      title: `Supprimer le WOD « ${wod.title} » ?`,
+      element: where ? `${wod.title} · ${where}` : wod.title,
+      body: 'Le WOD et tous les scores envoyés dessus seront supprimés. Les points de division et les totaux de mouvements des athlètes seront recalculés sans eux. L’ELO déjà attribué pour ce WOD reste acquis. C’est définitif.',
+      confirmLabel: 'Supprimer le WOD',
+      danger: true,
+      run: () => deleteWOD(wod.id),
+    });
+  }
+
   async function deleteWOD(id: string) {
-    if (!confirm('Supprimer ce WOD ?')) return;
     setDeleting(id);
     const supabase = createClient();
-    await supabase.from('tournament_wods').delete().eq('id', id);
+    const { error } = await supabase.from('tournament_wods').delete().eq('id', id);
+    if (error) inform({ kind: 'error', title: ERROR_TITLE, body: error.message });
     setDeleting(null);
     reload();
   }
 
   async function toggleStatus(wod: any) {
     const next = wod.status === 'active' ? 'pending' : 'active';
-    const patch: { status: string; opens_at?: null } = { status: next };
 
     // A WOD scheduled in the future stays hidden from participants even when
     // its status is « Ouvert » — offer to lift the schedule at the same time.
+    // Trois choix : « Annuler » ne change rien (le confirm natif n'avait pas
+    // d'issue neutre : son « Annuler » ouvrait quand même le WOD à sa date).
     if (next === 'active' && isScheduledAhead(wod.opens_at)) {
-      const openNow = confirm(
-        `Ce WOD est programmé pour le ${formatSchedule(wod.opens_at)} : il restera invisible pour les participants jusque-là.\n\n` +
-        'OK — l’ouvrir maintenant (retire la programmation)\n' +
-        'Annuler — garder la programmation',
-      );
-      if (openNow) patch.opens_at = null;
+      ask({
+        title: `Ouvrir « ${wod.title} » maintenant ?`,
+        element: `Programmé pour le ${formatSchedule(wod.opens_at)}`,
+        body: `Ouvrir maintenant : le WOD devient visible tout de suite et les scores sont acceptés. Si le tournoi n’a pas encore démarré, il démarre et les inscriptions se ferment. Garder la date : il s’ouvrira le ${formatSchedule(wod.opens_at)}, et les inscrits sont prévenus de cette date.`,
+        confirmLabel: 'Ouvrir maintenant',
+        secondary: { label: 'Garder la date', run: () => applyStatus(wod, { status: next }) },
+        run: () => applyStatus(wod, { status: next, opens_at: null }),
+      });
+      return;
     }
+    await applyStatus(wod, { status: next });
+  }
 
+  async function applyStatus(wod: any, patch: { status: string; opens_at?: null }) {
     setStatusErr(null);
     const supabase = createClient();
     const { error } = await supabase.from('tournament_wods').update(patch).eq('id', wod.id);
@@ -146,6 +170,7 @@ export default function TournamentWODManager({ tournamentId, initialWODs, divisi
 
   return (
     <div className="space-y-4">
+      {dialog}
       {/* Season tabs (league only) */}
       {isLeague && availableSeasons.length > 0 && (
         <div className="flex items-center gap-2 flex-wrap">
@@ -324,7 +349,7 @@ export default function TournamentWODManager({ tournamentId, initialWODs, divisi
                     className="p-2 rounded-lg bg-white/5 text-gray-400 hover:text-white hover:bg-white/10 transition-colors">
                     <Pencil size={14} />
                   </button>
-                  <button onClick={() => deleteWOD(wod.id)} disabled={deleting === wod.id}
+                  <button onClick={() => askDeleteWOD(wod)} disabled={deleting === wod.id}
                     className="p-2 rounded-lg bg-white/5 text-gray-400 hover:text-red-400 hover:bg-red-500/10 transition-colors disabled:opacity-40">
                     <Trash2 size={14} />
                   </button>
