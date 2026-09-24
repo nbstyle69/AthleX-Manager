@@ -267,8 +267,8 @@ export default function ApplyProgramWeekModal({
             on ? 'border-ax-input-border bg-ax-hover text-ax-text' : 'border-ax-border bg-ax-surface-secondary text-ax-text-secondary hover:bg-ax-hover'}`}
         >
           {color && <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: color }} />}
-          <span className="font-semibold truncate">{i.title}</span>
-          {i.subtitle && <span className="text-xs text-ax-text-muted truncate">— {i.subtitle}</span>}
+          <span className="font-semibold break-words min-w-0">{i.title}</span>
+          {i.subtitle && <span className="text-xs text-ax-text-muted break-words min-w-0">— {i.subtitle}</span>}
           {i.kind === 'subscription' && (
             <span className="ml-auto text-[11px] text-ax-text-muted shrink-0">
               {i.wodCounts.reduce((a, b) => a + b, 0)} WOD · {i.weeksCount} sem

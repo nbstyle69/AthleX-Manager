@@ -18,7 +18,7 @@
  */
 
 import { Audience, audienceBadgeLabel } from '@/lib/audience';
-import { softVar } from '@/lib/colorVars';
+import { softVar, textTint } from '@/lib/colorVars';
 
 export type RestrictionRef = { id: string; name: string; color: string };
 
@@ -40,7 +40,7 @@ function Badge({
       className={`inline-flex items-center gap-0.5 font-bold rounded-ax-badge ${
         compact ? 'text-[8px] px-1.5 py-0.5' : 'text-[9px] px-1.5 py-0.5'
       }`}
-      style={{ backgroundColor: softVar(color, 0.125), color }}
+      style={{ backgroundColor: softVar(color, 0.125), color: textTint(color) }}
     >
       <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: color }} />
       {label}

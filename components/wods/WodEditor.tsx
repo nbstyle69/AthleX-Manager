@@ -33,7 +33,7 @@ import {
   splitStrengthLines,
 } from '@/lib/strengthBlock';
 import { BLOCKS, DAY_LABELS, WOD_TYPES, WodFormState } from '@/lib/wodFields';
-import { softVar } from '@/lib/colorVars';
+import { softVar, textTint } from '@/lib/colorVars';
 import { programColor } from '@/components/wods/RestrictionBadges';
 import { RestDay, estJourRepos } from '@/lib/programContent';
 import {
@@ -345,7 +345,7 @@ export default function WodEditor({
                 const showWeight = movementRowShowsWeight(parsed);
                 const showUnit = movementRowShowsUnit(parsed);
                 return (
-                  <div key={i} className="flex flex-wrap sm:flex-nowrap gap-2 items-center">
+                  <div key={i} className="flex flex-wrap gap-2 items-center">
                     {showUnit ? (
                       <>
                         <div className="relative w-24 shrink-0">
@@ -367,7 +367,7 @@ export default function WodEditor({
                       </>
                     ) : (
                       <input type="number" min={0} inputMode="numeric"
-                        className={`${inp} !w-20 shrink-0 text-center px-2`}
+                        className={`${inp} !w-24 shrink-0 text-center !px-2`}
                         value={parsed.reps ?? ''}
                         onChange={e => patchMovement(i, { reps: e.target.value === '' ? null : parseInt(e.target.value, 10) })}
                         placeholder="Reps" aria-label="Répétitions" />
@@ -380,9 +380,9 @@ export default function WodEditor({
                       unit={parsed.unit}
                       disabled={parsed.reps == null}
                       onChange={u => patchMovement(i, { unit: u })}
-                      className={`${inp} !w-20 shrink-0 px-2 disabled:opacity-50`} />
+                      className={`${inp} !w-20 shrink-0 !px-2 disabled:opacity-50`} />
                     <input list="box-movement-catalog"
-                      className={`${inp} flex-1 min-w-0`}
+                      className={`${inp} flex-1 min-w-[14rem]`}
                       value={parsed.name}
                       onChange={e => patchMovement(i, { name: e.target.value })}
                       placeholder="Exercice (rechercher…)" aria-label="Exercice" />
@@ -391,7 +391,7 @@ export default function WodEditor({
                     <div className={`flex gap-2 items-center ${showWeight ? 'basis-full sm:basis-auto' : ''}`}>
                       {showWeight && (
                         <>
-                          <div className="relative w-24 shrink-0">
+                          <div className="relative w-28 shrink-0">
                             <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-semibold text-ax-text-secondary pointer-events-none">♂</span>
                             <input type="number" min={0} step={0.5} inputMode="decimal"
                               className={`${inp} !px-0 !pl-7 !pr-6 text-center`}
@@ -400,7 +400,7 @@ export default function WodEditor({
                               placeholder="H" aria-label="Charge hommes en kilos" />
                             <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-ax-text-muted pointer-events-none">kg</span>
                           </div>
-                          <div className="relative w-24 shrink-0">
+                          <div className="relative w-28 shrink-0">
                             <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-semibold text-ax-text-secondary pointer-events-none">♀</span>
                             <input type="number" min={0} step={0.5} inputMode="decimal"
                               className={`${inp} !px-0 !pl-7 !pr-6 text-center`}
@@ -454,44 +454,44 @@ export default function WodEditor({
                       <Trash2 size={14} />
                     </button>
                   </div>
-                  <div className="flex gap-2 items-center">
+                  <div className="flex flex-wrap gap-2 items-center">
                     <input type="number" min={1} inputMode="numeric"
-                      className={`${inp} !w-20 shrink-0 text-center px-2`}
+                      className={`${inp} !w-20 shrink-0 text-center !px-2`}
                       value={e.sets}
                       onChange={ev => updateStrength(i, { sets: parseInt(ev.target.value, 10) || 1 })}
                       placeholder="5" aria-label="Séries" />
                     <span className="text-ax-text-muted text-sm">×</span>
                     <input type="number" min={1} inputMode="numeric"
-                      className={`${inp} !w-20 shrink-0 text-center px-2`}
+                      className={`${inp} !w-20 shrink-0 text-center !px-2`}
                       value={e.reps}
                       onChange={ev => updateStrength(i, { reps: parseInt(ev.target.value, 10) || 1 })}
                       placeholder="3" aria-label="Répétitions par série" />
                     <span className="text-ax-text-muted text-sm">@</span>
                     <input type="number" min={0} step={0.5} inputMode="decimal"
-                      className={`${inp} !w-20 shrink-0 text-center px-2`}
+                      className={`${inp} !w-24 shrink-0 text-center !px-2`}
                       value={e.load ?? ''}
                       onChange={ev => updateStrength(i, { load: ev.target.value === '' ? null : parseFloat(ev.target.value) })}
                       placeholder="Charge" aria-label="Charge par série" />
-                    <select className={`${inp} !w-24 shrink-0 px-2`} value={e.unit}
+                    <select className={`${inp} !w-24 shrink-0 !px-2`} value={e.unit}
                       onChange={ev => updateStrength(i, { unit: ev.target.value as StrengthLoadUnit })}
                       aria-label="Unité de charge">
                       <option value="kg" className="text-ax-text bg-ax-surface">kg</option>
                       <option value="%1RM" className="text-ax-text bg-ax-surface">%1RM</option>
                     </select>
                   </div>
-                  <div className="flex gap-2 items-center">
+                  <div className="flex flex-wrap gap-2 items-center">
                     <input type="text"
-                      className={`${inp} flex-1 min-w-0`}
+                      className={`${inp} flex-1 min-w-[8rem]`}
                       value={e.restSec != null ? String(e.restSec) : ''}
                       onChange={ev => updateStrength(i, { restSec: ev.target.value === '' ? null : parseInt(ev.target.value, 10) || null })}
                       placeholder="Repos (sec)" aria-label="Repos entre séries en secondes" />
                     <input type="text"
-                      className={`${inp} flex-1 min-w-0`}
+                      className={`${inp} flex-1 min-w-[8rem]`}
                       value={e.tempo ?? ''}
                       onChange={ev => updateStrength(i, { tempo: ev.target.value || null })}
                       placeholder="Tempo (30X1)" aria-label="Tempo" />
                     <input type="text"
-                      className={`${inp} flex-1 min-w-0`}
+                      className={`${inp} flex-1 min-w-[14rem]`}
                       value={e.loadNote ?? ''}
                       onChange={ev => updateStrength(i, { loadNote: ev.target.value || null })}
                       placeholder="Charge libre (RPE 9, RM du jour…)" aria-label="Charge libre" />
@@ -543,26 +543,26 @@ export default function WodEditor({
                         <Trash2 size={14} />
                       </button>
                     </div>
-                    <div className="flex gap-2 items-center">
+                    <div className="flex flex-wrap gap-2 items-center">
                       <input type="number" min={1} inputMode="numeric"
-                        className={`${inp} !w-20 shrink-0 text-center px-2`}
+                        className={`${inp} !w-20 shrink-0 text-center !px-2`}
                         value={e.sets}
                         onChange={ev => updateCardio(i, { sets: parseInt(ev.target.value, 10) || 1 })}
                         placeholder="2" aria-label="Séries cardio" />
                       <span className="text-ax-text-muted text-sm">×</span>
                       <input type="number" min={1} inputMode="numeric"
-                        className={`${inp} !w-24 shrink-0 text-center px-2`}
+                        className={`${inp} !w-28 shrink-0 text-center !px-2`}
                         value={e.quantity}
                         onChange={ev => updateCardio(i, { quantity: parseInt(ev.target.value, 10) || 1 })}
                         placeholder="500" aria-label="Quantité par série" />
-                      <select className={`${inp} !w-20 shrink-0 px-2`} value={e.unit}
+                      <select className={`${inp} !w-20 shrink-0 !px-2`} value={e.unit}
                         onChange={ev => updateCardio(i, { unit: ev.target.value as CardioUnit })}
                         aria-label="Unité cardio">
                         {CARDIO_UNITS.map(u => <option key={u.value} value={u.value} className="text-ax-text bg-ax-surface">{u.label}</option>)}
                       </select>
                     </div>
-                    <div className="flex gap-2 items-center">
-                      <select className={`${inp} !w-28 shrink-0 px-2`} value={targetMode}
+                    <div className="flex flex-wrap gap-2 items-center">
+                      <select className={`${inp} !w-28 shrink-0 !px-2`} value={targetMode}
                         onChange={ev => (ev.target.value === 'pace'
                           ? updateCardio(i, { watts: null, pace: { mmss: '', per: paceRef } })
                           : updateCardio(i, { pace: null }))}
@@ -571,7 +571,7 @@ export default function WodEditor({
                         <option value="pace" className="text-ax-text bg-ax-surface">Allure</option>
                       </select>
                       {targetMode === 'watts' ? (
-                        <div className="relative flex-1 min-w-0">
+                        <div className="relative flex-1 min-w-[8rem]">
                           <input type="number" min={0} inputMode="numeric"
                             className={`${inp} !pr-8`}
                             value={e.watts ?? ''}
@@ -582,11 +582,11 @@ export default function WodEditor({
                       ) : (
                         <>
                           <input type="text" inputMode="numeric"
-                            className={`${inp} flex-1 min-w-0`}
+                            className={`${inp} flex-1 min-w-[8rem]`}
                             value={e.pace?.mmss ?? ''}
                             onChange={ev => updateCardio(i, { pace: { mmss: ev.target.value, per: paceRef } })}
                             placeholder="mm:ss (2:00)" aria-label="Allure cible" />
-                          <select className={`${inp} !w-24 shrink-0 px-2`} value={paceRef}
+                          <select className={`${inp} !w-24 shrink-0 !px-2`} value={paceRef}
                             onChange={ev => updateCardio(i, { pace: { mmss: e.pace?.mmss ?? '', per: ev.target.value as '500 m' | 'km' } })}
                             aria-label="Référence d’allure">
                             <option value="500 m" className="text-ax-text bg-ax-surface">/500 m</option>
@@ -595,9 +595,9 @@ export default function WodEditor({
                         </>
                       )}
                     </div>
-                    <div className="flex gap-2 items-center">
+                    <div className="flex flex-wrap gap-2 items-center">
                       <input type="text"
-                        className={`${inp} flex-1 min-w-0`}
+                        className={`${inp} flex-1 min-w-[8rem]`}
                         value={e.restSec != null ? `${Math.floor(e.restSec / 60)}:${String(e.restSec % 60).padStart(2, '0')}` : ''}
                         onChange={ev => {
                           const raw = ev.target.value.trim();
@@ -609,7 +609,7 @@ export default function WodEditor({
                         }}
                         placeholder="Repos (mm:ss)" aria-label="Repos entre séries cardio" />
                       <input type="text"
-                        className={`${inp} flex-1 min-w-0`}
+                        className={`${inp} flex-1 min-w-[8rem]`}
                         value={e.rpe ?? ''}
                         onChange={ev => updateCardio(i, { rpe: ev.target.value || null })}
                         placeholder="RPE (6)" aria-label="RPE" />
@@ -645,7 +645,7 @@ export default function WodEditor({
 
           <div>
             <label className="block text-xs font-semibold text-ax-text-secondary mb-1.5 uppercase tracking-wider">Notes Coach</label>
-            <textarea rows={2} className={`${inp} resize-none`} value={form.notes}
+            <textarea rows={3} className={`${inp} resize-none min-h-[6rem] [field-sizing:content]`} value={form.notes}
               onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
               placeholder="Conseils, scaling options…" />
           </div>
@@ -776,7 +776,7 @@ const chip = (selected: boolean, color: string) => ({
   className: `flex items-center gap-1.5 px-3 py-1.5 rounded-ax-control text-xs font-bold transition-all border ${
     selected ? 'border-transparent scale-105' : 'border-ax-border text-ax-text-secondary hover:text-ax-text hover:border-ax-input-border'
   }`,
-  style: selected ? { backgroundColor: softVar(color, 0.145), color, borderColor: softVar(color, 0.31) } : {},
+  style: selected ? { backgroundColor: softVar(color, 0.145), color: textTint(color), borderColor: softVar(color, 0.31) } : {},
 });
 
 function Tip({ text }: { text: string }) {
@@ -951,8 +951,8 @@ function AudienceBlock({
                 })}
               </div>
               {selectedOffers.map(o => (
-                <div key={o.id} className="flex items-center gap-2 text-xs text-ax-text-secondary">
-                  <span className="truncate">{o.title}</span>
+                <div key={o.id} className="flex flex-wrap items-center gap-2 text-xs text-ax-text-secondary">
+                  <span className="break-words min-w-0">{o.title}</span>
                   <select
                     value={form.offerWeeks[o.id]}
                     onChange={e => setOfferWeek(o, parseInt(e.target.value, 10))}

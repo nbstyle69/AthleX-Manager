@@ -291,7 +291,7 @@ export default function PdfImportModal({ file, boxId, userId, target, onClose, o
         {/* Header */}
         <div className="flex items-start justify-between gap-4 px-6 py-4 border-b border-ax-border">
           <div className="flex-1 min-w-0">
-            <h3 className="text-lg font-bold text-ax-text truncate">Import PDF — {file.name}</h3>
+            <h3 className="text-lg font-bold text-ax-text [overflow-wrap:anywhere]">Import PDF — {file.name}</h3>
             <div className="flex flex-wrap items-center gap-3 mt-2">
               {target.kind === 'whiteboard' ? (
                 <label className="text-xs text-ax-text-secondary flex items-center gap-2">
