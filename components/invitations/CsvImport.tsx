@@ -27,9 +27,9 @@ interface BulkReport {
 }
 
 const VERDICT_CLS: Record<string, string> = {
-  creee: 'text-emerald-300',
-  ignoree: 'text-gray-400',
-  refusee: 'text-red-300',
+  creee: 'text-ax-success',
+  ignoree: 'text-ax-text-secondary',
+  refusee: 'text-ax-danger',
 };
 
 export default function CsvImport({
@@ -98,18 +98,18 @@ export default function CsvImport({
   }
 
   return (
-    <div className="bg-[#111111] border border-white/8 rounded-2xl p-5 space-y-4">
+    <div className="bg-ax-surface border border-ax-border rounded-ax-card p-5 space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="text-sm font-bold text-white flex items-center gap-2">
+        <h2 className="text-sm font-bold text-ax-text flex items-center gap-2">
           <FileSpreadsheet size={15} /> Importer mes adhérents (CSV)
         </h2>
         <div className="flex items-center gap-2">
           <button type="button" onClick={downloadTemplate}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-white/10 text-xs font-bold text-gray-300 hover:text-white">
+            className="flex items-center gap-1.5 px-3 py-2 rounded-ax-control border border-ax-border text-xs font-bold text-ax-text-secondary hover:text-ax-text">
             <Download size={13} /> Télécharger le modèle CSV
           </button>
           <button type="button" onClick={() => fileRef.current?.click()}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white text-black text-xs font-bold">
+            className="flex items-center gap-1.5 px-3 py-2 rounded-ax-control bg-ax-text text-ax-background text-xs font-bold">
             <Upload size={13} /> Choisir un fichier
           </button>
           <input ref={fileRef} type="file" accept=".csv,text/csv" className="hidden"
@@ -117,33 +117,33 @@ export default function CsvImport({
         </div>
       </div>
 
-      <p className="text-xs text-gray-500">
+      <p className="text-xs text-ax-text-muted">
         Colonnes attendues : prénom, nom, e-mail, formule (facultative). {IMPORT_MAX_ROWS} lignes maximum.
         L’import ne crée aucun membre : chaque ligne devient une invitation, que l’adhérent accepte lui-même.
       </p>
 
       {error && (
-        <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">{error}</div>
+        <div className="rounded-ax-control border border-ax-danger bg-ax-danger-soft px-4 py-3 text-sm text-ax-danger">{error}</div>
       )}
 
       {parsed && (
         <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <p className="text-sm text-white font-bold">
+          <div className="flex items-start justify-between gap-3">
+            <p className="text-sm text-ax-text font-bold">
               {fileName} — {parsed.rows.length} ligne(s) lue(s) :{' '}
-              <span className="text-emerald-300">{parsed.ready} prête(s)</span>
-              {parsed.invalid > 0 && <> · <span className="text-red-300">{parsed.invalid} en erreur</span></>}
+              <span className="text-ax-success">{parsed.ready} prête(s)</span>
+              {parsed.invalid > 0 && <> · <span className="text-ax-danger">{parsed.invalid} en erreur</span></>}
             </p>
-            <button type="button" onClick={reset} className="text-gray-500 hover:text-white"><X size={16} /></button>
+            <button type="button" onClick={reset} aria-label="Fermer" className="shrink-0 p-1 rounded-ax-control text-ax-text-muted hover:text-ax-text hover:bg-ax-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ax-focus focus-visible:ring-offset-2 focus-visible:ring-offset-ax-surface"><X size={16} /></button>
           </div>
 
           {parsed.fatal ? (
-            <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">{parsed.fatal}</div>
+            <div className="rounded-ax-control border border-ax-danger bg-ax-danger-soft px-4 py-3 text-sm text-ax-danger">{parsed.fatal}</div>
           ) : (
             <>
-              <div className="max-h-72 overflow-auto rounded-xl border border-white/8">
+              <div className="max-h-72 overflow-auto rounded-ax-control border border-ax-border">
                 <table className="w-full text-xs">
-                  <thead className="bg-white/5 text-gray-400 sticky top-0">
+                  <thead className="bg-ax-surface-secondary text-ax-text-secondary sticky top-0">
                     <tr>
                       <th className="text-left px-3 py-2 font-bold">Ligne</th>
                       <th className="text-left px-3 py-2 font-bold">Adhérent</th>
@@ -154,12 +154,12 @@ export default function CsvImport({
                   </thead>
                   <tbody>
                     {parsed.rows.map(r => (
-                      <tr key={r.line} className="border-t border-white/5">
-                        <td className="px-3 py-1.5 text-gray-500">{r.line}</td>
-                        <td className="px-3 py-1.5 text-gray-300">{[r.firstName, r.lastName].filter(Boolean).join(' ') || '—'}</td>
-                        <td className="px-3 py-1.5 text-gray-300">{r.email || '—'}</td>
-                        <td className="px-3 py-1.5 text-gray-500">{r.planLabel || 'Sans formule'}</td>
-                        <td className={`px-3 py-1.5 ${r.error ? 'text-red-300' : 'text-emerald-300'}`}>
+                      <tr key={r.line} className="border-t border-ax-border">
+                        <td className="px-3 py-1.5 text-ax-text-muted">{r.line}</td>
+                        <td className="px-3 py-1.5 text-ax-text-secondary">{[r.firstName, r.lastName].filter(Boolean).join(' ') || '—'}</td>
+                        <td className="px-3 py-1.5 text-ax-text-secondary">{r.email || '—'}</td>
+                        <td className="px-3 py-1.5 text-ax-text-muted">{r.planLabel || 'Sans formule'}</td>
+                        <td className={`px-3 py-1.5 ${r.error ? 'text-ax-danger' : 'text-ax-success'}`}>
                           {r.error ?? 'Prête'}
                         </td>
                       </tr>
@@ -169,11 +169,11 @@ export default function CsvImport({
               </div>
 
               <button type="button" onClick={confirm} disabled={running || parsed.ready === 0}
-                className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white text-black text-sm font-bold disabled:opacity-40">
+                className="flex items-center gap-2 px-4 py-2.5 rounded-ax-control bg-ax-text text-ax-background text-sm font-bold disabled:opacity-40">
                 {running ? <Loader2 size={15} className="animate-spin" /> : <Upload size={15} />}
                 Créer {parsed.ready} invitation(s)
               </button>
-              <p className="text-xs text-gray-500">
+              <p className="text-xs text-ax-text-muted">
                 Les lignes en erreur sont envoyées telles quelles : le serveur les refuse une par une, elles ne bloquent pas les autres.
               </p>
             </>
@@ -183,22 +183,22 @@ export default function CsvImport({
 
       {report && (
         <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <p className="text-sm text-white font-bold">
-              {report.total} ligne(s) traitée(s) : <span className="text-emerald-300">{report.created} créée(s)</span> ·{' '}
-              <span className="text-gray-400">{report.ignored} ignorée(s)</span> ·{' '}
-              <span className="text-red-300">{report.refused} refusée(s)</span>
+          <div className="flex items-start justify-between gap-3">
+            <p className="text-sm text-ax-text font-bold">
+              {report.total} ligne(s) traitée(s) : <span className="text-ax-success">{report.created} créée(s)</span> ·{' '}
+              <span className="text-ax-text-secondary">{report.ignored} ignorée(s)</span> ·{' '}
+              <span className="text-ax-danger">{report.refused} refusée(s)</span>
             </p>
-            <button type="button" onClick={reset} className="text-gray-500 hover:text-white"><X size={16} /></button>
+            <button type="button" onClick={reset} aria-label="Fermer" className="shrink-0 p-1 rounded-ax-control text-ax-text-muted hover:text-ax-text hover:bg-ax-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ax-focus focus-visible:ring-offset-2 focus-visible:ring-offset-ax-surface"><X size={16} /></button>
           </div>
-          <div className="max-h-72 overflow-auto rounded-xl border border-white/8">
+          <div className="max-h-72 overflow-auto rounded-ax-control border border-ax-border">
             <table className="w-full text-xs">
               <tbody>
                 {report.results.map(r => (
-                  <tr key={r.line} className="border-t border-white/5">
-                    <td className="px-3 py-1.5 text-gray-500 w-12">{r.line}</td>
-                    <td className="px-3 py-1.5 text-gray-300">{r.email}</td>
-                    <td className={`px-3 py-1.5 ${VERDICT_CLS[r.verdict] ?? 'text-gray-300'}`}>
+                  <tr key={r.line} className="border-t border-ax-border">
+                    <td className="px-3 py-1.5 text-ax-text-muted w-12">{r.line}</td>
+                    <td className="px-3 py-1.5 text-ax-text-secondary">{r.email}</td>
+                    <td className={`px-3 py-1.5 ${VERDICT_CLS[r.verdict] ?? 'text-ax-text-secondary'}`}>
                       {verdictLabel(r.verdict, r.reason)}
                     </td>
                   </tr>
@@ -206,7 +206,7 @@ export default function CsvImport({
               </tbody>
             </table>
           </div>
-          <p className="text-xs text-gray-500">
+          <p className="text-xs text-ax-text-muted">
             Les invitations créées apparaissent dans la liste ci-dessous : le lien et le QR s’y récupèrent, e-mail envoyé ou non.
           </p>
         </div>

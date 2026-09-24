@@ -68,7 +68,9 @@ export function trackColorVar(track: Track, usage: 'marker' | 'text' = 'marker')
  * en sombre et assombrie en clair. À utiliser pour le texte, jamais pour un fond.
  */
 export function textTint(color: string): string {
-  return `color-mix(in srgb, ${color} 55%, var(--ax-text))`;
+  // 40 % de teinte : même une couleur choisie très claire (jaune vif) reste AA en thème clair,
+  // y compris sur son fond atténué.
+  return `color-mix(in srgb, ${color} 40%, var(--ax-text))`;
 }
 
 /** Fond atténué de la même teinte, sans concaténer un alpha à un `var()`. */

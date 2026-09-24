@@ -12,11 +12,12 @@ import { createClient } from '@/lib/supabase/client';
 import { getMyBox } from '@/lib/getMyBox';
 import CsvImport from '@/components/invitations/CsvImport';
 import { SITE_URL } from '@/lib/site-url';
+import { Badge } from '@/components/ui/badge';
 
 const supabase = createClient();
 
 const INPUT_CLS =
-  'w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-white/30';
+  'w-full min-h-11 px-3 py-2.5 rounded-ax-control bg-ax-surface border border-ax-input-border text-base sm:text-sm text-ax-text placeholder:text-ax-text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ax-focus focus-visible:ring-offset-2 focus-visible:ring-offset-ax-surface transition-colors';
 
 interface Plan {
   id: string;
@@ -235,27 +236,27 @@ export default function InvitationsPage() {
   );
 
   if (loading) {
-    return <div className="flex items-center justify-center py-24"><Loader2 className="animate-spin text-gray-500" /></div>;
+    return <div className="flex items-center justify-center py-24"><Loader2 className="animate-spin text-ax-text-muted" /></div>;
   }
 
   return (
     <div className="space-y-6">
       <div>
         <div className="flex items-center gap-3">
-          <h1 className="text-2xl font-black text-white">Invitations</h1>
+          <h1 className="font-display text-2xl font-medium uppercase tracking-wide text-ax-text">Invitations</h1>
           <HelpButton />
         </div>
-        <p className="text-sm text-gray-400 mt-1">
+        <p className="text-sm text-ax-text-secondary mt-1">
           Inscris un adhérent nominativement : il reçoit un lien personnel, choisit son pseudo et son mot de passe, et arrive dans ta box avec sa formule.
         </p>
       </div>
 
       {error && (
-        <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">{error}</div>
+        <div className="rounded-ax-control border border-ax-danger bg-ax-danger-soft px-4 py-3 text-sm text-ax-danger">{error}</div>
       )}
 
-      <form onSubmit={create} className="bg-[#111111] border border-white/8 rounded-2xl p-5 space-y-4">
-        <h2 className="text-sm font-bold text-white flex items-center gap-2"><UserPlus size={15} /> Nouvelle invitation</h2>
+      <form onSubmit={create} className="bg-ax-surface border border-ax-border rounded-ax-card p-5 space-y-4">
+        <h2 className="text-sm font-bold text-ax-text flex items-center gap-2"><UserPlus size={15} /> Nouvelle invitation</h2>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           <input className={INPUT_CLS} placeholder="Prénom" value={firstName} onChange={e => setFirstName(e.target.value)} />
@@ -275,8 +276,8 @@ export default function InvitationsPage() {
 
           <div className="flex items-center gap-2">
             {(['box', 'stripe'] as const).map(mode => (
-              <button key={mode} type="button" onClick={() => setPaymentMode(mode)}
-                className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold border transition-colors ${paymentMode === mode ? 'border-white/50 bg-white/10 text-white' : 'border-white/10 text-gray-400 hover:text-white'}`}>
+              <button key={mode} type="button" onClick={() => setPaymentMode(mode)} aria-pressed={paymentMode === mode}
+                className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-ax-control text-xs font-bold border transition-colors ${paymentMode === mode ? 'border-ax-input-border bg-ax-surface-secondary text-ax-text' : 'border-ax-border text-ax-text-secondary hover:text-ax-text'}`}>
                 {mode === 'box' ? <Banknote size={13} /> : <CreditCard size={13} />}
                 {mode === 'box' ? 'Encaissement box' : 'Paiement Stripe'}
               </button>
@@ -285,18 +286,18 @@ export default function InvitationsPage() {
         </div>
 
         {paymentMode === 'box' ? (
-          <label className="flex items-center gap-2 text-xs text-gray-300">
+          <label className="flex items-center gap-2 text-xs text-ax-text-secondary">
             <input type="checkbox" checked={cashCollected} onChange={e => setCashCollected(e.target.checked)} />
             Paiement déjà encaissé — le membre est actif dès qu’il crée son compte
           </label>
         ) : (
-          <p className="text-xs text-gray-500">
+          <p className="text-xs text-ax-text-muted">
             Le membre créera son compte puis paiera par Stripe. Il ne sera actif qu’une fois le paiement confirmé.
           </p>
         )}
 
         <button type="submit" disabled={creating || !email.trim()}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white text-black text-sm font-bold disabled:opacity-40">
+          className="flex items-center gap-2 px-4 py-2.5 rounded-ax-control bg-ax-text text-ax-background text-sm font-bold disabled:opacity-40">
           {creating ? <Loader2 size={15} className="animate-spin" /> : <UserPlus size={15} />} Créer l’invitation
         </button>
       </form>
@@ -305,75 +306,73 @@ export default function InvitationsPage() {
         <CsvImport boxId={boxId} plans={plans} onImported={load} />
       )}
 
-      <div className="flex items-center gap-3">
-        <button onClick={() => setOnlyToCollect(v => !v)}
-          className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold border transition-colors ${onlyToCollect ? 'border-white/50 bg-white/10 text-white' : 'border-white/10 text-gray-400 hover:text-white'}`}>
+      <div className="flex flex-wrap items-center gap-3">
+        <button onClick={() => setOnlyToCollect(v => !v)} aria-pressed={onlyToCollect}
+          className={`flex items-center gap-1.5 px-3 py-2 rounded-ax-control text-xs font-bold border transition-colors ${onlyToCollect ? 'border-ax-input-border bg-ax-surface-secondary text-ax-text' : 'border-ax-border text-ax-text-secondary hover:text-ax-text'}`}>
           <Banknote size={13} /> À encaisser{toCollectCount > 0 ? ` (${toCollectCount})` : ''}
         </button>
-        <span className="text-xs text-gray-500">{visible.length} invitation(s)</span>
+        <span className="text-xs text-ax-text-muted">{visible.length} invitation(s)</span>
       </div>
 
       <div className="space-y-2">
         {visible.length === 0 && (
-          <p className="text-xs text-gray-600 italic">Aucune invitation.</p>
+          <p className="text-xs text-ax-text-muted italic">Aucune invitation.</p>
         )}
         {visible.map(inv => {
           const expired = inv.status === 'pending' && new Date(inv.expires_at).getTime() < Date.now();
           const toCollect = inv.status === 'pending' && inv.payment_mode === 'box' && !inv.cash_collected;
           return (
-            <div key={inv.id} className="bg-[#111111] border border-white/8 rounded-xl px-4 py-3 flex flex-wrap items-center gap-3">
-              <div className="min-w-[220px] flex-1">
-                <p className="text-sm font-semibold text-white">
+            <div key={inv.id} className="bg-ax-surface border border-ax-border rounded-ax-control px-4 py-3 flex flex-wrap items-center gap-3">
+              <div className="min-w-0 basis-[14rem] flex-1">
+                <p className="text-sm font-semibold text-ax-text break-words">
                   {[inv.first_name, inv.last_name].filter(Boolean).join(' ') || inv.email}
                 </p>
-                <p className="text-xs text-gray-500">{inv.email} · {planName(inv.plan_id)}</p>
+                <p className="text-xs text-ax-text-muted [overflow-wrap:anywhere]">{inv.email} · {planName(inv.plan_id)}</p>
               </div>
 
-              <span className={`text-[10px] font-bold px-2 py-1 rounded-lg ${
-                inv.status === 'accepted' ? 'bg-white/10 text-white'
-                  : inv.status === 'revoked' ? 'bg-white/5 text-gray-500'
-                  : expired ? 'bg-white/5 text-gray-500' : 'bg-white/10 text-gray-200'}`}>
+              <Badge
+                variant={inv.status === 'accepted' ? 'success' : inv.status === 'revoked' ? 'neutral' : expired ? 'warning' : 'info'}
+                className="text-[10px] font-bold px-2 py-1">
                 {inv.status === 'accepted' ? 'Acceptée' : inv.status === 'revoked' ? 'Révoquée' : expired ? 'Expirée' : `Valide jusqu’au ${fmtDate(inv.expires_at)}`}
-              </span>
+              </Badge>
 
               {toCollect && (
-                <span className="text-[10px] font-bold px-2 py-1 rounded-lg bg-white/10 text-white flex items-center gap-1">
+                <Badge variant="warning" className="text-[10px] font-bold px-2 py-1 gap-1">
                   <Banknote size={11} /> À encaisser
-                </span>
+                </Badge>
               )}
 
               {inv.payment_mode === 'stripe' && (
-                <span className="text-[10px] font-bold px-2 py-1 rounded-lg bg-white/5 text-gray-400 flex items-center gap-1">
+                <Badge variant="neutral" className="text-[10px] font-bold px-2 py-1 gap-1">
                   <CreditCard size={11} /> Stripe
-                </span>
+                </Badge>
               )}
 
               {inv.last_send_error ? (
-                <span title={inv.last_send_error}
-                  className="text-[10px] font-bold px-2 py-1 rounded-lg bg-white/5 text-gray-300 flex items-center gap-1">
-                  <MailWarning size={11} /> e-mail non parti — utilise le QR ou le lien
-                </span>
+                <Badge variant="danger" title={inv.last_send_error} className="text-[10px] font-bold px-2 py-1 gap-1">
+                  <MailWarning size={11} className="shrink-0" /> e-mail non parti — utilise le QR ou le lien
+                </Badge>
               ) : inv.last_sent_at ? (
-                <span className="text-[10px] font-bold px-2 py-1 rounded-lg bg-white/5 text-gray-400 flex items-center gap-1">
+                <Badge variant="neutral" className="text-[10px] font-bold px-2 py-1 gap-1">
                   <Mail size={11} /> envoyé le {fmtDate(inv.last_sent_at)}
-                </span>
+                </Badge>
               ) : null}
 
               {inv.status === 'pending' && (
-                <div className="flex items-center gap-1.5 ml-auto">
+                <div className="flex flex-wrap items-center gap-1.5 ml-auto">
                   {toCollect && (
                     <button onClick={() => markPaid(inv)} disabled={busy === inv.id}
-                      className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-white text-black text-xs font-bold disabled:opacity-40">
+                      className="flex items-center gap-1 px-2.5 py-1.5 rounded-ax-control bg-ax-text text-ax-background text-xs font-bold disabled:opacity-40">
                       <Banknote size={12} /> Encaissé
                     </button>
                   )}
                   <button onClick={() => resend(inv)} disabled={busy === inv.id}
                     title="Régénère le lien : l’ancien devient inutilisable"
-                    className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-white/10 text-gray-300 hover:text-white text-xs font-bold disabled:opacity-40">
+                    className="flex items-center gap-1 px-2.5 py-1.5 rounded-ax-control border border-ax-border text-ax-text-secondary hover:text-ax-text text-xs font-bold disabled:opacity-40">
                     {busy === inv.id ? <Loader2 size={12} className="animate-spin" /> : <RefreshCw size={12} />} Relancer
                   </button>
                   <button onClick={() => revoke(inv)} disabled={busy === inv.id}
-                    className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-white/10 text-gray-400 hover:text-white text-xs font-bold disabled:opacity-40">
+                    className="flex items-center gap-1 px-2.5 py-1.5 rounded-ax-control border border-ax-border text-ax-text-secondary hover:text-ax-text text-xs font-bold disabled:opacity-40">
                     <Ban size={12} /> Révoquer
                   </button>
                 </div>
@@ -384,48 +383,48 @@ export default function InvitationsPage() {
       </div>
 
       {link && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4">
-          <div className="w-full max-w-md bg-[#111111] border border-white/10 rounded-2xl p-6 space-y-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-ax-overlay backdrop-blur-ax-glass px-4">
+          <div className="w-full max-w-md bg-ax-surface border border-ax-border rounded-ax-panel shadow-ax-panel p-6 space-y-4">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <h3 className="text-sm font-bold text-white flex items-center gap-2"><QrCode size={15} /> Lien d’invitation</h3>
-                <p className="text-xs text-gray-500 mt-1">Pour {link.email}</p>
+                <h3 className="text-sm font-bold text-ax-text flex items-center gap-2"><QrCode size={15} /> Lien d’invitation</h3>
+                <p className="text-xs text-ax-text-muted mt-1 [overflow-wrap:anywhere]">Pour {link.email}</p>
               </div>
-              <button onClick={() => setLink(null)} className="text-gray-500 hover:text-white"><X size={16} /></button>
+              <button onClick={() => setLink(null)} aria-label="Fermer" className="shrink-0 p-1 rounded-ax-control text-ax-text-muted hover:text-ax-text hover:bg-ax-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ax-focus focus-visible:ring-offset-2 focus-visible:ring-offset-ax-surface"><X size={16} /></button>
             </div>
 
-            <p className="text-xs text-gray-500">
+            <p className="text-xs text-ax-text-muted">
               Ce lien n’est affiché qu’une fois : il n’est pas conservé en clair. Tu pourras en régénérer un avec « Relancer ».
             </p>
 
             {link.qr && (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={link.qr} alt="QR code du lien d’invitation" className="w-56 h-56 mx-auto rounded-xl bg-white p-2" />
+              <img src={link.qr} alt="QR code du lien d’invitation" className="w-56 h-56 mx-auto rounded-ax-control bg-white p-2" />
             )}
 
             <div className="flex items-center gap-2">
               <input readOnly value={link.url} className={`${INPUT_CLS} text-xs`} />
               <button onClick={() => { navigator.clipboard.writeText(link.url); setCopied(true); }}
-                className="flex items-center gap-1 px-3 py-2 rounded-lg bg-white text-black text-xs font-bold">
+                className="flex items-center gap-1 px-3 py-2 rounded-ax-control bg-ax-text text-ax-background text-xs font-bold">
                 {copied ? <Check size={13} /> : <Copy size={13} />} {copied ? 'Copié' : 'Copier'}
               </button>
             </div>
 
             <button onClick={sendEmail} disabled={link.emailState === 'sending'}
-              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-white/10 text-white text-sm font-bold disabled:opacity-40">
+              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-ax-control border border-ax-border text-ax-text text-sm font-bold disabled:opacity-40">
               {link.emailState === 'sending' ? <Loader2 size={15} className="animate-spin" /> : <Mail size={15} />}
               Envoyer par e-mail
             </button>
 
             {link.emailState === 'sent' && (
-              <p className="text-xs text-gray-300 flex items-center gap-1.5"><Check size={13} /> E-mail envoyé à {link.email}.</p>
+              <p className="text-xs text-ax-text-secondary flex items-center gap-1.5"><Check size={13} /> E-mail envoyé à {link.email}.</p>
             )}
             {link.emailState === 'failed' && (
-              <div className="rounded-xl border border-white/10 bg-white/5 px-3 py-2">
-                <p className="text-xs text-white font-bold flex items-center gap-1.5">
+              <div className="rounded-ax-control border border-ax-border bg-ax-surface-secondary px-3 py-2">
+                <p className="text-xs text-ax-text font-bold flex items-center gap-1.5">
                   <MailWarning size={13} /> E-mail non parti — utilise le QR code ou le lien.
                 </p>
-                <p className="text-[10px] text-gray-500 mt-1 break-all">{link.emailError}</p>
+                <p className="text-[10px] text-ax-text-muted mt-1 break-all">{link.emailError}</p>
               </div>
             )}
           </div>

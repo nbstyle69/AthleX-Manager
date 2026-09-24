@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Users, Search, SlidersHorizontal, X, Loader2, ChevronDown, ChevronUp, Check, Trash2, CreditCard, ShieldCheck, Crown } from 'lucide-react';
 import { getMyBox } from '@/lib/getMyBox';
+import { softVar, textTint } from '@/lib/colorVars';
 import HelpButton from '@/components/help/HelpButton';
 import { getMemberEmails } from '@/lib/memberEmails';
 import AthleteSheet from '@/components/dashboard/AthleteSheet';
@@ -20,7 +21,8 @@ import {
 
 const LEVELS = ['rx+', 'rx', 'scaled', 'foundations'];
 const LEVEL_LABEL: Record<string, string> = { 'rx+': 'RX+', rx: 'RX', scaled: 'SCALED', foundations: 'FOUNDATIONS' };
-const LEVEL_COLOR: Record<string, string> = { 'rx+': '#FFFFFF', rx: '#3B82F6', scaled: '#10B981', foundations: '#8B5CF6' };
+// Même code couleur qu'avant (rx+ blanc, rx bleu, scaled vert, foundations violet), en jetons lisibles dans les deux thèmes.
+const LEVEL_COLOR: Record<string, string> = { 'rx+': 'var(--ax-text)', rx: 'var(--ax-info)', scaled: 'var(--ax-success)', foundations: 'var(--ax-purple)' };
 
 interface MembershipPlan {
   id: string;
@@ -49,28 +51,28 @@ function GroupsPopover({ member, allGroups, onToggle, toggling }: {
   return (
     <div className="relative">
       <button onClick={() => setOpen(v => !v)}
-        className="flex items-center gap-1 text-xs font-semibold text-gray-400 hover:text-white border border-white/10 hover:border-white/20 px-2.5 py-1.5 rounded-lg transition-colors">
+        className="flex items-center gap-1 text-xs font-semibold text-ax-text-secondary hover:text-ax-text border border-ax-border hover:border-ax-input-border px-2.5 py-1.5 rounded-ax-control transition-colors">
         Groupes <ChevronDown size={11} className={`transition-transform ${open ? 'rotate-180' : ''}`} />
       </button>
       {open && (
         <>
           <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
-          <div className="absolute right-0 top-full mt-1 z-20 bg-[#1a1a1a] border border-white/10 rounded-xl shadow-2xl min-w-[180px] py-1 overflow-hidden">
-            {allGroups.length === 0 && <p className="px-3 py-2 text-xs text-gray-500">Aucun groupe</p>}
+          <div className="absolute right-0 top-full mt-1 z-20 bg-ax-surface border border-ax-border rounded-ax-control shadow-ax-panel min-w-[180px] py-1 overflow-hidden">
+            {allGroups.length === 0 && <p className="px-3 py-2 text-xs text-ax-text-muted">Aucun groupe</p>}
             {allGroups.map(g => {
               const inGroup = memberGroupIds.has(g.id);
               const isLoading = toggling === `${member.id}-${g.id}`;
               return (
                 <button key={g.id} onClick={() => onToggle(member.id, g.id, inGroup)}
                   disabled={isLoading}
-                  className="w-full flex items-center gap-2.5 px-3 py-2 text-xs hover:bg-white/5 transition-colors text-left">
-                  {isLoading ? <Loader2 size={12} className="animate-spin text-gray-400" /> : (
-                    <div className={`w-4 h-4 rounded flex items-center justify-center border ${inGroup ? 'border-transparent' : 'border-white/20'}`}
+                  className="w-full flex items-center gap-2.5 px-3 py-2 text-xs hover:bg-ax-hover transition-colors text-left">
+                  {isLoading ? <Loader2 size={12} className="animate-spin text-ax-text-secondary" /> : (
+                    <div className={`w-4 h-4 rounded flex items-center justify-center border ${inGroup ? 'border-transparent' : 'border-ax-input-border'}`}
                       style={inGroup ? { backgroundColor: g.color } : {}}>
-                      {inGroup && <Check size={10} color="#000" strokeWidth={3} />}
+                      {inGroup && <Check size={10} color="var(--ax-accent-foreground)" strokeWidth={3} />}
                     </div>
                   )}
-                  <span className="flex-1 font-semibold" style={{ color: inGroup ? g.color : '#9ca3af' }}>{g.name}</span>
+                  <span className="flex-1 font-semibold" style={{ color: inGroup ? textTint(g.color) : 'var(--ax-text-secondary)' }}>{g.name}</span>
                 </button>
               );
             })}
@@ -92,28 +94,28 @@ function PlanGroupsPopover({ groupIds, allGroups, onToggle, saving }: {
   return (
     <div className="relative">
       <button onClick={() => setOpen(v => !v)}
-        className="flex items-center gap-1 text-[11px] font-semibold text-gray-400 hover:text-white border border-white/10 hover:border-white/20 px-2 py-1 rounded-lg transition-colors">
+        className="flex items-center gap-1 text-[11px] font-semibold text-ax-text-secondary hover:text-ax-text border border-ax-border hover:border-ax-input-border px-2 py-1 rounded-ax-control transition-colors">
         Cours inclus{groupIds.length > 0 ? ` (${groupIds.length})` : ''}
         <ChevronDown size={10} className={`transition-transform ${open ? 'rotate-180' : ''}`} />
       </button>
       {open && (
         <>
           <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
-          <div className="absolute right-0 top-full mt-1 z-20 bg-[#1a1a1a] border border-white/10 rounded-xl shadow-2xl min-w-[190px] py-1 overflow-hidden">
-            {allGroups.length === 0 && <p className="px-3 py-2 text-xs text-gray-500">Aucun groupe. Crée des groupes de cours d'abord.</p>}
+          <div className="absolute right-0 top-full mt-1 z-20 bg-ax-surface border border-ax-border rounded-ax-control shadow-ax-panel min-w-[190px] py-1 overflow-hidden">
+            {allGroups.length === 0 && <p className="px-3 py-2 text-xs text-ax-text-muted">Aucun groupe. Crée des groupes de cours d'abord.</p>}
             {allGroups.map(g => {
               const inGroup = set.has(g.id);
               const isLoading = saving === g.id;
               return (
                 <button key={g.id} onClick={() => onToggle(g.id, inGroup)} disabled={isLoading}
-                  className="w-full flex items-center gap-2.5 px-3 py-2 text-xs hover:bg-white/5 transition-colors text-left">
-                  {isLoading ? <Loader2 size={12} className="animate-spin text-gray-400" /> : (
-                    <div className={`w-4 h-4 rounded flex items-center justify-center border ${inGroup ? 'border-transparent' : 'border-white/20'}`}
+                  className="w-full flex items-center gap-2.5 px-3 py-2 text-xs hover:bg-ax-hover transition-colors text-left">
+                  {isLoading ? <Loader2 size={12} className="animate-spin text-ax-text-secondary" /> : (
+                    <div className={`w-4 h-4 rounded flex items-center justify-center border ${inGroup ? 'border-transparent' : 'border-ax-input-border'}`}
                       style={inGroup ? { backgroundColor: g.color } : {}}>
-                      {inGroup && <Check size={10} color="#000" strokeWidth={3} />}
+                      {inGroup && <Check size={10} color="var(--ax-accent-foreground)" strokeWidth={3} />}
                     </div>
                   )}
-                  <span className="flex-1 font-semibold" style={{ color: inGroup ? g.color : '#9ca3af' }}>{g.name}</span>
+                  <span className="flex-1 font-semibold" style={{ color: inGroup ? textTint(g.color) : 'var(--ax-text-secondary)' }}>{g.name}</span>
                 </button>
               );
             })}
@@ -137,8 +139,8 @@ function PlanPopover({ member, plans, onAssign, saving }: {
       <button
         onClick={() => setOpen(v => !v)}
         disabled={saving}
-        className="flex items-center gap-2 text-xs font-semibold border border-white/10 hover:border-white/20 px-2.5 py-1.5 rounded-lg transition-colors disabled:opacity-50"
-        style={currentPlan ? { color: currentPlan.color, borderColor: `${currentPlan.color}40`, backgroundColor: `${currentPlan.color}10` } : { color: '#9ca3af' }}
+        className="flex items-center gap-2 min-w-[8rem] max-w-[13rem] text-left text-xs font-semibold border border-ax-border hover:border-ax-input-border px-2.5 py-1.5 rounded-ax-control transition-colors disabled:opacity-50"
+        style={currentPlan ? { color: textTint(currentPlan.color), borderColor: softVar(currentPlan.color, 0.25), backgroundColor: softVar(currentPlan.color, 0.063) } : { color: 'var(--ax-text-secondary)' }}
       >
         {currentPlan && <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: currentPlan.color }} />}
         {currentPlan ? currentPlan.name : 'Illimité'}
@@ -147,13 +149,13 @@ function PlanPopover({ member, plans, onAssign, saving }: {
       {open && (
         <>
           <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
-          <div className="absolute left-0 top-full mt-1 z-20 bg-[#1a1a1a] border border-white/10 rounded-xl shadow-2xl min-w-[180px] py-1 overflow-hidden">
+          <div className="absolute left-0 top-full mt-1 z-20 bg-ax-surface border border-ax-border rounded-ax-control shadow-ax-panel min-w-[180px] py-1 overflow-hidden">
             <button
               onClick={() => { onAssign(member.id, null); setOpen(false); }}
-              className={`w-full flex items-center gap-2.5 px-3 py-2 text-xs hover:bg-white/5 transition-colors text-left ${!member.plan_id ? 'text-white' : 'text-gray-400'}`}
+              className={`w-full flex items-center gap-2.5 px-3 py-2 text-xs hover:bg-ax-hover transition-colors text-left ${!member.plan_id ? 'text-ax-text' : 'text-ax-text-secondary'}`}
             >
-              <div className={`w-4 h-4 rounded flex items-center justify-center border ${!member.plan_id ? 'border-transparent bg-white/20' : 'border-white/20'}`}>
-                {!member.plan_id && <Check size={10} color="#fff" strokeWidth={3} />}
+              <div className={`w-4 h-4 rounded flex items-center justify-center border ${!member.plan_id ? 'border-transparent bg-ax-surface-secondary' : 'border-ax-input-border'}`}>
+                {!member.plan_id && <Check size={10} className="text-ax-text" strokeWidth={3} />}
               </div>
               <span className="flex-1 font-semibold">Illimité</span>
             </button>
@@ -162,18 +164,18 @@ function PlanPopover({ member, plans, onAssign, saving }: {
               return (
                 <button key={p.id}
                   onClick={() => { onAssign(member.id, p.id); setOpen(false); }}
-                  className="w-full flex items-center gap-2.5 px-3 py-2 text-xs hover:bg-white/5 transition-colors text-left"
+                  className="w-full flex items-center gap-2.5 px-3 py-2 text-xs hover:bg-ax-hover transition-colors text-left"
                 >
-                  <div className={`w-4 h-4 rounded flex items-center justify-center border ${selected ? 'border-transparent' : 'border-white/20'}`}
+                  <div className={`w-4 h-4 rounded flex items-center justify-center border ${selected ? 'border-transparent' : 'border-ax-input-border'}`}
                     style={selected ? { backgroundColor: p.color } : {}}>
-                    {selected && <Check size={10} color="#000" strokeWidth={3} />}
+                    {selected && <Check size={10} color="var(--ax-accent-foreground)" strokeWidth={3} />}
                   </div>
                   <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: p.color }} />
-                  <span className="flex-1 font-semibold" style={{ color: selected ? p.color : '#9ca3af' }}>
+                  <span className="flex-1 font-semibold" style={{ color: selected ? textTint(p.color) : 'var(--ax-text-secondary)' }}>
                     {p.name}
                   </span>
                   {p.max_sessions_per_week && (
-                    <span className="text-[10px] text-gray-600">{p.max_sessions_per_week}x/sem</span>
+                    <span className="text-[10px] text-ax-text-muted">{p.max_sessions_per_week}x/sem</span>
                   )}
                 </button>
               );
@@ -186,9 +188,9 @@ function PlanPopover({ member, plans, onAssign, saving }: {
 }
 
 const ROLES: { key: 'member' | 'coach' | 'owner'; label: string; icon: any; color: string }[] = [
-  { key: 'member', label: 'Membre', icon: Users, color: '#6B7280' },
-  { key: 'coach',  label: 'Coach',  icon: ShieldCheck, color: '#3B82F6' },
-  { key: 'owner',  label: 'Owner',  icon: Crown, color: '#FFFFFF' },
+  { key: 'member', label: 'Membre', icon: Users, color: 'var(--ax-neutral)' },
+  { key: 'coach',  label: 'Coach',  icon: ShieldCheck, color: 'var(--ax-info)' },
+  { key: 'owner',  label: 'Owner',  icon: Crown, color: 'var(--ax-text)' },
 ];
 
 function RolePopover({ member, onChange }: {
@@ -201,8 +203,8 @@ function RolePopover({ member, onChange }: {
   return (
     <div className="relative">
       <button onClick={() => setOpen(v => !v)} disabled={member.is_banned}
-        className={`flex items-center gap-1.5 text-xs font-bold px-2.5 py-1.5 rounded-lg border transition-colors ${member.is_banned ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer hover:border-white/20'}`}
-        style={{ color: current.color, borderColor: `${current.color}40`, backgroundColor: `${current.color}10` }}>
+        className={`flex items-center gap-1.5 text-xs font-bold px-2.5 py-1.5 rounded-ax-control border transition-colors ${member.is_banned ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer hover:border-ax-input-border'}`}
+        style={{ color: current.color, borderColor: softVar(current.color, 0.25), backgroundColor: softVar(current.color, 0.063) }}>
         <Icon size={12} />
         {current.label}
         <ChevronDown size={10} className={`transition-transform ${open ? 'rotate-180' : ''}`} />
@@ -210,20 +212,20 @@ function RolePopover({ member, onChange }: {
       {open && (
         <>
           <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
-          <div className="absolute left-0 top-full mt-1 z-20 bg-[#1a1a1a] border border-white/10 rounded-xl shadow-2xl min-w-[150px] py-1 overflow-hidden">
+          <div className="absolute left-0 top-full mt-1 z-20 bg-ax-surface border border-ax-border rounded-ax-control shadow-ax-panel min-w-[150px] py-1 overflow-hidden">
             {ROLES.map(r => {
               const selected = member.role === r.key;
               const RIcon = r.icon;
               return (
                 <button key={r.key}
                   onClick={() => { onChange(member, r.key); setOpen(false); }}
-                  className="w-full flex items-center gap-2.5 px-3 py-2 text-xs hover:bg-white/5 transition-colors text-left">
-                  <div className={`w-4 h-4 rounded flex items-center justify-center border ${selected ? 'border-transparent' : 'border-white/20'}`}
+                  className="w-full flex items-center gap-2.5 px-3 py-2 text-xs hover:bg-ax-hover transition-colors text-left">
+                  <div className={`w-4 h-4 rounded flex items-center justify-center border ${selected ? 'border-transparent' : 'border-ax-input-border'}`}
                     style={selected ? { backgroundColor: r.color } : {}}>
-                    {selected && <Check size={10} color="#000" strokeWidth={3} />}
+                    {selected && <Check size={10} color="var(--ax-accent-foreground)" strokeWidth={3} />}
                   </div>
-                  <RIcon size={12} style={{ color: selected ? r.color : '#6B7280' }} />
-                  <span className="flex-1 font-semibold" style={{ color: selected ? r.color : '#9ca3af' }}>{r.label}</span>
+                  <RIcon size={12} style={{ color: selected ? r.color : 'var(--ax-text-muted)' }} />
+                  <span className="flex-1 font-semibold" style={{ color: selected ? r.color : 'var(--ax-text-secondary)' }}>{r.label}</span>
                 </button>
               );
             })}
@@ -443,22 +445,22 @@ export default function MembersPage() {
 
   if (loading) return (
     <div className="flex items-center justify-center min-h-[300px]">
-      <Loader2 size={28} className="animate-spin text-white" />
+      <Loader2 size={28} className="animate-spin text-ax-text" />
     </div>
   );
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div className="min-w-0">
           <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-black text-white">Membres</h1>
+            <h1 className="font-display text-2xl font-medium uppercase tracking-wide text-ax-text">Membres</h1>
             <HelpButton />
           </div>
-          <p className="text-sm text-gray-400 mt-1">{filtered.length} / {members.length} membre(s)</p>
+          <p className="text-sm text-ax-text-secondary mt-1">{filtered.length} / {members.length} membre(s)</p>
         </div>
-        <button onClick={() => setShowPlans(v => !v)}
-          className={`flex items-center gap-2 text-sm font-bold px-4 py-2.5 rounded-xl border transition-colors ${showPlans ? 'border-white/50 text-white bg-white/10' : 'border-white/10 text-gray-300 hover:text-white hover:bg-white/5'}`}>
+        <button onClick={() => setShowPlans(v => !v)} aria-pressed={showPlans}
+          className={`flex items-center gap-2 text-sm font-bold px-4 py-2.5 rounded-ax-control border transition-colors ${showPlans ? 'border-ax-input-border text-ax-text bg-ax-surface-secondary' : 'border-ax-border text-ax-text-secondary hover:text-ax-text hover:bg-ax-hover'}`}>
           <CreditCard size={16} />
           Contrats
         </button>
@@ -466,13 +468,13 @@ export default function MembersPage() {
 
       {/* Plans management panel */}
       {showPlans && (
-        <div className="bg-[#111111] border border-white/8 rounded-2xl p-5 space-y-4">
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <h3 className="text-sm font-bold text-white">Contrats / Abonnements</h3>
-              <p className="text-xs text-gray-500 mt-1">Assignez une formule à un membre et gérez les groupes associés. La <strong className="text-gray-300">création et l'édition des formules</strong> se font désormais dans <strong className="text-gray-300">Offres &amp; Programmes</strong>.</p>
+        <div className="bg-ax-surface border border-ax-border rounded-ax-card p-5 space-y-4">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div className="min-w-0 flex-1 basis-[16rem]">
+              <h3 className="text-sm font-bold text-ax-text">Contrats / Abonnements</h3>
+              <p className="text-xs text-ax-text-muted mt-1">Assignez une formule à un membre et gérez les groupes associés. La <strong className="text-ax-text-secondary">création et l'édition des formules</strong> se font désormais dans <strong className="text-ax-text-secondary">Offres &amp; Programmes</strong>.</p>
             </div>
-            <Link href="/plans" className="flex items-center gap-1.5 shrink-0 px-3 py-2 rounded-lg bg-white/10 hover:bg-white/15 text-white text-xs font-bold transition-colors whitespace-nowrap">
+            <Link href="/plans" className="flex items-center gap-1.5 shrink-0 px-3 py-2 rounded-ax-control bg-ax-surface-secondary hover:bg-ax-hover text-ax-text text-xs font-bold transition-colors whitespace-nowrap">
               <CreditCard size={13} /> Gérer les formules
             </Link>
           </div>
@@ -480,16 +482,16 @@ export default function MembersPage() {
           {/* Existing plans */}
           <div className="space-y-2">
             {plans.map(p => (
-              <div key={p.id} className="flex items-center gap-3 bg-[#0A0A0A] rounded-xl px-4 py-3">
+              <div key={p.id} className="flex flex-wrap items-center gap-x-3 gap-y-2 bg-ax-surface-secondary rounded-ax-control px-4 py-3">
                 <div className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: p.color }} />
-                <span className="text-sm font-semibold text-white flex-1">{p.name}</span>
-                <span className="text-xs font-bold" style={{ color: p.price_cents > 0 ? '#fff' : '#6b7280' }}>
+                <span className="text-sm font-semibold text-ax-text flex-1 min-w-[8rem] break-words">{p.name}</span>
+                <span className={`text-xs font-bold ${p.price_cents > 0 ? 'text-ax-text' : 'text-ax-text-muted'}`}>
                   {p.price_cents > 0 ? `${(p.price_cents / 100).toFixed(2)} €/mois` : 'Gratuit'}
                 </span>
-                <span className="text-xs text-gray-400">
+                <span className="text-xs text-ax-text-secondary">
                   {p.max_sessions_per_week ? `${p.max_sessions_per_week}x / semaine` : 'Illimité'}
                 </span>
-                <span className="text-[10px] text-gray-600">
+                <span className="text-[10px] text-ax-text-muted">
                   {members.filter(m => m.plan_id === p.id).length} membre(s)
                 </span>
                 <PlanGroupsPopover
@@ -498,13 +500,13 @@ export default function MembersPage() {
                   onToggle={(gid, inGroup) => togglePlanGroup(p.id, gid, inGroup)}
                   saving={planGroupSaving?.startsWith(`${p.id}-`) ? planGroupSaving.slice(p.id.length + 1) : null}
                 />
-                <button onClick={() => deletePlan(p.id)} className="p-1 rounded-lg hover:bg-red-500/20 text-gray-500 hover:text-red-400 transition-colors">
+                <button onClick={() => deletePlan(p.id)} aria-label="Supprimer ce contrat" className="inline-flex items-center justify-center w-8 h-8 rounded-ax-control hover:bg-ax-danger-soft text-ax-text-muted hover:text-ax-danger transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ax-focus focus-visible:ring-offset-2 focus-visible:ring-offset-ax-surface">
                   <Trash2 size={13} />
                 </button>
               </div>
             ))}
             {plans.length === 0 && (
-              <p className="text-xs text-gray-600 italic">Aucun contrat créé. Tous les membres sont en accès illimité. Crée une formule dans « Offres &amp; Programmes ».</p>
+              <p className="text-xs text-ax-text-muted italic">Aucun contrat créé. Tous les membres sont en accès illimité. Crée une formule dans « Offres &amp; Programmes ».</p>
             )}
           </div>
         </div>
@@ -514,57 +516,58 @@ export default function MembersPage() {
       <div className="space-y-2">
         <div className="flex gap-2">
           <div className="relative flex-1">
-            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
+            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-ax-text-muted" />
             <input value={search} onChange={e => setSearch(e.target.value)}
               placeholder="Rechercher par nom ou email…"
-              className="w-full bg-[#111111] border border-white/8 rounded-xl pl-9 pr-3 py-2.5 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-white transition-colors" />
-            {search && <button onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white"><X size={13} /></button>}
+              className="w-full bg-ax-surface border border-ax-border rounded-ax-control pl-9 pr-3 py-2.5 text-sm text-ax-text placeholder:text-ax-text-muted focus:outline-none focus:border-ax-focus transition-colors" />
+            {search && <button onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-ax-text-muted hover:text-ax-text"><X size={13} /></button>}
           </div>
           <button onClick={() => setShowFilters(v => !v)}
-            className={`flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl text-sm font-bold border transition-colors ${showFilters || activeFilters > 0 ? 'border-white/50 text-white bg-white/10' : 'bg-[#111111] border-white/8 text-gray-400 hover:text-white'}`}>
+            className={`flex items-center gap-1.5 px-3.5 py-2.5 rounded-ax-control text-sm font-bold border transition-colors ${showFilters || activeFilters > 0 ? 'border-ax-input-border text-ax-text bg-ax-surface-secondary' : 'bg-ax-surface border-ax-border text-ax-text-secondary hover:text-ax-text'}`}>
             <SlidersHorizontal size={14} />
             Filtres{activeFilters > 0 ? ` (${activeFilters})` : ''}
           </button>
         </div>
 
         {showFilters && (
-          <div className="bg-[#111111] border border-white/8 rounded-xl px-4 py-3 flex flex-wrap gap-3 items-center">
+          <div className="bg-ax-surface border border-ax-border rounded-ax-control px-4 py-3 flex flex-wrap gap-3 items-center">
             {/* Level */}
-            <div className="flex items-center gap-1">
+            <div className="flex flex-wrap items-center gap-1">
               {['', ...LEVELS].map(l => (
                 <button key={l} onClick={() => setFilterLevel(l)}
-                  className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-colors ${filterLevel === l ? '' : 'text-gray-500 hover:text-gray-300 bg-white/5'}`}
-                  style={filterLevel === l ? (l ? { backgroundColor: `${LEVEL_COLOR[l]}25`, color: LEVEL_COLOR[l] } : { backgroundColor: 'rgba(255,255,255,0.12)', color: 'white' }) : {}}>
+                  className={`px-2.5 py-1 rounded-ax-control text-xs font-bold transition-colors ${filterLevel === l ? '' : 'text-ax-text-muted hover:text-ax-text-secondary bg-ax-surface-secondary'}`}
+                  aria-pressed={filterLevel === l}
+                  style={filterLevel === l ? (l ? { backgroundColor: softVar(LEVEL_COLOR[l], 0.145), color: LEVEL_COLOR[l] } : { backgroundColor: 'var(--ax-hover)', color: 'var(--ax-text)' }) : {}}>
                   {l ? LEVEL_LABEL[l] : 'Tous'}
                 </button>
               ))}
             </div>
 
-            <div className="w-px h-5 bg-white/10" />
+            <div className="w-px h-5 bg-ax-surface-secondary" />
 
             {/* ELO sort */}
-            <div className="flex items-center gap-1.5">
-              <span className="text-xs text-gray-600 font-semibold">ELO :</span>
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span className="text-xs text-ax-text-muted font-semibold">ELO :</span>
               {([['', 'Défaut'], ['desc', '↓ Haut'], ['asc', '↑ Bas']] as [EloChoice, string][]).map(([val, label]) => (
                 <button key={val} onClick={() => chooseEloSort(val)}
-                  className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-colors ${eloSort === val ? 'bg-white/10 text-white' : 'text-gray-500 hover:text-gray-300 bg-white/5'}`}>
+                  className={`px-2.5 py-1 rounded-ax-control text-xs font-bold transition-colors ${eloSort === val ? 'bg-ax-surface-secondary text-ax-text' : 'text-ax-text-muted hover:text-ax-text-secondary bg-ax-surface-secondary'}`}>
                   {label}
                 </button>
               ))}
             </div>
 
-            <div className="w-px h-5 bg-white/10" />
+            <div className="w-px h-5 bg-ax-surface-secondary" />
 
             {/* Group filter */}
             <select value={filterGroup} onChange={e => setFilterGroup(e.target.value)}
-              className="bg-white/5 border border-white/10 rounded-lg px-2.5 py-1 text-xs text-white focus:outline-none focus:border-white transition-colors">
-              <option value="" className="text-black">Tous les groupes</option>
-              {allGroups.map(g => <option key={g.id} value={g.id} className="text-black">{g.name}</option>)}
+              className="bg-ax-surface-secondary border border-ax-border rounded-ax-control px-2.5 py-1 text-xs text-ax-text focus:outline-none focus:border-ax-focus transition-colors">
+              <option value="" className="bg-ax-surface text-ax-text">Tous les groupes</option>
+              {allGroups.map(g => <option key={g.id} value={g.id} className="bg-ax-surface text-ax-text">{g.name}</option>)}
             </select>
 
             {activeFilters > 0 && (
               <button onClick={() => { setFilterLevel(''); setFilterGroup(''); chooseEloSort(''); }}
-                className="ml-auto text-xs text-red-400 hover:text-red-300 flex items-center gap-1">
+                className="ml-auto text-xs text-ax-danger hover:underline flex items-center gap-1">
                 <X size={11} /> Réinitialiser
               </button>
             )}
@@ -573,20 +576,20 @@ export default function MembersPage() {
       </div>
 
       {!members.length ? (
-        <div className="bg-[#111111] border border-white/8 rounded-2xl p-12 text-center">
-          <Users size={40} className="text-gray-600 mx-auto mb-4" />
-          <p className="text-white font-bold mb-1">Aucun membre</p>
-          <p className="text-sm text-gray-500">Les membres rejoignent votre box via le code invitation.</p>
+        <div className="bg-ax-surface border border-ax-border rounded-ax-card p-12 text-center">
+          <Users size={40} className="text-ax-text-muted mx-auto mb-4" />
+          <p className="text-ax-text font-bold mb-1">Aucun membre</p>
+          <p className="text-sm text-ax-text-muted">Les membres rejoignent votre box via le code invitation.</p>
         </div>
       ) : filtered.length === 0 ? (
-        <div className="bg-[#111111] border border-white/8 rounded-2xl p-10 text-center text-sm text-gray-500">
+        <div className="bg-ax-surface border border-ax-border rounded-ax-card p-10 text-center text-sm text-ax-text-muted">
           Aucun résultat pour ces filtres.
         </div>
       ) : (
-        <div className="bg-[#111111] border border-white/8 rounded-2xl overflow-hidden">
-          <table className="w-full">
+        <div className="bg-ax-surface border border-ax-border rounded-ax-card overflow-x-auto" data-testid="tableau-membres">
+          <table className="w-full min-w-[60rem]">
             <thead>
-              <tr className="border-b border-white/8">
+              <tr className="border-b border-ax-border">
                 {[
                   { key: 'username' as SortCol, label: 'Membre' },
                   { key: 'level' as SortCol, label: 'Niveau' },
@@ -598,9 +601,9 @@ export default function MembersPage() {
                 ].map(col => (
                   <th key={col.label}
                     onClick={col.key ? () => toggleSort(col.key) : undefined}
-                    className={`text-left px-5 py-3.5 text-xs font-bold uppercase tracking-wider select-none ${
-                      col.key ? 'cursor-pointer hover:text-white transition-colors' : ''
-                    } ${sortCol === col.key && col.key ? 'text-white' : 'text-gray-500'}`}>
+                    className={`text-left px-4 py-3.5 text-xs font-bold uppercase tracking-wider select-none ${
+                      col.key ? 'cursor-pointer hover:text-ax-text transition-colors' : ''
+                    } ${sortCol === col.key && col.key ? 'text-ax-text' : 'text-ax-text-muted'}`}>
                     <span className="inline-flex items-center gap-1">
                       {col.label}
                       {col.key && sortCol === col.key && (
@@ -609,57 +612,57 @@ export default function MembersPage() {
                     </span>
                   </th>
                 ))}
-                <th className="text-right px-5 py-3.5"></th>
+                <th className="text-right px-4 py-3.5"></th>
               </tr>
             </thead>
             <tbody>
               {filtered.map(m => {
-                const lvlColor = LEVEL_COLOR[m.level] ?? '#6B7280';
+                const lvlColor = LEVEL_COLOR[m.level] ?? 'var(--ax-neutral)';
                 return (
-                  <tr key={m.id} className="border-b border-white/5 last:border-0 hover:bg-white/[0.02] transition-colors">
-                    <td className="px-5 py-4">
+                  <tr key={m.id} className="border-b border-ax-border last:border-0 hover:bg-ax-hover transition-colors">
+                    <td className="px-4 py-4">
                       <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center text-white text-xs font-black shrink-0">
+                        <div className="w-8 h-8 rounded-full bg-ax-surface-secondary flex items-center justify-center text-ax-text text-xs font-black shrink-0">
                           {m.username[0].toUpperCase()}
                         </div>
-                        <div>
-                          <p className={`text-sm font-semibold ${m.is_banned ? 'line-through text-gray-500' : 'text-white'}`}>{m.username}</p>
-                          <p className="text-xs text-gray-500">{m.email}</p>
+                        <div className="min-w-[10rem]">
+                          <p className={`text-sm font-semibold break-words ${m.is_banned ? 'line-through text-ax-text-muted' : 'text-ax-text'}`}>{m.username}</p>
+                          <p className="text-xs text-ax-text-muted [overflow-wrap:anywhere]">{m.email}</p>
                         </div>
                       </div>
                     </td>
-                    <td className="px-5 py-4">
-                      <span className="text-xs font-bold px-2 py-0.5 rounded-md" style={{ color: lvlColor, backgroundColor: `${lvlColor}20` }}>
+                    <td className="px-4 py-4">
+                      <span className="text-xs font-bold px-2 py-0.5 rounded-ax-badge" style={{ color: lvlColor, backgroundColor: softVar(lvlColor, 0.125) }}>
                         {LEVEL_LABEL[m.level] ?? m.level.toUpperCase()}
                       </span>
                     </td>
-                    <td className="px-5 py-4 text-sm text-gray-300 font-mono">⭐ {m.elo}</td>
-                    <td className="px-5 py-4">
+                    <td className="px-4 py-4 text-sm text-ax-text-secondary font-mono">⭐ {m.elo}</td>
+                    <td className="px-4 py-4">
                       <PlanPopover member={m} plans={plans} onAssign={assignPlan} saving={planSaving === m.id} />
                     </td>
-                    <td className="px-5 py-4">
-                      <div className="flex items-center gap-1 flex-wrap">
+                    <td className="px-4 py-4">
+                      <div className="flex items-center gap-1 flex-wrap min-w-[9rem]">
                         {m.groups.map(g => (
-                          <span key={g.id} className="text-[10px] font-bold px-1.5 py-0.5 rounded-md" style={{ color: g.color, backgroundColor: `${g.color}20` }}>{g.name}</span>
+                          <span key={g.id} className="text-[10px] font-bold px-1.5 py-0.5 rounded-ax-badge break-words" style={{ color: textTint(g.color), backgroundColor: softVar(g.color, 0.125) }}>{g.name}</span>
                         ))}
                         <GroupsPopover member={m} allGroups={allGroups} onToggle={toggleGroup} toggling={toggling} />
                       </div>
                     </td>
-                    <td className="px-5 py-4">
+                    <td className="px-4 py-4">
                       <RolePopover member={m} onChange={changeRole} />
                     </td>
-                    <td className="px-5 py-4">
-                      <span className={`text-xs font-bold px-2.5 py-1 rounded-lg ${m.is_banned ? 'bg-red-500/10 text-red-400' : 'bg-green-500/10 text-green-400'}`}>
+                    <td className="px-4 py-4">
+                      <span className={`text-xs font-bold px-2.5 py-1 rounded-ax-badge border border-current ${m.is_banned ? 'bg-ax-danger-soft text-ax-danger' : 'bg-ax-success-soft text-ax-success'}`}>
                         {m.is_banned ? 'Banni' : 'Actif'}
                       </span>
                     </td>
-                    <td className="px-5 py-4 text-right whitespace-nowrap">
+                    <td className="px-4 py-4 text-right whitespace-nowrap">
                       <button onClick={() => setSheetMemberId(m.id)}
-                        className="text-xs font-semibold text-gray-400 hover:text-white transition-colors mr-3">
+                        className="text-xs font-semibold text-ax-text-secondary hover:text-ax-text transition-colors mr-3">
                         Fiche
                       </button>
                       <button onClick={() => toggleBan(m)} disabled={banning === m.id}
-                        className={`text-xs font-semibold transition-colors ${m.is_banned ? 'text-green-400 hover:text-green-300' : 'text-red-400 hover:text-red-300'}`}>
+                        className={`text-xs font-semibold transition-colors ${m.is_banned ? 'text-ax-success hover:underline' : 'text-ax-danger hover:underline'}`}>
                         {banning === m.id ? <Loader2 size={12} className="animate-spin inline" /> : m.is_banned ? 'Débannir' : 'Bannir'}
                       </button>
                     </td>
