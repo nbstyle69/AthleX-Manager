@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import { useConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Plus, Pencil, Trash2, Handshake, Globe, Tag, X } from 'lucide-react';
 
 interface Partner {
@@ -46,6 +47,7 @@ const emptyForm = {
 
 export default function PartnersAdminPage() {
   const supabase = createClient();
+  const { dialog, ask } = useConfirmDialog();
   const [partners, setPartners] = useState<Partner[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -133,14 +135,26 @@ export default function PartnersAdminPage() {
     loadPartners();
   }
 
+  function askDelete(p: Partner) {
+    const cat = CATEGORIES.find(c => c.value === p.category)?.label ?? p.category;
+    ask({
+      title: 'Supprimer ce partenaire ?',
+      element: `${p.name} · ${cat}${p.offer_title ? ` · offre « ${p.offer_title} »${p.offer_code ? `, code ${p.offer_code}` : ''}` : ''}`,
+      body: 'Le partenaire et son offre disparaîtront de l’application. Pour le masquer sans le supprimer, désactive-le. Cette action est définitive.',
+      confirmLabel: 'Supprimer le partenaire',
+      danger: true,
+      run: () => handleDelete(p.id),
+    });
+  }
+
   async function handleDelete(id: string) {
-    if (!confirm('Supprimer ce partenaire ?')) return;
     await supabase.from('partners').delete().eq('id', id);
     loadPartners();
   }
 
   return (
     <div className="space-y-6">
+      {dialog}
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -212,7 +226,7 @@ export default function PartnersAdminPage() {
                   <Pencil size={15} />
                 </button>
                 <button
-                  onClick={() => handleDelete(p.id)}
+                  onClick={() => askDelete(p)}
                   className="p-2 rounded-lg hover:bg-red-500/10 text-gray-500 hover:text-red-400 transition-all"
                 >
                   <Trash2 size={15} />

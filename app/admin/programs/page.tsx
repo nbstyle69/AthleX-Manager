@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import { useConfirmDialog } from '@/components/ui/confirm-dialog';
 import { BookOpen, Plus, Pencil, Trash2, ExternalLink, X, Check, Users, ShoppingCart, Image as ImageIcon, Upload, Loader2 } from 'lucide-react';
 
 interface Affiliate {
@@ -34,6 +35,7 @@ const EMPTY_PRG: Omit<Program, 'id'> = { affiliate_id: '', name: '', description
 
 export default function AdminProgramsPage() {
   const supabase = createClient();
+  const { dialog, ask } = useConfirmDialog();
   const [tab, setTab] = useState<Tab>('affiliates');
   const [affiliates, setAffiliates] = useState<Affiliate[]>([]);
   const [programs, setPrograms] = useState<Program[]>([]);
@@ -129,8 +131,20 @@ export default function AdminProgramsPage() {
     setSavingAff(false); closeAffForm(); loadAff();
   }
 
+  // Le texte d'origine annonçait « et tous ses programmes » : aucune table ne
+  // rattache un programme à un affilié, seul l'affilié est supprimé.
+  function askDeleteAff(a: Affiliate) {
+    ask({
+      title: 'Supprimer cet affilié ?',
+      element: a.name,
+      body: 'Il disparaîtra de la liste des affiliés. Aucun programme n’est supprimé. Cette action est définitive.',
+      confirmLabel: 'Supprimer l’affilié',
+      danger: true,
+      run: () => deleteAff(a.id),
+    });
+  }
+
   async function deleteAff(id: string) {
-    if (!confirm('Supprimer cet affilié et tous ses programmes ?')) return;
     await supabase.from('program_affiliates').delete().eq('id', id);
     load();
   }
@@ -192,6 +206,7 @@ export default function AdminProgramsPage() {
 
   return (
     <div className="space-y-6">
+      {dialog}
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
@@ -328,7 +343,7 @@ export default function AdminProgramsPage() {
                       <div className={`w-3 h-3 rounded-full border-2 ${a.is_active ? 'border-emerald-400 bg-emerald-400' : 'border-gray-500'}`} />
                     </button>
                     <button onClick={() => openEditAff(a)} className="p-2 rounded-lg text-gray-500 hover:text-white hover:bg-white/10 transition-all"><Pencil size={14} /></button>
-                    <button onClick={() => deleteAff(a.id)} className="p-2 rounded-lg text-gray-500 hover:text-red-400 hover:bg-red-500/10 transition-all"><Trash2 size={14} /></button>
+                    <button onClick={() => askDeleteAff(a)} className="p-2 rounded-lg text-gray-500 hover:text-red-400 hover:bg-red-500/10 transition-all"><Trash2 size={14} /></button>
                   </div>
                 </div>
               ))}

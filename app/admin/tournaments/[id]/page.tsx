@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import { useConfirmDialog } from '@/components/ui/confirm-dialog';
 import Link from 'next/link';
 import {
   ArrowLeft, Trophy, Users, Clock, CheckCircle, XCircle, Pencil, Trash2,
@@ -46,6 +47,7 @@ export default function DailyTournamentDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const supabase = createClient();
+  const { dialog, ask } = useConfirmDialog();
 
   const [tournament, setTournament] = useState<Tournament | null>(null);
   const [scores, setScores] = useState<Score[]>([]);
@@ -110,8 +112,31 @@ export default function DailyTournamentDetailPage() {
     setActionLoading(null);
   }
 
+  function askDeleteTournament() {
+    if (!tournament) return;
+    ask({
+      title: 'Supprimer ce tournoi ?',
+      element: `« ${tournament.wod_name} » · ${statusLabel(tournament.status)} · ${scores.length} score(s)`,
+      body: 'Les inscriptions et les scores seront supprimés. S’il est clos, les points ELO déjà attribués restent acquis. Cette action est définitive.',
+      confirmLabel: 'Supprimer le tournoi',
+      danger: true,
+      run: handleDeleteTournament,
+    });
+  }
+
+  function askDeleteScore(score: Score) {
+    if (!tournament) return;
+    ask({
+      title: 'Supprimer ce score ?',
+      element: `${score.username} · ${formatScore(score.score_value, tournament.score_mode)}${score.rx ? ' RX' : ''} · tournoi « ${tournament.wod_name} »`,
+      body: 'L’athlète reste inscrit. Si le tournoi est déjà clos, les points ELO ne seront pas recalculés. Cette action est définitive.',
+      confirmLabel: 'Supprimer le score',
+      danger: true,
+      run: () => handleDeleteScore(score.id),
+    });
+  }
+
   async function handleDeleteTournament() {
-    if (!confirm('Supprimer définitivement ce tournoi et tous ses scores ?')) return;
     setActionLoading('delete');
     const res = await fetch(`/api/admin/daily-tournaments?id=${id}`, { method: 'DELETE' });
     if (res.ok) router.push('/admin/tournaments');
@@ -128,7 +153,6 @@ export default function DailyTournamentDetailPage() {
   }
 
   async function handleDeleteScore(scoreId: string) {
-    if (!confirm('Supprimer ce score ?')) return;
     await adminAction({ action: 'delete_score', score_id: scoreId });
   }
 
@@ -175,6 +199,7 @@ export default function DailyTournamentDetailPage() {
 
   return (
     <div className="space-y-6">
+      {dialog}
       {/* Header */}
       <div className="flex items-center gap-3">
         <Link href="/admin/tournaments" className="p-2 rounded-xl hover:bg-white/5 text-gray-400 hover:text-white transition-colors">
@@ -253,7 +278,7 @@ export default function DailyTournamentDetailPage() {
             Ré-ouvrir
           </button>
         )}
-        <button onClick={handleDeleteTournament}
+        <button onClick={askDeleteTournament}
           disabled={!!actionLoading}
           className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm font-bold hover:bg-red-500/20 transition-colors disabled:opacity-50">
           {actionLoading === 'delete' ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
@@ -389,7 +414,7 @@ export default function DailyTournamentDetailPage() {
                     <RotateCcw size={13} /> Remettre en attente
                   </button>
                 )}
-                <button onClick={() => handleDeleteScore(score.id)}
+                <button onClick={() => askDeleteScore(score)}
                   disabled={!!actionLoading}
                   className="flex items-center gap-1.5 px-3 py-2 text-xs font-bold text-red-400 bg-red-500/10 border border-red-500/20 rounded-xl hover:bg-red-500/20 transition-colors disabled:opacity-50 ml-auto">
                   <Trash2 size={13} /> Supprimer

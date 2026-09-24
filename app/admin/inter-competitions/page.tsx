@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import { useConfirmDialog } from '@/components/ui/confirm-dialog';
 import Link from 'next/link';
 import {
   Globe2, Plus, Trophy, Users, Calendar, ChevronRight,
@@ -41,6 +42,7 @@ const STATUS_NEXT: Record<string, string> = {
 
 export default function InterCompetitionsPage() {
   const supabase = createClient();
+  const { dialog, ask } = useConfirmDialog();
   const [comps, setComps] = useState<InterComp[]>([]);
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState<string | null>(null);
@@ -66,8 +68,18 @@ export default function InterCompetitionsPage() {
 
   useEffect(() => { load(); }, [load]);
 
-  async function handleDelete(id: string, title: string) {
-    if (!confirm(`Supprimer "${title}" ? Cette action est irréversible.`)) return;
+  function askDelete(c: InterComp) {
+    ask({
+      title: 'Supprimer cette compétition ?',
+      element: `« ${c.title} » · ${STATUS_LABEL[c.status] ?? c.status} · ${c.reg_count} inscrit(s) · ${c.score_count} score(s)`,
+      body: 'Ses WOD, inscriptions, équipes, scores et classements seront supprimés. Les points ELO déjà gagnés restent acquis. Cette action est définitive.',
+      confirmLabel: 'Supprimer la compétition',
+      danger: true,
+      run: () => handleDelete(c.id),
+    });
+  }
+
+  async function handleDelete(id: string) {
     setDeleting(id);
     await supabase.from('inter_competitions').delete().eq('id', id);
     await load();
@@ -89,6 +101,7 @@ export default function InterCompetitionsPage() {
 
   return (
     <div className="space-y-6">
+      {dialog}
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
@@ -184,7 +197,7 @@ export default function InterCompetitionsPage() {
                   </Link>
                   {/* Delete */}
                   <button
-                    onClick={() => handleDelete(c.id, c.title)}
+                    onClick={() => askDelete(c)}
                     disabled={deleting === c.id}
                     className="p-2 rounded-xl bg-[#0A0A0A] hover:bg-red-500/10 text-gray-500 hover:text-red-400 transition-colors disabled:opacity-40"
                   >

@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import { useConfirmDialog } from '@/components/ui/confirm-dialog';
 import { FileText, Plus, Pencil, Trash2, X, Bug, Sparkles, RefreshCw } from 'lucide-react';
 
 interface ChangelogEntry {
@@ -29,6 +30,7 @@ export default function AdminChangelogPage() {
   const [type, setType] = useState<ChangelogEntry['type']>('update');
   const [saving, setSaving] = useState(false);
   const supabase = createClient();
+  const { dialog, ask } = useConfirmDialog();
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -80,8 +82,18 @@ export default function AdminChangelogPage() {
     load();
   }
 
+  function askDelete(entry: ChangelogEntry) {
+    ask({
+      title: 'Supprimer cette entrée du journal des nouveautés ?',
+      element: `« ${entry.title} », ${typeConfig(entry.type).label}, publiée le ${new Date(entry.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}`,
+      body: 'Elle disparaîtra de l’application mobile. Cette action est définitive.',
+      confirmLabel: 'Supprimer l’entrée',
+      danger: true,
+      run: () => handleDelete(entry.id),
+    });
+  }
+
   async function handleDelete(id: string) {
-    if (!confirm('Supprimer cette entrée ?')) return;
     await supabase.from('app_changelog').delete().eq('id', id);
     load();
   }
@@ -90,6 +102,7 @@ export default function AdminChangelogPage() {
 
   return (
     <div className="space-y-6">
+      {dialog}
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
@@ -234,7 +247,7 @@ export default function AdminChangelogPage() {
                       <Pencil size={14} />
                     </button>
                     <button
-                      onClick={() => handleDelete(entry.id)}
+                      onClick={() => askDelete(entry)}
                       className="p-2 rounded-lg text-gray-600 hover:text-red-400 hover:bg-red-500/10 transition-all"
                     >
                       <Trash2 size={14} />

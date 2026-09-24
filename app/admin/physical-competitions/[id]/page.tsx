@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import { useConfirmDialog } from '@/components/ui/confirm-dialog';
 import {
   ArrowLeft, Plus, Loader2, Trash2, MapPin, Calendar,
   Clock, Video, Pencil, ExternalLink, Zap, Info, GripVertical,
@@ -49,6 +50,7 @@ export default function PhysicalCompetitionDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const supabase = createClient();
+  const { dialog, ask } = useConfirmDialog();
 
   const [comp, setComp] = useState<PhysComp | null>(null);
   const [wods, setWods] = useState<PhysWOD[]>([]);
@@ -142,8 +144,18 @@ export default function PhysicalCompetitionDetailPage() {
     load();
   }
 
+  function askDeleteWod(w: PhysWOD) {
+    ask({
+      title: 'Supprimer ce WOD ?',
+      element: `« ${w.name} » (${TIMER_TYPES.find(t => t.key === w.timer_type)?.label ?? w.timer_type}, ${Math.round(w.total_seconds / 60)} min)${comp ? `, compétition « ${comp.name} »` : ''}`,
+      body: 'Cette action est définitive.',
+      confirmLabel: 'Supprimer le WOD',
+      danger: true,
+      run: () => handleDeleteWod(w),
+    });
+  }
+
   async function handleDeleteWod(w: PhysWOD) {
-    if (!confirm(`Supprimer le WOD "${w.name}" ?`)) return;
     setDeletingWod(w.id);
     await supabase.from('physical_wods').delete().eq('id', w.id);
     setDeletingWod(null);
@@ -173,6 +185,7 @@ export default function PhysicalCompetitionDetailPage() {
 
   return (
     <div className="space-y-6 max-w-3xl">
+      {dialog}
       {/* Back + header */}
       <button onClick={() => router.push('/admin/physical-competitions')} className="flex items-center gap-2 text-gray-400 hover:text-white text-sm font-semibold transition-colors">
         <ArrowLeft size={16} /> Retour
@@ -352,7 +365,7 @@ export default function PhysicalCompetitionDetailPage() {
                     className="p-2 rounded-xl hover:bg-white/5 text-gray-500 hover:text-white transition-colors">
                     <Pencil size={14} />
                   </button>
-                  <button onClick={() => handleDeleteWod(w)} disabled={deletingWod === w.id}
+                  <button onClick={() => askDeleteWod(w)} disabled={deletingWod === w.id}
                     className="p-2 rounded-xl hover:bg-red-500/10 text-gray-500 hover:text-red-400 transition-colors disabled:opacity-40">
                     {deletingWod === w.id ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
                   </button>

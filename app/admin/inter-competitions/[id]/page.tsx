@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import { useConfirmDialog } from '@/components/ui/confirm-dialog';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import {
@@ -25,6 +26,7 @@ const STATUS_LABEL: Record<string, string> = {
 export default function InterCompDetailPage() {
   const { id } = useParams<{ id: string }>();
   const supabase = createClient();
+  const { dialog, ask } = useConfirmDialog();
 
   const [tab, setTab] = useState<Tab>('WODs');
   const [comp, setComp] = useState<any>(null);
@@ -106,8 +108,19 @@ export default function InterCompDetailPage() {
     setShowWodForm(false);
     setSavingWod(false);
   }
+  function askDeleteWod(w: any) {
+    const n = scores.filter(s => s.wod_id === w.id).length;
+    ask({
+      title: 'Supprimer ce WOD ?',
+      element: `WOD ${w.order_index} · « ${w.title} » · ${n} score(s) enregistré(s)`,
+      body: 'Les scores de ce WOD seront supprimés et retirés du classement. Cette action est définitive.',
+      confirmLabel: 'Supprimer le WOD',
+      danger: true,
+      run: () => deleteWod(w.id),
+    });
+  }
+
   async function deleteWod(wid: string) {
-    if (!confirm('Supprimer ce WOD ?')) return;
     await supabase.from('inter_competition_wods').delete().eq('id', wid);
     await load();
   }
@@ -126,13 +139,50 @@ export default function InterCompDetailPage() {
     await load();
     setProcessing(null);
   }
+  const who = (r: any) => `${r.athlete?.username ?? r.team?.name ?? '—'}${r.athlete?.level ? ` (${r.athlete.level})` : r.team ? ' (équipe)' : ''}`;
+
+  function askRemoveReg(r: any) {
+    const n = r.athlete_id ? scores.filter(s => s.athlete_id === r.athlete_id).length : 0;
+    ask({
+      title: 'Retirer ce participant ?',
+      element: `${who(r)}${r.athlete_id ? `, ${n} score(s) déposé(s)` : ''}`,
+      body: 'Son inscription sera supprimée. Ses scores déjà déposés restent dans le classement. Il pourra se réinscrire.',
+      confirmLabel: 'Retirer le participant',
+      danger: true,
+      run: () => removeReg(r.id),
+    });
+  }
+
+  function askDisqualify(r: any) {
+    ask({
+      title: 'Disqualifier ce participant ?',
+      element: who(r),
+      body: 'Il sera marqué « Disqualifié ». Ses scores déjà validés resteront au classement. Cette page ne permet pas d’annuler la disqualification.',
+      confirmLabel: 'Disqualifier',
+      danger: true,
+      run: () => disqualifyReg(r.id),
+    });
+  }
+
+  // Rejet avec motif facultatif : « Annuler » ne rejette plus (le prompt natif
+  // rejetait même annulé).
+  function askRejectScore(s: any) {
+    ask({
+      title: 'Rejeter ce score ?',
+      element: `${s.athlete?.username ?? '—'} · WOD ${s.wod?.order_index ?? '?'} « ${s.wod?.title ?? '—'} » · ${s.score_display ?? s.score_value}`,
+      body: 'Le score sera retiré du classement. L’athlète verra le motif, s’il est renseigné.',
+      field: { label: 'Motif (facultatif)' },
+      confirmLabel: 'Rejeter le score',
+      danger: true,
+      run: reason => validateScore(s.id, 'rejected', reason || undefined),
+    });
+  }
+
   async function removeReg(rid: string) {
-    if (!confirm('Retirer ce participant ?')) return;
     await supabase.from('inter_registrations').delete().eq('id', rid);
     await load();
   }
   async function disqualifyReg(rid: string) {
-    if (!confirm('Disqualifier ?')) return;
     await supabase.from('inter_registrations').update({ status: 'disqualified' }).eq('id', rid);
     await load();
   }
@@ -148,6 +198,7 @@ export default function InterCompDetailPage() {
 
   return (
     <div className="space-y-6">
+      {dialog}
       {/* Header */}
       <div className="flex items-start justify-between gap-4">
         <div className="flex items-center gap-3">
@@ -247,7 +298,7 @@ export default function InterCompDetailPage() {
                   <button onClick={() => openEditWod(w)} className="p-2 rounded-lg bg-[#0A0A0A] hover:bg-white/5 text-gray-500 hover:text-white transition-colors">
                     <Pencil size={13} />
                   </button>
-                  <button onClick={() => deleteWod(w.id)} className="p-2 rounded-lg bg-[#0A0A0A] hover:bg-red-500/10 text-gray-500 hover:text-red-400 transition-colors">
+                  <button onClick={() => askDeleteWod(w)} className="p-2 rounded-lg bg-[#0A0A0A] hover:bg-red-500/10 text-gray-500 hover:text-red-400 transition-colors">
                     <Trash2 size={13} />
                   </button>
                 </div>
@@ -348,11 +399,11 @@ export default function InterCompDetailPage() {
                 </div>
                 {r.status !== 'disqualified' && (
                   <div className="flex gap-1.5">
-                    <button onClick={() => disqualifyReg(r.id)} title="Disqualifier"
+                    <button onClick={() => askDisqualify(r)} title="Disqualifier"
                       className="px-2.5 py-1.5 rounded-lg bg-[#0A0A0A] hover:bg-red-500/10 text-gray-500 hover:text-red-400 text-xs font-bold transition-colors">
                       DQ
                     </button>
-                    <button onClick={() => removeReg(r.id)}
+                    <button onClick={() => askRemoveReg(r)} aria-label="Retirer ce participant"
                       className="p-1.5 rounded-lg bg-[#0A0A0A] hover:bg-red-500/10 text-gray-500 hover:text-red-400 transition-colors">
                       <Trash2 size={13} />
                     </button>
@@ -404,10 +455,7 @@ export default function InterCompDetailPage() {
                           Valider
                         </button>
                         <button
-                          onClick={async () => {
-                            const reason = prompt('Motif de rejet (optionnel) :') ?? undefined;
-                            await validateScore(s.id, 'rejected', reason);
-                          }}
+                          onClick={() => askRejectScore(s)}
                           disabled={processing === s.id}
                           className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-red-500/15 text-red-400 hover:bg-red-500/25 text-xs font-bold transition-colors disabled:opacity-40">
                           <XCircle size={12} /> Rejeter
