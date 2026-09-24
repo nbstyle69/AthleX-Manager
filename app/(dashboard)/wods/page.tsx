@@ -19,6 +19,7 @@ import CopyWeekToOfferModal, { CopySource } from '@/components/wods/CopyWeekToOf
 import SubscriptionBanner, { BannerSubscription } from '@/components/wods/SubscriptionBanner';
 import AutoProgrammingBanner, { AutoBadge } from '@/components/wods/AutoProgrammingBanner';
 import TrackTabs, { TrackBadge, trackAccent } from '@/components/wods/TrackTabs';
+import ClampedDescription from '@/components/wods/ClampedDescription';
 import {
   DEFAULT_REVEAL, DEFAULT_TAB, filterByTab, resolveTab, trackTabStorageKey, visibleTabs,
   type AutoRun, type RevealSettings, type Track, type TrackTab,
@@ -1128,7 +1129,7 @@ export default function WODsPage() {
                               )}
                               <p className="text-xs font-bold text-ax-text break-words min-w-0">{wod.title}</p>
                             </div>
-                            {wod.description && <p className="text-[10px] text-ax-text-muted whitespace-pre-line break-words mt-0.5">{wod.description}</p>}
+                            {wod.description && <ClampedDescription text={wod.description} className="text-[10px] leading-[1.25] text-ax-text-muted whitespace-pre-line break-words mt-0.5" />}
                             <div className="mt-1">
                               <RestrictionBadges
                                 compact
@@ -1303,7 +1304,7 @@ export default function WODsPage() {
                             </div>
                             <p className="text-sm font-bold text-ax-text break-words">{wod.title}</p>
                             {wod.description && (
-                              <p className="text-xs text-ax-text-muted whitespace-pre-line break-words mt-0.5">{wod.description}</p>
+                              <ClampedDescription text={wod.description} className="text-xs text-ax-text-muted whitespace-pre-line break-words mt-0.5" />
                             )}
                           </div>
                           <div className="flex items-center gap-1 shrink-0 ml-auto sm:ml-0">
