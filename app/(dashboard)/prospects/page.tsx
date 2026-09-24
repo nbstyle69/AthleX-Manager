@@ -14,7 +14,7 @@ import {
 const supabase = createClient();
 
 const INPUT_CLS =
-  'w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-white/30';
+  'w-full min-h-11 px-3 py-2.5 rounded-ax-control bg-ax-surface border border-ax-input-border text-base sm:text-sm text-ax-text placeholder:text-ax-text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ax-focus focus-visible:ring-offset-2 focus-visible:ring-offset-ax-surface transition-colors';
 
 type Status = 'pending' | 'responded' | 'meeting_booked' | 'offer_sent' | 'converted' | 'lost';
 
@@ -216,35 +216,35 @@ export default function ProspectsPage() {
   }
 
   if (loading) {
-    return <div className="flex items-center justify-center h-64"><Loader2 className="animate-spin text-white/40" /></div>;
+    return <div className="flex items-center justify-center h-64"><Loader2 className="animate-spin text-ax-text-muted" /></div>;
   }
   if (!boxId) {
-    return <p className="text-gray-400">Aucune box active.</p>;
+    return <p className="text-ax-text-secondary">Aucune box active.</p>;
   }
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-black text-white flex items-center gap-2">
+      <div className="flex flex-wrap items-start justify-between gap-4 mb-6">
+        <div className="min-w-0">
+          <h1 className="font-display text-2xl font-medium uppercase tracking-wide text-ax-text flex items-center gap-2">
             <UserPlus size={22} /> Prospects
             <HelpButton />
           </h1>
-          <p className="text-sm text-gray-400 mt-1">
+          <p className="text-sm text-ax-text-secondary mt-1">
             Suivi des essais &amp; Drop-in : feedback, RDV, conversion en abonnement.
           </p>
         </div>
-        <div className="flex gap-1 bg-white/5 rounded-xl p-1">
-          <button onClick={() => setTab('essais')}
-            className={`px-3 py-1.5 rounded-lg text-sm font-bold ${tab === 'essais' ? 'bg-white text-black' : 'text-gray-400'}`}>
+        <div className="flex flex-wrap gap-1 bg-ax-surface-secondary rounded-ax-control p-1">
+          <button onClick={() => setTab('essais')} aria-pressed={tab === 'essais'}
+            className={`px-3 py-1.5 min-h-9 rounded-ax-control text-sm font-bold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ax-focus focus-visible:ring-offset-2 focus-visible:ring-offset-ax-surface ${tab === 'essais' ? 'bg-ax-text text-ax-background' : 'text-ax-text-secondary hover:text-ax-text hover:bg-ax-hover'}`}>
             Essais ({trials.length})
           </button>
-          <button onClick={() => setTab('pipeline')}
-            className={`px-3 py-1.5 rounded-lg text-sm font-bold ${tab === 'pipeline' ? 'bg-white text-black' : 'text-gray-400'}`}>
+          <button onClick={() => setTab('pipeline')} aria-pressed={tab === 'pipeline'}
+            className={`px-3 py-1.5 min-h-9 rounded-ax-control text-sm font-bold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ax-focus focus-visible:ring-offset-2 focus-visible:ring-offset-ax-surface ${tab === 'pipeline' ? 'bg-ax-text text-ax-background' : 'text-ax-text-secondary hover:text-ax-text hover:bg-ax-hover'}`}>
             Adhérents ({followups.length})
           </button>
-          <button onClick={() => setTab('slots')}
-            className={`px-3 py-1.5 rounded-lg text-sm font-bold ${tab === 'slots' ? 'bg-white text-black' : 'text-gray-400'}`}>
+          <button onClick={() => setTab('slots')} aria-pressed={tab === 'slots'}
+            className={`px-3 py-1.5 min-h-9 rounded-ax-control text-sm font-bold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ax-focus focus-visible:ring-offset-2 focus-visible:ring-offset-ax-surface ${tab === 'slots' ? 'bg-ax-text text-ax-background' : 'text-ax-text-secondary hover:text-ax-text hover:bg-ax-hover'}`}>
             Créneaux RDV
           </button>
         </div>
@@ -278,9 +278,9 @@ function TrialPipeline({
 
   if (trials.length === 0) {
     return (
-      <div className="bg-[#111] border border-white/8 rounded-2xl p-10 text-center">
-        <Sparkles className="mx-auto text-white/20 mb-3" size={32} />
-        <p className="text-gray-400 text-sm">
+      <div className="bg-ax-surface border border-ax-border rounded-ax-card p-10 text-center">
+        <Sparkles className="mx-auto text-ax-text-muted mb-3" size={32} />
+        <p className="text-ax-text-secondary text-sm">
           Aucun essai réservé pour l&apos;instant. Publie une offre de type « Essai » dans
           Formules : elle apparaît sur la page publique de la box, et chaque
           réservation arrive ici avec ses coordonnées et son créneau.
@@ -291,18 +291,18 @@ function TrialPipeline({
 
   return (
     <>
-      <p className="text-xs text-gray-500 mb-3">
-        Visiteurs <strong className="text-gray-300">sans compte</strong> venus par le tunnel Essai.
+      <p className="text-xs text-ax-text-muted mb-3">
+        Visiteurs <strong className="text-ax-text-secondary">sans compte</strong> venus par le tunnel Essai.
         « Venu / Pas venu » se remplit tout seul au pointage de présence du cours.
       </p>
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-4">
         {TRIAL_PIPELINE.map((col) => {
           const items = trials.filter((p) => p.status === col.key);
           return (
-            <div key={col.key} className="bg-[#0d0d0d] border border-white/8 rounded-2xl p-3">
+            <div key={col.key} className="bg-ax-surface-secondary border border-ax-border rounded-ax-card p-3">
               <div className="mb-3 px-1">
-                <p className="text-sm font-black text-white">{col.label}</p>
-                <p className="text-[11px] text-gray-500">{col.hint} · {items.length}</p>
+                <p className="text-sm font-black text-ax-text">{col.label}</p>
+                <p className="text-[11px] text-ax-text-muted">{col.hint} · {items.length}</p>
               </div>
               <div className="space-y-2">
                 {items.map((p) => (
@@ -315,10 +315,10 @@ function TrialPipeline({
       </div>
       {lost.length > 0 && (
         <div className="mt-6">
-          <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">Perdus</p>
+          <p className="text-xs font-bold text-ax-text-muted uppercase tracking-widest mb-2">Perdus</p>
           <div className="flex flex-wrap gap-2">
             {lost.map((p) => (
-              <span key={p.id} className="text-xs text-gray-500 bg-white/5 border border-white/10 rounded-lg px-3 py-1.5">
+              <span key={p.id} className="text-xs text-ax-text-muted bg-ax-surface-secondary border border-ax-border rounded-ax-control px-3 py-1.5">
                 {p.first_name} {p.last_name ?? ''}
               </span>
             ))}
@@ -336,53 +336,53 @@ function TrialCard({
   onStatus: (p: TrialProspect, s: TrialStatus) => void;
 }) {
   return (
-    <div className="bg-[#161616] border border-white/10 rounded-xl p-3">
-      <div className="flex items-center gap-1.5">
-        <p className="text-sm font-bold text-white truncate">
+    <div className="bg-ax-surface border border-ax-border rounded-ax-control p-3">
+      <div className="flex flex-wrap items-center gap-1.5">
+        <p className="text-sm font-bold text-ax-text break-words min-w-0">
           {p.first_name} {p.last_name ?? ''}
         </p>
-        <span className="text-[9px] px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-300 font-bold shrink-0">ESSAI</span>
+        <span className="text-[9px] px-1.5 py-0.5 rounded-ax-badge border border-current bg-ax-warning-soft text-ax-warning font-bold shrink-0">ESSAI</span>
       </div>
-      <p className="text-[11px] text-gray-500 truncate flex items-center gap-1">
-        <Mail size={10} /> {p.email}
+      <p className="text-[11px] text-ax-text-muted break-all flex items-start gap-1">
+        <Mail size={10} className="shrink-0 mt-0.5" /> {p.email}
       </p>
       {p.phone && (
-        <p className="text-[11px] text-gray-500 truncate flex items-center gap-1">
-          <Phone size={10} /> {p.phone}
+        <p className="text-[11px] text-ax-text-muted break-words flex items-start gap-1">
+          <Phone size={10} className="shrink-0 mt-0.5" /> {p.phone}
         </p>
       )}
-      <p className="text-[11px] text-gray-600 mt-1">
+      <p className="text-[11px] text-ax-text-muted mt-1">
         {p.slotLabel ?? 'Créneau supprimé'}
       </p>
-      <p className="text-[11px] text-gray-600">Réservé le {fmt(p.created_at)}</p>
+      <p className="text-[11px] text-ax-text-muted">Réservé le {fmt(p.created_at)}</p>
 
       {p.status !== 'converti' && p.status !== 'perdu' && (
         <div className="mt-3 space-y-1.5">
           {p.status === 'essai_reserve' && (
             <div className="flex gap-1.5">
               <button onClick={() => onStatus(p, 'venu')}
-                className="flex-1 text-[11px] font-bold bg-white/10 hover:bg-white/20 text-white rounded-lg py-1.5">
+                className="flex-1 text-[11px] font-bold bg-ax-surface-secondary hover:bg-ax-hover text-ax-text rounded-ax-control py-1.5">
                 Venu
               </button>
               <button onClick={() => onStatus(p, 'pas_venu')}
-                className="flex-1 text-[11px] font-bold bg-white/5 hover:bg-white/10 text-gray-300 rounded-lg py-1.5">
+                className="flex-1 text-[11px] font-bold bg-ax-surface-secondary hover:bg-ax-hover text-ax-text-secondary rounded-ax-control py-1.5">
                 Pas venu
               </button>
             </div>
           )}
           {(p.status === 'venu' || p.status === 'pas_venu') && (
             <button onClick={() => onStatus(p, 'relance')}
-              className="w-full flex items-center justify-center gap-1 text-[11px] font-bold bg-white/10 hover:bg-white/20 text-white rounded-lg py-1.5">
+              className="w-full flex items-center justify-center gap-1 text-[11px] font-bold bg-ax-surface-secondary hover:bg-ax-hover text-ax-text rounded-ax-control py-1.5">
               <Send size={11} /> Marquer relancé
             </button>
           )}
           <div className="flex gap-1.5">
             <button onClick={() => onStatus(p, 'converti')}
-              className="flex-1 flex items-center justify-center gap-1 text-[11px] font-bold bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 rounded-lg py-1.5">
+              className="flex-1 flex items-center justify-center gap-1 text-[11px] font-bold bg-ax-success-soft hover:brightness-110 text-ax-success rounded-ax-control py-1.5">
               <Check size={12} /> Converti
             </button>
-            <button onClick={() => onStatus(p, 'perdu')} title="Marquer perdu"
-              className="px-2 text-gray-500 hover:text-red-400 rounded-lg py-1.5 bg-white/5">
+            <button onClick={() => onStatus(p, 'perdu')} title="Marquer perdu" aria-label="Marquer perdu"
+              className="px-2 text-ax-text-muted hover:text-ax-danger rounded-ax-control py-1.5 bg-ax-surface-secondary">
               <X size={13} />
             </button>
           </div>
@@ -401,9 +401,9 @@ function Pipeline({
 }) {
   if (followups.length === 0) {
     return (
-      <div className="bg-[#111] border border-white/8 rounded-2xl p-10 text-center">
-        <Users className="mx-auto text-white/20 mb-3" size={32} />
-        <p className="text-gray-400 text-sm">
+      <div className="bg-ax-surface border border-ax-border rounded-ax-card p-10 text-center">
+        <Users className="mx-auto text-ax-text-muted mb-3" size={32} />
+        <p className="text-ax-text-secondary text-sm">
           Aucun prospect pour l&apos;instant. Dès qu&apos;un non-abonné est marqué « présent »
           à une première séance, il apparaît ici automatiquement.
         </p>
@@ -417,10 +417,10 @@ function Pipeline({
         {PIPELINE.map((col) => {
           const items = followups.filter((f) => f.status === col.key);
           return (
-            <div key={col.key} className="bg-[#0d0d0d] border border-white/8 rounded-2xl p-3">
+            <div key={col.key} className="bg-ax-surface-secondary border border-ax-border rounded-ax-card p-3">
               <div className="mb-3 px-1">
-                <p className="text-sm font-black text-white">{col.label}</p>
-                <p className="text-[11px] text-gray-500">{col.hint} · {items.length}</p>
+                <p className="text-sm font-black text-ax-text">{col.label}</p>
+                <p className="text-[11px] text-ax-text-muted">{col.hint} · {items.length}</p>
               </div>
               <div className="space-y-2">
                 {items.map((f) => (
@@ -433,10 +433,10 @@ function Pipeline({
       </div>
       {lost.length > 0 && (
         <div className="mt-6">
-          <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">Perdus</p>
+          <p className="text-xs font-bold text-ax-text-muted uppercase tracking-widest mb-2">Perdus</p>
           <div className="flex flex-wrap gap-2">
             {lost.map((f) => (
-              <span key={f.id} className="text-xs text-gray-500 bg-white/5 border border-white/10 rounded-lg px-3 py-1.5">
+              <span key={f.id} className="text-xs text-ax-text-muted bg-ax-surface-secondary border border-ax-border rounded-ax-control px-3 py-1.5">
                 {f.username}
               </span>
             ))}
@@ -458,20 +458,20 @@ function ProspectCard({
   const [planId, setPlanId] = useState<string>('');
 
   return (
-    <div className="bg-[#161616] border border-white/10 rounded-xl p-3">
-      <p className="text-sm font-bold text-white truncate">{f.username}</p>
-      <p className="text-[11px] text-gray-500 truncate">{f.email}</p>
-      <p className="text-[11px] text-gray-600 mt-1">Essai le {fmt(f.first_seen_at)}</p>
+    <div className="bg-ax-surface border border-ax-border rounded-ax-control p-3">
+      <p className="text-sm font-bold text-ax-text break-words">{f.username}</p>
+      <p className="text-[11px] text-ax-text-muted break-all">{f.email}</p>
+      <p className="text-[11px] text-ax-text-muted mt-1">Essai le {fmt(f.first_seen_at)}</p>
 
       {f.rating != null && (
         <div className="flex items-center gap-0.5 mt-2">
           {[1, 2, 3, 4, 5].map((n) => (
-            <Star key={n} size={12} className={n <= (f.rating ?? 0) ? 'text-yellow-400 fill-yellow-400' : 'text-white/15'} />
+            <Star key={n} size={12} className={n <= (f.rating ?? 0) ? 'text-ax-warning fill-current' : 'text-ax-text-muted'} />
           ))}
         </div>
       )}
       {f.feedback_comment && (
-        <p className="text-[11px] text-gray-400 mt-1 italic line-clamp-3">« {f.feedback_comment} »</p>
+        <p className="text-[11px] text-ax-text-secondary mt-1 italic whitespace-pre-line break-words">« {f.feedback_comment} »</p>
       )}
 
       {f.status !== 'converted' && f.status !== 'lost' && (
@@ -479,11 +479,11 @@ function ProspectCard({
           {!offering ? (
             <div className="flex gap-1.5">
               <button onClick={() => setOffering(true)}
-                className="flex-1 flex items-center justify-center gap-1 text-[11px] font-bold bg-white/10 hover:bg-white/20 text-white rounded-lg py-1.5">
+                className="flex-1 flex items-center justify-center gap-1 text-[11px] font-bold bg-ax-surface-secondary hover:bg-ax-hover text-ax-text rounded-ax-control py-1.5">
                 <Send size={11} /> Proposer une offre
               </button>
-              <button onClick={() => onStatus(f, 'lost')} title="Marquer perdu"
-                className="px-2 text-gray-500 hover:text-red-400 rounded-lg py-1.5 bg-white/5">
+              <button onClick={() => onStatus(f, 'lost')} title="Marquer perdu" aria-label="Marquer perdu"
+                className="px-2 text-ax-text-muted hover:text-ax-danger rounded-ax-control py-1.5 bg-ax-surface-secondary">
                 <X size={13} />
               </button>
             </div>
@@ -502,10 +502,10 @@ function ProspectCard({
                 <button
                   disabled={!planId}
                   onClick={() => { onStatus(f, 'offer_sent', planId); setOffering(false); }}
-                  className="flex-1 text-[11px] font-bold bg-white text-black rounded-lg py-1.5 disabled:opacity-40">
+                  className="flex-1 text-[11px] font-bold bg-ax-text text-ax-background rounded-ax-control py-1.5 disabled:opacity-40">
                   Envoyer l&apos;offre
                 </button>
-                <button onClick={() => setOffering(false)} className="px-2 text-gray-500 bg-white/5 rounded-lg py-1.5">
+                <button onClick={() => setOffering(false)} className="px-2 text-ax-text-muted bg-ax-surface-secondary rounded-ax-control py-1.5">
                   <X size={13} />
                 </button>
               </div>
@@ -513,7 +513,7 @@ function ProspectCard({
           )}
           {f.status === 'offer_sent' && (
             <button onClick={() => onStatus(f, 'converted')}
-              className="w-full flex items-center justify-center gap-1 text-[11px] font-bold bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 rounded-lg py-1.5">
+              className="w-full flex items-center justify-center gap-1 text-[11px] font-bold bg-ax-success-soft hover:brightness-110 text-ax-success rounded-ax-control py-1.5">
               <Check size={12} /> Marquer converti
             </button>
           )}
@@ -574,8 +574,8 @@ function Slots({
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-      <div className="bg-[#111] border border-white/8 rounded-2xl p-4">
-        <p className="text-sm font-black text-white flex items-center gap-2 mb-3">
+      <div className="bg-ax-surface border border-ax-border rounded-ax-card p-4">
+        <p className="text-sm font-black text-ax-text flex items-center gap-2 mb-3">
           <CalendarPlus size={16} /> Ouvrir un créneau
         </p>
         <div className="space-y-2">
@@ -588,30 +588,30 @@ function Slots({
             placeholder="Capacité" className={INPUT_CLS} />
           <input value={coach} onChange={(e) => setCoach(e.target.value)} placeholder="Coach (optionnel)" className={INPUT_CLS} />
           <button onClick={addSlot} disabled={saving}
-            className="w-full bg-white text-black font-bold rounded-lg py-2 text-sm disabled:opacity-50">
+            className="w-full bg-ax-text text-ax-background font-bold rounded-ax-control py-2 text-sm disabled:opacity-50">
             {saving ? 'Ajout…' : 'Ajouter le créneau'}
           </button>
-          {err && <p className="text-xs text-red-400">{err}</p>}
+          {err && <p className="text-xs text-ax-danger">{err}</p>}
         </div>
       </div>
 
-      <div className="lg:col-span-2 bg-[#111] border border-white/8 rounded-2xl p-4">
-        <p className="text-sm font-black text-white flex items-center gap-2 mb-3">
+      <div className="lg:col-span-2 bg-ax-surface border border-ax-border rounded-ax-card p-4">
+        <p className="text-sm font-black text-ax-text flex items-center gap-2 mb-3">
           <CalendarClock size={16} /> Créneaux à venir
         </p>
         {slots.length === 0 ? (
-          <p className="text-sm text-gray-500">Aucun créneau ouvert.</p>
+          <p className="text-sm text-ax-text-muted">Aucun créneau ouvert.</p>
         ) : (
           <div className="space-y-2">
             {slots.map((s) => (
-              <div key={s.id} className="flex items-center justify-between bg-[#161616] border border-white/10 rounded-xl px-4 py-2.5">
-                <div>
-                  <p className="text-sm font-bold text-white">{fmt(s.starts_at)}</p>
-                  <p className="text-[11px] text-gray-500">
+              <div key={s.id} className="flex items-center justify-between gap-3 bg-ax-surface-secondary border border-ax-border rounded-ax-control px-4 py-2.5">
+                <div className="min-w-0">
+                  <p className="text-sm font-bold text-ax-text">{fmt(s.starts_at)}</p>
+                  <p className="text-[11px] text-ax-text-muted break-words">
                     {s.booked}/{s.capacity} réservé{s.booked > 1 ? 's' : ''}{s.coach ? ` · ${s.coach}` : ''}
                   </p>
                 </div>
-                <button onClick={() => del(s.id)} className="text-gray-500 hover:text-red-400 p-1.5">
+                <button onClick={() => del(s.id)} aria-label="Supprimer le créneau" className="shrink-0 inline-flex items-center justify-center w-8 h-8 rounded-ax-control text-ax-text-muted hover:text-ax-danger hover:bg-ax-danger-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ax-focus focus-visible:ring-offset-2 focus-visible:ring-offset-ax-surface">
                   <Trash2 size={15} />
                 </button>
               </div>
