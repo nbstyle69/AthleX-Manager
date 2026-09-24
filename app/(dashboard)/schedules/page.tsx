@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { getMyBox } from '@/lib/getMyBox';
 import { writeFailure } from '@/lib/writeGuard';
+import { CLASS_TYPES, classTypeFormFromTitle } from '@/lib/classTypes';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -65,11 +66,6 @@ interface ClassSchedule {
   waiting_count: number;
   pointed_count: number;
 }
-
-const CLASS_TYPES = [
-  'WOD', 'Haltérophilie', 'Cardio', 'Open Gym',
-  'Strength', 'Mobility', 'Kids', 'Teens', 'Autre',
-];
 
 const DAY_LABELS = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
 
@@ -280,11 +276,9 @@ export default function SchedulesPage() {
   }
 
   function openEdit(item: ClassSchedule) {
-    const isPreset = CLASS_TYPES.slice(0, -1).includes(item.title);
     setEditItem(item);
     setForm({
-      title: isPreset ? item.title : 'Autre',
-      customTitle: isPreset ? '' : item.title,
+      ...classTypeFormFromTitle(item.title),
       description: item.description ?? '',
       coach: item.coach ?? '',
       date: item.scheduled_date,

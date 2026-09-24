@@ -6,6 +6,8 @@ import { Plus, Pencil, Trash2, X, Loader2, ToggleLeft, ToggleRight } from 'lucid
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { classTypeFormFromTitle, classTypeTitleToSave } from '@/lib/classTypes';
+import ClassTypeField from '@/components/ClassTypeField';
 
 const FOCUS_CLS = 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ax-focus focus-visible:ring-offset-2 focus-visible:ring-offset-ax-surface';
 const ICON_BTN = `p-1 rounded-ax-control text-ax-text-secondary hover:text-ax-text hover:bg-ax-hover transition-colors motion-reduce:transition-none ${FOCUS_CLS}`;
@@ -26,8 +28,6 @@ interface ScheduleTemplate {
   is_active: boolean;
 }
 
-const CLASS_TYPES = ['WOD','Halterophilie','Cardio','Open Gym','Strength','Mobility','Kids','Teens','Autre'];
-
 const DAYS = [
   { value: 1, label: 'Lundi' },
   { value: 2, label: 'Mardi' },
@@ -38,7 +38,7 @@ const DAYS = [
   { value: 7, label: 'Dimanche' },
 ];
 
-const EMPTY_FORM = { title: 'WOD', description: '', coach: '', day_of_week: 1, start_time: '09:00', end_time: '10:00', max_capacity: 15 };
+const EMPTY_FORM = { title: 'WOD', customTitle: '', description: '', coach: '', day_of_week: 1, start_time: '09:00', end_time: '10:00', max_capacity: 15 };
 
 interface Props { open: boolean; onClose: () => void; boxId: string | null; }
 
@@ -88,14 +88,14 @@ export default function TemplatesDrawer({ open, onClose, boxId }: Props) {
 
   function openEdit(t: ScheduleTemplate) {
     setEditTarget(t);
-    setForm({ title: t.title, description: t.description ?? '', coach: t.coach ?? '', day_of_week: t.day_of_week, start_time: t.start_time, end_time: t.end_time, max_capacity: t.max_capacity });
+    setForm({ ...classTypeFormFromTitle(t.title), description: t.description ?? '', coach: t.coach ?? '', day_of_week: t.day_of_week, start_time: t.start_time, end_time: t.end_time, max_capacity: t.max_capacity });
     setShowModal(true);
   }
 
   async function handleSave() {
     if (!boxId) return;
     setSaving(true);
-    const payload = { box_id: boxId, title: form.title, description: form.description || null, coach: form.coach || null, day_of_week: form.day_of_week, start_time: form.start_time, end_time: form.end_time, max_capacity: form.max_capacity };
+    const payload = { box_id: boxId, title: classTypeTitleToSave(form), description: form.description || null, coach: form.coach || null, day_of_week: form.day_of_week, start_time: form.start_time, end_time: form.end_time, max_capacity: form.max_capacity };
     if (editTarget) {
       await supabase.from('schedule_templates').update(payload).eq('id', editTarget.id);
     } else {
@@ -204,12 +204,14 @@ export default function TemplatesDrawer({ open, onClose, boxId }: Props) {
                   {DAYS.map(d => <option key={d.value} value={d.value} className="bg-ax-surface text-ax-text">{d.label}</option>)}
                 </select>
               </div>
-              <div>
-                <label className={LABEL_CLS}>Type de cours</label>
-                <select value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} className={FIELD_CLS}>
-                  {CLASS_TYPES.map(c => <option key={c} className="bg-ax-surface text-ax-text">{c}</option>)}
-                </select>
-              </div>
+              <ClassTypeField
+                title={form.title}
+                customTitle={form.customTitle}
+                onTitleChange={title => setForm(f => ({ ...f, title }))}
+                onCustomTitleChange={customTitle => setForm(f => ({ ...f, customTitle }))}
+                labelClassName={LABEL_CLS}
+                selectClassName={FIELD_CLS}
+              />
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className={LABEL_CLS}>Début</label>

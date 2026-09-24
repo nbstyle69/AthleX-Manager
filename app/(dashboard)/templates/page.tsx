@@ -4,6 +4,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { Plus, Pencil, Trash2, X, Loader2, CalendarDays, ToggleLeft, ToggleRight } from 'lucide-react';
 import { getMyBox } from '@/lib/getMyBox';
+import { classTypeFormFromTitle, classTypeTitleToSave } from '@/lib/classTypes';
+import ClassTypeField from '@/components/ClassTypeField';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -27,11 +29,6 @@ interface ScheduleTemplate {
   is_active: boolean;
 }
 
-const CLASS_TYPES = [
-  'WOD', 'Haltérophilie', 'Cardio', 'Open Gym',
-  'Strength', 'Mobility', 'Kids', 'Teens', 'Autre',
-];
-
 const DAYS = [
   { value: 1, label: 'Lundi' },
   { value: 2, label: 'Mardi' },
@@ -44,6 +41,7 @@ const DAYS = [
 
 const EMPTY_FORM = {
   title: 'WOD',
+  customTitle: '',
   description: '',
   coach: '',
   day_of_week: 1,
@@ -91,7 +89,7 @@ export default function TemplatesPage() {
   function openEdit(t: ScheduleTemplate) {
     setEditTarget(t);
     setForm({
-      title: t.title,
+      ...classTypeFormFromTitle(t.title),
       description: t.description ?? '',
       coach: t.coach ?? '',
       day_of_week: t.day_of_week,
@@ -107,7 +105,7 @@ export default function TemplatesPage() {
     setSaving(true);
     const payload = {
       box_id: boxId,
-      title: form.title,
+      title: classTypeTitleToSave(form),
       description: form.description || null,
       coach: form.coach || null,
       day_of_week: form.day_of_week,
@@ -234,16 +232,14 @@ export default function TemplatesPage() {
               </div>
 
               {/* Titre */}
-              <div>
-                <label className={LABEL_CLS}>Type de cours</label>
-                <select
-                  value={form.title}
-                  onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
-                  className={FIELD_CLS}
-                >
-                  {CLASS_TYPES.map(c => <option key={c} className="bg-ax-surface text-ax-text">{c}</option>)}
-                </select>
-              </div>
+              <ClassTypeField
+                title={form.title}
+                customTitle={form.customTitle}
+                onTitleChange={title => setForm(f => ({ ...f, title }))}
+                onCustomTitleChange={customTitle => setForm(f => ({ ...f, customTitle }))}
+                labelClassName={LABEL_CLS}
+                selectClassName={FIELD_CLS}
+              />
 
               {/* Horaires */}
               <div className="grid grid-cols-2 gap-3">
