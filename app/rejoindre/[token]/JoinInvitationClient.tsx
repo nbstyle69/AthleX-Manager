@@ -6,6 +6,8 @@ import { LandingHeader } from '@/components/landing/header';
 import { useLanguage } from '@/components/language-provider';
 import { StoreBadges } from '@/components/store-badges';
 import { ConfirmationNotice } from './ConfirmationNotice';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 
 export type InvitationPeek = {
   ok: true;
@@ -117,17 +119,17 @@ export default function JoinInvitationClient({
     return (
       <Shell box={box}>
         <div className="text-center">
-          <CheckCircle2 size={40} className="text-green-400 mx-auto mb-4" />
-          <h2 className="text-lg font-bold text-foreground">
+          <CheckCircle2 size={40} className="text-ax-success mx-auto mb-4" />
+          <h2 className="text-lg font-bold text-ax-text">
             {j.welcomeTitle}
             {box.name} 🎉
           </h2>
           <ConfirmationNotice needsConfirmation={done.needsConfirmation} email={invitation.email} j={j} />
-          <p className="text-sm text-muted-foreground mt-2">
+          <p className="text-sm text-ax-text-secondary mt-2">
             {invitation.payment_mode === 'stripe' ? j.welcomeStripe : j.welcomeBox}
           </p>
           {done.pseudoChanged && done.finalUsername && (
-            <p className="text-xs text-gray-500 mt-3">
+            <p className="text-xs text-ax-text-muted mt-3">
               {t.funnel.signup.pseudoTakenBefore}
               {done.finalUsername}
               {t.funnel.signup.pseudoTakenAfter}
@@ -135,13 +137,12 @@ export default function JoinInvitationClient({
           )}
           {invitation.payment_mode === 'stripe' && (
             <div className="mt-5">
-              <button type="button" disabled={payLoading} onClick={pay}
-                className="w-full bg-white hover:bg-gray-200 disabled:opacity-60 text-[#0A0A0A] font-bold py-3 rounded-xl transition-colors flex items-center justify-center gap-2">
+              <Button type="button" disabled={payLoading} onClick={pay} variant="ax-white" className="w-full">
                 {payLoading ? <Loader2 size={16} className="animate-spin" /> : <CreditCard size={16} />}
                 {payLoading ? j.payOpening : j.payCta}
-              </button>
-              <p className="text-xs text-gray-500 mt-2">{j.payHint}</p>
-              {payError && <p className="text-xs text-red-400 mt-2">{payError}</p>}
+              </Button>
+              <p className="text-xs text-ax-text-muted mt-2">{j.payHint}</p>
+              {payError && <p className="text-xs text-ax-danger mt-2">{payError}</p>}
             </div>
           )}
 
@@ -153,37 +154,37 @@ export default function JoinInvitationClient({
 
   return (
     <Shell box={box}>
-      <h2 className="text-lg font-bold text-foreground">
+      <h2 className="text-lg font-bold text-ax-text">
         {invitation.first_name
           ? `${invitation.first_name}${j.titleWithName}${box.name}`
           : `${j.title}${box.name}`}
       </h2>
-      <p className="text-sm text-muted-foreground mt-1">
+      <p className="text-sm text-ax-text-secondary mt-1">
         {box.city ? `${box.city} · ` : ''}
         {j.badge}
       </p>
 
       {/* Ce que le gérant a préparé : lecture seule, rien n'est modifiable ici. */}
       <div className="mt-5 space-y-2">
-        <div className="flex items-center gap-2.5 bg-white/5 border border-border rounded-xl px-4 py-3">
-          <Mail size={15} className="text-gray-500 shrink-0" />
-          <span className="text-sm text-foreground truncate">{invitation.email}</span>
+        <div className="flex items-center gap-2.5 bg-ax-hover border border-ax-border rounded-ax-control px-4 py-3">
+          <Mail size={15} className="text-ax-text-muted shrink-0" />
+          <span className="text-sm text-ax-text truncate">{invitation.email}</span>
         </div>
         {plan && (
-          <div className="bg-white/5 border border-border rounded-xl px-4 py-3">
+          <div className="bg-ax-hover border border-ax-border rounded-ax-control px-4 py-3">
             <div className="flex items-baseline justify-between gap-3">
-              <span className="text-sm font-semibold text-foreground">{plan.name}</span>
+              <span className="text-sm font-semibold text-ax-text">{plan.name}</span>
               {price && (
-                <span className="text-sm font-bold text-foreground shrink-0">
+                <span className="text-sm font-bold text-ax-text shrink-0">
                   {price}
                   {plan.plan_type === 'subscription' && (
-                    <span className="text-xs text-muted-foreground">{j.perMonth}</span>
+                    <span className="text-xs text-ax-text-secondary">{j.perMonth}</span>
                   )}
                 </span>
               )}
             </div>
-            {plan.description && <p className="text-xs text-muted-foreground mt-1">{plan.description}</p>}
-            <p className="text-xs text-gray-500 mt-1.5">
+            {plan.description && <p className="text-xs text-ax-text-secondary mt-1">{plan.description}</p>}
+            <p className="text-xs text-ax-text-muted mt-1.5">
               {plan.max_sessions_per_week
                 ? `${plan.max_sessions_per_week}${plan.max_sessions_per_week > 1 ? j.sessionsPerWeek : j.sessionPerWeek}`
                 : j.unlimited}
@@ -197,20 +198,19 @@ export default function JoinInvitationClient({
       </div>
 
       {error && (
-        <div className="flex items-center gap-2 bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3 mt-5">
-          <AlertCircle size={15} className="text-red-400 shrink-0" />
-          <p className="text-sm text-red-400">{error}</p>
+        <div className="flex items-center gap-2 bg-ax-danger-soft border border-ax-danger rounded-ax-control px-4 py-3 mt-5">
+          <AlertCircle size={15} className="text-ax-danger shrink-0" />
+          <p className="text-sm text-ax-danger">{error}</p>
         </div>
       )}
 
       {sessionMatches ? (
         <div className="mt-5">
-          <p className="text-sm text-muted-foreground">{j.alreadySignedIn}</p>
-          <button type="button" disabled={loading} onClick={() => submit({ mode: 'existing' })}
-            className="w-full bg-white hover:bg-gray-200 disabled:opacity-60 text-[#0A0A0A] font-bold py-3 rounded-xl transition-colors flex items-center justify-center gap-2 mt-3">
+          <p className="text-sm text-ax-text-secondary">{j.alreadySignedIn}</p>
+          <Button type="button" disabled={loading} onClick={() => submit({ mode: 'existing' })} variant="ax-white" className="w-full mt-3">
             {loading && <Loader2 size={16} className="animate-spin" />}
             {loading ? j.joining : `${j.joinCta}${box.name}`}
-          </button>
+          </Button>
         </div>
       ) : (
         <form
@@ -222,30 +222,30 @@ export default function JoinInvitationClient({
           }}
         >
           <div>
-            <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wider">
+            <label className="block text-xs font-semibold text-ax-text-secondary mb-1.5 uppercase tracking-wider">
               {t.funnel.signup.username}
             </label>
-            <input type="text" required value={username} onChange={(e) => setUsername(e.target.value)}
+            <Input type="text" required value={username} onChange={(e) => setUsername(e.target.value)}
               placeholder={t.funnel.signup.usernamePlaceholder} autoCapitalize="none"
-              className="w-full bg-white/5 border border-border rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-gray-600 focus:outline-none focus:border-foreground transition-colors" />
+               />
           </div>
           <div>
-            <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wider">
+            <label className="block text-xs font-semibold text-ax-text-secondary mb-1.5 uppercase tracking-wider">
               {t.funnel.common.password}
             </label>
-            <input type="password" required minLength={6} value={password} onChange={(e) => setPassword(e.target.value)}
+            <Input type="password" required minLength={6} value={password} onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••"
-              className="w-full bg-white/5 border border-border rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-gray-600 focus:outline-none focus:border-foreground transition-colors" />
+               />
           </div>
           <div>
-            <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wider">
+            <label className="block text-xs font-semibold text-ax-text-secondary mb-1.5 uppercase tracking-wider">
               {t.funnel.signup.gender}
             </label>
             <div className="flex gap-2">
               {(['male', 'female'] as Gender[]).map((g) => (
                 <button type="button" key={g} onClick={() => setGender(g)}
-                  className={`flex-1 py-2.5 rounded-xl text-sm font-bold border transition-colors ${
-                    gender === g ? 'bg-white text-[#0A0A0A] border-white' : 'bg-white/5 text-gray-300 border-border hover:border-white/25'
+                  className={`flex-1 py-2.5 rounded-ax-control text-sm font-bold border transition-colors ${
+                    gender === g ? 'bg-ax-text text-ax-background border-ax-text' : 'bg-ax-hover text-ax-text border-ax-border hover:border-ax-input-border'
                   }`}>
                   {g === 'male' ? t.funnel.signup.male : t.funnel.signup.female}
                 </button>
@@ -253,25 +253,24 @@ export default function JoinInvitationClient({
             </div>
           </div>
 
-          <label className="flex items-start gap-2.5 text-sm text-muted-foreground pt-1">
+          <label className="flex items-start gap-2.5 text-sm text-ax-text-secondary pt-1">
             <input type="checkbox" checked={cgu} onChange={(e) => setCgu(e.target.checked)}
-              className="mt-0.5 h-4 w-4 shrink-0 accent-white" />
+              className="mt-0.5 h-4 w-4 shrink-0 accent-ax-accent" />
             <span>
               {t.funnel.signup.cguPrefix}
-              <a href="/privacy" className="text-foreground underline">{t.funnel.signup.cguLink}</a>.
+              <a href="/privacy" className="text-ax-text underline">{t.funnel.signup.cguLink}</a>.
             </span>
           </label>
 
-          <button type="submit" disabled={loading || !cgu}
-            className="w-full bg-white hover:bg-gray-200 disabled:opacity-60 text-[#0A0A0A] font-bold py-3 rounded-xl transition-colors flex items-center justify-center gap-2 mt-2">
+          <Button type="submit" disabled={loading || !cgu} variant="ax-white" className="w-full mt-2">
             {loading && <Loader2 size={16} className="animate-spin" />}
             {loading ? j.signingUp : j.signupCta}
-          </button>
+          </Button>
         </form>
       )}
 
       {sessionEmail && !sessionMatches && (
-        <p className="text-xs text-gray-500 text-center mt-4">
+        <p className="text-xs text-ax-text-muted text-center mt-4">
           {j.otherAccountBefore}
           {invitation.email}
           {j.otherAccountAfter}
@@ -290,22 +289,22 @@ function Shell({
 }) {
   const { t } = useLanguage();
   return (
-    <div className="min-h-screen bg-background font-sans text-foreground antialiased">
+    <div className="min-h-screen bg-ax-background font-sans text-ax-text antialiased">
       <LandingHeader variant="funnel" />
       <div className="flex items-center justify-center px-4 py-10">
         <div className="w-full max-w-sm">
           <div className="flex flex-col items-center mb-6 gap-3">
             {box.logo_url ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={box.logo_url} alt={box.name} className="w-16 h-16 rounded-2xl object-cover border border-border" />
+              <img src={box.logo_url} alt={box.name} className="w-16 h-16 rounded-ax-card object-cover border border-ax-border" />
             ) : (
-              <div className="w-16 h-16 rounded-2xl bg-white/5 border border-border flex items-center justify-center">
-                <Building2 size={26} className="text-gray-500" />
+              <div className="w-16 h-16 rounded-ax-card bg-ax-hover border border-ax-border flex items-center justify-center">
+                <Building2 size={26} className="text-ax-text-muted" />
               </div>
             )}
           </div>
-          <div className="bg-card rounded-2xl border border-border p-8">{children}</div>
-          <p className="text-center text-xs text-gray-600 mt-5">{t.funnel.common.poweredBy}</p>
+          <div className="bg-ax-surface rounded-ax-card border border-ax-border p-8">{children}</div>
+          <p className="text-center text-xs text-ax-text-muted mt-5">{t.funnel.common.poweredBy}</p>
         </div>
       </div>
     </div>

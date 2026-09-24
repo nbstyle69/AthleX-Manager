@@ -5,6 +5,7 @@ import { Search, Trophy, Users } from 'lucide-react';
 import { useLanguage } from '@/components/language-provider';
 import { cn } from '@/lib/utils';
 import type { AthleteRow, BoxRow } from '@/lib/leaderboard';
+import { Input } from '@/components/ui/input';
 
 const PAGE_SIZE = 50;
 
@@ -47,15 +48,15 @@ export function ClassementView({
 
   return (
     <div className="mx-auto max-w-3xl px-6 py-12 md:py-16">
-      <div className="mb-8 inline-flex rounded-xl border border-border bg-card p-1">
+      <div className="mb-8 inline-flex rounded-ax-control border border-ax-border bg-ax-surface p-1">
         <button
           type="button"
           onClick={() => setTab('athletes')}
           className={cn(
-            'flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-colors',
+            'flex items-center gap-2 rounded-ax-control px-4 py-2 text-sm font-semibold transition-colors',
             tab === 'athletes'
-              ? 'bg-primary text-primary-foreground'
-              : 'text-muted-foreground hover:text-foreground',
+              ? 'bg-ax-text text-ax-background'
+              : 'text-ax-text-secondary hover:text-ax-text',
           )}
         >
           <Trophy className="h-4 w-4" /> {t.leaderboard.athletes}
@@ -64,10 +65,10 @@ export function ClassementView({
           type="button"
           onClick={() => setTab('boxes')}
           className={cn(
-            'flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-colors',
+            'flex items-center gap-2 rounded-ax-control px-4 py-2 text-sm font-semibold transition-colors',
             tab === 'boxes'
-              ? 'bg-primary text-primary-foreground'
-              : 'text-muted-foreground hover:text-foreground',
+              ? 'bg-ax-text text-ax-background'
+              : 'text-ax-text-secondary hover:text-ax-text',
           )}
         >
           <Users className="h-4 w-4" /> {t.leaderboard.boxes}
@@ -78,8 +79,8 @@ export function ClassementView({
         <>
           <div className="mb-6 flex items-center justify-between gap-4">
             <div className="relative flex-1">
-              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <input
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ax-text-secondary" />
+              <Input
                 type="text"
                 value={query}
                 onChange={(e) => {
@@ -87,29 +88,29 @@ export function ClassementView({
                   setVisible(PAGE_SIZE);
                 }}
                 placeholder={t.leaderboard.searchPlaceholder}
-                className="w-full rounded-xl border border-border bg-card py-2.5 pl-10 pr-4 text-sm text-foreground outline-none transition-colors placeholder:text-muted-foreground focus:border-foreground/30"
+                className="pl-10"
               />
             </div>
-            <span className="hidden shrink-0 text-xs text-muted-foreground sm:block">
+            <span className="hidden shrink-0 text-xs text-ax-text-secondary sm:block">
               {athletes.length} {t.leaderboard.countAthletes}
             </span>
           </div>
 
           <ul className="space-y-2">
             {shown.length === 0 && (
-              <li className="rounded-xl border border-border bg-card px-5 py-6 text-center text-sm text-muted-foreground">
+              <li className="rounded-ax-control border border-ax-border bg-ax-surface px-5 py-6 text-center text-sm text-ax-text-secondary">
                 {query ? t.leaderboard.noResults : t.leaderboard.empty}
               </li>
             )}
             {shown.map((a) => (
               <li
                 key={`${a.username}-${a.rank}`}
-                className="flex items-center gap-4 rounded-xl border border-border bg-card px-4 py-3"
+                className="flex items-center gap-4 rounded-ax-control border border-ax-border bg-ax-surface px-4 py-3"
               >
-                <span className="w-10 shrink-0 text-center text-sm font-bold text-muted-foreground">
+                <span className="w-10 shrink-0 text-center text-sm font-bold text-ax-text-secondary">
                   {medal(a.rank)}
                 </span>
-                <span className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full border border-border bg-secondary text-xs font-bold text-foreground">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full border border-ax-border bg-ax-surface-secondary text-xs font-bold text-ax-text">
                   {a.avatar_url ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={a.avatar_url} alt={a.username} className="h-full w-full object-cover" />
@@ -118,14 +119,14 @@ export function ClassementView({
                   )}
                 </span>
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-semibold text-foreground">{a.username}</p>
+                  <p className="truncate text-sm font-semibold text-ax-text">{a.username}</p>
                   {a.level && (
-                    <p className="text-xs uppercase tracking-wide text-muted-foreground">{a.level}</p>
+                    <p className="text-xs uppercase tracking-wide text-ax-text-secondary">{a.level}</p>
                   )}
                 </div>
                 <div className="text-right">
-                  <p className="font-display text-base font-bold text-foreground">{a.elo}</p>
-                  <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                  <p className="font-display text-base font-bold text-ax-text">{a.elo}</p>
+                  <p className="text-[10px] font-semibold uppercase tracking-wide text-ax-text-secondary">
                     {t.leaderboard.elo}
                   </p>
                 </div>
@@ -138,7 +139,7 @@ export function ClassementView({
               <button
                 type="button"
                 onClick={() => setVisible((v) => v + PAGE_SIZE)}
-                className="rounded-xl border border-border bg-card px-6 py-2.5 text-sm font-semibold text-foreground transition-colors hover:border-foreground/30"
+                className="rounded-ax-control border border-ax-border bg-ax-surface px-6 py-2.5 text-sm font-semibold text-ax-text transition-colors hover:border-ax-input-border"
               >
                 {t.leaderboard.viewMore}
               </button>
@@ -148,7 +149,7 @@ export function ClassementView({
       ) : (
         <ul className="space-y-2">
           {boxes.length === 0 && (
-            <li className="rounded-xl border border-border bg-card px-5 py-6 text-center text-sm text-muted-foreground">
+            <li className="rounded-ax-control border border-ax-border bg-ax-surface px-5 py-6 text-center text-sm text-ax-text-secondary">
               {t.leaderboard.empty}
             </li>
           )}
@@ -156,20 +157,20 @@ export function ClassementView({
             <li key={b.slug}>
               <a
                 href={`/box/${b.slug}`}
-                className="flex items-center gap-4 rounded-xl border border-border bg-card px-4 py-3 transition-colors hover:border-foreground/30"
+                className="flex items-center gap-4 rounded-ax-control border border-ax-border bg-ax-surface px-4 py-3 transition-colors hover:border-ax-input-border"
               >
-                <span className="w-10 shrink-0 text-center text-sm font-bold text-muted-foreground">
+                <span className="w-10 shrink-0 text-center text-sm font-bold text-ax-text-secondary">
                   {medal(i + 1)}
                 </span>
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-semibold text-foreground">{b.name}</p>
-                  <p className="text-xs text-muted-foreground">
+                  <p className="truncate text-sm font-semibold text-ax-text">{b.name}</p>
+                  <p className="text-xs text-ax-text-secondary">
                     {[b.city, `${b.members} ${t.leaderboard.membersLabel}`].filter(Boolean).join(' · ')}
                   </p>
                 </div>
                 <div className="text-right">
-                  <p className="font-display text-base font-bold text-foreground">{b.avgElo}</p>
-                  <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                  <p className="font-display text-base font-bold text-ax-text">{b.avgElo}</p>
+                  <p className="text-[10px] font-semibold uppercase tracking-wide text-ax-text-secondary">
                     {t.leaderboard.avgElo}
                   </p>
                 </div>

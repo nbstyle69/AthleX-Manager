@@ -27,7 +27,7 @@ export function StoreBadges({
   ];
 
   const base =
-    'inline-flex items-center justify-center gap-2 rounded-lg border border-border bg-card px-4 py-2 text-sm font-medium text-foreground';
+    'inline-flex items-center justify-center gap-2 rounded-ax-control border border-ax-border bg-ax-surface px-4 py-2 text-sm font-medium text-ax-text';
 
   return (
     <div className={cn(layout === 'stacked' ? 'flex flex-col gap-2' : 'flex flex-wrap gap-3', className)}>
@@ -38,14 +38,14 @@ export function StoreBadges({
             href={href}
             target="_blank"
             rel="noopener noreferrer"
-            className={cn(base, 'transition-colors hover:border-foreground/40')}
+            className={cn(base, 'transition-colors hover:border-ax-input-border')}
           >
             <Icon className="h-4 w-4" /> {label}
           </a>
         ) : (
           <span key={label} className={cn(base, 'cursor-default opacity-60')} aria-disabled="true">
             <Icon className="h-4 w-4" /> {label}
-            <span className="text-xs font-normal text-muted-foreground">· {t.stores.soon}</span>
+            <span className="text-xs font-normal text-ax-text-secondary">· {t.stores.soon}</span>
           </span>
         ),
       )}

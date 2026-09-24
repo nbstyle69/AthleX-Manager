@@ -6,6 +6,8 @@ import { Loader2, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { isRecoveryError } from '@/lib/auth/recovery';
 import { useLanguage } from '@/components/language-provider';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 
 type Phase = 'checking' | 'ready' | 'invalid' | 'done';
 
@@ -74,12 +76,12 @@ export default function UpdatePasswordPage() {
       <div className="flex flex-col items-center mb-10 gap-3">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/logo.png" alt="AthleX" width={96} height={96} className="w-24 h-24 object-contain" />
-        <p className="text-sm text-muted-foreground font-medium">{u.header}</p>
+        <p className="text-sm text-ax-text-secondary font-medium">{u.header}</p>
       </div>
 
-      <div className="bg-card rounded-2xl border border-border p-8">
+      <div className="bg-ax-surface rounded-ax-card border border-ax-border p-8">
         {phase === 'checking' && (
-          <div className="flex items-center justify-center gap-2 text-muted-foreground py-4">
+          <div className="flex items-center justify-center gap-2 text-ax-text-secondary py-4">
             <Loader2 size={18} className="animate-spin" />
             <span className="text-sm">{u.checking}</span>
           </div>
@@ -87,10 +89,10 @@ export default function UpdatePasswordPage() {
 
         {phase === 'invalid' && (
           <div className="flex flex-col items-center gap-4 text-center">
-            <AlertCircle size={32} className="text-red-400" />
-            <h2 className="text-lg font-bold text-foreground">{u.invalidTitle}</h2>
-            <p className="text-sm text-muted-foreground">{error ?? u.invalidFallback}</p>
-            <Link href="/reset-password" className="text-foreground font-semibold hover:underline text-sm">
+            <AlertCircle size={32} className="text-ax-danger" />
+            <h2 className="text-lg font-bold text-ax-text">{u.invalidTitle}</h2>
+            <p className="text-sm text-ax-text-secondary">{error ?? u.invalidFallback}</p>
+            <Link href="/reset-password" className="text-ax-text font-semibold hover:underline text-sm">
               {u.requestNew}
             </Link>
           </div>
@@ -98,10 +100,10 @@ export default function UpdatePasswordPage() {
 
         {phase === 'done' && (
           <div className="flex flex-col items-center gap-4 text-center">
-            <CheckCircle2 size={32} className="text-foreground" />
-            <h2 className="text-lg font-bold text-foreground">{u.doneTitle}</h2>
-            <p className="text-sm text-muted-foreground">{u.doneBody}</p>
-            <Link href="/login" className="w-full bg-white text-[#0A0A0A] font-bold py-3 rounded-xl text-center transition-colors">
+            <CheckCircle2 size={32} className="text-ax-text" />
+            <h2 className="text-lg font-bold text-ax-text">{u.doneTitle}</h2>
+            <p className="text-sm text-ax-text-secondary">{u.doneBody}</p>
+            <Link href="/login" className="w-full bg-ax-text text-ax-background font-bold py-3 rounded-ax-control text-center transition-colors">
               {t.funnel.common.login}
             </Link>
           </div>
@@ -109,33 +111,32 @@ export default function UpdatePasswordPage() {
 
         {phase === 'ready' && (
           <>
-            <h2 className="text-lg font-bold text-foreground mb-6">{u.title}</h2>
+            <h2 className="text-lg font-bold text-ax-text mb-6">{u.title}</h2>
 
             {error && (
-              <div className="flex items-center gap-2 bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3 mb-5">
-                <AlertCircle size={15} className="text-red-400 shrink-0" />
-                <p className="text-sm text-red-400">{error}</p>
+              <div className="flex items-center gap-2 bg-ax-danger-soft border border-ax-danger rounded-ax-control px-4 py-3 mb-5">
+                <AlertCircle size={15} className="text-ax-danger shrink-0" />
+                <p className="text-sm text-ax-danger">{error}</p>
               </div>
             )}
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wider">{u.newPassword}</label>
-                <input type="password" required value={password} onChange={e => setPassword(e.target.value)}
+                <label className="block text-xs font-semibold text-ax-text-secondary mb-1.5 uppercase tracking-wider">{u.newPassword}</label>
+                <Input type="password" required value={password} onChange={e => setPassword(e.target.value)}
                   placeholder="••••••••"
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-gray-600 focus:outline-none focus:border-white transition-colors" />
+                   />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wider">{u.confirm}</label>
-                <input type="password" required value={confirm} onChange={e => setConfirm(e.target.value)}
+                <label className="block text-xs font-semibold text-ax-text-secondary mb-1.5 uppercase tracking-wider">{u.confirm}</label>
+                <Input type="password" required value={confirm} onChange={e => setConfirm(e.target.value)}
                   placeholder="••••••••"
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-gray-600 focus:outline-none focus:border-white transition-colors" />
+                   />
               </div>
-              <button type="submit" disabled={loading}
-                className="w-full bg-white hover:bg-white disabled:opacity-60 text-[#0A0A0A] font-bold py-3 rounded-xl transition-colors flex items-center justify-center gap-2 mt-2">
+              <Button type="submit" disabled={loading} variant="ax-white" className="w-full mt-2">
                 {loading && <Loader2 size={16} className="animate-spin" />}
                 {loading ? u.submitting : u.submit}
-              </button>
+              </Button>
             </form>
           </>
         )}

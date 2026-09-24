@@ -16,16 +16,16 @@ export default function InvitationUnavailable({ reason }: { reason: string }) {
     : null;
 
   return (
-    <div className="min-h-screen bg-background font-sans text-foreground antialiased">
+    <div className="min-h-screen bg-ax-background font-sans text-ax-text antialiased">
       <LandingHeader variant="funnel" />
       <div className="flex items-center justify-center px-4 py-10">
-        <div className="w-full max-w-sm bg-card rounded-2xl border border-border p-8 text-center">
-          <h1 className="text-lg font-bold text-foreground">{j.refusedTitle}</h1>
-          <p className="text-sm text-muted-foreground mt-2">{known ?? j.refusedFallback}</p>
-          <p className="text-xs text-gray-500 mt-4">{j.refusedHint}</p>
+        <div className="w-full max-w-sm bg-ax-surface rounded-ax-card border border-ax-border p-8 text-center">
+          <h1 className="text-lg font-bold text-ax-text">{j.refusedTitle}</h1>
+          <p className="text-sm text-ax-text-secondary mt-2">{known ?? j.refusedFallback}</p>
+          <p className="text-xs text-ax-text-muted mt-4">{j.refusedHint}</p>
           <Link
             href="/box"
-            className="inline-block mt-5 text-sm text-foreground font-semibold hover:underline"
+            className="inline-block mt-5 text-sm text-ax-text font-semibold hover:underline"
           >
             {j.refusedDirectory}
           </Link>

@@ -1,29 +1,14 @@
-import Image from 'next/image';
-
-export function Logo({ className = '' }: { className?: string }) {
+/**
+ * Marque des pages publiques, identique à celle de la landing
+ * (components/landing-gym/header.tsx, `Brand`) : pictogramme clair et
+ * « ATHLEX » en police d'affichage. Les pages publiques sont toujours sombres.
+ */
+export function Logo() {
   return (
-    <div className={`flex items-center gap-2.5 ${className}`}>
-      <span className="relative flex h-8 w-8 items-center justify-center">
-        <Image
-          src="/athex-mark-light.png"
-          alt="AthleX"
-          width={32}
-          height={32}
-          priority
-          className="h-8 w-8 object-contain logo-mark-dark"
-        />
-        <Image
-          src="/athex-mark.png"
-          alt="AthleX"
-          width={32}
-          height={32}
-          priority
-          className="absolute inset-0 h-8 w-8 object-contain logo-mark-light"
-        />
-      </span>
-      <span className="font-display text-xl font-bold uppercase tracking-wide text-foreground">
-        AthleX
-      </span>
-    </div>
+    <>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src="/athex-mark-light.png" alt="" width={34} height={34} />
+      <span>ATHLEX</span>
+    </>
   );
 }

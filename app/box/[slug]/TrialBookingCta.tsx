@@ -168,23 +168,23 @@ export default function TrialBookingCta({
   }
 
   const field =
-    'w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground outline-none focus:border-foreground/40';
+    'w-full rounded-ax-control border border-ax-border bg-ax-background px-3 py-2.5 text-sm text-ax-text outline-none focus:border-ax-focus';
 
   return (
     <>
       <button
         onClick={() => setOpen(true)}
-        className="inline-flex items-center gap-2 rounded-lg bg-foreground px-4 py-2 text-xs font-bold text-background transition-opacity hover:opacity-90"
+        className="inline-flex items-center gap-2 rounded-ax-control bg-ax-text px-4 py-2 text-xs font-bold text-ax-background transition-opacity hover:opacity-90"
       >
         <CalendarCheck size={14} /> {tr.cta}
       </button>
 
       {open && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
-          <div className="relative flex max-h-[85vh] w-full max-w-md flex-col overflow-hidden rounded-2xl border border-border bg-card p-6">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-ax-overlay p-4 backdrop-blur-sm">
+          <div className="relative flex max-h-[85vh] w-full max-w-md flex-col overflow-hidden rounded-ax-card border border-ax-border bg-ax-surface p-6">
             <button
               onClick={reset}
-              className="absolute right-4 top-4 text-muted-foreground transition-colors hover:text-foreground"
+              className="absolute right-4 top-4 text-ax-text-secondary transition-colors hover:text-ax-text"
               aria-label={tr.close}
             >
               <X size={18} />
@@ -193,7 +193,7 @@ export default function TrialBookingCta({
             {step === 'form' && (
               <div className="overflow-y-auto">
                 <h3 className="mb-1 font-display text-lg font-bold">{planName}</h3>
-                <p className="mb-5 text-xs text-muted-foreground">{tr.formHint}</p>
+                <p className="mb-5 text-xs text-ax-text-secondary">{tr.formHint}</p>
                 <div className="space-y-3">
                   <div className="grid grid-cols-2 gap-3">
                     <input
@@ -224,11 +224,11 @@ export default function TrialBookingCta({
                     onChange={(e) => setPhone(e.target.value)}
                   />
                 </div>
-                {error && <p className="mt-3 text-xs font-semibold text-red-500">{error}</p>}
+                {error && <p className="mt-3 text-xs font-semibold text-ax-danger">{error}</p>}
                 <button
                   onClick={loadSlots}
                   disabled={busy}
-                  className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl bg-foreground px-4 py-3 text-sm font-bold text-background disabled:opacity-50"
+                  className="mt-5 flex w-full items-center justify-center gap-2 rounded-ax-control bg-ax-text px-4 py-3 text-sm font-bold text-ax-background disabled:opacity-50"
                 >
                   {busy ? <Loader2 size={15} className="animate-spin" /> : null}
                   {busy ? tr.loading : tr.next}
@@ -239,15 +239,15 @@ export default function TrialBookingCta({
             {step === 'slots' && (
               <div className="flex min-h-0 flex-1 flex-col">
                 <h3 className="mb-1 font-display text-lg font-bold">{tr.slotsTitle}</h3>
-                <p className="mb-4 text-xs text-muted-foreground">{tr.slotsHint}</p>
+                <p className="mb-4 text-xs text-ax-text-secondary">{tr.slotsHint}</p>
 
                 {slots.length === 0 ? (
-                  <p className="rounded-xl border border-border bg-background p-4 text-xs text-muted-foreground">
+                  <p className="rounded-ax-control border border-ax-border bg-ax-background p-4 text-xs text-ax-text-secondary">
                     {tr.noSlots}
                   </p>
                 ) : (
                   <div className="min-h-0 flex-1 overflow-y-auto">
-                    <p className="mb-2 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
+                    <p className="mb-2 text-[11px] font-bold uppercase tracking-wide text-ax-text-secondary">
                       {tr.pickDay}
                     </p>
                     <div className="mb-4 flex flex-wrap gap-2">
@@ -259,10 +259,10 @@ export default function TrialBookingCta({
                             setChosen(null);
                             setError(null);
                           }}
-                          className={`rounded-lg border px-3 py-1.5 text-xs font-semibold capitalize transition-colors ${
+                          className={`rounded-ax-control border px-3 py-1.5 text-xs font-semibold capitalize transition-colors ${
                             d === activeDay
-                              ? 'border-foreground bg-foreground text-background'
-                              : 'border-border bg-background text-foreground hover:border-foreground/40'
+                              ? 'border-ax-text bg-ax-text text-ax-background'
+                              : 'border-ax-border bg-ax-background text-ax-text hover:border-ax-input-border'
                           }`}
                         >
                           {shortDayLabel(d)}
@@ -271,7 +271,7 @@ export default function TrialBookingCta({
                       {days.length > shownDays.length ? (
                         <button
                           onClick={() => setAllDays(true)}
-                          className="rounded-lg border border-dashed border-border px-3 py-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground"
+                          className="rounded-ax-control border border-dashed border-ax-border px-3 py-1.5 text-xs font-semibold text-ax-text-secondary hover:text-ax-text"
                         >
                           {tr.moreDays}
                         </button>
@@ -285,22 +285,22 @@ export default function TrialBookingCta({
                         <button
                           key={s.schedule_id}
                           onClick={() => setChosen(s.schedule_id)}
-                          className={`w-full rounded-xl border p-3 text-left transition-colors ${
+                          className={`w-full rounded-ax-control border p-3 text-left transition-colors ${
                             active
-                              ? 'border-foreground bg-secondary/60'
-                              : 'border-border bg-background hover:border-foreground/40'
+                              ? 'border-ax-text bg-ax-hover'
+                              : 'border-ax-border bg-ax-background hover:border-ax-input-border'
                           }`}
                         >
                           <div className="flex items-center justify-between gap-3">
-                            <span className="text-sm font-semibold text-foreground">
+                            <span className="text-sm font-semibold text-ax-text">
                               {hhmm(s.start_time)}
                               {s.end_time ? ` – ${hhmm(s.end_time)}` : ''} · {s.title}
                             </span>
-                            <span className="inline-flex shrink-0 items-center gap-1 text-[11px] font-bold text-muted-foreground">
+                            <span className="inline-flex shrink-0 items-center gap-1 text-[11px] font-bold text-ax-text-secondary">
                               <Users size={11} /> {seatsLabel(s.seats_left)}
                             </span>
                           </div>
-                          <p className="mt-0.5 text-xs capitalize text-muted-foreground">
+                          <p className="mt-0.5 text-xs capitalize text-ax-text-secondary">
                             {dayLabel(s.scheduled_date)}
                             {s.coach ? ` · ${s.coach}` : ''}
                           </p>
@@ -308,30 +308,30 @@ export default function TrialBookingCta({
                       );
                     })}
                     {daySlots.length === 0 ? (
-                      <p className="rounded-xl border border-border bg-background p-4 text-xs text-muted-foreground">
+                      <p className="rounded-ax-control border border-ax-border bg-ax-background p-4 text-xs text-ax-text-secondary">
                         {tr.noSlotsThatDay}
                       </p>
                     ) : null}
                     </div>
                     {allDays && days.length > FIRST_DAYS ? (
-                      <p className="mt-3 text-[11px] text-muted-foreground">{tr.horizonAll}</p>
+                      <p className="mt-3 text-[11px] text-ax-text-secondary">{tr.horizonAll}</p>
                     ) : null}
                   </div>
                 )}
 
-                {error && <p className="mt-3 text-xs font-semibold text-red-500">{error}</p>}
+                {error && <p className="mt-3 text-xs font-semibold text-ax-danger">{error}</p>}
 
-                <div className="mt-4 flex shrink-0 gap-3 border-t border-border bg-card pt-4">
+                <div className="mt-4 flex shrink-0 gap-3 border-t border-ax-border bg-ax-surface pt-4">
                   <button
                     onClick={() => setStep('form')}
-                    className="rounded-xl border border-border px-4 py-3 text-sm font-bold text-foreground"
+                    className="rounded-ax-control border border-ax-border px-4 py-3 text-sm font-bold text-ax-text"
                   >
                     {tr.back}
                   </button>
                   <button
                     onClick={book}
                     disabled={busy || !chosen}
-                    className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-foreground px-4 py-3 text-sm font-bold text-background disabled:opacity-50"
+                    className="flex flex-1 items-center justify-center gap-2 rounded-ax-control bg-ax-text px-4 py-3 text-sm font-bold text-ax-background disabled:opacity-50"
                   >
                     {busy ? <Loader2 size={15} className="animate-spin" /> : null}
                     {busy ? tr.loading : tr.confirm}
@@ -343,7 +343,7 @@ export default function TrialBookingCta({
             {step === 'done' && booked && (
               <div className="overflow-y-auto">
                 <h3 className="mb-2 font-display text-lg font-bold">{tr.successTitle}</h3>
-                <p className="text-sm text-foreground">
+                <p className="text-sm text-ax-text">
                   {tr.successBody
                     .replace('{title}', booked.title)
                     .replace(
@@ -351,12 +351,12 @@ export default function TrialBookingCta({
                       `${dayLabel(booked.scheduled_date)} · ${hhmm(booked.start_time)}`,
                     )}
                 </p>
-                <p className="mt-2 text-xs text-muted-foreground">
+                <p className="mt-2 text-xs text-ax-text-secondary">
                   {mailSent ? tr.successMail : tr.successNoMail}
                 </p>
                 <button
                   onClick={reset}
-                  className="mt-5 w-full rounded-xl bg-foreground px-4 py-3 text-sm font-bold text-background"
+                  className="mt-5 w-full rounded-ax-control bg-ax-text px-4 py-3 text-sm font-bold text-ax-background"
                 >
                   {tr.close}
                 </button>

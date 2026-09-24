@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { X, Loader2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 interface Props {
   programId: string;
@@ -36,38 +37,31 @@ export default function ProgramBuyButton({ programId, priceLabel, recurring }: P
 
   return (
     <>
-      <button
-        onClick={() => setOpen(true)}
-        className="text-xs font-bold text-black bg-white hover:bg-gray-200 transition-colors px-4 py-2 rounded-lg"
-      >
+      <Button onClick={() => setOpen(true)} variant="ax-white" size="ax-compact">
         Acheter — {priceLabel}
-      </button>
+      </Button>
 
       {open && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
-          <div className="w-full max-w-sm bg-[#111] border border-white/10 rounded-2xl p-6 relative">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-ax-overlay backdrop-blur-sm">
+          <div className="w-full max-w-sm bg-ax-surface border border-ax-border rounded-ax-card p-6 relative">
             <button
               onClick={() => setOpen(false)}
-              className="absolute top-4 right-4 text-gray-500 hover:text-white transition-colors"
+              className="absolute top-4 right-4 text-ax-text-muted hover:text-ax-text transition-colors"
             >
               <X size={18} />
             </button>
             <h3 className="text-lg font-black mb-1">Acheter ce programme</h3>
-            <p className="text-xs text-gray-500 mb-5">
+            <p className="text-xs text-ax-text-muted mb-5">
               {recurring ? `${priceLabel} — abonnement mensuel.` : `${priceLabel} — paiement unique.`}{' '}
               Utilise l'e-mail de ton compte AthleX au paiement : le programme apparaîtra
               automatiquement dans l'app. Pas encore de compte ? Ton achat sera rattaché à
               ton inscription.
             </p>
-            {error && <p className="text-xs text-red-400 mb-3">{error}</p>}
-            <button
-              onClick={handleCheckout}
-              disabled={loading}
-              className="w-full text-sm font-bold text-black bg-white hover:bg-gray-200 disabled:opacity-60 transition-colors py-2.5 rounded-lg flex items-center justify-center gap-2"
-            >
+            {error && <p className="text-xs text-ax-danger mb-3">{error}</p>}
+            <Button onClick={handleCheckout} disabled={loading} variant="ax-white" className="w-full">
               {loading ? <><Loader2 size={16} className="animate-spin" /> Redirection…</> : 'Payer par carte'}
-            </button>
-            <p className="text-[10px] text-gray-600 mt-3 text-center">
+            </Button>
+            <p className="text-[10px] text-ax-text-muted mt-3 text-center">
               Paiement sécurisé par Stripe. Aucune donnée bancaire n'est stockée par AthleX.
             </p>
           </div>

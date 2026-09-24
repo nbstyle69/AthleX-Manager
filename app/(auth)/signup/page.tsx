@@ -4,6 +4,8 @@ import { useState } from 'react';
 import { Loader2, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { StoreBadges } from '@/components/store-badges';
 import { useLanguage } from '@/components/language-provider';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 
 type Gender = 'male' | 'female';
 
@@ -43,25 +45,25 @@ export default function SignupPage() {
   if (done) {
     return (
       <div className="w-full max-w-sm mx-auto px-4">
-        <div className="bg-card rounded-2xl border border-border p-8 text-center">
-          <CheckCircle2 size={40} className="text-green-400 mx-auto mb-4" />
-          <h2 className="text-lg font-bold text-foreground">{s.doneTitle}</h2>
+        <div className="bg-ax-surface rounded-ax-card border border-ax-border p-8 text-center">
+          <CheckCircle2 size={40} className="text-ax-success mx-auto mb-4" />
+          <h2 className="text-lg font-bold text-ax-text">{s.doneTitle}</h2>
           {done.needsConfirmation ? (
-            <p className="text-sm text-muted-foreground mt-2">
-              {s.confirmBefore}<span className="text-foreground">{email}</span>{s.confirmAfter}
+            <p className="text-sm text-ax-text-secondary mt-2">
+              {s.confirmBefore}<span className="text-ax-text">{email}</span>{s.confirmAfter}
             </p>
           ) : (
-            <p className="text-sm text-muted-foreground mt-2">
-              {s.readyBefore}<span className="text-foreground">{done.finalUsername}</span>{s.readyAfter}
+            <p className="text-sm text-ax-text-secondary mt-2">
+              {s.readyBefore}<span className="text-ax-text">{done.finalUsername}</span>{s.readyAfter}
             </p>
           )}
           {done.pseudoChanged && (
-            <p className="text-xs text-gray-500 mt-3">
+            <p className="text-xs text-ax-text-muted mt-3">
               {s.pseudoTakenBefore}{done.finalUsername}{s.pseudoTakenAfter}
             </p>
           )}
           <StoreBadges layout="stacked" className="mt-6" />
-          <a href="/landing" className="block text-xs text-gray-500 hover:text-foreground mt-5">{t.funnel.common.backHome}</a>
+          <a href="/landing" className="block text-xs text-ax-text-muted hover:text-ax-text mt-5">{t.funnel.common.backHome}</a>
         </div>
       </div>
     );
@@ -73,47 +75,47 @@ export default function SignupPage() {
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/athex-mark-light.png" alt="AthleX" width={64} height={64} className="w-16 h-16 object-contain" />
         <div className="text-center">
-          <h1 className="text-2xl font-black text-foreground tracking-tight">AthleX</h1>
-          <p className="text-sm text-muted-foreground font-medium mt-0.5">{s.subtitle}</p>
+          <h1 className="text-2xl font-black text-ax-text tracking-tight">AthleX</h1>
+          <p className="text-sm text-ax-text-secondary font-medium mt-0.5">{s.subtitle}</p>
         </div>
       </div>
 
-      <div className="bg-card rounded-2xl border border-border p-8">
-        <h2 className="text-lg font-bold text-foreground mb-6">{s.title}</h2>
+      <div className="bg-ax-surface rounded-ax-card border border-ax-border p-8">
+        <h2 className="text-lg font-bold text-ax-text mb-6">{s.title}</h2>
 
         {error && (
-          <div className="flex items-center gap-2 bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3 mb-5">
-            <AlertCircle size={15} className="text-red-400 shrink-0" />
-            <p className="text-sm text-red-400">{error}</p>
+          <div className="flex items-center gap-2 bg-ax-danger-soft border border-ax-danger rounded-ax-control px-4 py-3 mb-5">
+            <AlertCircle size={15} className="text-ax-danger shrink-0" />
+            <p className="text-sm text-ax-danger">{error}</p>
           </div>
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wider">{s.username}</label>
-            <input type="text" required value={username} onChange={e => setUsername(e.target.value)}
+            <label className="block text-xs font-semibold text-ax-text-secondary mb-1.5 uppercase tracking-wider">{s.username}</label>
+            <Input type="text" required value={username} onChange={e => setUsername(e.target.value)}
               placeholder={s.usernamePlaceholder} autoCapitalize="none"
-              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-gray-600 focus:outline-none focus:border-white transition-colors" />
+               />
           </div>
           <div>
-            <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wider">{t.funnel.common.email}</label>
-            <input type="email" required value={email} onChange={e => setEmail(e.target.value)}
+            <label className="block text-xs font-semibold text-ax-text-secondary mb-1.5 uppercase tracking-wider">{t.funnel.common.email}</label>
+            <Input type="email" required value={email} onChange={e => setEmail(e.target.value)}
               placeholder={t.funnel.common.emailPlaceholder} autoCapitalize="none"
-              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-gray-600 focus:outline-none focus:border-white transition-colors" />
+               />
           </div>
           <div>
-            <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wider">{t.funnel.common.password}</label>
-            <input type="password" required value={password} onChange={e => setPassword(e.target.value)}
+            <label className="block text-xs font-semibold text-ax-text-secondary mb-1.5 uppercase tracking-wider">{t.funnel.common.password}</label>
+            <Input type="password" required value={password} onChange={e => setPassword(e.target.value)}
               placeholder="••••••••" minLength={6}
-              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-gray-600 focus:outline-none focus:border-white transition-colors" />
+               />
           </div>
           <div>
-            <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wider">{s.gender}</label>
+            <label className="block text-xs font-semibold text-ax-text-secondary mb-1.5 uppercase tracking-wider">{s.gender}</label>
             <div className="flex gap-2">
               {(['male', 'female'] as Gender[]).map(g => (
                 <button type="button" key={g} onClick={() => setGender(g)}
-                  className={`flex-1 py-2.5 rounded-xl text-sm font-bold border transition-colors ${
-                    gender === g ? 'bg-white text-[#0A0A0A] border-white' : 'bg-white/5 text-gray-300 border-white/10 hover:border-white/25'
+                  className={`flex-1 py-2.5 rounded-ax-control text-sm font-bold border transition-colors ${
+                    gender === g ? 'bg-ax-text text-ax-background border-ax-text' : 'bg-ax-hover text-ax-text border-ax-border hover:border-ax-input-border'
                   }`}>
                   {g === 'male' ? s.male : s.female}
                 </button>
@@ -121,25 +123,24 @@ export default function SignupPage() {
             </div>
           </div>
 
-          <label className="flex items-start gap-2.5 text-sm text-muted-foreground pt-1">
+          <label className="flex items-start gap-2.5 text-sm text-ax-text-secondary pt-1">
             <input type="checkbox" checked={cgu} onChange={e => setCgu(e.target.checked)}
-              className="mt-0.5 h-4 w-4 shrink-0 accent-white" />
+              className="mt-0.5 h-4 w-4 shrink-0 accent-ax-accent" />
             <span>
               {s.cguPrefix}
-              <a href="/privacy" className="text-foreground underline">{s.cguLink}</a>.
+              <a href="/privacy" className="text-ax-text underline">{s.cguLink}</a>.
             </span>
           </label>
 
-          <button type="submit" disabled={loading || !cgu}
-            className="w-full bg-white hover:bg-gray-200 disabled:opacity-60 text-[#0A0A0A] font-bold py-3 rounded-xl transition-colors flex items-center justify-center gap-2 mt-2">
+          <Button type="submit" disabled={loading || !cgu} variant="ax-white" className="w-full mt-2">
             {loading && <Loader2 size={16} className="animate-spin" />}
             {loading ? s.submitting : s.submit}
-          </button>
+          </Button>
         </form>
 
-        <p className="text-sm text-muted-foreground text-center mt-6">
+        <p className="text-sm text-ax-text-secondary text-center mt-6">
           {s.alreadyPrompt}{' '}
-          <a href="/login" className="text-foreground font-semibold hover:underline">{t.funnel.common.login}</a>
+          <a href="/login" className="text-ax-text font-semibold hover:underline">{t.funnel.common.login}</a>
         </p>
       </div>
     </div>

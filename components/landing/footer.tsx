@@ -2,7 +2,9 @@
 
 import { useLanguage } from '@/components/language-provider';
 import { Logo } from './logo';
+import './public-chrome.css';
 
+/** Pied de page des pages publiques, à l'identité de celui de la landing. */
 export function LandingFooter() {
   const { t } = useLanguage();
   const legalHrefs = ['/privacy#confidentialite', '/privacy#cgu', '/privacy#mentions-legales'];
@@ -12,31 +14,31 @@ export function LandingFooter() {
     { title: t.footer.legal, links: t.footer.links.legal, hrefs: legalHrefs },
   ];
   return (
-    <footer className="border-t border-border">
-      <div className="mx-auto grid max-w-6xl grid-cols-2 gap-10 px-6 py-14 md:grid-cols-4">
-        <div className="col-span-2 md:col-span-1">
-          <Logo />
-          <p className="mt-4 max-w-xs text-sm text-muted-foreground">{t.footer.tagline}</p>
+    <footer className="axp-dark axp-footer">
+      <div className="axp-footer-top">
+        <div>
+          <span className="axp-brand">
+            <Logo />
+          </span>
+          <p>{t.footer.tagline}</p>
         </div>
-        {cols.map((col) => (
-          <div key={col.title}>
-            <h3 className="text-xs font-semibold uppercase tracking-wide text-foreground">{col.title}</h3>
-            <ul className="mt-4 space-y-2.5">
-              {col.links.map((l, i) => (
-                <li key={l}>
-                  <a href={col.hrefs?.[i] ?? '#'} className="text-sm text-muted-foreground transition-colors hover:text-foreground">
-                    {l}
-                  </a>
-                </li>
-              ))}
-            </ul>
-          </div>
-        ))}
+        <div className="axp-footer-cols">
+          {cols.map((col) => (
+            <div key={col.title}>
+              <h3>{col.title}</h3>
+              <ul>
+                {col.links.map((l, i) => (
+                  <li key={l}>
+                    <a href={col.hrefs?.[i] ?? '#'}>{l}</a>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
       </div>
-      <div className="border-t border-border">
-        <div className="mx-auto max-w-6xl px-6 py-6 text-xs text-muted-foreground">
-          © {new Date().getFullYear()} AthleX — NBS Innovation. {t.footer.rights}
-        </div>
+      <div className="axp-footer-bottom">
+        © {new Date().getFullYear()} AthleX — NBS Innovation. {t.footer.rights}
       </div>
     </footer>
   );
