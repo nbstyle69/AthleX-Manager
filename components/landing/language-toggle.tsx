@@ -2,15 +2,13 @@
 
 import { useLanguage } from '@/components/language-provider';
 import { cn } from '@/lib/utils';
+import './public-chrome.css';
 
-export function LanguageToggle() {
+/** « FR | EN » en texte, comme la landing : langue active en clair, l'autre atténuée. */
+export function LanguageToggle({ className }: { className?: string }) {
   const { lang, setLang } = useLanguage();
   return (
-    <div
-      role="group"
-      aria-label="Language"
-      className="inline-flex items-center rounded-full border border-border bg-secondary/40 p-0.5 text-xs font-semibold"
-    >
+    <div role="group" aria-label={lang === 'en' ? 'Language' : 'Langue'} className={cn('axp-lang', className)}>
       {(['fr', 'en'] as const).map((l) => (
         <button
           key={l}
@@ -18,12 +16,8 @@ export function LanguageToggle() {
           aria-label={l === 'fr' ? 'Français' : 'English'}
           aria-pressed={lang === l}
           onClick={() => setLang(l)}
-          className={cn(
-            'rounded-full px-2.5 py-1 uppercase tracking-wide transition-colors',
-            lang === l ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground',
-          )}
         >
-          {l}
+          {l.toUpperCase()}
         </button>
       ))}
     </div>

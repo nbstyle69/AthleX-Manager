@@ -24,15 +24,15 @@ export default function EmailConfirmePage() {
       <div className="flex flex-col items-center mb-10 gap-3">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/logo.png" alt="AthleX" width={96} height={96} className="w-24 h-24 object-contain" />
-        <p className="text-sm text-muted-foreground font-medium">{c.header}</p>
+        <p className="text-sm text-ax-text-secondary font-medium">{c.header}</p>
       </div>
 
-      <div className="bg-card rounded-2xl border border-border p-8">
+      <div className="bg-ax-surface rounded-ax-card border border-ax-border p-8">
         <div className="flex flex-col items-center gap-4 text-center">
-          <MailCheck size={32} className="text-foreground" />
-          <h2 className="text-lg font-bold text-foreground">{c.title}</h2>
-          <p className="text-sm text-muted-foreground">{c.body}</p>
-          <Link href="/landing" className="text-foreground font-semibold hover:underline text-sm">
+          <MailCheck size={32} className="text-ax-text" />
+          <h2 className="text-lg font-bold text-ax-text">{c.title}</h2>
+          <p className="text-sm text-ax-text-secondary">{c.body}</p>
+          <Link href="/landing" className="text-ax-text font-semibold hover:underline text-sm">
             {t.funnel.common.backHome}
           </Link>
         </div>

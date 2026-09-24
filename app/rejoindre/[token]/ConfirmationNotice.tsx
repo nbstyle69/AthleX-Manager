@@ -18,9 +18,9 @@ export function ConfirmationNotice({
   return (
     <div
       data-testid="confirmation-notice"
-      className="mt-4 bg-white/5 border border-border rounded-xl px-4 py-3 text-left"
+      className="mt-4 bg-ax-hover border border-ax-border rounded-ax-control px-4 py-3 text-left"
     >
-      <p className="text-sm text-foreground">
+      <p className="text-sm text-ax-text">
         {j.confirmBefore}
         <span className="font-semibold">{email}</span>
         {j.confirmAfter}

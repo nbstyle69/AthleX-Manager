@@ -16,7 +16,7 @@ function H2({ id, children }: { id: string; children: React.ReactNode }) {
   return (
     <h2
       id={id}
-      className="mt-16 scroll-mt-24 border-b border-border pb-3 font-display text-2xl font-bold uppercase tracking-wide text-foreground md:text-3xl"
+      className="mt-16 scroll-mt-24 border-b border-ax-border pb-3 font-display text-2xl font-bold uppercase tracking-wide text-ax-text md:text-3xl"
     >
       {children}
     </h2>
@@ -24,19 +24,19 @@ function H2({ id, children }: { id: string; children: React.ReactNode }) {
 }
 
 function H3({ children }: { children: React.ReactNode }) {
-  return <h3 className="mt-8 text-base font-semibold text-foreground">{children}</h3>;
+  return <h3 className="mt-8 text-base font-semibold text-ax-text">{children}</h3>;
 }
 
 function P({ children }: { children: React.ReactNode }) {
-  return <p className="mt-3 text-sm leading-relaxed text-muted-foreground">{children}</p>;
+  return <p className="mt-3 text-sm leading-relaxed text-ax-text-secondary">{children}</p>;
 }
 
 function UL({ items }: { items: React.ReactNode[] }) {
   return (
     <ul className="mt-3 space-y-2">
       {items.map((item, i) => (
-        <li key={i} className="flex gap-2.5 text-sm leading-relaxed text-muted-foreground">
-          <span aria-hidden className="mt-2 h-1 w-1 shrink-0 rounded-full bg-muted-foreground" />
+        <li key={i} className="flex gap-2.5 text-sm leading-relaxed text-ax-text-secondary">
+          <span aria-hidden className="mt-2 h-1 w-1 shrink-0 rounded-full bg-ax-text-muted" />
           <span>{item}</span>
         </li>
       ))}
@@ -46,7 +46,7 @@ function UL({ items }: { items: React.ReactNode[] }) {
 
 function Mail() {
   return (
-    <a href={`mailto:${CONTACT}`} className="text-foreground underline underline-offset-4 hover:no-underline">
+    <a href={`mailto:${CONTACT}`} className="text-ax-text underline underline-offset-4 hover:no-underline">
       {CONTACT}
     </a>
   );
@@ -54,7 +54,7 @@ function Mail() {
 
 function Link({ href, children }: { href: string; children: React.ReactNode }) {
   return (
-    <a href={href} className="text-foreground underline underline-offset-4 hover:no-underline">
+    <a href={href} className="text-ax-text underline underline-offset-4 hover:no-underline">
       {children}
     </a>
   );
@@ -78,32 +78,32 @@ function PrivacyFr() {
       <UL
         items={[
           <>
-            <strong className="font-semibold text-foreground">Données de compte :</strong> adresse e-mail, pseudo, prénom
+            <strong className="font-semibold text-ax-text">Données de compte :</strong> adresse e-mail, pseudo, prénom
             et nom, genre (facultatif), niveau de pratique, photo de profil (facultative).
           </>,
           <>
-            <strong className="font-semibold text-foreground">Données sportives :</strong> scores de WOD (temps,
+            <strong className="font-semibold text-ax-text">Données sportives :</strong> scores de WOD (temps,
             répétitions, RX/Scaled/CAP), records personnels, historique de classement ELO, participations et résultats de
             tournois, badges.
           </>,
           <>
-            <strong className="font-semibold text-foreground">Contenus que vous publiez :</strong> messages dans les
+            <strong className="font-semibold text-ax-text">Contenus que vous publiez :</strong> messages dans les
             groupes de votre box, commentaires et réactions sur les scores, images partagées.
           </>,
           <>
-            <strong className="font-semibold text-foreground">Données d&apos;adhésion à une box :</strong> box rejointe,
+            <strong className="font-semibold text-ax-text">Données d&apos;adhésion à une box :</strong> box rejointe,
             formule d&apos;abonnement souscrite, statut de l&apos;abonnement, réservations de cours et présences.
             Lorsqu&apos;un paiement est encaissé directement à la salle, le gérant enregistre le montant et la date de
             l&apos;encaissement.
           </>,
           <>
-            <strong className="font-semibold text-foreground">Données d&apos;invitation :</strong> lorsqu&apos;un gérant
+            <strong className="font-semibold text-ax-text">Données d&apos;invitation :</strong> lorsqu&apos;un gérant
             de box vous invite à rejoindre AthleX, il renseigne votre prénom, votre nom et votre adresse e-mail avant même
             la création de votre compte. Ces données ne servent qu&apos;à vous adresser l&apos;invitation et à préparer
             votre adhésion ; une invitation non utilisée expire automatiquement.
           </>,
           <>
-            <strong className="font-semibold text-foreground">Données techniques :</strong> jeton de notifications push
+            <strong className="font-semibold text-ax-text">Données techniques :</strong> jeton de notifications push
             (si vous les activez), préférences de notifications, rapports d&apos;erreur et de performance de
             l&apos;application (via Sentry) rattachés à votre compte.
           </>,
@@ -193,21 +193,21 @@ function LegalFr() {
     <>
       <H2 id="mentions-legales">Mentions légales</H2>
       <P>
-        <strong className="font-semibold text-foreground">Éditeur :</strong> {EDITOR}, société par actions simplifiée
+        <strong className="font-semibold text-ax-text">Éditeur :</strong> {EDITOR}, société par actions simplifiée
         unipersonnelle (SASU) au capital de {CAPITAL} €, immatriculée au RCS de Lyon sous le numéro {RCS}.
       </P>
       <P>
-        <strong className="font-semibold text-foreground">Siège social :</strong> {HEADQUARTERS}.
+        <strong className="font-semibold text-ax-text">Siège social :</strong> {HEADQUARTERS}.
       </P>
       <P>
-        <strong className="font-semibold text-foreground">Directeur de la publication :</strong>{' '}
+        <strong className="font-semibold text-ax-text">Directeur de la publication :</strong>{' '}
         {PUBLICATION_DIRECTOR}.
       </P>
       <P>
-        <strong className="font-semibold text-foreground">Contact :</strong> <Mail />.
+        <strong className="font-semibold text-ax-text">Contact :</strong> <Mail />.
       </P>
       <P>
-        <strong className="font-semibold text-foreground">Hébergement :</strong> Vercel Inc. (site web) et Supabase
+        <strong className="font-semibold text-ax-text">Hébergement :</strong> Vercel Inc. (site web) et Supabase
         (données).
       </P>
     </>
@@ -232,29 +232,29 @@ function PrivacyEn() {
       <UL
         items={[
           <>
-            <strong className="font-semibold text-foreground">Account data:</strong> email address, username, first and
+            <strong className="font-semibold text-ax-text">Account data:</strong> email address, username, first and
             last name, gender (optional), training level, profile photo (optional).
           </>,
           <>
-            <strong className="font-semibold text-foreground">Sports data:</strong> WOD scores (time, reps,
+            <strong className="font-semibold text-ax-text">Sports data:</strong> WOD scores (time, reps,
             RX/Scaled/CAP), personal records, ELO ranking history, tournament participations and results, badges.
           </>,
           <>
-            <strong className="font-semibold text-foreground">Content you post:</strong> messages in your gym&apos;s
+            <strong className="font-semibold text-ax-text">Content you post:</strong> messages in your gym&apos;s
             groups, comments and reactions on scores, shared images.
           </>,
           <>
-            <strong className="font-semibold text-foreground">Gym membership data:</strong> the gym you joined, your
+            <strong className="font-semibold text-ax-text">Gym membership data:</strong> the gym you joined, your
             membership plan and its status, class bookings and attendance. When a payment is collected directly at the
             gym, the owner records the amount and date of collection.
           </>,
           <>
-            <strong className="font-semibold text-foreground">Invitation data:</strong> when a gym owner invites you to
+            <strong className="font-semibold text-ax-text">Invitation data:</strong> when a gym owner invites you to
             join AthleX, they enter your first name, last name and email address before your account exists. This data is
             only used to send you the invitation and prepare your membership; unused invitations expire automatically.
           </>,
           <>
-            <strong className="font-semibold text-foreground">Technical data:</strong> push notification token (if
+            <strong className="font-semibold text-ax-text">Technical data:</strong> push notification token (if
             enabled), notification preferences, crash and performance reports (via Sentry) linked to your account.
           </>,
         ]}
@@ -338,21 +338,21 @@ function LegalEn() {
     <>
       <H2 id="mentions-legales">Legal notice</H2>
       <P>
-        <strong className="font-semibold text-foreground">Publisher:</strong> {EDITOR}, a French single-shareholder
+        <strong className="font-semibold text-ax-text">Publisher:</strong> {EDITOR}, a French single-shareholder
         simplified joint-stock company (SASU) with a share capital of €{CAPITAL}, registered with the Lyon Trade and
         Companies Register under number {RCS}.
       </P>
       <P>
-        <strong className="font-semibold text-foreground">Registered office:</strong> {HEADQUARTERS}.
+        <strong className="font-semibold text-ax-text">Registered office:</strong> {HEADQUARTERS}.
       </P>
       <P>
-        <strong className="font-semibold text-foreground">Publication director:</strong> {PUBLICATION_DIRECTOR}.
+        <strong className="font-semibold text-ax-text">Publication director:</strong> {PUBLICATION_DIRECTOR}.
       </P>
       <P>
-        <strong className="font-semibold text-foreground">Contact:</strong> <Mail />.
+        <strong className="font-semibold text-ax-text">Contact:</strong> <Mail />.
       </P>
       <P>
-        <strong className="font-semibold text-foreground">Hosting:</strong> Vercel Inc. (website) and Supabase (data).
+        <strong className="font-semibold text-ax-text">Hosting:</strong> Vercel Inc. (website) and Supabase (data).
       </P>
     </>
   );
@@ -483,31 +483,31 @@ export function PrivacyContent({ updatedFr, updatedEn }: { updatedFr: string; up
   const copy = COPY[lang];
 
   return (
-    <div className="min-h-screen bg-background font-sans text-foreground antialiased">
+    <div className="min-h-screen bg-ax-background font-sans text-ax-text antialiased">
       <LandingHeader />
 
       <main className="mx-auto max-w-3xl px-6 pb-24 pt-14">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <p className="font-display text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+            <p className="font-display text-xs font-semibold uppercase tracking-[0.2em] text-ax-text-secondary">
               {copy.tag}
             </p>
             <h1 className="mt-3 font-display text-3xl font-bold uppercase tracking-wide md:text-4xl">{copy.title}</h1>
           </div>
           <LanguageToggle />
         </div>
-        <p className="mt-3 text-sm text-muted-foreground">
+        <p className="mt-3 text-sm text-ax-text-secondary">
           {copy.updated} : {lang === 'fr' ? updatedFr : updatedEn}
         </p>
 
-        <nav aria-label={copy.toc} className="mt-8 rounded-lg border border-border p-5">
-          <p className="text-xs font-semibold uppercase tracking-wide text-foreground">{copy.toc}</p>
+        <nav aria-label={copy.toc} className="mt-8 rounded-ax-control border border-ax-border p-5">
+          <p className="text-xs font-semibold uppercase tracking-wide text-ax-text">{copy.toc}</p>
           <ul className="mt-3 space-y-2">
             {copy.sections.map((s) => (
               <li key={s.id}>
                 <a
                   href={`#${s.id}`}
-                  className="text-sm text-muted-foreground underline-offset-4 transition-colors hover:text-foreground hover:underline"
+                  className="text-sm text-ax-text-secondary underline-offset-4 transition-colors hover:text-ax-text hover:underline"
                 >
                   {s.label}
                 </a>
@@ -520,7 +520,7 @@ export function PrivacyContent({ updatedFr, updatedEn }: { updatedFr: string; up
         <TermsFr english={lang === 'en'} />
         {lang === 'fr' ? <LegalFr /> : <LegalEn />}
 
-        <p className="mt-16 border-t border-border pt-6 text-xs text-muted-foreground">
+        <p className="mt-16 border-t border-ax-border pt-6 text-xs text-ax-text-secondary">
           © {new Date().getFullYear()} {EDITOR}. {copy.rights}
         </p>
       </main>

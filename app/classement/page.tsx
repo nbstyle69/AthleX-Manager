@@ -17,7 +17,7 @@ export default async function ClassementPage() {
   const { athletes, boxes } = await getFullLeaderboard();
 
   return (
-    <div className="min-h-screen bg-background font-sans text-foreground antialiased">
+    <div className="min-h-screen bg-ax-background font-sans text-ax-text antialiased">
       <LandingHeader />
       <main>
         <ClassementHeader />

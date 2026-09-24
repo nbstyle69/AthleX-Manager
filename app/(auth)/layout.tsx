@@ -2,9 +2,9 @@ import { LandingHeader } from '@/components/landing/header';
 
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-screen bg-background font-sans text-foreground antialiased">
+    <div className="min-h-screen bg-ax-background font-sans text-ax-text antialiased">
       <LandingHeader variant="funnel" />
-      <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center py-10">
+      <div className="flex min-h-[calc(100svh-var(--axp-header-height))] items-center justify-center py-10">
         {children}
       </div>
     </div>

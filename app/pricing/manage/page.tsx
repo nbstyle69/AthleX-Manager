@@ -9,8 +9,8 @@ import { useLanguage } from '@/components/language-provider';
 export default function ManageSubscriptionPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen bg-background text-foreground flex items-center justify-center">
-        <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+      <div className="min-h-screen bg-ax-background text-ax-text flex items-center justify-center">
+        <div className="w-6 h-6 border-2 border-ax-input-border border-t-ax-text rounded-full animate-spin" />
       </div>
     }>
       <ManageContent />
@@ -57,24 +57,24 @@ function ManageContent() {
   }, [boxId]);
 
   return (
-    <div className="min-h-screen bg-background text-foreground font-sans antialiased">
+    <div className="min-h-screen bg-ax-background text-ax-text font-sans antialiased">
       <LandingHeader variant="funnel" />
       <div className="flex items-center justify-center p-6 text-center">
       <div>
         {error ? (
           <>
-            <p className="text-red-400 text-sm font-bold">{error}</p>
-            <a href="athlex://subscription" className="text-foreground text-sm mt-4 inline-block">
+            <p className="text-ax-danger text-sm font-bold">{error}</p>
+            <a href="athlex://subscription" className="text-ax-text text-sm mt-4 inline-block">
               {t.funnel.common.backApp}
             </a>
           </>
         ) : (
           <div className="flex flex-col items-center gap-4">
-            <div className="w-12 h-12 rounded-2xl bg-white/15 flex items-center justify-center">
-              <Zap size={22} className="text-foreground" />
+            <div className="w-12 h-12 rounded-ax-card bg-ax-hover flex items-center justify-center">
+              <Zap size={22} className="text-ax-text" />
             </div>
-            <p className="text-muted-foreground text-sm">{m.redirecting}</p>
-            <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+            <p className="text-ax-text-secondary text-sm">{m.redirecting}</p>
+            <div className="w-6 h-6 border-2 border-ax-input-border border-t-ax-text rounded-full animate-spin" />
           </div>
         )}
       </div>

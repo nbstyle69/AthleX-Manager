@@ -8,6 +8,8 @@ import { createClient } from '@/lib/supabase/client';
 import { useLanguage } from '@/components/language-provider';
 import { postLoginPath } from '@/lib/authz/post-login';
 import type { BoxRole } from '@/lib/authz/coach-perimeter';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 
 type Audience = 'athlete' | 'box';
 
@@ -86,7 +88,7 @@ export default function LoginForm({ audience }: { audience: Audience }) {
     <div className="w-full max-w-sm mx-auto px-4">
       <Link
         href="/login"
-        className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors mb-6"
+        className="inline-flex items-center gap-2 text-sm text-ax-text-secondary hover:text-ax-text transition-colors mb-6"
       >
         <ArrowLeft size={16} />
         {l.switchProfile}
@@ -95,49 +97,48 @@ export default function LoginForm({ audience }: { audience: Audience }) {
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/logo.png" alt="AthleX" width={96} height={96} className="w-24 h-24 object-contain" />
         <div className="text-center">
-          <p className="text-sm text-muted-foreground font-medium">{copy.subtitle}</p>
+          <p className="text-sm text-ax-text-secondary font-medium">{copy.subtitle}</p>
         </div>
       </div>
 
-      <div className="bg-card rounded-2xl border border-border p-8">
-        <h2 className="text-lg font-bold text-foreground mb-6">{l.title}</h2>
+      <div className="bg-ax-surface rounded-ax-card border border-ax-border p-8">
+        <h2 className="text-lg font-bold text-ax-text mb-6">{l.title}</h2>
 
         {error && (
-          <div className="flex items-center gap-2 bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3 mb-5">
-            <AlertCircle size={15} className="text-red-400 shrink-0" />
-            <p className="text-sm text-red-400">{error}</p>
+          <div className="flex items-center gap-2 bg-ax-danger-soft border border-ax-danger rounded-ax-control px-4 py-3 mb-5">
+            <AlertCircle size={15} className="text-ax-danger shrink-0" />
+            <p className="text-sm text-ax-danger">{error}</p>
           </div>
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wider">{t.funnel.common.email}</label>
-            <input type="email" required value={email} onChange={e => setEmail(e.target.value)}
+            <label className="block text-xs font-semibold text-ax-text-secondary mb-1.5 uppercase tracking-wider">{t.funnel.common.email}</label>
+            <Input type="email" required value={email} onChange={e => setEmail(e.target.value)}
               placeholder={audience === 'box' ? t.funnel.common.ownerEmailPlaceholder : t.funnel.common.emailPlaceholder}
-              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-gray-600 focus:outline-none focus:border-white transition-colors" />
+               />
           </div>
           <div>
-            <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wider">{t.funnel.common.password}</label>
-            <input type="password" required value={password} onChange={e => setPassword(e.target.value)}
+            <label className="block text-xs font-semibold text-ax-text-secondary mb-1.5 uppercase tracking-wider">{t.funnel.common.password}</label>
+            <Input type="password" required value={password} onChange={e => setPassword(e.target.value)}
               placeholder="••••••••"
-              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-gray-600 focus:outline-none focus:border-white transition-colors" />
+               />
           </div>
-          <button type="submit" disabled={loading}
-            className="w-full bg-white hover:bg-white disabled:opacity-60 text-[#0A0A0A] font-bold py-3 rounded-xl transition-colors flex items-center justify-center gap-2 mt-2">
+          <Button type="submit" disabled={loading} variant="ax-white" className="w-full mt-2">
             {loading && <Loader2 size={16} className="animate-spin" />}
             {loading ? l.submitting : l.submit}
-          </button>
+          </Button>
         </form>
 
-        <p className="text-sm text-muted-foreground text-center mt-5">
-          <Link href="/reset-password" className="text-white/70 hover:text-white hover:underline">
+        <p className="text-sm text-ax-text-secondary text-center mt-5">
+          <Link href="/reset-password" className="text-ax-text-secondary hover:text-ax-text hover:underline">
             {l.forgot}
           </Link>
         </p>
 
-        <p className="text-sm text-muted-foreground text-center mt-4">
+        <p className="text-sm text-ax-text-secondary text-center mt-4">
           {copy.signupPrompt}{' '}
-          <a href={signupHref} className="text-foreground font-semibold hover:underline">
+          <a href={signupHref} className="text-ax-text font-semibold hover:underline">
             {copy.signupCta}
           </a>
         </p>

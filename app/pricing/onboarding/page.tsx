@@ -9,6 +9,8 @@ import {
 } from 'lucide-react';
 import { LandingHeader } from '@/components/landing/header';
 import { useLanguage } from '@/components/language-provider';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 
 type Step = 'account' | 'box' | 'done';
 
@@ -121,7 +123,7 @@ export default function OnboardingPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background text-foreground font-sans antialiased">
+    <div className="min-h-screen bg-ax-background text-ax-text font-sans antialiased">
       <LandingHeader variant="funnel" />
 
       <div className="pt-12 pb-20 px-6 flex justify-center">
@@ -135,8 +137,8 @@ export default function OnboardingPage() {
               const isActive = i <= current;
               return (
                 <div key={label} className="flex-1">
-                  <div className={`h-1.5 rounded-full transition-colors ${isActive ? 'bg-white' : 'bg-white/8'}`} />
-                  <p className={`text-[10px] font-bold mt-1.5 uppercase tracking-wider ${isActive ? 'text-foreground' : 'text-gray-600'}`}>
+                  <div className={`h-1.5 rounded-full transition-colors ${isActive ? 'bg-ax-text' : 'bg-ax-border'}`} />
+                  <p className={`text-[10px] font-bold mt-1.5 uppercase tracking-wider ${isActive ? 'text-ax-text' : 'text-ax-text-muted'}`}>
                     {label}
                   </p>
                 </div>
@@ -146,72 +148,72 @@ export default function OnboardingPage() {
 
           {/* ── Step 1: Account ── */}
           {step === 'account' && (
-            <div className="bg-card border border-border rounded-2xl p-8">
+            <div className="bg-ax-surface border border-ax-border rounded-ax-card p-8">
               <div className="flex items-center gap-3 mb-6">
-                <div className="w-11 h-11 rounded-2xl bg-white/15 flex items-center justify-center">
-                  <Mail size={20} className="text-white" />
+                <div className="w-11 h-11 rounded-ax-card bg-ax-hover flex items-center justify-center">
+                  <Mail size={20} className="text-ax-text" />
                 </div>
                 <div>
                   <h2 className="text-xl font-black">{o.signupTitle}</h2>
-                  <p className="text-xs text-gray-500">{o.stepLabel}1/3</p>
+                  <p className="text-xs text-ax-text-muted">{o.stepLabel}1/3</p>
                 </div>
               </div>
 
               {/* Le tunnel crée un compte neuf ; un compte existant se connecte
                   et crée sa box depuis son espace. */}
-              <p className="text-xs text-gray-500 mb-6">
+              <p className="text-xs text-ax-text-muted mb-6">
                 {o.alreadyHaveAccount}{' '}
-                <Link href="/login/box?next=/compte" className="text-foreground font-bold underline" data-testid="tunnel-se-connecter">
+                <Link href="/login/box?next=/compte" className="text-ax-text font-bold underline" data-testid="tunnel-se-connecter">
                   {o.signInInstead}
                 </Link>
               </p>
 
               <div className="space-y-4">
                 <div>
-                  <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wider">{t.funnel.common.email}</label>
+                  <label className="block text-xs font-semibold text-ax-text-secondary mb-1.5 uppercase tracking-wider">{t.funnel.common.email}</label>
                   <div className="relative">
-                    <Mail size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-600" />
-                    <input
+                    <Mail size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-ax-text-muted" />
+                    <Input
                       type="email"
                       required
                       value={email}
                       onChange={e => { setEmail(e.target.value); setAccountExists(false); }}
                       placeholder={t.funnel.common.ownerEmailPlaceholder}
                       data-testid="tunnel-email"
-                      className="w-full bg-white/5 border border-white/10 rounded-xl pl-10 pr-4 py-3 text-sm text-foreground placeholder:text-gray-600 focus:outline-none focus:border-white transition-colors"
+                      className="pl-10"
                     />
                   </div>
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wider">{t.funnel.common.password}</label>
+                  <label className="block text-xs font-semibold text-ax-text-secondary mb-1.5 uppercase tracking-wider">{t.funnel.common.password}</label>
                   <div className="relative">
-                    <Lock size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-600" />
-                    <input
+                    <Lock size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-ax-text-muted" />
+                    <Input
                       type={showPass ? 'text' : 'password'}
                       required
                       value={password}
                       onChange={e => setPassword(e.target.value)}
                       placeholder="••••••••"
-                      className="w-full bg-white/5 border border-white/10 rounded-xl pl-10 pr-10 py-3 text-sm text-foreground placeholder:text-gray-600 focus:outline-none focus:border-white transition-colors"
+                      className="pl-10 pr-10"
                     />
                     <button
                       type="button"
                       onClick={() => setShowPass(!showPass)}
-                      className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-600 hover:text-foreground"
+                      className="absolute right-3.5 top-1/2 -translate-y-1/2 text-ax-text-muted hover:text-ax-text"
                     >
                       {showPass ? <EyeOff size={16} /> : <Eye size={16} />}
                     </button>
                   </div>
-                  <p className="text-[10px] text-gray-600 mt-1">{o.passwordHint}</p>
+                  <p className="text-[10px] text-ax-text-muted mt-1">{o.passwordHint}</p>
                 </div>
               </div>
 
               {accountExists && (
-                <div className="mt-6 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 space-y-3" data-testid="tunnel-compte-existant">
-                  <p className="text-sm text-amber-200">{o.accountExists}</p>
+                <div className="mt-6 rounded-ax-control border border-ax-warning bg-ax-warning-soft px-4 py-3 space-y-3" data-testid="tunnel-compte-existant">
+                  <p className="text-sm text-ax-warning">{o.accountExists}</p>
                   <Link
                     href="/login/box?next=/compte"
-                    className="inline-flex items-center gap-2 bg-white text-[#0A0A0A] text-sm font-bold px-4 py-2.5 rounded-xl hover:bg-gray-100 transition-colors"
+                    className="inline-flex items-center gap-2 bg-ax-text text-ax-background text-sm font-bold px-4 py-2.5 rounded-ax-control hover:brightness-110 transition-colors"
                     data-testid="tunnel-se-connecter-existant"
                   >
                     {o.signInInstead} <ChevronRight size={14} />
@@ -219,7 +221,7 @@ export default function OnboardingPage() {
                 </div>
               )}
 
-              <button
+              <Button
                 onClick={async () => {
                   if (!email || !password) { setError(o.fillAll); return; }
                   if (password.length < 6) { setError(o.passwordTooShort); return; }
@@ -245,15 +247,16 @@ export default function OnboardingPage() {
                 }}
                 disabled={checking || accountExists}
                 data-testid="tunnel-continuer"
-                className="w-full mt-6 flex items-center justify-center gap-2 bg-white hover:bg-[#B8911F] disabled:opacity-50 text-[#0A0A0A] font-bold py-3.5 rounded-xl transition-colors"
+                variant="ax-white"
+                className="w-full mt-6"
               >
                 {checking ? <Loader2 size={16} className="animate-spin" /> : <>{o.continue} <ChevronRight size={16} /></>}
-              </button>
+              </Button>
 
               {error && (
-                <div className="flex items-center gap-2 bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3 mt-4">
-                  <AlertCircle size={15} className="text-red-400 shrink-0" />
-                  <p className="text-sm text-red-400">{error}</p>
+                <div className="flex items-center gap-2 bg-ax-danger-soft border border-ax-danger rounded-ax-control px-4 py-3 mt-4">
+                  <AlertCircle size={15} className="text-ax-danger shrink-0" />
+                  <p className="text-sm text-ax-danger">{error}</p>
                 </div>
               )}
             </div>
@@ -261,31 +264,31 @@ export default function OnboardingPage() {
 
           {/* ── Step 2: Box ── */}
           {step === 'box' && (
-            <div className="bg-card border border-border rounded-2xl p-8">
+            <div className="bg-ax-surface border border-ax-border rounded-ax-card p-8">
               <button
                 onClick={() => setStep('account')}
-                className="flex items-center gap-1 text-sm text-gray-500 hover:text-foreground mb-4 transition-colors"
+                className="flex items-center gap-1 text-sm text-ax-text-muted hover:text-ax-text mb-4 transition-colors"
               >
                 <ArrowLeft size={14} /> {t.funnel.common.back}
               </button>
 
               <div className="flex items-center gap-3 mb-6">
-                <div className="w-11 h-11 rounded-2xl bg-white/15 flex items-center justify-center">
-                  <Building2 size={20} className="text-white" />
+                <div className="w-11 h-11 rounded-ax-card bg-ax-hover flex items-center justify-center">
+                  <Building2 size={20} className="text-ax-text" />
                 </div>
                 <div>
                   <h2 className="text-xl font-black">{o.boxTitle}</h2>
-                  <p className="text-xs text-gray-500">{o.stepLabel}2/3</p>
+                  <p className="text-xs text-ax-text-muted">{o.stepLabel}2/3</p>
                 </div>
               </div>
 
               <div className="space-y-4">
                 {/* Logo upload */}
                 <div>
-                  <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wider">
+                  <label className="block text-xs font-semibold text-ax-text-secondary mb-1.5 uppercase tracking-wider">
                     {o.logoLabel} ({t.funnel.common.optional})
                   </label>
-                  <p className="text-[10px] text-gray-600 mb-2">{o.logoHint}</p>
+                  <p className="text-[10px] text-ax-text-muted mb-2">{o.logoHint}</p>
                   <input
                     ref={fileInputRef}
                     type="file"
@@ -299,25 +302,25 @@ export default function OnboardingPage() {
                         <img
                           src={logoPreview}
                           alt="Logo preview"
-                          className="w-16 h-16 rounded-2xl object-cover border border-white/10"
+                          className="w-16 h-16 rounded-ax-card object-cover border border-ax-border"
                         />
                         <button
                           type="button"
                           onClick={removeLogo}
-                          className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center hover:bg-red-400 transition-colors"
+                          className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-ax-danger rounded-full flex items-center justify-center hover:brightness-110 transition-colors"
                         >
-                          <X size={10} className="text-white" />
+                          <X size={10} className="text-ax-text" />
                         </button>
                       </div>
                     ) : (
-                      <div className="w-16 h-16 rounded-2xl border-2 border-dashed border-white/10 flex items-center justify-center">
-                        <Building2 size={22} className="text-gray-600" />
+                      <div className="w-16 h-16 rounded-ax-card border-2 border-dashed border-ax-border flex items-center justify-center">
+                        <Building2 size={22} className="text-ax-text-muted" />
                       </div>
                     )}
                     <button
                       type="button"
                       onClick={() => fileInputRef.current?.click()}
-                      className="flex items-center gap-2 bg-white/10 border border-white/20 text-white font-bold text-xs px-4 py-2.5 rounded-xl hover:bg-white/20 transition-colors"
+                      className="flex items-center gap-2 bg-ax-hover border border-ax-border text-ax-text font-bold text-xs px-4 py-2.5 rounded-ax-control hover:border-ax-input-border transition-colors"
                     >
                       <ImagePlus size={14} />
                       {logoPreview ? o.logoChange : o.logoAdd}
@@ -326,126 +329,121 @@ export default function OnboardingPage() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wider">
+                  <label className="block text-xs font-semibold text-ax-text-secondary mb-1.5 uppercase tracking-wider">
                     {o.boxName}
                   </label>
-                  <input
+                  <Input
                     type="text"
                     required
                     value={boxName}
                     onChange={e => setBoxName(e.target.value)}
                     placeholder={o.boxNamePlaceholder}
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-gray-600 focus:outline-none focus:border-white transition-colors"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wider">
+                  <label className="block text-xs font-semibold text-ax-text-secondary mb-1.5 uppercase tracking-wider">
                     {o.address}
                   </label>
                   <div className="relative">
-                    <MapPin size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-600" />
-                    <input
+                    <MapPin size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-ax-text-muted" />
+                    <Input
                       type="text"
                       value={boxAddress}
                       onChange={e => setBoxAddress(e.target.value)}
                       placeholder={o.addressPlaceholder}
-                      className="w-full bg-white/5 border border-white/10 rounded-xl pl-10 pr-4 py-3 text-sm text-foreground placeholder:text-gray-600 focus:outline-none focus:border-white transition-colors"
+                      className="pl-10"
                     />
                   </div>
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wider">
+                  <label className="block text-xs font-semibold text-ax-text-secondary mb-1.5 uppercase tracking-wider">
                     {o.website}
                   </label>
                   <div className="relative">
-                    <Globe size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-600" />
-                    <input
+                    <Globe size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-ax-text-muted" />
+                    <Input
                       type="url"
                       value={boxWebsite}
                       onChange={e => setBoxWebsite(e.target.value)}
                       placeholder="https://www.mabox.com"
-                      className="w-full bg-white/5 border border-white/10 rounded-xl pl-10 pr-4 py-3 text-sm text-foreground placeholder:text-gray-600 focus:outline-none focus:border-white transition-colors"
+                      className="pl-10"
                     />
                   </div>
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wider">
+                  <label className="block text-xs font-semibold text-ax-text-secondary mb-1.5 uppercase tracking-wider">
                     {o.contactEmail}
                   </label>
                   <div className="relative">
-                    <Mail size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-600" />
-                    <input
+                    <Mail size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-ax-text-muted" />
+                    <Input
                       type="email"
                       value={boxContactEmail}
                       onChange={e => setBoxContactEmail(e.target.value)}
                       placeholder="contact@mabox.com"
-                      className="w-full bg-white/5 border border-white/10 rounded-xl pl-10 pr-4 py-3 text-sm text-foreground placeholder:text-gray-600 focus:outline-none focus:border-white transition-colors"
+                      className="pl-10"
                     />
                   </div>
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wider">
+                  <label className="block text-xs font-semibold text-ax-text-secondary mb-1.5 uppercase tracking-wider">
                     {o.phone}
                   </label>
                   <div className="relative">
-                    <Phone size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-600" />
-                    <input
+                    <Phone size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-ax-text-muted" />
+                    <Input
                       type="tel"
                       value={boxPhone}
                       onChange={e => setBoxPhone(e.target.value)}
                       placeholder="+33600000000"
-                      className="w-full bg-white/5 border border-white/10 rounded-xl pl-10 pr-4 py-3 text-sm text-foreground placeholder:text-gray-600 focus:outline-none focus:border-white transition-colors"
+                      className="pl-10"
                     />
                   </div>
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wider">
+                  <label className="block text-xs font-semibold text-ax-text-secondary mb-1.5 uppercase tracking-wider">
                     {o.mapsLink}
                   </label>
                   <div className="relative">
-                    <MapPin size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-600" />
-                    <input
+                    <MapPin size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-ax-text-muted" />
+                    <Input
                       type="url"
                       value={boxGoogleMaps}
                       onChange={e => setBoxGoogleMaps(e.target.value)}
                       placeholder="https://maps.app.goo.gl/..."
-                      className="w-full bg-white/5 border border-white/10 rounded-xl pl-10 pr-4 py-3 text-sm text-foreground placeholder:text-gray-600 focus:outline-none focus:border-white transition-colors"
+                      className="pl-10"
                     />
                   </div>
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wider">
+                  <label className="block text-xs font-semibold text-ax-text-secondary mb-1.5 uppercase tracking-wider">
                     {o.foundedAt}
                   </label>
                   <div className="relative">
-                    <Calendar size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-600" />
-                    <input
+                    <Calendar size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-ax-text-muted" />
+                    <Input
                       type="date"
                       value={boxFoundedAt}
                       onChange={e => setBoxFoundedAt(e.target.value)}
-                      className="w-full bg-white/5 border border-white/10 rounded-xl pl-10 pr-4 py-3 text-sm text-foreground placeholder:text-gray-600 focus:outline-none focus:border-white transition-colors [color-scheme:dark]"
+                      className="pl-10"
                     />
                   </div>
                 </div>
               </div>
 
               {/* Recap */}
-              <div className="bg-white/[0.03] border border-white/8 rounded-xl p-4 mt-5">
-                <p className="text-xs text-gray-500 font-bold uppercase tracking-wider mb-2">{o.recap}</p>
+              <div className="bg-ax-hover border border-ax-border rounded-ax-control p-4 mt-5">
+                <p className="text-xs text-ax-text-muted font-bold uppercase tracking-wider mb-2">{o.recap}</p>
                 <div className="space-y-1.5">
-                  <p className="text-sm text-gray-300"><span className="text-gray-500">{o.recapEmail}</span> {email}</p>
-                  <p className="text-sm text-gray-300"><span className="text-gray-500">{o.recapBox}</span> {boxName || '—'}</p>
-                  {boxAddress && <p className="text-sm text-gray-300"><span className="text-gray-500">{o.recapAddress}</span> {boxAddress}</p>}
-                  {boxPhone && <p className="text-sm text-gray-300"><span className="text-gray-500">{o.recapPhone}</span> {boxPhone}</p>}
+                  <p className="text-sm text-ax-text"><span className="text-ax-text-muted">{o.recapEmail}</span> {email}</p>
+                  <p className="text-sm text-ax-text"><span className="text-ax-text-muted">{o.recapBox}</span> {boxName || '—'}</p>
+                  {boxAddress && <p className="text-sm text-ax-text"><span className="text-ax-text-muted">{o.recapAddress}</span> {boxAddress}</p>}
+                  {boxPhone && <p className="text-sm text-ax-text"><span className="text-ax-text-muted">{o.recapPhone}</span> {boxPhone}</p>}
 
                 </div>
               </div>
 
-              <button
-                onClick={handleCreateBox}
-                disabled={loading || !boxName.trim()}
-                className="w-full mt-6 flex items-center justify-center gap-2 bg-white hover:bg-[#B8911F] disabled:opacity-50 text-[#0A0A0A] font-bold py-3.5 rounded-xl transition-colors"
-              >
+              <Button onClick={handleCreateBox} disabled={loading || !boxName.trim()} variant="ax-white" className="w-full mt-6">
                 {loading ? (
                   <Loader2 size={18} className="animate-spin" />
                 ) : (
@@ -455,12 +453,12 @@ export default function OnboardingPage() {
                     <ChevronRight size={16} />
                   </>
                 )}
-              </button>
+              </Button>
 
               {error && (
-                <div className="flex items-center gap-2 bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3 mt-4">
-                  <AlertCircle size={15} className="text-red-400 shrink-0" />
-                  <p className="text-sm text-red-400">{error}</p>
+                <div className="flex items-center gap-2 bg-ax-danger-soft border border-ax-danger rounded-ax-control px-4 py-3 mt-4">
+                  <AlertCircle size={15} className="text-ax-danger shrink-0" />
+                  <p className="text-sm text-ax-danger">{error}</p>
                 </div>
               )}
             </div>
@@ -468,37 +466,37 @@ export default function OnboardingPage() {
 
           {/* ── Step 3: Done ── */}
           {step === 'done' && result && (
-            <div className="bg-card border border-border rounded-2xl p-8 text-center">
-              <div className="w-16 h-16 rounded-3xl bg-green-500/15 flex items-center justify-center mx-auto mb-5">
-                <Check size={32} className="text-green-400" />
+            <div className="bg-ax-surface border border-ax-border rounded-ax-card p-8 text-center">
+              <div className="w-16 h-16 rounded-ax-panel bg-ax-success-soft flex items-center justify-center mx-auto mb-5">
+                <Check size={32} className="text-ax-success" />
               </div>
 
               <h2 className="text-2xl font-black mb-2">{o.doneTitle}</h2>
 
               {result.is_early_adopter ? (
-                <div className="bg-white/10 border border-white/20 rounded-xl px-4 py-3 mb-5">
-                  <p className="text-sm font-bold text-foreground">{o.founderTitle}</p>
-                  <p className="text-xs text-muted-foreground mt-1">{result.trial_days}{o.founderAfter}</p>
+                <div className="bg-ax-hover border border-ax-border rounded-ax-control px-4 py-3 mb-5">
+                  <p className="text-sm font-bold text-ax-text">{o.founderTitle}</p>
+                  <p className="text-xs text-ax-text-secondary mt-1">{result.trial_days}{o.founderAfter}</p>
                 </div>
               ) : (
-                <div className="bg-green-500/10 border border-green-500/20 rounded-xl px-4 py-3 mb-5">
-                  <p className="text-sm font-bold text-green-400">{o.trialTitle}</p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {o.trialBefore}<strong className="text-foreground">{result.trial_days}{o.trialDays}</strong>{o.trialAfter}
+                <div className="bg-ax-success-soft border border-ax-success rounded-ax-control px-4 py-3 mb-5">
+                  <p className="text-sm font-bold text-ax-success">{o.trialTitle}</p>
+                  <p className="text-xs text-ax-text-secondary mt-1">
+                    {o.trialBefore}<strong className="text-ax-text">{result.trial_days}{o.trialDays}</strong>{o.trialAfter}
                   </p>
                 </div>
               )}
 
-              <div className="bg-white/[0.03] border border-white/8 rounded-xl p-4 mb-6 text-left">
-                <p className="text-xs text-gray-500 font-bold uppercase tracking-wider mb-3">{o.infoTitle}</p>
+              <div className="bg-ax-hover border border-ax-border rounded-ax-control p-4 mb-6 text-left">
+                <p className="text-xs text-ax-text-muted font-bold uppercase tracking-wider mb-3">{o.infoTitle}</p>
                 <div className="space-y-2">
-                  <p className="text-sm"><span className="text-gray-500">{o.inviteCode}</span>{' '}
-                    <span className="font-mono font-bold text-foreground text-base">{result.invite_code}</span>
+                  <p className="text-sm"><span className="text-ax-text-muted">{o.inviteCode}</span>{' '}
+                    <span className="font-mono font-bold text-ax-text text-base">{result.invite_code}</span>
                   </p>
-                  <p className="text-xs text-gray-500">{o.inviteHint}</p>
-                  <div className="border-t border-white/5 my-2" />
-                  <p className="text-xs text-gray-500">
-                    <span className="text-muted-foreground font-semibold">{o.recapEmail}</span> {email}
+                  <p className="text-xs text-ax-text-muted">{o.inviteHint}</p>
+                  <div className="border-t border-ax-border my-2" />
+                  <p className="text-xs text-ax-text-muted">
+                    <span className="text-ax-text-secondary font-semibold">{o.recapEmail}</span> {email}
                   </p>
                 </div>
               </div>
@@ -506,12 +504,12 @@ export default function OnboardingPage() {
               <div className="space-y-3">
                 <Link
                   href="/login"
-                  className="w-full flex items-center justify-center gap-2 bg-white text-[#0A0A0A] font-bold py-3.5 rounded-xl hover:bg-gray-200 transition-colors text-sm"
+                  className="w-full flex items-center justify-center gap-2 bg-ax-text text-ax-background font-bold py-3.5 rounded-ax-control hover:brightness-110 transition-colors text-sm"
                 >
                   {o.accessCta}
                   <ChevronRight size={16} />
                 </Link>
-                <p className="text-[10px] text-gray-600 mt-3">{o.billingHint}</p>
+                <p className="text-[10px] text-ax-text-muted mt-3">{o.billingHint}</p>
               </div>
             </div>
           )}

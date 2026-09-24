@@ -10,6 +10,7 @@ import {
 import { LandingHeader } from '@/components/landing/header';
 import { useLanguage } from '@/components/language-provider';
 import { useConfirmDialog } from '@/components/ui/confirm-dialog';
+import { Button } from '@/components/ui/button';
 
 // Ordre aligné sur t.funnel.pricing.features : l'icône suit la position, le
 // libellé vient de la traduction.
@@ -21,8 +22,8 @@ const FEATURE_ICONS = [
 export default function PricingPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen bg-background text-foreground flex items-center justify-center">
-        <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+      <div className="min-h-screen bg-ax-background text-ax-text flex items-center justify-center">
+        <div className="w-6 h-6 border-2 border-ax-input-border border-t-ax-text rounded-full animate-spin" />
       </div>
     }>
       <PricingContent />
@@ -70,40 +71,40 @@ function PricingContent() {
   }
 
   return (
-    <div className="min-h-screen bg-background text-foreground font-sans antialiased">
+    <div className="min-h-screen bg-ax-background text-ax-text font-sans antialiased">
       {dialog}
       <LandingHeader />
 
       {/* Hero */}
       <section className="pt-16 pb-8 px-6 text-center">
-        <div className="inline-flex items-center gap-2 bg-white/10 border border-white/20 rounded-full px-4 py-1.5 text-[11px] font-extrabold uppercase tracking-widest text-foreground mb-6">
+        <div className="inline-flex items-center gap-2 bg-ax-hover border border-ax-border rounded-full px-4 py-1.5 text-[11px] font-extrabold uppercase tracking-widest text-ax-text mb-6">
           <Crown size={11} /> {p.badge}
         </div>
         <h1 className="text-4xl md:text-6xl font-black leading-tight tracking-tight mb-4">
           {p.titleLine1}<br />{p.titleLine2}
         </h1>
-        <p className="text-lg text-muted-foreground max-w-xl mx-auto">{p.subtitle}</p>
+        <p className="text-lg text-ax-text-secondary max-w-xl mx-auto">{p.subtitle}</p>
       </section>
 
       {/* Billing toggle */}
       <div className="flex justify-center mb-10">
-        <div className="bg-card border border-border rounded-2xl p-1.5 flex gap-1">
+        <div className="bg-ax-surface border border-ax-border rounded-ax-card p-1.5 flex gap-1">
           <button
             onClick={() => setBilling('monthly')}
-            className={`px-5 py-2.5 rounded-xl text-sm font-bold transition-all ${
-              billing === 'monthly' ? 'bg-white text-[#0A0A0A]' : 'text-gray-500 hover:text-foreground'
+            className={`px-5 py-2.5 rounded-ax-control text-sm font-bold transition-all ${
+              billing === 'monthly' ? 'bg-ax-text text-ax-background' : 'text-ax-text-muted hover:text-ax-text'
             }`}
           >
             {p.monthly}
           </button>
           <button
             onClick={() => setBilling('annual')}
-            className={`px-5 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center gap-2 ${
-              billing === 'annual' ? 'bg-white text-[#0A0A0A]' : 'text-gray-500 hover:text-foreground'
+            className={`px-5 py-2.5 rounded-ax-control text-sm font-bold transition-all flex items-center gap-2 ${
+              billing === 'annual' ? 'bg-ax-text text-ax-background' : 'text-ax-text-muted hover:text-ax-text'
             }`}
           >
             {p.annual}
-            <span className="text-[10px] font-extrabold bg-green-500/20 text-green-400 border border-green-500/30 rounded px-1.5 py-0.5">
+            <span className="text-[10px] font-extrabold bg-ax-success-soft text-ax-success border border-ax-success rounded px-1.5 py-0.5">
               -20%
             </span>
           </button>
@@ -113,45 +114,45 @@ function PricingContent() {
       {/* Plan card */}
       <section className="px-6 pb-20">
         <div className="max-w-lg mx-auto">
-          <div className="bg-card border-2 border-white/40 rounded-3xl overflow-hidden relative">
+          <div className="bg-ax-surface border-2 border-ax-input-border rounded-ax-panel overflow-hidden relative">
             {/* Glow */}
-            <div className="absolute -top-20 left-1/2 -translate-x-1/2 w-80 h-40 bg-white/8 rounded-full blur-3xl pointer-events-none" />
+            <div className="absolute -top-20 left-1/2 -translate-x-1/2 w-80 h-40 bg-ax-border rounded-full blur-3xl pointer-events-none" />
 
             <div className="relative p-8">
               <div className="flex items-center gap-3 mb-2">
-                <div className="w-11 h-11 rounded-2xl bg-white/15 flex items-center justify-center">
-                  <Crown size={22} className="text-foreground" />
+                <div className="w-11 h-11 rounded-ax-card bg-ax-hover flex items-center justify-center">
+                  <Crown size={22} className="text-ax-text" />
                 </div>
                 <div>
                   <h2 className="text-xl font-black">{p.planName}</h2>
-                  <p className="text-xs text-gray-500">{p.planDesc}</p>
+                  <p className="text-xs text-ax-text-muted">{p.planDesc}</p>
                 </div>
               </div>
 
               {/* Price */}
               <div className="flex items-baseline gap-1 mt-6 mb-1">
-                <span className="text-5xl font-black text-foreground">
+                <span className="text-5xl font-black text-ax-text">
                   {billing === 'monthly' ? p.priceMonthly : p.priceAnnual}
                 </span>
-                <span className="text-lg font-bold text-gray-500">{p.perMonth}</span>
+                <span className="text-lg font-bold text-ax-text-muted">{p.perMonth}</span>
               </div>
               {billing === 'annual' && (
-                <p className="text-sm text-gray-500">
+                <p className="text-sm text-ax-text-muted">
                   {p.annualBilledBefore}
-                  <span className="text-foreground font-bold">{p.annualBilledAmount}</span>
+                  <span className="text-ax-text font-bold">{p.annualBilledAmount}</span>
                   {p.annualBilledAfter}
                 </p>
               )}
               {billing === 'monthly' && (
-                <p className="text-sm text-gray-500">{p.noCommitment}</p>
+                <p className="text-sm text-ax-text-muted">{p.noCommitment}</p>
               )}
 
               {/* Trial badge */}
-              <div className="mt-5 bg-green-500/10 border border-green-500/20 rounded-xl px-4 py-3 flex items-center gap-3">
-                <Zap size={16} className="text-green-400 shrink-0" />
+              <div className="mt-5 bg-ax-success-soft border border-ax-success rounded-ax-control px-4 py-3 flex items-center gap-3">
+                <Zap size={16} className="text-ax-success shrink-0" />
                 <div>
-                  <p className="text-sm font-bold text-green-400">{p.trialTitle}</p>
-                  <p className="text-xs text-gray-500">{p.trialDesc}</p>
+                  <p className="text-sm font-bold text-ax-success">{p.trialTitle}</p>
+                  <p className="text-xs text-ax-text-muted">{p.trialDesc}</p>
                 </div>
               </div>
 
@@ -161,23 +162,19 @@ function PricingContent() {
                   const Icon = FEATURE_ICONS[i] ?? Check;
                   return (
                     <div key={text} className="flex items-center gap-3">
-                      <div className="w-7 h-7 rounded-lg bg-white/10 flex items-center justify-center shrink-0">
-                        <Icon size={14} className="text-foreground" />
+                      <div className="w-7 h-7 rounded-ax-control bg-ax-hover flex items-center justify-center shrink-0">
+                        <Icon size={14} className="text-ax-text" />
                       </div>
-                      <span className="text-sm font-semibold text-gray-300">{text}</span>
+                      <span className="text-sm font-semibold text-ax-text">{text}</span>
                     </div>
                   );
                 })}
               </div>
 
               {/* CTA */}
-              <button
-                onClick={handleSubscribe}
-                disabled={loading}
-                className="w-full mt-8 flex items-center justify-center gap-2 bg-white hover:bg-gray-200 disabled:opacity-50 text-[#0A0A0A] font-bold py-4 rounded-xl text-base transition-colors shadow-lg shadow-white/20"
-              >
+              <Button onClick={handleSubscribe} disabled={loading} variant="ax-white" className="w-full mt-8 text-base">
                 {loading ? (
-                  <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  <div className="w-5 h-5 border-2 border-ax-input-border border-t-ax-text rounded-full animate-spin" />
                 ) : (
                   <>
                     <CreditCard size={18} />
@@ -185,15 +182,15 @@ function PricingContent() {
                     <ChevronRight size={16} />
                   </>
                 )}
-              </button>
+              </Button>
             </div>
           </div>
 
           {/* Trust */}
           <div className="flex flex-wrap justify-center gap-5 mt-8">
             {p.trust.map((label) => (
-              <div key={label} className="flex items-center gap-2 text-xs text-gray-600">
-                <Check size={12} className="text-foreground" />{label}
+              <div key={label} className="flex items-center gap-2 text-xs text-ax-text-muted">
+                <Check size={12} className="text-ax-text" />{label}
               </div>
             ))}
           </div>
@@ -202,17 +199,17 @@ function PricingContent() {
 
       {/* Early adopter banner */}
       <section className="px-6 pb-20">
-        <div className="max-w-lg mx-auto bg-card border border-white/20 rounded-2xl p-6 text-center">
+        <div className="max-w-lg mx-auto bg-ax-surface border border-ax-border rounded-ax-card p-6 text-center">
           <span className="text-2xl">🏅</span>
           <h3 className="text-lg font-black mt-2">{p.founderTitle}</h3>
-          <p className="text-sm text-muted-foreground mt-1">
+          <p className="text-sm text-ax-text-secondary mt-1">
             {p.founderBefore}
-            <strong className="text-foreground">{p.founderBoxes}</strong>
+            <strong className="text-ax-text">{p.founderBoxes}</strong>
             {p.founderMiddle}
-            <strong className="text-foreground">{p.founderTrial}</strong>
+            <strong className="text-ax-text">{p.founderTrial}</strong>
             {p.founderAfter}
           </p>
-          <p className="text-xs text-gray-600 mt-3">{p.founderBadge}</p>
+          <p className="text-xs text-ax-text-muted mt-3">{p.founderBadge}</p>
         </div>
       </section>
 
@@ -221,24 +218,24 @@ function PricingContent() {
         <div className="max-w-lg mx-auto space-y-4">
           <h3 className="text-xl font-black text-center mb-6">{p.faqTitle}</h3>
           {p.faq.map(({ q, a }) => (
-            <div key={q} className="bg-card border border-border rounded-xl p-5">
-              <p className="text-sm font-bold text-foreground">{q}</p>
-              <p className="text-sm text-gray-500 mt-2">{a}</p>
+            <div key={q} className="bg-ax-surface border border-ax-border rounded-ax-control p-5">
+              <p className="text-sm font-bold text-ax-text">{q}</p>
+              <p className="text-sm text-ax-text-muted mt-2">{a}</p>
             </div>
           ))}
         </div>
       </section>
 
       {/* Footer */}
-      <footer className="border-t border-border bg-background py-8 px-6">
+      <footer className="border-t border-ax-border bg-ax-background py-8 px-6">
         <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg bg-white/20 flex items-center justify-center">
-              <Zap size={13} className="text-foreground" />
+            <div className="w-7 h-7 rounded-ax-control bg-ax-hover flex items-center justify-center">
+              <Zap size={13} className="text-ax-text" />
             </div>
             <span className="text-sm font-black">AthleX</span>
           </div>
-          <p className="text-[11px] text-gray-700">{p.rights}</p>
+          <p className="text-[11px] text-ax-text-muted">{p.rights}</p>
         </div>
       </footer>
     </div>

@@ -65,7 +65,7 @@ export default async function BoxDirectoryPage() {
     }));
 
   return (
-    <div className="min-h-screen bg-background font-sans text-foreground antialiased">
+    <div className="min-h-screen bg-ax-background font-sans text-ax-text antialiased">
       <LandingHeader />
       <main className="pb-16">
         <BoxDirectory boxes={eligible} />
