@@ -6,6 +6,11 @@ import { createClient } from '@/lib/supabase/client';
 import { ArrowLeft, Loader2, UserPlus, UserMinus, Users2, MessageSquare, Search, SlidersHorizontal, X, Pencil, Check } from 'lucide-react';
 import { getMyBox } from '@/lib/getMyBox';
 import { getMemberEmails } from '@/lib/memberEmails';
+import { softVar, textTint } from '@/lib/colorVars';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+
+const INPUT_CLS = 'w-full min-h-11 px-3 py-2.5 rounded-ax-control bg-ax-surface border border-ax-input-border text-base sm:text-sm text-ax-text placeholder:text-ax-text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ax-focus focus-visible:ring-offset-2 focus-visible:ring-offset-ax-surface transition-colors';
 
 const COLORS = [
   '#FFFFFF', '#8B5CF6', '#EC4899', '#EF4444',
@@ -24,8 +29,13 @@ interface Member {
 }
 
 const LEVELS = ['rx+', 'rx', 'scaled', 'foundations'];
+// Puces de groupe en 10 px : teinte plus proche du texte que `textTint`, pour
+// rester AA en thème clair même avec la couleur blanche par défaut (4,42:1 sinon).
+const chipTint = (color: string) => `color-mix(in srgb, ${color} 30%, var(--ax-text))`;
+
 const LEVEL_LABEL: Record<string, string> = { 'rx+': 'RX+', rx: 'RX', scaled: 'SCALED', foundations: 'FOUNDATIONS' };
-const LEVEL_COLOR: Record<string, string> = { 'rx+': '#FFFFFF', rx: '#3B82F6', scaled: '#10B981', foundations: '#8B5CF6' };
+// Même code couleur qu'avant (rx+ blanc, rx bleu, scaled vert, foundations violet), en jetons lisibles dans les deux thèmes (cf. Membres).
+const LEVEL_COLOR: Record<string, string> = { 'rx+': 'var(--ax-text)', rx: 'var(--ax-info)', scaled: 'var(--ax-success)', foundations: 'var(--ax-purple)' };
 
 export default function GroupDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id: groupId } = use(params);
@@ -169,7 +179,7 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
 
   if (loading) return (
     <div className="flex items-center justify-center min-h-[200px]">
-      <Loader2 size={24} className="animate-spin text-white" />
+      <Loader2 size={24} className="animate-spin text-ax-text" />
     </div>
   );
   if (!group) return null;
@@ -177,35 +187,35 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
   return (
     <div className="space-y-6 max-w-2xl">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Link href="/groups" className="text-gray-400 hover:text-white transition-colors"><ArrowLeft size={18} /></Link>
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ backgroundColor: `${group.color}25` }}>
-              <Users2 size={18} style={{ color: group.color }} />
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-3 min-w-0">
+          <Link href="/groups" aria-label="Retour aux groupes" className="text-ax-text-secondary hover:text-ax-text transition-colors"><ArrowLeft size={18} /></Link>
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-9 h-9 rounded-ax-control flex items-center justify-center shrink-0" style={{ backgroundColor: softVar(group.color, 0.145) }}>
+              <Users2 size={18} style={{ color: textTint(group.color) }} />
             </div>
-            <div>
-              <h1 className="text-xl font-black text-white">{group.name}</h1>
+            <div className="min-w-0">
+              <h1 className="font-display text-xl font-medium uppercase tracking-wide text-ax-text break-words">{group.name}</h1>
               <div className="flex items-center gap-2">
-                <p className="text-xs text-gray-500">{members.length} membre(s)</p>
-                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md ${group.wod_visibility_mode === 'daily' ? 'text-amber-400 bg-amber-400/15' : 'text-emerald-400 bg-emerald-400/15'}`}>
+                <p className="text-xs text-ax-text-muted">{members.length} membre(s)</p>
+                <Badge variant={group.wod_visibility_mode === 'daily' ? 'warning' : 'success'} className="text-[10px] font-bold px-1.5 py-0.5">
                   {group.wod_visibility_mode === 'daily' ? 'Jour par jour' : 'Semaine'}
-                </span>
+                </Badge>
               </div>
             </div>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <button onClick={startEditing}
-            className="flex items-center gap-1.5 text-sm font-bold px-3 py-2 rounded-xl border border-white/10 text-gray-400 hover:text-white hover:border-white/20 transition-colors">
+            className="flex items-center gap-1.5 text-sm font-bold px-3 py-2 rounded-ax-control border border-ax-border text-ax-text-secondary hover:text-ax-text hover:border-ax-input-border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ax-focus focus-visible:ring-offset-2 focus-visible:ring-offset-ax-surface">
             <Pencil size={13} /> Modifier
           </button>
           <Link href={`/messages/new?group=${groupId}`}
-            className="flex items-center gap-1.5 text-sm font-bold px-3 py-2 rounded-xl border border-white/10 text-gray-400 hover:text-white hover:border-white/20 transition-colors">
+            className="flex items-center gap-1.5 text-sm font-bold px-3 py-2 rounded-ax-control border border-ax-border text-ax-text-secondary hover:text-ax-text hover:border-ax-input-border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ax-focus focus-visible:ring-offset-2 focus-visible:ring-offset-ax-surface">
             <MessageSquare size={13} /> Message
           </Link>
           <button onClick={deleteGroup} disabled={deleting}
-            className="text-xs font-bold px-3 py-2 rounded-xl border border-red-500/20 text-red-400 hover:bg-red-500/10 transition-colors">
+            className="text-xs font-bold px-3 py-2 rounded-ax-control border border-ax-danger text-ax-danger hover:bg-ax-danger-soft transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ax-focus focus-visible:ring-offset-2 focus-visible:ring-offset-ax-surface">
             {deleting ? <Loader2 size={12} className="animate-spin" /> : 'Supprimer'}
           </button>
         </div>
@@ -213,99 +223,98 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
 
       {/* Edit panel */}
       {editing && (
-        <div className="bg-[#111111] border border-white/30 rounded-2xl p-5 space-y-4">
-          <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Modifier le groupe</p>
+        <div className="bg-ax-surface border border-ax-input-border rounded-ax-card p-5 space-y-4">
+          <p className="text-xs font-bold text-ax-text-muted uppercase tracking-wider">Modifier le groupe</p>
           <div>
-            <label className="block text-xs font-semibold text-gray-400 mb-1.5">Nom</label>
+            <label className="block text-xs font-semibold text-ax-text-secondary mb-1.5">Nom</label>
             <input
               value={editName}
               onChange={e => setEditName(e.target.value)}
-              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-white transition-colors"
+              className={INPUT_CLS}
               placeholder="Nom du groupe"
             />
           </div>
           <div>
-            <label className="block text-xs font-semibold text-gray-400 mb-2">Couleur</label>
+            <label className="block text-xs font-semibold text-ax-text-secondary mb-2">Couleur</label>
             <div className="flex flex-wrap gap-2.5">
               {COLORS.map(c => (
                 <button
                   key={c} type="button"
                   onClick={() => setEditColor(c)}
-                  className={`w-8 h-8 rounded-xl transition-all ${editColor === c ? 'ring-2 ring-white ring-offset-2 ring-offset-[#111111] scale-110' : 'hover:scale-105'}`}
+                  aria-pressed={editColor === c} aria-label={c}
+                  className={`w-8 h-8 rounded-ax-control border border-ax-border transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ax-focus focus-visible:ring-offset-2 focus-visible:ring-offset-ax-surface ${editColor === c ? 'ring-2 ring-ax-text ring-offset-2 ring-offset-ax-surface scale-110' : 'hover:scale-105'}`}
                   style={{ backgroundColor: c }}
                 />
               ))}
             </div>
           </div>
           <div>
-            <label className="block text-xs font-semibold text-gray-400 mb-2">Diffusion des WODs</label>
+            <label className="block text-xs font-semibold text-ax-text-secondary mb-2">Diffusion des WODs</label>
             <div className="flex gap-2">
-              <button type="button" onClick={() => setEditVisibility('daily')}
-                className={`flex-1 text-center text-xs font-bold px-3 py-2.5 rounded-xl border transition-colors ${
+              <button type="button" onClick={() => setEditVisibility('daily')} aria-pressed={editVisibility === 'daily'}
+                className={`flex-1 text-center text-xs font-bold px-3 py-2.5 rounded-ax-control border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ax-focus focus-visible:ring-offset-2 focus-visible:ring-offset-ax-surface ${
                   editVisibility === 'daily'
-                    ? 'border-white bg-white/15 text-white'
-                    : 'border-white/10 text-gray-500 hover:text-white hover:border-white/20'
+                    ? 'border-ax-text bg-ax-surface-secondary text-ax-text'
+                    : 'border-ax-border text-ax-text-muted hover:text-ax-text hover:border-ax-input-border'
                 }`}>
                 Jour par jour
               </button>
-              <button type="button" onClick={() => setEditVisibility('weekly')}
-                className={`flex-1 text-center text-xs font-bold px-3 py-2.5 rounded-xl border transition-colors ${
+              <button type="button" onClick={() => setEditVisibility('weekly')} aria-pressed={editVisibility === 'weekly'}
+                className={`flex-1 text-center text-xs font-bold px-3 py-2.5 rounded-ax-control border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ax-focus focus-visible:ring-offset-2 focus-visible:ring-offset-ax-surface ${
                   editVisibility === 'weekly'
-                    ? 'border-white bg-white/15 text-white'
-                    : 'border-white/10 text-gray-500 hover:text-white hover:border-white/20'
+                    ? 'border-ax-text bg-ax-surface-secondary text-ax-text'
+                    : 'border-ax-border text-ax-text-muted hover:text-ax-text hover:border-ax-input-border'
                 }`}>
                 Semaine entière
               </button>
             </div>
-            <p className="text-[10px] text-gray-600 mt-1.5">
+            <p className="text-[10px] text-ax-text-muted mt-1.5">
               {editVisibility === 'daily'
                 ? 'Les membres ne voient que les WODs du jour (pas les jours futurs)'
                 : 'Les membres voient tous les WODs de la semaine'}
             </p>
           </div>
 
-          <div className="flex items-center gap-2 pt-1">
-            <button onClick={saveGroup} disabled={saving || !editName.trim()}
-              className="flex items-center gap-1.5 px-4 py-2 text-sm font-bold bg-white text-[#0A0A0A] rounded-xl disabled:opacity-60 transition-colors">
+          <div className="flex flex-wrap items-center gap-2 pt-1">
+            <Button variant="ax-white" size="ax-compact" className="h-10 min-h-10 px-4" onClick={saveGroup} disabled={saving || !editName.trim()}>
               {saving ? <Loader2 size={13} className="animate-spin" /> : <Check size={13} />}
               Enregistrer
-            </button>
-            <button onClick={() => setEditing(false)}
-              className="px-4 py-2 text-sm text-gray-400 hover:text-white border border-white/10 rounded-xl transition-colors">
+            </Button>
+            <Button variant="ax-outline" size="ax-compact" className="h-10 min-h-10 px-4" onClick={() => setEditing(false)}>
               Annuler
-            </button>
+            </Button>
           </div>
         </div>
       )}
 
-      {error && <div className="bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3 text-sm text-red-400">{error}</div>}
+      {error && <div className="bg-ax-danger-soft border border-ax-danger rounded-ax-control px-4 py-3 text-sm text-ax-danger">{error}</div>}
 
       {/* Members in group */}
-      <div className="bg-[#111111] border border-white/8 rounded-2xl overflow-hidden">
-        <div className="px-5 py-3.5 border-b border-white/8 flex items-center justify-between">
-          <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Membres du groupe</p>
-          <span className="text-xs text-gray-600">{members.length}</span>
+      <div className="bg-ax-surface border border-ax-border rounded-ax-card overflow-hidden">
+        <div className="px-5 py-3.5 border-b border-ax-border flex items-center justify-between">
+          <p className="text-xs font-bold text-ax-text-muted uppercase tracking-wider">Membres du groupe</p>
+          <span className="text-xs text-ax-text-muted">{members.length}</span>
         </div>
         {members.length === 0 ? (
-          <div className="px-5 py-8 text-center text-sm text-gray-500">Aucun membre dans ce groupe.</div>
+          <div className="px-5 py-8 text-center text-sm text-ax-text-muted">Aucun membre dans ce groupe.</div>
         ) : members.map(m => {
-          const lvlColor = LEVEL_COLOR[m.level] ?? '#6B7280';
+          const lvlColor = LEVEL_COLOR[m.level] ?? 'var(--ax-neutral)';
           return (
-            <div key={m.id} className="flex items-center justify-between px-5 py-3.5 border-b border-white/5 last:border-0">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-black" style={{ color: group.color, backgroundColor: `${group.color}15` }}>
+            <div key={m.id} className="flex items-center justify-between gap-3 px-5 py-3.5 border-b border-ax-border last:border-0">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-black shrink-0" style={{ color: textTint(group.color), backgroundColor: softVar(group.color, 0.08) }}>
                   {m.username[0].toUpperCase()}
                 </div>
                 <div>
-                  <div className="flex items-center gap-2">
-                    <p className="text-sm font-semibold text-white">{m.username}</p>
-                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md" style={{ color: lvlColor, backgroundColor: `${lvlColor}20` }}>{LEVEL_LABEL[m.level] ?? m.level.toUpperCase()}</span>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="text-sm font-semibold text-ax-text break-words min-w-0">{m.username}</p>
+                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-ax-badge" style={{ color: lvlColor, backgroundColor: softVar(lvlColor, 0.125) }}>{LEVEL_LABEL[m.level] ?? m.level.toUpperCase()}</span>
                   </div>
-                  <p className="text-xs text-gray-500">⭐ ELO {m.elo}</p>
+                  <p className="text-xs text-ax-text-muted">⭐ ELO {m.elo}</p>
                 </div>
               </div>
               <button onClick={() => toggleMember(m.id)} disabled={toggling === m.id}
-                className="flex items-center gap-1.5 text-xs font-bold text-red-400 hover:text-red-300 transition-colors">
+                className="flex items-center gap-1.5 text-xs font-bold text-ax-danger hover:underline transition-colors shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ax-focus focus-visible:ring-offset-2 focus-visible:ring-offset-ax-surface">
                 {toggling === m.id ? <Loader2 size={12} className="animate-spin" /> : <UserMinus size={13} />}
                 Retirer
               </button>
@@ -315,25 +324,25 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
       </div>
 
       {/* Add members section */}
-      <div className="bg-[#111111] border border-white/8 rounded-2xl overflow-hidden">
-        <div className="px-5 py-3.5 border-b border-white/8">
-          <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Ajouter des membres</p>
+      <div className="bg-ax-surface border border-ax-border rounded-ax-card overflow-hidden">
+        <div className="px-5 py-3.5 border-b border-ax-border">
+          <p className="text-xs font-bold text-ax-text-muted uppercase tracking-wider">Ajouter des membres</p>
         </div>
 
         {/* Search + filter bar */}
-        <div className="px-5 py-3 border-b border-white/5 space-y-2">
+        <div className="px-5 py-3 border-b border-ax-border space-y-2">
           <div className="flex gap-2">
             <div className="relative flex-1">
-              <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
+              <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-ax-text-muted" />
               <input
                 value={search} onChange={e => setSearch(e.target.value)}
                 placeholder="Rechercher un membre…"
-                className="w-full bg-white/5 border border-white/10 rounded-xl pl-8 pr-3 py-2 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-white transition-colors"
+                className={`${INPUT_CLS} pl-8`}
               />
-              {search && <button onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white"><X size={12} /></button>}
+              {search && <button onClick={() => setSearch('')} aria-label="Effacer la recherche" className="absolute right-3 top-1/2 -translate-y-1/2 text-ax-text-muted hover:text-ax-text"><X size={12} /></button>}
             </div>
-            <button onClick={() => setShowFilters(v => !v)}
-              className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold border transition-colors ${showFilters || activeFilters > 0 ? 'border-white/50 text-white bg-white/10' : 'border-white/10 text-gray-400 hover:text-white'}`}>
+            <button onClick={() => setShowFilters(v => !v)} aria-expanded={showFilters}
+              className={`flex items-center gap-1.5 px-3 min-h-11 rounded-ax-control text-xs font-bold border transition-colors ${showFilters || activeFilters > 0 ? 'border-ax-input-border text-ax-text bg-ax-surface-secondary' : 'border-ax-border text-ax-text-secondary hover:text-ax-text'}`}>
               <SlidersHorizontal size={13} />
               Filtres{activeFilters > 0 ? ` (${activeFilters})` : ''}
             </button>
@@ -342,22 +351,22 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
           {showFilters && (
             <div className="flex flex-wrap gap-2 pt-1">
               {/* Level filter */}
-              <div className="flex items-center gap-1">
+              <div className="flex flex-wrap items-center gap-1">
                 {['', ...LEVELS].map(l => (
-                  <button key={l} onClick={() => setFilterLevel(l)}
-                    className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-colors ${filterLevel === l ? 'text-white' : 'text-gray-500 hover:text-gray-300 bg-white/5'}`}
-                    style={filterLevel === l && l ? { backgroundColor: `${LEVEL_COLOR[l]}25`, color: LEVEL_COLOR[l] } : filterLevel === l ? { backgroundColor: 'rgba(255,255,255,0.1)', color: 'white' } : {}}>
+                  <button key={l} onClick={() => setFilterLevel(l)} aria-pressed={filterLevel === l}
+                    className={`px-2.5 py-1 rounded-ax-control text-xs font-bold transition-colors ${filterLevel === l ? 'text-ax-text' : 'text-ax-text-muted hover:text-ax-text-secondary bg-ax-surface-secondary'}`}
+                    style={filterLevel === l && l ? { backgroundColor: softVar(LEVEL_COLOR[l], 0.145), color: LEVEL_COLOR[l] } : filterLevel === l ? { backgroundColor: 'var(--ax-hover)', color: 'var(--ax-text)' } : {}}>
                     {l ? LEVEL_LABEL[l] : 'Tous niveaux'}
                   </button>
                 ))}
               </div>
 
               {/* ELO sort */}
-              <div className="flex items-center gap-1 ml-auto">
-                <span className="text-xs text-gray-600">ELO :</span>
+              <div className="flex flex-wrap items-center gap-1 ml-auto">
+                <span className="text-xs text-ax-text-muted">ELO :</span>
                 {[['', 'Défaut'], ['desc', '↓ Haut'], ['asc', '↑ Bas']].map(([val, label]) => (
-                  <button key={val} onClick={() => setEloSort(val as any)}
-                    className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-colors ${eloSort === val ? 'bg-white/10 text-white' : 'text-gray-500 hover:text-gray-300 bg-white/5'}`}>
+                  <button key={val} onClick={() => setEloSort(val as any)} aria-pressed={eloSort === val}
+                    className={`px-2.5 py-1 rounded-ax-control text-xs font-bold transition-colors ${eloSort === val ? 'bg-ax-surface-secondary text-ax-text' : 'text-ax-text-muted hover:text-ax-text-secondary bg-ax-surface-secondary'}`}>
                     {label}
                   </button>
                 ))}
@@ -367,10 +376,10 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
               {allGroups.filter(g => g.id !== groupId).length > 0 && (
                 <div className="w-full">
                   <select value={filterGroup} onChange={e => setFilterGroup(e.target.value)}
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-white transition-colors">
-                    <option value="" className="text-black">Tous les groupes</option>
+                    className={INPUT_CLS}>
+                    <option value="" className="bg-ax-surface text-ax-text">Tous les groupes</option>
                     {allGroups.filter(g => g.id !== groupId).map(g => (
-                      <option key={g.id} value={g.id} className="text-black">{g.name}</option>
+                      <option key={g.id} value={g.id} className="bg-ax-surface text-ax-text">{g.name}</option>
                     ))}
                   </select>
                 </div>
@@ -378,7 +387,7 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
 
               {activeFilters > 0 && (
                 <button onClick={() => { setFilterLevel(''); setFilterGroup(''); setEloSort(''); }}
-                  className="text-xs text-red-400 hover:text-red-300 flex items-center gap-1">
+                  className="text-xs text-ax-danger hover:underline flex items-center gap-1">
                   <X size={11} /> Réinitialiser
                 </button>
               )}
@@ -387,30 +396,30 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
         </div>
 
         {filteredNotInGroup.length === 0 ? (
-          <div className="px-5 py-8 text-center text-sm text-gray-500">
+          <div className="px-5 py-8 text-center text-sm text-ax-text-muted">
             {allMembers.filter(m => !inGroupIds.has(m.id)).length === 0 ? 'Tous les membres sont déjà dans ce groupe.' : 'Aucun résultat pour ces filtres.'}
           </div>
         ) : filteredNotInGroup.map(m => {
-          const lvlColor = LEVEL_COLOR[m.level] ?? '#6B7280';
+          const lvlColor = LEVEL_COLOR[m.level] ?? 'var(--ax-neutral)';
           return (
-            <div key={m.id} className="flex items-center justify-between px-5 py-3.5 border-b border-white/5 last:border-0">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-xs font-black text-gray-400">
+            <div key={m.id} className="flex items-center justify-between gap-3 px-5 py-3.5 border-b border-ax-border last:border-0">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-8 h-8 rounded-full shrink-0 bg-ax-surface-secondary flex items-center justify-center text-xs font-black text-ax-text-secondary">
                   {m.username[0].toUpperCase()}
                 </div>
                 <div>
                   <div className="flex items-center gap-2 flex-wrap">
-                    <p className="text-sm font-semibold text-gray-200">{m.username}</p>
-                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md" style={{ color: lvlColor, backgroundColor: `${lvlColor}20` }}>{LEVEL_LABEL[m.level] ?? m.level.toUpperCase()}</span>
+                    <p className="text-sm font-semibold text-ax-text break-words min-w-0">{m.username}</p>
+                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-ax-badge" style={{ color: lvlColor, backgroundColor: softVar(lvlColor, 0.125) }}>{LEVEL_LABEL[m.level] ?? m.level.toUpperCase()}</span>
                     {m.groups.map(g => (
-                      <span key={g.id} className="text-[10px] font-bold px-1.5 py-0.5 rounded-md" style={{ color: g.color, backgroundColor: `${g.color}20` }}>{g.name}</span>
+                      <span key={g.id} className="text-[10px] font-bold px-1.5 py-0.5 rounded-ax-badge break-words" style={{ color: chipTint(g.color), backgroundColor: softVar(g.color, 0.125) }}>{g.name}</span>
                     ))}
                   </div>
-                  <p className="text-xs text-gray-600">⭐ ELO {m.elo}</p>
+                  <p className="text-xs text-ax-text-muted">⭐ ELO {m.elo}</p>
                 </div>
               </div>
               <button onClick={() => toggleMember(m.id)} disabled={toggling === m.id}
-                className="flex items-center gap-1.5 text-xs font-bold text-white hover:text-white/80 transition-colors shrink-0">
+                className="flex items-center gap-1.5 text-xs font-bold text-ax-text hover:text-ax-text-secondary transition-colors shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ax-focus focus-visible:ring-offset-2 focus-visible:ring-offset-ax-surface">
                 {toggling === m.id ? <Loader2 size={12} className="animate-spin" /> : <UserPlus size={13} />}
                 Ajouter
               </button>

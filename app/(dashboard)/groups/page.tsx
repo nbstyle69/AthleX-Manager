@@ -4,6 +4,9 @@ import Link from 'next/link';
 import { Plus, Users2 } from 'lucide-react';
 import { formatDate } from '@/lib/utils';
 import HelpDock from '@/components/help/HelpDock';
+import { softVar, textTint } from '@/lib/colorVars';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 
 export default async function GroupsPage() {
   const supabase = await createClient();
@@ -18,45 +21,46 @@ export default async function GroupsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-black text-white">Groupes</h1>
+            <h1 className="font-display text-2xl font-medium uppercase tracking-wide text-ax-text">Groupes</h1>
             <HelpDock page="groups" />
           </div>
-          <p className="text-sm text-gray-400 mt-1">{groups?.length ?? 0} groupe(s)</p>
+          <p className="text-sm text-ax-text-secondary mt-1">{groups?.length ?? 0} groupe(s)</p>
         </div>
-        <Link href="/groups/new"
-          className="flex items-center gap-2 bg-white hover:bg-white text-[#0A0A0A] text-sm font-bold px-4 py-2.5 rounded-xl transition-colors">
-          <Plus size={15} /> Nouveau groupe
-        </Link>
+        <Button asChild variant="ax-white">
+          <Link href="/groups/new">
+            <Plus size={15} /> Nouveau groupe
+          </Link>
+        </Button>
       </div>
 
       {!groups?.length ? (
-        <div className="bg-[#111111] border border-white/8 rounded-2xl p-12 text-center">
-          <Users2 size={40} className="text-gray-600 mx-auto mb-4" />
-          <p className="text-white font-bold mb-1">Aucun groupe</p>
-          <p className="text-sm text-gray-500">Créez des groupes pour organiser vos membres et envoyer des messages ciblés.</p>
+        <div className="bg-ax-surface border border-ax-border rounded-ax-card p-12 text-center">
+          <Users2 size={40} className="text-ax-text-muted mx-auto mb-4" />
+          <p className="text-ax-text font-bold mb-1">Aucun groupe</p>
+          <p className="text-sm text-ax-text-muted">Créez des groupes pour organiser vos membres et envoyer des messages ciblés.</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {groups.map((g: any) => (
             <Link key={g.id} href={`/groups/${g.id}`}
-              className="bg-[#111111] border border-white/8 hover:border-white/20 rounded-2xl p-5 transition-all group">
+              className="bg-ax-surface border border-ax-border hover:border-ax-input-border rounded-ax-card p-5 transition-all group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ax-focus focus-visible:ring-offset-2 focus-visible:ring-offset-ax-surface">
               <div className="flex items-start justify-between mb-3">
-                <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: `${g.color ?? '#FFFFFF'}25` }}>
-                  <Users2 size={18} style={{ color: g.color ?? '#FFFFFF' }} />
+                <div className="w-10 h-10 rounded-ax-control flex items-center justify-center" style={{ backgroundColor: softVar(g.color ?? '#FFFFFF', 0.145) }}>
+                  <Users2 size={18} style={{ color: textTint(g.color ?? '#FFFFFF') }} />
                 </div>
-                <span className="text-xs text-gray-500 bg-white/5 px-2.5 py-1 rounded-lg">
+                <span className="text-xs text-ax-text-muted bg-ax-surface-secondary px-2.5 py-1 rounded-ax-control">
                   {g.members?.length ?? 0} membre(s)
                 </span>
               </div>
-              <p className="text-sm font-bold text-white group-hover:text-white transition-colors">{g.name}</p>
+              <p className="text-sm font-bold text-ax-text break-words">{g.name}</p>
               <div className="flex items-center gap-2 mt-3">
-                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md ${(g.wod_visibility_mode ?? 'weekly') === 'daily' ? 'text-amber-400 bg-amber-400/15' : 'text-emerald-400 bg-emerald-400/15'}`}>
+                <Badge variant={(g.wod_visibility_mode ?? 'weekly') === 'daily' ? 'warning' : 'success'} className="text-[10px] font-bold px-1.5 py-0.5">
                   {(g.wod_visibility_mode ?? 'weekly') === 'daily' ? 'Jour par jour' : 'Semaine'}
-                </span>
-                <p className="text-xs text-gray-600">{formatDate(g.created_at)}</p>
+                </Badge>
+                <p className="text-xs text-ax-text-muted">{formatDate(g.created_at)}</p>
               </div>
             </Link>
           ))}

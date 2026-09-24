@@ -30,10 +30,10 @@ export default function PlansWorkspace() {
     <div className="max-w-6xl mx-auto px-6 py-8 space-y-8">
       <div>
         <div className="flex items-center gap-3">
-          <h1 className="text-2xl font-black text-white">Formules</h1>
+          <h1 className="font-display text-2xl font-medium uppercase tracking-wide text-ax-text">Formules</h1>
           <HelpButton />
         </div>
-        <p className="text-sm text-gray-500 mt-1">
+        <p className="text-sm text-ax-text-secondary mt-1">
           Offres d&apos;accès à la salle et codes promo
         </p>
       </div>

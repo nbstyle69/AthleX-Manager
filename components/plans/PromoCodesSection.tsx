@@ -4,6 +4,10 @@ import { useCallback, useEffect, useState } from 'react';
 import {
   Plus, Trash2, X, Copy, Check, Users, Clock, AlertTriangle, Loader2, Ticket, Percent,
 } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+
+const INPUT_CLS = 'w-full min-h-11 px-3 py-2.5 rounded-ax-control bg-ax-surface border border-ax-input-border text-base sm:text-sm text-ax-text placeholder:text-ax-text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ax-focus focus-visible:ring-offset-2 focus-visible:ring-offset-ax-surface transition-colors';
 
 export interface PromoCode {
   id: string;
@@ -165,28 +169,24 @@ export default function PromoCodesSection({
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-1">
-        <h2 className="text-lg font-black text-white">Codes promo</h2>
-        <button
-          onClick={openNewPromo}
-          disabled={!paymentsReady}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-bold transition-all"
-        >
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-1">
+        <h2 className="text-lg font-black text-ax-text">Codes promo</h2>
+        <Button variant="ax-mint" onClick={openNewPromo} disabled={!paymentsReady}>
           <Plus size={16} /> Créer un code
-        </button>
+        </Button>
       </div>
-      <p className="text-xs text-gray-500 mb-4">
+      <p className="text-xs text-ax-text-muted mb-4">
         Des réductions que l&apos;athlète saisit au moment de payer (page Stripe). Valables sur toutes tes offres (abonnements, Drop-in, Carnet, programmes). Stripe vérifie le code, l&apos;expiration et le quota automatiquement.
-        {!paymentsReady && <span className="block mt-1 text-amber-400/90 font-semibold">Active d&apos;abord les paiements (Stripe) dans Réglages → Paiements pour créer des codes.</span>}
+        {!paymentsReady && <span className="block mt-1 text-ax-warning font-semibold">Active d&apos;abord les paiements (Stripe) dans Réglages → Paiements pour créer des codes.</span>}
       </p>
 
       {loading ? (
-        <div className="text-center py-10 text-gray-500">Chargement…</div>
+        <div className="text-center py-10 text-ax-text-muted">Chargement…</div>
       ) : promoCodes.length === 0 ? (
-        <div className="text-center py-12 bg-[#111] border border-white/[0.06] rounded-2xl">
-          <Ticket size={36} className="mx-auto text-gray-600 mb-3" />
-          <p className="text-gray-500 text-sm">Aucun code promo</p>
-          <p className="text-gray-600 text-xs mt-1">Ex. <span className="font-mono">RENTREE25</span> : -20 % sur les 3 premiers mois</p>
+        <div className="text-center py-12 bg-ax-surface border border-ax-border rounded-ax-card">
+          <Ticket size={36} className="mx-auto text-ax-text-muted mb-3" />
+          <p className="text-ax-text-muted text-sm">Aucun code promo</p>
+          <p className="text-ax-text-muted text-xs mt-1">Ex. <span className="font-mono">RENTREE25</span> : -20 % sur les 3 premiers mois</p>
         </div>
       ) : (
         <div className="grid gap-3">
@@ -201,16 +201,16 @@ export default function PromoCodesSection({
               ? `${pc.duration_in_months} mois`
               : '1 fois';
             return (
-              <div key={pc.id} className={`bg-[#111] border border-white/[0.06] rounded-2xl p-5 ${(!pc.is_active || expired) ? 'opacity-50' : ''}`}>
+              <div key={pc.id} className={`bg-ax-surface border border-ax-border rounded-ax-card p-5 ${(!pc.is_active || expired) ? 'border-dashed border-ax-input-border' : ''}`}>
                 <div className="flex items-start justify-between">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-mono font-black text-white text-base tracking-wider">{pc.code}</span>
-                      <span className="text-[10px] px-2 py-0.5 rounded-md font-bold bg-emerald-500/10 text-emerald-400">{discountLabel}</span>
-                      {!pc.is_active && <span className="text-[10px] px-2 py-0.5 rounded-md bg-red-500/10 text-red-400 font-semibold">Désactivé</span>}
-                      {pc.is_active && expired && <span className="text-[10px] px-2 py-0.5 rounded-md bg-amber-500/10 text-amber-400 font-semibold">Expiré</span>}
+                      <span className="font-mono font-black text-ax-text text-base tracking-wider break-all">{pc.code}</span>
+                      <Badge variant="success" className="text-[10px] px-2 py-0.5 font-bold">{discountLabel}</Badge>
+                      {!pc.is_active && <Badge variant="danger" className="text-[10px] px-2 py-0.5">Désactivé</Badge>}
+                      {pc.is_active && expired && <Badge variant="warning" className="text-[10px] px-2 py-0.5">Expiré</Badge>}
                     </div>
-                    <div className="flex items-center gap-3 mt-2 text-xs text-gray-500 flex-wrap">
+                    <div className="flex items-center gap-3 mt-2 text-xs text-ax-text-muted flex-wrap">
                       <span className="flex items-center gap-1"><Percent size={12} /> Abonnement : {durationLabel}</span>
                       <span className="flex items-center gap-1"><Users size={12} /> {pc.max_redemptions != null ? `${pc.max_redemptions} utilisation${pc.max_redemptions > 1 ? 's' : ''} max` : 'Illimité'}</span>
                       {pc.expires_at && (
@@ -219,15 +219,15 @@ export default function PromoCodesSection({
                     </div>
                   </div>
                 </div>
-                <div className="flex items-center gap-2 mt-4 pt-3 border-t border-white/[0.06]">
-                  <button onClick={() => copyCode(pc.code)} className="flex items-center gap-1.5 px-3 py-2 rounded-lg hover:bg-white/5 text-gray-400 hover:text-white text-xs font-semibold transition-all">
+                <div className="flex flex-wrap items-center gap-2 mt-4 pt-3 border-t border-ax-border">
+                  <button onClick={() => copyCode(pc.code)} className="flex items-center gap-1.5 px-3 py-2 rounded-ax-control hover:bg-ax-hover text-ax-text-secondary hover:text-ax-text text-xs font-semibold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ax-focus focus-visible:ring-offset-2 focus-visible:ring-offset-ax-surface">
                     {codeCopied === pc.code ? <Check size={13} /> : <Copy size={13} />} {codeCopied === pc.code ? 'Copié !' : 'Copier'}
                   </button>
-                  <button onClick={() => handleTogglePromo(pc)} disabled={promoBusyId === pc.id} className="flex items-center gap-1.5 px-3 py-2 rounded-lg hover:bg-white/5 text-gray-400 hover:text-white text-xs font-semibold transition-all disabled:opacity-40">
+                  <button onClick={() => handleTogglePromo(pc)} disabled={promoBusyId === pc.id} className="flex items-center gap-1.5 px-3 py-2 rounded-ax-control hover:bg-ax-hover text-ax-text-secondary hover:text-ax-text text-xs font-semibold transition-all disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ax-focus focus-visible:ring-offset-2 focus-visible:ring-offset-ax-surface">
                     {promoBusyId === pc.id ? <Loader2 size={13} className="animate-spin" /> : null}
                     {pc.is_active ? 'Désactiver' : 'Activer'}
                   </button>
-                  <button onClick={() => handleDeletePromo(pc)} disabled={promoBusyId === pc.id} className="flex items-center gap-1.5 px-3 py-2 rounded-lg hover:bg-red-500/10 text-gray-500 hover:text-red-400 text-xs font-semibold transition-all disabled:opacity-40">
+                  <button onClick={() => handleDeletePromo(pc)} disabled={promoBusyId === pc.id} className="flex items-center gap-1.5 px-3 py-2 rounded-ax-control hover:bg-ax-danger-soft text-ax-text-muted hover:text-ax-danger text-xs font-semibold transition-all disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ax-focus focus-visible:ring-offset-2 focus-visible:ring-offset-ax-surface">
                     <Trash2 size={13} /> Supprimer
                   </button>
                 </div>
@@ -239,28 +239,28 @@ export default function PromoCodesSection({
 
       {/* Modal code promo */}
       {showPromoForm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="w-full max-w-lg bg-[#111] border border-white/[0.06] rounded-2xl p-6 max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-ax-overlay backdrop-blur-ax-glass p-4">
+          <div className="w-full max-w-lg bg-ax-surface border border-ax-border rounded-ax-panel shadow-ax-panel p-6 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-lg font-black text-white">Nouveau code promo</h2>
-              <button onClick={() => setShowPromoForm(false)} className="text-gray-500 hover:text-white"><X size={20} /></button>
+              <h2 className="text-lg font-black text-ax-text">Nouveau code promo</h2>
+              <button onClick={() => setShowPromoForm(false)} aria-label="Fermer" className="text-ax-text-muted hover:text-ax-text"><X size={20} /></button>
             </div>
 
             <div className="space-y-4">
               <div>
-                <label className="text-xs font-bold text-gray-400 mb-1 block">Code *</label>
+                <label className="text-xs font-bold text-ax-text-secondary mb-1 block">Code *</label>
                 <input
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white font-mono tracking-wider uppercase outline-none focus:border-emerald-500/50"
+                  className={`${INPUT_CLS} font-mono tracking-wider uppercase`}
                   value={promoForm.code}
                   onChange={e => setPromoForm({ ...promoForm, code: e.target.value.toUpperCase() })}
                   placeholder="RENTREE25"
                   maxLength={30}
                 />
-                <p className="text-[11px] text-gray-600 mt-1">3 à 30 caractères, lettres et chiffres uniquement.</p>
+                <p className="text-[11px] text-ax-text-muted mt-1">3 à 30 caractères, lettres et chiffres uniquement.</p>
               </div>
 
               <div>
-                <label className="text-xs font-bold text-gray-400 mb-2 block">Type de remise</label>
+                <label className="text-xs font-bold text-ax-text-secondary mb-2 block">Type de remise</label>
                 <div className="grid grid-cols-2 gap-2">
                   {([
                     { v: 'percent', label: 'Pourcentage', desc: 'ex. -20 %' },
@@ -270,10 +270,11 @@ export default function PromoCodesSection({
                       key={o.v}
                       type="button"
                       onClick={() => setPromoForm({ ...promoForm, discount_type: o.v })}
-                      className={`p-3 rounded-xl border-2 text-left transition-all ${promoForm.discount_type === o.v ? 'border-emerald-500 bg-emerald-500/10' : 'border-white/10 hover:border-white/20'}`}
+                      aria-pressed={promoForm.discount_type === o.v}
+                      className={`p-3 rounded-ax-control border-2 text-left transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ax-focus focus-visible:ring-offset-2 focus-visible:ring-offset-ax-surface ${promoForm.discount_type === o.v ? 'border-ax-accent-text bg-ax-accent-soft' : 'border-ax-border hover:border-ax-input-border'}`}
                     >
-                      <span className="text-sm font-bold text-white block">{o.label}</span>
-                      <span className="text-[11px] text-gray-500">{o.desc}</span>
+                      <span className="text-sm font-bold text-ax-text block">{o.label}</span>
+                      <span className="text-[11px] text-ax-text-muted">{o.desc}</span>
                     </button>
                   ))}
                 </div>
@@ -281,36 +282,36 @@ export default function PromoCodesSection({
 
               {promoForm.discount_type === 'percent' ? (
                 <div>
-                  <label className="text-xs font-bold text-gray-400 mb-1 block">Pourcentage de remise *</label>
+                  <label className="text-xs font-bold text-ax-text-secondary mb-1 block">Pourcentage de remise *</label>
                   <div className="relative">
                     <input
                       type="number" min="1" max="100"
-                      className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 pr-8 text-sm text-white outline-none focus:border-emerald-500/50"
+                      className={`${INPUT_CLS} pr-8`}
                       value={promoForm.percent_off}
                       onChange={e => setPromoForm({ ...promoForm, percent_off: e.target.value })}
                       placeholder="20"
                     />
-                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-gray-500">%</span>
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-ax-text-muted">%</span>
                   </div>
                 </div>
               ) : (
                 <div>
-                  <label className="text-xs font-bold text-gray-400 mb-1 block">Montant de remise *</label>
+                  <label className="text-xs font-bold text-ax-text-secondary mb-1 block">Montant de remise *</label>
                   <div className="relative">
                     <input
                       type="number" min="0" step="0.01"
-                      className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 pr-8 text-sm text-white outline-none focus:border-emerald-500/50"
+                      className={`${INPUT_CLS} pr-8`}
                       value={promoForm.amount_off}
                       onChange={e => setPromoForm({ ...promoForm, amount_off: e.target.value })}
                       placeholder="10"
                     />
-                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-gray-500">€</span>
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-ax-text-muted">€</span>
                   </div>
                 </div>
               )}
 
               <div>
-                <label className="text-xs font-bold text-gray-400 mb-2 block">Durée de la remise (abonnements)</label>
+                <label className="text-xs font-bold text-ax-text-secondary mb-2 block">Durée de la remise (abonnements)</label>
                 <div className="grid grid-cols-3 gap-2">
                   {([
                     { v: 'once', label: '1 fois', desc: '1re facture' },
@@ -321,22 +322,23 @@ export default function PromoCodesSection({
                       key={o.v}
                       type="button"
                       onClick={() => setPromoForm({ ...promoForm, duration: o.v })}
-                      className={`p-3 rounded-xl border-2 text-left transition-all ${promoForm.duration === o.v ? 'border-emerald-500 bg-emerald-500/10' : 'border-white/10 hover:border-white/20'}`}
+                      aria-pressed={promoForm.duration === o.v}
+                      className={`p-3 rounded-ax-control border-2 text-left transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ax-focus focus-visible:ring-offset-2 focus-visible:ring-offset-ax-surface ${promoForm.duration === o.v ? 'border-ax-accent-text bg-ax-accent-soft' : 'border-ax-border hover:border-ax-input-border'}`}
                     >
-                      <span className="text-sm font-bold text-white block">{o.label}</span>
-                      <span className="text-[11px] text-gray-500">{o.desc}</span>
+                      <span className="text-sm font-bold text-ax-text block">{o.label}</span>
+                      <span className="text-[11px] text-ax-text-muted">{o.desc}</span>
                     </button>
                   ))}
                 </div>
-                <p className="text-[11px] text-gray-600 mt-1">Sur un achat unique (Drop-in / Carnet / programme), la remise s&apos;applique une seule fois quel que soit ce réglage.</p>
+                <p className="text-[11px] text-ax-text-muted mt-1">Sur un achat unique (Drop-in / Carnet / programme), la remise s&apos;applique une seule fois quel que soit ce réglage.</p>
               </div>
 
               {promoForm.duration === 'repeating' && (
                 <div>
-                  <label className="text-xs font-bold text-gray-400 mb-1 block">Nombre de mois *</label>
+                  <label className="text-xs font-bold text-ax-text-secondary mb-1 block">Nombre de mois *</label>
                   <input
                     type="number" min="1"
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white outline-none focus:border-emerald-500/50"
+                    className={INPUT_CLS}
                     value={promoForm.duration_in_months}
                     onChange={e => setPromoForm({ ...promoForm, duration_in_months: e.target.value })}
                     placeholder="3"
@@ -346,20 +348,20 @@ export default function PromoCodesSection({
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs font-bold text-gray-400 mb-1 block">Utilisations max</label>
+                  <label className="text-xs font-bold text-ax-text-secondary mb-1 block">Utilisations max</label>
                   <input
                     type="number" min="1"
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white outline-none focus:border-emerald-500/50"
+                    className={INPUT_CLS}
                     value={promoForm.max_redemptions}
                     onChange={e => setPromoForm({ ...promoForm, max_redemptions: e.target.value })}
                     placeholder="Illimité"
                   />
                 </div>
                 <div>
-                  <label className="text-xs font-bold text-gray-400 mb-1 block">Expire le</label>
+                  <label className="text-xs font-bold text-ax-text-secondary mb-1 block">Expire le</label>
                   <input
                     type="date"
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white outline-none focus:border-emerald-500/50"
+                    className={INPUT_CLS}
                     value={promoForm.expires_at}
                     onChange={e => setPromoForm({ ...promoForm, expires_at: e.target.value })}
                   />
@@ -367,24 +369,25 @@ export default function PromoCodesSection({
               </div>
 
               {promoError && (
-                <div className="flex items-start gap-2 text-xs text-red-400 bg-red-500/10 border border-red-500/20 rounded-xl px-3 py-2">
+                <div className="flex items-start gap-2 text-xs text-ax-danger bg-ax-danger-soft border border-ax-danger rounded-ax-control px-3 py-2">
                   <AlertTriangle size={14} className="mt-0.5 shrink-0" /> {promoError}
                 </div>
               )}
             </div>
 
             <div className="flex items-center gap-3 mt-6">
-              <button onClick={() => setShowPromoForm(false)} className="flex-1 px-4 py-2.5 rounded-xl border border-white/10 text-gray-400 hover:text-white text-sm font-bold transition-all">
+              <Button variant="ax-outline" onClick={() => setShowPromoForm(false)} className="flex-1">
                 Annuler
-              </button>
-              <button
+              </Button>
+              <Button
+                variant="ax-mint"
                 onClick={handleSavePromo}
                 disabled={promoSaving}
-                className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white text-sm font-bold transition-all"
+                className="flex-1"
               >
                 {promoSaving ? <Loader2 size={16} className="animate-spin" /> : <Ticket size={16} />}
                 {promoSaving ? 'Création…' : 'Créer le code'}
-              </button>
+              </Button>
             </div>
           </div>
         </div>
