@@ -11,7 +11,7 @@ export default function TutorialBody({ locale, slug }: { locale: Locale; slug: s
   const Body = TUTORIAL_COMPONENTS[locale]?.[slug];
   if (!Body) return null;
   return (
-    <div className="text-sm text-gray-300">
+    <div className="text-sm text-ax-text">
       <Body components={helpMdxComponents(locale)} />
     </div>
   );

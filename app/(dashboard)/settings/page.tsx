@@ -10,6 +10,8 @@ import BoxPaymentsSection from '@/components/settings/BoxPaymentsSection';
 import { Upload, ImageIcon, Trash2, CheckCircle, Phone, MapPin, Calendar, User, Users, FileText, Mail, Download, Loader2 } from 'lucide-react';
 import { useConfirmDialog } from '@/components/ui/confirm-dialog';
 import { ERROR_TITLE, INPUT_TITLE } from '@/lib/confirmDialog';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 
 type GeoResult = {
   latitude: number;
@@ -465,7 +467,7 @@ export default function SettingsPage() {
   if (!box) {
     return (
       <div className="flex items-center justify-center py-32">
-        <div className="w-8 h-8 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+        <div className="w-8 h-8 border-2 border-ax-input-border border-t-ax-text rounded-full animate-spin" />
       </div>
     );
   }
@@ -475,10 +477,10 @@ export default function SettingsPage() {
       {dialog}
       <div>
         <div className="flex items-center gap-3">
-          <h1 className="text-2xl font-black text-white">Réglages</h1>
+          <h1 className="font-display text-2xl font-medium uppercase tracking-wide text-ax-text">Réglages</h1>
           <HelpButton />
         </div>
-        <p className="text-sm text-gray-400 mt-1">Personnalisez votre box — {box.name}</p>
+        <p className="text-sm text-ax-text-secondary mt-1">Personnalisez votre box — {box.name}</p>
       </div>
 
       <PublicPageSection boxId={box.id} />
@@ -486,10 +488,10 @@ export default function SettingsPage() {
       <BoxPaymentsSection boxId={box.id} />
 
       {/* Logo section */}
-      <div className="bg-[#111111] border border-white/[0.06] rounded-2xl p-6 space-y-5">
+      <div className="bg-ax-surface border border-ax-border rounded-ax-card p-6 space-y-5">
         <div>
-          <h2 className="text-sm font-bold text-white mb-1">Logo de la box</h2>
-          <p className="text-xs text-gray-500">
+          <h2 className="text-sm font-bold text-ax-text mb-1">Logo de la box</h2>
+          <p className="text-xs text-ax-text-muted">
             Ce logo sera visible par tous les membres de votre box dans l&apos;application mobile.
             Format recommandé : carré, 512×512px minimum, PNG ou JPG, max 2 Mo.
           </p>
@@ -497,11 +499,11 @@ export default function SettingsPage() {
 
         <div className="flex items-center gap-6">
           {/* Preview */}
-          <div className="w-24 h-24 rounded-2xl border-2 border-dashed border-white/10 flex items-center justify-center overflow-hidden bg-white/[0.03] shrink-0">
+          <div className="w-24 h-24 rounded-ax-card border-2 border-dashed border-ax-border flex items-center justify-center overflow-hidden bg-ax-hover shrink-0">
             {logoUrl ? (
-              <img src={logoUrl} alt="Logo box" className="w-full h-full object-cover rounded-2xl" />
+              <img src={logoUrl} alt="Logo box" className="w-full h-full object-cover rounded-ax-card" />
             ) : (
-              <ImageIcon size={32} className="text-gray-600" />
+              <ImageIcon size={32} className="text-ax-text-muted" />
             )}
           </div>
 
@@ -514,20 +516,20 @@ export default function SettingsPage() {
               onChange={handleUpload}
               className="hidden"
             />
-            <button
+            <Button
               onClick={() => fileRef.current?.click()}
               disabled={uploading}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/20 text-white text-sm font-bold hover:bg-white/30 transition-colors disabled:opacity-50"
+              variant="ax-outline"
             >
               <Upload size={15} />
               {uploading ? 'Upload en cours…' : logoUrl ? 'Changer le logo' : 'Uploader un logo'}
-            </button>
+            </Button>
 
             {logoUrl && (
               <button
                 onClick={handleRemove}
                 disabled={uploading}
-                className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-red-500/10 text-red-400 text-sm font-bold hover:bg-red-500/20 transition-colors disabled:opacity-50"
+                className="flex items-center gap-2 px-4 py-2.5 rounded-ax-control border border-ax-danger bg-ax-danger-soft text-ax-danger text-sm font-bold hover:brightness-110 transition-colors disabled:opacity-50"
               >
                 <Trash2 size={15} />
                 Supprimer le logo
@@ -535,7 +537,7 @@ export default function SettingsPage() {
             )}
 
             {saved && (
-              <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-400">
+              <div className="flex items-center gap-1.5 text-xs font-bold text-ax-success">
                 <CheckCircle size={14} />
                 Logo mis à jour !
               </div>
@@ -545,17 +547,17 @@ export default function SettingsPage() {
       </div>
 
       {/* Banner / cover section */}
-      <div className="bg-[#111111] border border-white/[0.06] rounded-2xl p-6 space-y-5">
+      <div className="bg-ax-surface border border-ax-border rounded-ax-card p-6 space-y-5">
         <div>
-          <h2 className="text-sm font-bold text-white mb-1">Bannière de la box</h2>
-          <p className="text-xs text-gray-500">
+          <h2 className="text-sm font-bold text-ax-text mb-1">Bannière de la box</h2>
+          <p className="text-xs text-ax-text-muted">
             Image d&apos;en-tête affichée sur votre page publique et dans l&apos;annuaire des boxs.
             Format recommandé : paysage, 1200×400px, PNG ou JPG, max 4 Mo.
           </p>
         </div>
 
         {/* Preview */}
-        <div className="w-full h-36 rounded-2xl border-2 border-dashed border-white/10 flex items-center justify-center overflow-hidden bg-white/[0.03] relative">
+        <div className="w-full h-36 rounded-ax-card border-2 border-dashed border-ax-border flex items-center justify-center overflow-hidden bg-ax-hover relative">
           {coverUrl ? (
             <>
               {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -565,12 +567,12 @@ export default function SettingsPage() {
                 <img
                   src={logoUrl}
                   alt=""
-                  className="absolute bottom-3 left-4 w-14 h-14 rounded-xl border-2 border-[#111] object-cover shadow-lg"
+                  className="absolute bottom-3 left-4 w-14 h-14 rounded-ax-control border-2 border-ax-surface object-cover shadow-lg"
                 />
               )}
             </>
           ) : (
-            <div className="flex flex-col items-center gap-1.5 text-gray-600">
+            <div className="flex flex-col items-center gap-1.5 text-ax-text-muted">
               <ImageIcon size={28} />
               <span className="text-xs">Aucune bannière</span>
             </div>
@@ -586,20 +588,20 @@ export default function SettingsPage() {
             onChange={handleUploadCover}
             className="hidden"
           />
-          <button
+          <Button
             onClick={() => coverRef.current?.click()}
             disabled={uploadingCover}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/20 text-white text-sm font-bold hover:bg-white/30 transition-colors disabled:opacity-50"
+            variant="ax-outline"
           >
             <Upload size={15} />
             {uploadingCover ? 'Upload en cours…' : coverUrl ? 'Changer la bannière' : 'Uploader une bannière'}
-          </button>
+          </Button>
 
           {coverUrl && (
             <button
               onClick={handleRemoveCover}
               disabled={uploadingCover}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-red-500/10 text-red-400 text-sm font-bold hover:bg-red-500/20 transition-colors disabled:opacity-50"
+              className="flex items-center gap-2 px-4 py-2.5 rounded-ax-control border border-ax-danger bg-ax-danger-soft text-ax-danger text-sm font-bold hover:brightness-110 transition-colors disabled:opacity-50"
             >
               <Trash2 size={15} />
               Supprimer la bannière
@@ -607,7 +609,7 @@ export default function SettingsPage() {
           )}
 
           {savedCover && (
-            <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-400">
+            <div className="flex items-center gap-1.5 text-xs font-bold text-ax-success">
               <CheckCircle size={14} />
               Bannière mise à jour !
             </div>
@@ -616,10 +618,10 @@ export default function SettingsPage() {
       </div>
 
       {/* Conditions générales (CGV) PDF section */}
-      <div className="bg-[#111111] border border-white/[0.06] rounded-2xl p-6 space-y-5">
+      <div className="bg-ax-surface border border-ax-border rounded-ax-card p-6 space-y-5">
         <div>
-          <h2 className="text-sm font-bold text-white mb-1">Conditions générales (PDF)</h2>
-          <p className="text-xs text-gray-500">
+          <h2 className="text-sm font-bold text-ax-text mb-1">Conditions générales (PDF)</h2>
+          <p className="text-xs text-ax-text-muted">
             Document PDF présentant les conditions propres à ta salle (engagement, résiliation, gel, règlement intérieur…).
             Il est proposé aux futurs membres <strong>avant le paiement</strong> et reste accessible dans leur espace athlète. PDF, max 10 Mo.
           </p>
@@ -631,7 +633,7 @@ export default function SettingsPage() {
               href={termsPdfUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/[0.06] text-gray-200 text-sm font-bold hover:bg-white/10 transition-colors"
+              className="flex items-center gap-2 px-4 py-2.5 rounded-ax-control bg-ax-hover text-ax-text text-sm font-bold hover:bg-ax-hover transition-colors"
             >
               <FileText size={15} />
               Voir le PDF actuel
@@ -644,20 +646,20 @@ export default function SettingsPage() {
             onChange={handleUploadTerms}
             className="hidden"
           />
-          <button
+          <Button
             onClick={() => termsRef.current?.click()}
             disabled={uploadingTerms}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/20 text-white text-sm font-bold hover:bg-white/30 transition-colors disabled:opacity-50"
+            variant="ax-outline"
           >
             <Upload size={15} />
             {uploadingTerms ? 'Upload en cours…' : termsPdfUrl ? 'Changer le PDF' : 'Uploader un PDF'}
-          </button>
+          </Button>
 
           {termsPdfUrl && (
             <button
               onClick={handleRemoveTerms}
               disabled={uploadingTerms}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-red-500/10 text-red-400 text-sm font-bold hover:bg-red-500/20 transition-colors disabled:opacity-50"
+              className="flex items-center gap-2 px-4 py-2.5 rounded-ax-control border border-ax-danger bg-ax-danger-soft text-ax-danger text-sm font-bold hover:brightness-110 transition-colors disabled:opacity-50"
             >
               <Trash2 size={15} />
               Supprimer le PDF
@@ -665,7 +667,7 @@ export default function SettingsPage() {
           )}
 
           {savedTerms && (
-            <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-400">
+            <div className="flex items-center gap-1.5 text-xs font-bold text-ax-success">
               <CheckCircle size={14} />
               Conditions mises à jour !
             </div>
@@ -674,30 +676,29 @@ export default function SettingsPage() {
       </div>
 
       {/* Box info section */}
-      <div className="bg-[#111111] border border-white/[0.06] rounded-2xl p-6 space-y-5">
+      <div className="bg-ax-surface border border-ax-border rounded-ax-card p-6 space-y-5">
         <div>
-          <h2 className="text-sm font-bold text-white mb-1">Informations de la box</h2>
-          <p className="text-xs text-gray-500">
+          <h2 className="text-sm font-bold text-ax-text mb-1">Informations de la box</h2>
+          <p className="text-xs text-ax-text-muted">
             Ces informations sont visibles par tous les membres dans l&apos;application mobile.
           </p>
         </div>
 
         <div className="space-y-4">
           <div>
-            <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">
+            <label className="block text-xs font-bold text-ax-text-secondary uppercase tracking-wider mb-1.5">
               Nom de la box *
             </label>
-            <input
+            <Input
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="Nom de ma salle ici"
-              className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-white/40 transition-colors"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">
+            <label className="block text-xs font-bold text-ax-text-secondary uppercase tracking-wider mb-1.5">
               Description
             </label>
             <textarea
@@ -705,119 +706,108 @@ export default function SettingsPage() {
               onChange={(e) => setDescription(e.target.value)}
               rows={4}
               placeholder="Présente ta box : ambiance, coachs, spécialités, équipements… (visible sur ta page publique)"
-              className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-white/40 transition-colors resize-y"
+              className="w-full rounded-ax-control border border-ax-input-border bg-ax-surface px-3 py-2.5 text-sm text-ax-text placeholder:text-ax-text-muted transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ax-focus focus-visible:ring-offset-2 focus-visible:ring-offset-ax-surface motion-reduce:transition-none resize-y"
             />
-            <p className="text-[11px] text-gray-600 mt-1.5">
+            <p className="text-[11px] text-ax-text-muted mt-1.5">
               Affichée dans la section « À propos » de ta page publique AthleX.
             </p>
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">
+            <label className="block text-xs font-bold text-ax-text-secondary uppercase tracking-wider mb-1.5">
               Adresse
             </label>
-            <input
+            <Input
               type="text"
               value={address}
               onChange={(e) => setAddress(e.target.value)}
               placeholder="12 rue du Sport, 69001 Lyon"
-              className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-white/40 transition-colors"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">
+            <label className="block text-xs font-bold text-ax-text-secondary uppercase tracking-wider mb-1.5">
               Site web
             </label>
-            <input
+            <Input
               type="url"
               value={websiteUrl}
               onChange={(e) => setWebsiteUrl(e.target.value)}
               placeholder="https://www.mabox.fr"
-              className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-white/40 transition-colors"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">
+            <label className="block text-xs font-bold text-ax-text-secondary uppercase tracking-wider mb-1.5">
               Email de contact
             </label>
-            <input
+            <Input
               type="email"
               value={contactEmail}
               onChange={(e) => setContactEmail(e.target.value)}
               placeholder="contact@mabox.fr"
-              className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-white/40 transition-colors"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">
+            <label className="block text-xs font-bold text-ax-text-secondary uppercase tracking-wider mb-1.5">
               Téléphone
             </label>
-            <input
+            <Input
               type="tel"
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
               placeholder="+33 6 12 34 56 78"
-              className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-white/40 transition-colors"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">
+            <label className="block text-xs font-bold text-ax-text-secondary uppercase tracking-wider mb-1.5">
               Lien Google Maps
             </label>
-            <input
+            <Input
               type="url"
               value={googleMapsUrl}
               onChange={(e) => setGoogleMapsUrl(e.target.value)}
               placeholder="https://maps.google.com/..."
-              className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-white/40 transition-colors"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">
+            <label className="block text-xs font-bold text-ax-text-secondary uppercase tracking-wider mb-1.5">
               Date d&apos;ouverture de la salle
             </label>
-            <input
+            <Input
               type="date"
               value={foundedAt}
               onChange={(e) => setFoundedAt(e.target.value)}
-              className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-white/40 transition-colors"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">
+            <label className="block text-xs font-bold text-ax-text-secondary uppercase tracking-wider mb-1.5">
               Impayé : délai avant suspension (jours)
             </label>
-            <input
+            <Input
               type="number"
               min={0}
               max={90}
               value={dunningGraceDays}
               onChange={(e) => setDunningGraceDays(e.target.value)}
-              className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-white/40 transition-colors"
             />
-            <p className="text-xs text-gray-500 mt-1.5">
+            <p className="text-xs text-ax-text-muted mt-1.5">
               Passé ce délai après un prélèvement refusé, le membre ne peut plus réserver. L&apos;accès est rétabli dès le paiement. 0 = suspension immédiate.
             </p>
           </div>
         </div>
 
         <div className="flex items-center gap-3 pt-1">
-          <button
-            onClick={handleSaveInfo}
-            disabled={savingInfo}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white text-black text-sm font-bold hover:bg-[#d4ad2e] transition-colors disabled:opacity-50"
-          >
+          <Button onClick={handleSaveInfo} disabled={savingInfo} variant="ax-white">
             {savingInfo ? 'Enregistrement…' : 'Enregistrer'}
-          </button>
+          </Button>
 
           {savedInfo && (
-            <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-400">
+            <div className="flex items-center gap-1.5 text-xs font-bold text-ax-success">
               <CheckCircle size={14} />
               Informations mises à jour !
             </div>
@@ -826,26 +816,26 @@ export default function SettingsPage() {
       </div>
 
       {/* Notifications du gérant */}
-      <div className="bg-[#111111] border border-white/[0.06] rounded-2xl p-6 space-y-5">
+      <div className="bg-ax-surface border border-ax-border rounded-ax-card p-6 space-y-5">
         <div>
-          <h2 className="text-sm font-bold text-white mb-1">Notifications</h2>
-          <p className="text-xs text-gray-500">
+          <h2 className="text-sm font-bold text-ax-text mb-1">Notifications</h2>
+          <p className="text-xs text-ax-text-muted">
             E-mails que tu reçois en tant que gérant de cette box.
           </p>
         </div>
 
         <label className="flex items-start gap-3 cursor-pointer">
-          <div className="w-9 h-9 rounded-xl bg-white/[0.06] flex items-center justify-center shrink-0">
-            <Mail size={16} className="text-gray-300" />
+          <div className="w-9 h-9 rounded-ax-control bg-ax-hover flex items-center justify-center shrink-0">
+            <Mail size={16} className="text-ax-text" />
           </div>
           <div className="flex-1">
-            <p className="text-sm text-white font-semibold">Récapitulatif hebdomadaire</p>
-            <p className="text-xs text-gray-500 mt-0.5">
+            <p className="text-sm text-ax-text font-semibold">Récapitulatif hebdomadaire</p>
+            <p className="text-xs text-ax-text-muted mt-0.5">
               Chaque lundi : nouveaux membres, présences pointées, membres à relancer et impayés
               de la semaine écoulée. Le réglage vaut pour cette box uniquement.
             </p>
             {digestError && (
-              <p className="text-xs text-red-400 mt-1">{digestError}</p>
+              <p className="text-xs text-ax-danger mt-1">{digestError}</p>
             )}
           </div>
           <input
@@ -869,23 +859,23 @@ export default function SettingsPage() {
                 setDigestError(error.message);
               }
             }}
-            className="mt-1 w-4 h-4 accent-white shrink-0"
+            className="mt-1 w-4 h-4 accent-ax-accent shrink-0"
           />
         </label>
       </div>
 
       {/* Portabilité des données */}
-      <div className="bg-[#111111] border border-white/[0.06] rounded-2xl p-6 space-y-5">
+      <div className="bg-ax-surface border border-ax-border rounded-ax-card p-6 space-y-5">
         <div>
-          <h2 className="text-sm font-bold text-white mb-1">Mes données</h2>
-          <p className="text-xs text-gray-500">
+          <h2 className="text-sm font-bold text-ax-text mb-1">Mes données</h2>
+          <p className="text-xs text-ax-text-muted">
             Un fichier ZIP avec tes adhérents, abonnements, encaissements comptoir,
             réservations et présences, WOD et invitations — en CSV lisibles par n’importe quel tableur.
             Seules les données de cette box en font partie.
           </p>
         </div>
 
-        <button
+        <Button
           type="button"
           disabled={exporting || !box}
           onClick={async () => {
@@ -911,55 +901,55 @@ export default function SettingsPage() {
               setExporting(false);
             }
           }}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white text-black text-sm font-bold disabled:opacity-40"
+          variant="ax-white"
         >
           {exporting ? <Loader2 size={15} className="animate-spin" /> : <Download size={15} />}
           Exporter mes données
-        </button>
+        </Button>
 
-        {exportError && <p className="text-xs text-red-400">{exportError}</p>}
+        {exportError && <p className="text-xs text-ax-danger">{exportError}</p>}
       </div>
 
       {/* Read-only info section */}
-      <div className="bg-[#111111] border border-white/[0.06] rounded-2xl p-6 space-y-5">
+      <div className="bg-ax-surface border border-ax-border rounded-ax-card p-6 space-y-5">
         <div>
-          <h2 className="text-sm font-bold text-white mb-1">Détails de la box</h2>
-          <p className="text-xs text-gray-500">
+          <h2 className="text-sm font-bold text-ax-text mb-1">Détails de la box</h2>
+          <p className="text-xs text-ax-text-muted">
             Informations automatiques (non modifiables).
           </p>
         </div>
 
         <div className="space-y-4">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-blue-500/10 flex items-center justify-center shrink-0">
-              <User size={16} className="text-blue-400" />
+            <div className="w-9 h-9 rounded-ax-control bg-ax-info-soft flex items-center justify-center shrink-0">
+              <User size={16} className="text-ax-info" />
             </div>
             <div>
-              <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Propriétaire</p>
-              <p className="text-sm text-white font-semibold">{ownerName || '—'}</p>
+              <p className="text-[10px] font-bold text-ax-text-muted uppercase tracking-wider">Propriétaire</p>
+              <p className="text-sm text-ax-text font-semibold">{ownerName || '—'}</p>
             </div>
           </div>
 
           <div className="flex items-start gap-3">
-            <div className="w-9 h-9 rounded-xl bg-purple-500/10 flex items-center justify-center shrink-0 mt-0.5">
-              <Users size={16} className="text-purple-400" />
+            <div className="w-9 h-9 rounded-ax-control bg-ax-purple/10 flex items-center justify-center shrink-0 mt-0.5">
+              <Users size={16} className="text-ax-purple" />
             </div>
             <div>
-              <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Coachs</p>
+              <p className="text-[10px] font-bold text-ax-text-muted uppercase tracking-wider">Coachs</p>
               {coaches.length === 0 ? (
-                <p className="text-sm text-gray-500 italic">Aucun coach assigné</p>
+                <p className="text-sm text-ax-text-muted italic">Aucun coach assigné</p>
               ) : (
                 <div className="flex flex-wrap gap-2 mt-1">
                   {coaches.map(c => (
-                    <div key={c.id} className="flex items-center gap-2 bg-white/[0.04] border border-white/[0.06] rounded-lg px-3 py-1.5">
+                    <div key={c.id} className="flex items-center gap-2 bg-ax-hover border border-ax-border rounded-ax-control px-3 py-1.5">
                       {c.avatar_url ? (
                         <img src={c.avatar_url} alt="" className="w-5 h-5 rounded-full object-cover" />
                       ) : (
-                        <div className="w-5 h-5 rounded-full bg-purple-500/30 flex items-center justify-center text-[9px] font-black text-purple-300">
+                        <div className="w-5 h-5 rounded-full bg-ax-purple/30 flex items-center justify-center text-[9px] font-black text-ax-purple">
                           {c.username[0]?.toUpperCase()}
                         </div>
                       )}
-                      <span className="text-sm text-white font-medium">{c.username}</span>
+                      <span className="text-sm text-ax-text font-medium">{c.username}</span>
                     </div>
                   ))}
                 </div>

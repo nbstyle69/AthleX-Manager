@@ -2,6 +2,8 @@
 
 import { useState } from 'react';
 import { Copy, RefreshCw, Pencil, Check, X, Loader2 } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 
 function generateCode(boxName: string): string {
   const prefix = boxName.replace(/\s+/g, '').substring(0, 3).toUpperCase();
@@ -68,14 +70,14 @@ export default function InviteCodeWidget({ initialCode, boxName }: Props) {
   }
 
   return (
-    <div className="bg-[#111111] border border-white/8 rounded-2xl p-5 space-y-3">
+    <div className="bg-ax-surface border border-ax-border rounded-ax-card p-5 space-y-3">
       <div className="flex items-center justify-between gap-4">
         <div className="flex-1">
-          <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">
+          <p className="text-xs font-bold text-ax-text-secondary uppercase tracking-wider mb-1">
             Code d&apos;invitation box
           </p>
-          <p className="text-2xl font-black tracking-[0.3em] text-white">{code}</p>
-          <p className="text-xs text-gray-500 mt-1">
+          <p className="text-2xl font-black tracking-[0.3em] text-ax-text">{code}</p>
+          <p className="text-xs text-ax-text-muted mt-1">
             Partagez ce code aux athlètes pour rejoindre votre box
           </p>
         </div>
@@ -83,25 +85,25 @@ export default function InviteCodeWidget({ initialCode, boxName }: Props) {
         <div className="flex items-center gap-2 shrink-0">
           <button
             onClick={handleCopy}
-            className="p-2.5 rounded-xl bg-[#0A0A0A] hover:bg-white/5 text-gray-500 hover:text-white transition-colors"
+            className="p-2.5 rounded-ax-control bg-ax-background hover:bg-ax-hover text-ax-text-muted hover:text-ax-text transition-colors"
             title="Copier le code"
           >
-            {copied ? <Check size={16} className="text-emerald-400" /> : <Copy size={16} />}
+            {copied ? <Check size={16} className="text-ax-success" /> : <Copy size={16} />}
           </button>
           <button
             onClick={handleRegenerate}
             disabled={saving}
-            className="p-2.5 rounded-xl bg-[#0A0A0A] hover:bg-white/10 text-gray-500 hover:text-white transition-colors disabled:opacity-40"
+            className="p-2.5 rounded-ax-control bg-ax-background hover:bg-ax-hover text-ax-text-muted hover:text-ax-text transition-colors disabled:opacity-40"
             title="Générer un nouveau code"
           >
             {saving && !editing ? <Loader2 size={16} className="animate-spin" /> : <RefreshCw size={16} />}
           </button>
           <button
             onClick={() => { setEditing(!editing); setDraft(code); setError(''); }}
-            className={`p-2.5 rounded-xl transition-colors ${
+            className={`p-2.5 rounded-ax-control transition-colors ${
               editing
-                ? 'bg-white/20 text-white'
-                : 'bg-[#0A0A0A] hover:bg-white/10 text-gray-500 hover:text-white'
+                ? 'bg-ax-hover text-ax-text'
+                : 'bg-ax-background hover:bg-ax-hover text-ax-text-muted hover:text-ax-text'
             }`}
             title="Modifier manuellement"
           >
@@ -112,26 +114,27 @@ export default function InviteCodeWidget({ initialCode, boxName }: Props) {
 
       {editing && (
         <div className="flex items-center gap-2 pt-1">
-          <input
+          <Input
             type="text"
             value={draft}
             onChange={e => { setDraft(e.target.value.toUpperCase()); setError(''); }}
             maxLength={12}
             placeholder="Nouveau code…"
-            className="flex-1 bg-[#0A0A0A] border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white font-bold tracking-widest uppercase placeholder:text-gray-600 focus:outline-none focus:border-white/50 transition-colors"
+            className="flex-1 w-auto font-bold tracking-widest uppercase"
             autoFocus
           />
-          <button
+          <Button
             onClick={handleSaveManual}
             disabled={saving || draft.trim().length < 3}
-            className="flex items-center gap-1.5 bg-white hover:bg-[#b8922a] disabled:opacity-40 text-[#0A0A0A] text-sm font-bold px-4 py-2.5 rounded-xl transition-colors"
+            variant="ax-white"
+            className="shrink-0"
           >
             {saving ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
             Sauvegarder
-          </button>
+          </Button>
           <button
             onClick={() => { setEditing(false); setError(''); }}
-            className="p-2.5 rounded-xl bg-[#0A0A0A] hover:bg-red-500/10 text-gray-500 hover:text-red-400 transition-colors"
+            className="p-2.5 rounded-ax-control bg-ax-background hover:bg-ax-danger-soft text-ax-text-muted hover:text-ax-danger transition-colors"
           >
             <X size={14} />
           </button>
@@ -139,7 +142,7 @@ export default function InviteCodeWidget({ initialCode, boxName }: Props) {
       )}
 
       {error && (
-        <p className="text-xs text-red-400 font-semibold">{error}</p>
+        <p className="text-xs text-ax-danger font-semibold">{error}</p>
       )}
     </div>
   );
