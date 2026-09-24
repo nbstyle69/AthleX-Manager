@@ -113,14 +113,14 @@ export default function InviteCodeWidget({ initialCode, boxName }: Props) {
       </div>
 
       {editing && (
-        <div className="flex items-center gap-2 pt-1">
+        <div className="flex flex-wrap items-center gap-2 pt-1">
           <Input
             type="text"
             value={draft}
             onChange={e => { setDraft(e.target.value.toUpperCase()); setError(''); }}
             maxLength={12}
             placeholder="Nouveau code…"
-            className="flex-1 w-auto font-bold tracking-widest uppercase"
+            className="w-auto min-w-[11rem] flex-1 font-bold uppercase tracking-widest"
             autoFocus
           />
           <Button
