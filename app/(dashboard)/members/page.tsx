@@ -139,7 +139,7 @@ function PlanPopover({ member, plans, onAssign, saving }: {
       <button
         onClick={() => setOpen(v => !v)}
         disabled={saving}
-        className="flex items-center gap-2 text-xs font-semibold border border-ax-border hover:border-ax-input-border px-2.5 py-1.5 rounded-ax-control transition-colors disabled:opacity-50"
+        className="flex items-center gap-2 min-w-[8rem] max-w-[13rem] text-left text-xs font-semibold border border-ax-border hover:border-ax-input-border px-2.5 py-1.5 rounded-ax-control transition-colors disabled:opacity-50"
         style={currentPlan ? { color: textTint(currentPlan.color), borderColor: softVar(currentPlan.color, 0.25), backgroundColor: softVar(currentPlan.color, 0.063) } : { color: 'var(--ax-text-secondary)' }}
       >
         {currentPlan && <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: currentPlan.color }} />}
@@ -601,7 +601,7 @@ export default function MembersPage() {
                 ].map(col => (
                   <th key={col.label}
                     onClick={col.key ? () => toggleSort(col.key) : undefined}
-                    className={`text-left px-5 py-3.5 text-xs font-bold uppercase tracking-wider select-none ${
+                    className={`text-left px-4 py-3.5 text-xs font-bold uppercase tracking-wider select-none ${
                       col.key ? 'cursor-pointer hover:text-ax-text transition-colors' : ''
                     } ${sortCol === col.key && col.key ? 'text-ax-text' : 'text-ax-text-muted'}`}>
                     <span className="inline-flex items-center gap-1">
@@ -612,7 +612,7 @@ export default function MembersPage() {
                     </span>
                   </th>
                 ))}
-                <th className="text-right px-5 py-3.5"></th>
+                <th className="text-right px-4 py-3.5"></th>
               </tr>
             </thead>
             <tbody>
@@ -620,43 +620,43 @@ export default function MembersPage() {
                 const lvlColor = LEVEL_COLOR[m.level] ?? 'var(--ax-neutral)';
                 return (
                   <tr key={m.id} className="border-b border-ax-border last:border-0 hover:bg-ax-hover transition-colors">
-                    <td className="px-5 py-4">
+                    <td className="px-4 py-4">
                       <div className="flex items-center gap-3">
                         <div className="w-8 h-8 rounded-full bg-ax-surface-secondary flex items-center justify-center text-ax-text text-xs font-black shrink-0">
                           {m.username[0].toUpperCase()}
                         </div>
-                        <div className="min-w-0">
+                        <div className="min-w-[10rem]">
                           <p className={`text-sm font-semibold break-words ${m.is_banned ? 'line-through text-ax-text-muted' : 'text-ax-text'}`}>{m.username}</p>
                           <p className="text-xs text-ax-text-muted [overflow-wrap:anywhere]">{m.email}</p>
                         </div>
                       </div>
                     </td>
-                    <td className="px-5 py-4">
+                    <td className="px-4 py-4">
                       <span className="text-xs font-bold px-2 py-0.5 rounded-ax-badge" style={{ color: lvlColor, backgroundColor: softVar(lvlColor, 0.125) }}>
                         {LEVEL_LABEL[m.level] ?? m.level.toUpperCase()}
                       </span>
                     </td>
-                    <td className="px-5 py-4 text-sm text-ax-text-secondary font-mono">⭐ {m.elo}</td>
-                    <td className="px-5 py-4">
+                    <td className="px-4 py-4 text-sm text-ax-text-secondary font-mono">⭐ {m.elo}</td>
+                    <td className="px-4 py-4">
                       <PlanPopover member={m} plans={plans} onAssign={assignPlan} saving={planSaving === m.id} />
                     </td>
-                    <td className="px-5 py-4">
-                      <div className="flex items-center gap-1 flex-wrap">
+                    <td className="px-4 py-4">
+                      <div className="flex items-center gap-1 flex-wrap min-w-[9rem]">
                         {m.groups.map(g => (
                           <span key={g.id} className="text-[10px] font-bold px-1.5 py-0.5 rounded-ax-badge break-words" style={{ color: textTint(g.color), backgroundColor: softVar(g.color, 0.125) }}>{g.name}</span>
                         ))}
                         <GroupsPopover member={m} allGroups={allGroups} onToggle={toggleGroup} toggling={toggling} />
                       </div>
                     </td>
-                    <td className="px-5 py-4">
+                    <td className="px-4 py-4">
                       <RolePopover member={m} onChange={changeRole} />
                     </td>
-                    <td className="px-5 py-4">
+                    <td className="px-4 py-4">
                       <span className={`text-xs font-bold px-2.5 py-1 rounded-ax-badge border border-current ${m.is_banned ? 'bg-ax-danger-soft text-ax-danger' : 'bg-ax-success-soft text-ax-success'}`}>
                         {m.is_banned ? 'Banni' : 'Actif'}
                       </span>
                     </td>
-                    <td className="px-5 py-4 text-right whitespace-nowrap">
+                    <td className="px-4 py-4 text-right whitespace-nowrap">
                       <button onClick={() => setSheetMemberId(m.id)}
                         className="text-xs font-semibold text-ax-text-secondary hover:text-ax-text transition-colors mr-3">
                         Fiche
