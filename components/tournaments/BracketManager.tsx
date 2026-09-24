@@ -9,6 +9,7 @@ import {
   createGrandFinalAction,
 } from '@/app/(dashboard)/tournaments/[id]/bracket/actions';
 import { formatAmrapScore, isRepsScoredType, parseMovementRow } from '@/lib/movements';
+import { useConfirmDialog } from '@/components/ui/confirm-dialog';
 
 /** A participant's submitted score for a match's WOD, resolved for display. */
 interface Submission { label: string; video: string | null; validated: boolean; }
@@ -97,6 +98,7 @@ export default function BracketManager({
   initialMatches, profilesById, participantsCount, wods, scoresByWod = {},
 }: Props) {
   const router = useRouter();
+  const { dialog, ask } = useConfirmDialog();
   const [matches, setMatches] = useState<Match[]>(initialMatches);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -257,11 +259,16 @@ export default function BracketManager({
       return;
     }
     const skipped = pending.length - decisions.length;
-    if (!confirm(
-      `Décider ${decisions.length} match(s) selon les meilleurs scores validés du WOD « ${wod.name} » ?`
-      + (skipped > 0 ? `\n\n${skipped} match(s) sans scores complets resteront à décider à la main.` : '')
-      + `\n\nTu pourras corriger un résultat en cliquant sur un athlète (anti-triche).`,
-    )) return;
+    ask({
+      title: `Décider ${decisions.length} match(s) d’après les scores validés ?`,
+      element: `Round ${round} · WOD « ${wod.name} »${skipped > 0 ? ` · ${skipped} match(s) resteront à décider à la main` : ''}`,
+      body: 'Pour chaque match, le meilleur score validé l’emporte. L’ELO des deux athlètes est mis à jour tout de suite. Tu pourras corriger un résultat en cliquant sur un athlète.',
+      confirmLabel: 'Décider les matchs',
+      run: () => applyAutoResolve(round, decisions),
+    });
+  }
+
+  async function applyAutoResolve(round: number, decisions: { m: Match; w: string }[]) {
     setBusy(`auto-${round}`); setError(null);
     const nowIso = new Date().toISOString();
     const res = await applyDecisionsAction(tournamentId, decisions.map(({ m, w }) => ({
@@ -283,8 +290,17 @@ export default function BracketManager({
   const lastWBComplete = lastWBMatches.length > 0 && lastWBMatches.every(m => m.winner_id !== null);
   const lastWBHasOneWinner = lastWBMatches.length === 1 && lastWBComplete;
 
+  function askGenerateRound1() {
+    ask({
+      title: 'Générer le premier tour ?',
+      element: `${participantsCount} participants · tirage au sort${participantsCount % 2 === 1 ? ' (nombre impair : un athlète tiré au sort passe directement au tour suivant)' : ''}`,
+      body: 'Les affiches du premier tour sont tirées au hasard. Tu pourras refaire le tirage plus tard.',
+      confirmLabel: 'Générer le tour',
+      run: generateRound1,
+    });
+  }
+
   async function generateRound1() {
-    if (!confirm(`Générer le round 1 avec ${participantsCount} participants ?`)) return;
     setBusy('generate'); setError(null);
     const res = await generateRound1Action(tournamentId);
     setBusy(null);
@@ -323,12 +339,18 @@ export default function BracketManager({
   }
 
   // Annule le vainqueur d'un match (le repasse en "à jouer").
+  function askResetMatch(match: Match) {
+    ask({
+      title: 'Effacer le résultat de ce match ?',
+      element: `Round ${match.round}, match n° ${match.match_number} : ${pName(match.participant1_id)} contre ${pName(match.participant2_id)} · vainqueur actuel : ${pName(match.winner_id)}`,
+      body: 'Le match redevient « à jouer » et l’ELO gagné ou perdu sur ce match est rendu aux deux athlètes. Les tours suivants déjà générés ne changent pas : le vainqueur actuel y reste placé.',
+      confirmLabel: 'Effacer le résultat',
+      danger: true,
+      run: () => resetMatch(match),
+    });
+  }
+
   async function resetMatch(match: Match) {
-    if (!confirm(
-      `Annuler le résultat du match #${match.match_number} ?\n\n`
-      + `Attention : si le round suivant a déjà été généré, ses matchs peuvent devenir incohérents. `
-      + `Tu peux alors régénérer le bracket.`
-    )) return;
     setBusy(match.id); setError(null);
     const res = await resetMatchAction(tournamentId, match.id);
     setBusy(null);
@@ -339,12 +361,18 @@ export default function BracketManager({
   }
 
   // Supprime tous les matchs et régénère le round 1 (tirage aléatoire).
+  function askRegenerateBracket() {
+    ask({
+      title: 'Refaire tout le tableau ?',
+      element: `${matches.length} matchs, dont ${matches.filter(m => m.status === 'completed').length} avec un résultat · ${participantsCount} participants`,
+      body: 'Tous les matchs et leurs résultats seront supprimés, l’ELO gagné ou perdu sur ces matchs sera rendu aux athlètes, puis un nouveau premier tour sera tiré au sort. Les scores envoyés sur les WOD sont conservés. C’est définitif.',
+      confirmLabel: 'Refaire le tableau',
+      danger: true,
+      run: regenerateBracket,
+    });
+  }
+
   async function regenerateBracket() {
-    if (!confirm(
-      `Régénérer TOUT le bracket ?\n\n`
-      + `Cela supprime tous les matchs existants (y compris les résultats) et retire un nouveau round 1 `
-      + `au hasard parmi les ${participantsCount} participants.`
-    )) return;
     setBusy('regenerate'); setError(null);
     const res = await regenerateBracketAction(tournamentId);
     setBusy(null);
@@ -376,6 +404,7 @@ export default function BracketManager({
 
   return (
     <div className="space-y-6">
+      {dialog}
       {error && (
         <div className="bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3 text-sm text-red-400 flex items-center gap-2">
           <AlertTriangle size={14} /> {error}
@@ -400,7 +429,7 @@ export default function BracketManager({
           <p className="text-sm text-gray-400 mb-4">
             Aucun match généré. {participantsCount} participant(s) inscrit(s).
           </p>
-          <button onClick={generateRound1} disabled={busy === 'generate' || participantsCount < 2}
+          <button onClick={askGenerateRound1} disabled={busy === 'generate' || participantsCount < 2}
             className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold bg-white hover:bg-[#e0b730] text-[#0A0A0A] disabled:opacity-50 transition-colors">
             {busy === 'generate' ? <Loader2 size={14} className="animate-spin" /> : <Play size={14} />}
             Générer le round 1
@@ -452,7 +481,7 @@ export default function BracketManager({
                   </button>
                 );
               })()}
-              <button onClick={regenerateBracket} disabled={busy === 'regenerate'}
+              <button onClick={askRegenerateBracket} disabled={busy === 'regenerate'}
                 className="inline-flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold bg-red-500/15 hover:bg-red-500/25 text-red-300 border border-red-500/30 disabled:opacity-50 transition-colors">
                 {busy === 'regenerate' ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} />}
                 Régénérer
@@ -470,7 +499,7 @@ export default function BracketManager({
               matchesByRound={grouped.winnerByRound}
               wodForRound={wodForRound}
               onSelectWinner={setMatchWinner}
-              onReset={resetMatch}
+              onReset={askResetMatch}
               onEdit={setEditing}
               busyId={busy}
               pName={pName}

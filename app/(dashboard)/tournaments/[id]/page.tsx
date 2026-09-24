@@ -57,11 +57,12 @@ export default async function TournamentDetailPage({ params }: { params: Promise
             </div>
           </div>
           <div className="flex items-center gap-2 shrink-0">
-            <StartTournamentButton tournamentId={id} status={t.status} />
+            <StartTournamentButton tournamentId={id} status={t.status} tournamentName={t.name} participantCount={participantCount ?? 0} />
             <FinishTournamentButton
               tournamentId={id}
               status={t.status}
               openWodCount={wods.total - wods.closed}
+              tournamentName={t.name}
             />
             <CloseTournamentButton
               tournamentId={id}
