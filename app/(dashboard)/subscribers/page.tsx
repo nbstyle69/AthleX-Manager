@@ -492,14 +492,14 @@ export default function SubscribersPage() {
                       {r.kind === 'membership' ? 'Salle' : 'Programme'}
                     </span>
                   </td>
-                  <td className="px-4 py-3">
+                  <td className="px-4 py-3 min-w-[11rem]">
                     <span className="inline-flex items-center gap-2 text-ax-text font-semibold">
                       <span className="w-2.5 h-2.5 rounded-full shrink-0 border border-ax-border" style={{ backgroundColor: r.color }} />
                       {r.label}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-xs text-ax-text-secondary">{fmtDate(r.joinedAt)}</td>
-                  <td className="px-4 py-3 font-bold text-ax-text">
+                  <td className="px-4 py-3 text-xs text-ax-text-secondary whitespace-nowrap">{fmtDate(r.joinedAt)}</td>
+                  <td className="px-4 py-3 font-bold text-ax-text whitespace-nowrap">
                     {fmtPrice(r.amountCents)}{r.kind === 'membership' && <span className="text-[10px] text-ax-text-muted font-semibold">/mois</span>}
                     {(() => {
                       const thisMonth = memberInvoices(r).find(i => i.month === currentMonthKey());
@@ -522,7 +522,7 @@ export default function SubscribersPage() {
                       <span className="block mt-1 text-[10px] font-semibold text-ax-warning">Résiliation prévue</span>
                     )}
                   </td>
-                  <td className="px-4 py-3 text-xs text-ax-text-secondary">
+                  <td className="px-4 py-3 text-xs text-ax-text-secondary min-w-[8rem]">
                     {fmtDate(r.periodEnd)}
                     {r.cancelAtPeriodEnd && r.periodEnd && (
                       <span className="block text-[10px] text-ax-warning">fin d'abonnement</span>
@@ -534,7 +534,8 @@ export default function SubscribersPage() {
                       <span className="block text-[10px] text-ax-info">reprise le {fmtDate(r.pauseResumesAt)}</span>
                     )}
                   </td>
-                  <td className="px-4 py-3 text-right space-x-2 whitespace-nowrap">
+                  <td className="px-4 py-3 min-w-[10rem]">
+                    <div className="flex flex-wrap justify-end gap-2">
                     {(history.length > 0 || cash.length > 0) && (
                       <button onClick={() => setOpenHistory(historyOpen ? null : r.key)}
                         className="inline-flex items-center gap-1 text-xs font-bold text-ax-text-secondary bg-ax-surface-secondary hover:bg-ax-hover rounded-ax-control px-2.5 py-1.5">
@@ -555,6 +556,7 @@ export default function SubscribersPage() {
                         {r.paused ? 'Reprendre' : 'Geler'}
                       </button>
                     )}
+                    </div>
                   </td>
                 </tr>
                 {historyOpen && (
