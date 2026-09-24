@@ -6,6 +6,7 @@ import { writeFailure } from '@/lib/writeGuard';
 import { softVar } from '@/lib/colorVars';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { useConfirmDialog } from '@/components/ui/confirm-dialog';
 import {
   Plus, Pencil, Trash2, X, Calendar, CreditCard,
 } from 'lucide-react';
@@ -65,6 +66,7 @@ function planWriteMessage(error: { code?: string; message?: string } | null, fai
 
 export default function MembershipPlansSection({ boxId }: { boxId: string | null }) {
   const supabase = createClient();
+  const { dialog, ask } = useConfirmDialog();
   const [plans, setPlans] = useState<MembershipPlan[]>([]);
   const [loading, setLoading] = useState(true);
   const [showPlanForm, setShowPlanForm] = useState(false);
@@ -199,8 +201,17 @@ export default function MembershipPlansSection({ boxId }: { boxId: string | null
     await loadPlans(boxId);
   }
 
+  function askDeletePlan(pl: MembershipPlan) {
+    ask({
+      title: `Supprimer la formule « ${pl.name} » (${formatPrice(pl.price_cents)}) ?`,
+      body: 'Les membres qui y sont rattachés n’auront plus de limite de séances. Leurs prélèvements Stripe continueront au même montant : pour les arrêter, résilie chaque abonnement. Les invitations en attente avec cette formule n’en auront plus. Pour la retirer de la vente sans toucher aux membres, désactive-la plutôt.',
+      confirmLabel: 'Supprimer la formule',
+      danger: true,
+      run: () => handleDeletePlan(pl.id),
+    });
+  }
+
   async function handleDeletePlan(id: string) {
-    if (!confirm('Supprimer cette formule ? Les membres associés passeront en illimité.')) return;
     const { data, error } = await supabase
       .from('membership_plans').delete().eq('id', id).select('id');
     const fail = writeFailure(error, data);
@@ -218,6 +229,7 @@ export default function MembershipPlansSection({ boxId }: { boxId: string | null
 
   return (
     <div>
+      {dialog}
       <div className="flex flex-wrap items-center justify-between gap-3 mb-1">
         <h2 className="text-lg font-black text-ax-text">Offres d&apos;accès à la salle</h2>
         <Button variant="ax-mint" onClick={openNewPlan}>
@@ -291,7 +303,7 @@ export default function MembershipPlansSection({ boxId }: { boxId: string | null
                 <button onClick={() => togglePlanActive(pl)} className="flex items-center gap-1.5 px-3 py-2 rounded-ax-control hover:bg-ax-hover text-ax-text-secondary hover:text-ax-text text-xs font-semibold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ax-focus focus-visible:ring-offset-2 focus-visible:ring-offset-ax-surface">
                   {pl.is_active ? 'Désactiver' : 'Activer'}
                 </button>
-                <button onClick={() => handleDeletePlan(pl.id)} className="flex items-center gap-1.5 px-3 py-2 rounded-ax-control hover:bg-ax-danger-soft text-ax-text-muted hover:text-ax-danger text-xs font-semibold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ax-focus focus-visible:ring-offset-2 focus-visible:ring-offset-ax-surface">
+                <button onClick={() => askDeletePlan(pl)} className="flex items-center gap-1.5 px-3 py-2 rounded-ax-control hover:bg-ax-danger-soft text-ax-text-muted hover:text-ax-danger text-xs font-semibold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ax-focus focus-visible:ring-offset-2 focus-visible:ring-offset-ax-surface">
                   <Trash2 size={13} /> Supprimer
                 </button>
               </div>

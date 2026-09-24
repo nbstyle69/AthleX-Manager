@@ -17,6 +17,8 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { useConfirmDialog } from '@/components/ui/confirm-dialog';
+import { fullDate, hhmm } from '@/lib/confirmDialog';
 
 const FOCUS_CLS = 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ax-focus focus-visible:ring-offset-2 focus-visible:ring-offset-ax-surface';
 const ICON_BTN = `rounded-ax-control text-ax-text-secondary hover:text-ax-text hover:bg-ax-hover transition-colors motion-reduce:transition-none ${FOCUS_CLS}`;
@@ -120,6 +122,7 @@ const EMPTY_FORM = {
 
 export default function SchedulesPage() {
   const supabase = createClient();
+  const { dialog, ask } = useConfirmDialog();
 
   const [schedules,  setSchedules]  = useState<ClassSchedule[]>([]);
   const [loading,    setLoading]    = useState(true);
@@ -507,8 +510,26 @@ export default function SchedulesPage() {
     loadDay();
   }
 
+  // Retrait d'un inscrit ou d'une personne en attente : l'action ne part
+  // qu'après clic sur « Retirer du cours » / « Retirer de la liste ».
+  function askKick(p: Participant) {
+    const item = detailItem;
+    const waiting = p.status === 'waiting';
+    ask({
+      title: waiting ? `Retirer ${p.username} de la liste d’attente ?` : `Retirer ${p.username} de ce cours ?`,
+      element: item
+        ? `${item.title} · ${fullDate(item.scheduled_date)} · ${hhmm(item.start_time)}–${hhmm(item.end_time)}${p.is_trial ? ' · séance d’essai' : ''}`
+        : undefined,
+      body: waiting
+        ? 'Elle quitte la liste d’attente. La personne n’est pas prévenue.'
+        : 'Sa place est libérée et la première personne de la liste d’attente est inscrite à sa place. Si la séance a été prise sur un carnet, elle y est rendue seulement si le cours commence dans plus de 5 heures. La personne n’est pas prévenue.',
+      confirmLabel: waiting ? 'Retirer de la liste' : 'Retirer du cours',
+      danger: true,
+      run: () => kickMember(p.reservation_id),
+    });
+  }
+
   async function kickMember(reservationId: string) {
-    if (!confirm('Retirer ce membre du créneau ?')) return;
     setKicking(reservationId);
     const { data, error } = await supabase
       .from('class_reservations').delete().eq('id', reservationId).select('id');
@@ -540,8 +561,21 @@ export default function SchedulesPage() {
     if (detailItem) openDetail(detailItem);
   }
 
+  function askDelete(item: ClassSchedule) {
+    const nobody = item.confirmed_count === 0 && item.waiting_count === 0;
+    ask({
+      title: 'Supprimer ce cours ?',
+      element: `${item.title} · ${fullDate(item.scheduled_date)} · ${hhmm(item.start_time)}–${hhmm(item.end_time)}${item.coach ? ` · ${item.coach}` : ''} — ${item.confirmed_count} inscrit(s), ${item.waiting_count} en attente`,
+      body: nobody
+        ? 'Personne n’est inscrit. Les autres semaines ne changent pas.'
+        : 'Le cours est retiré du planning avec toutes ses inscriptions, sa liste d’attente et les présences déjà pointées. Les participants ne sont pas prévenus et les séances prises sur un carnet ne sont pas rendues. Les autres semaines ne changent pas.',
+      confirmLabel: 'Supprimer le cours',
+      danger: true,
+      run: () => handleDelete(item),
+    });
+  }
+
   async function handleDelete(item: ClassSchedule) {
-    if (!confirm(`Supprimer « ${item.title} — ${item.start_time} » ?`)) return;
     const { data, error } = await supabase
       .from('class_schedules').delete().eq('id', item.id).select('id');
     const fail = writeFailure(error, data);
@@ -557,6 +591,7 @@ export default function SchedulesPage() {
 
   return (
     <>
+    {dialog}
     <TemplatesDrawer open={showTemplates} onClose={() => setShowTemplates(false)} boxId={boxId} />
     <div className="space-y-6">
 
@@ -815,7 +850,7 @@ export default function SchedulesPage() {
                               <button onClick={(e) => { e.stopPropagation(); openEdit(item); }} aria-label="Modifier" className={`inline-flex items-center justify-center w-8 h-8 bg-ax-surface-secondary ${ICON_BTN}`}>
                                 <Pencil size={12} />
                               </button>
-                              <button onClick={(e) => { e.stopPropagation(); handleDelete(item); }} aria-label="Supprimer" className={`inline-flex items-center justify-center w-8 h-8 rounded-ax-control bg-ax-surface-secondary text-ax-text-secondary hover:bg-ax-danger-soft hover:text-ax-danger transition-colors ${FOCUS_CLS}`}>
+                              <button onClick={(e) => { e.stopPropagation(); askDelete(item); }} aria-label="Supprimer" className={`inline-flex items-center justify-center w-8 h-8 rounded-ax-control bg-ax-surface-secondary text-ax-text-secondary hover:bg-ax-danger-soft hover:text-ax-danger transition-colors ${FOCUS_CLS}`}>
                                 <Trash2 size={12} />
                               </button>
                             </div>
@@ -1032,7 +1067,7 @@ export default function SchedulesPage() {
                               </div>
                               <span className="text-[10px] text-ax-text-muted font-mono">#{i + 1}</span>
                               <button
-                                onClick={(e) => { e.stopPropagation(); kickMember(p.reservation_id); }}
+                                onClick={(e) => { e.stopPropagation(); askKick(p); }}
                                 disabled={kicking === p.reservation_id}
                                 className={KICK_CLS}
                                 title="Retirer du créneau"
@@ -1082,7 +1117,7 @@ export default function SchedulesPage() {
                               </div>
                               <span className="text-[10px] text-ax-warning font-bold">#{i + 1}</span>
                               <button
-                                onClick={(e) => { e.stopPropagation(); kickMember(p.reservation_id); }}
+                                onClick={(e) => { e.stopPropagation(); askKick(p); }}
                                 disabled={kicking === p.reservation_id}
                                 className={KICK_CLS}
                                 title="Retirer de la liste d'attente"

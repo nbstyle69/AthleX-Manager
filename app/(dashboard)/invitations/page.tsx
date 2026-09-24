@@ -13,6 +13,7 @@ import { getMyBox } from '@/lib/getMyBox';
 import CsvImport from '@/components/invitations/CsvImport';
 import { SITE_URL } from '@/lib/site-url';
 import { Badge } from '@/components/ui/badge';
+import { useConfirmDialog } from '@/components/ui/confirm-dialog';
 
 const supabase = createClient();
 
@@ -72,6 +73,7 @@ function rpcMessage(error: { message: string } | null): string | null {
 
 export default function InvitationsPage() {
   const router = useRouter();
+  const { dialog, ask } = useConfirmDialog();
   const [boxId, setBoxId] = useState<string | null>(null);
   const [plans, setPlans] = useState<Plan[]>([]);
   const [invitations, setInvitations] = useState<Invitation[]>([]);
@@ -165,8 +167,20 @@ export default function InvitationsPage() {
     await openLink(invitation.id, rotated.email, rotated.token);
   }
 
+  function askRevoke(invitation: Invitation) {
+    const who = [invitation.first_name, invitation.last_name].filter(Boolean).join(' ') || invitation.email;
+    ask({
+      title: 'Révoquer cette invitation ?',
+      element: `${who} · ${planName(invitation.plan_id)}, valable jusqu’au ${fmtDate(invitation.expires_at)}`,
+      body: 'Le lien envoyé ne fonctionnera plus. Pour inviter à nouveau cette personne, il faudra créer une nouvelle invitation.'
+        + (invitation.cash_collected ? ' Le paiement déjà enregistré reste dans le journal des encaissements.' : ''),
+      confirmLabel: 'Révoquer l’invitation',
+      danger: true,
+      run: () => revoke(invitation),
+    });
+  }
+
   async function revoke(invitation: Invitation) {
-    if (!confirm(`Révoquer l'invitation de ${invitation.email} ? Le lien deviendra inutilisable.`)) return;
     setBusy(invitation.id);
     const { error: rpcError } = await supabase.rpc('revoke_box_invitation', {
       p_invitation_id: invitation.id,
@@ -241,6 +255,7 @@ export default function InvitationsPage() {
 
   return (
     <div className="space-y-6">
+      {dialog}
       <div>
         <div className="flex items-center gap-3">
           <h1 className="font-display text-2xl font-medium uppercase tracking-wide text-ax-text">Invitations</h1>
@@ -371,7 +386,7 @@ export default function InvitationsPage() {
                     className="flex items-center gap-1 px-2.5 py-1.5 rounded-ax-control border border-ax-border text-ax-text-secondary hover:text-ax-text text-xs font-bold disabled:opacity-40">
                     {busy === inv.id ? <Loader2 size={12} className="animate-spin" /> : <RefreshCw size={12} />} Relancer
                   </button>
-                  <button onClick={() => revoke(inv)} disabled={busy === inv.id}
+                  <button onClick={() => askRevoke(inv)} disabled={busy === inv.id}
                     className="flex items-center gap-1 px-2.5 py-1.5 rounded-ax-control border border-ax-border text-ax-text-secondary hover:text-ax-text text-xs font-bold disabled:opacity-40">
                     <Ban size={12} /> Révoquer
                   </button>

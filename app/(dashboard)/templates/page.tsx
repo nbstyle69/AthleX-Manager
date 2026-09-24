@@ -9,6 +9,8 @@ import ClassTypeField from '@/components/ClassTypeField';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { useConfirmDialog } from '@/components/ui/confirm-dialog';
+import { ERROR_TITLE, hhmm } from '@/lib/confirmDialog';
 
 const FOCUS_CLS = 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ax-focus focus-visible:ring-offset-2 focus-visible:ring-offset-ax-surface';
 const ICON_BTN = `p-1 rounded-ax-control text-ax-text-secondary hover:text-ax-text hover:bg-ax-hover transition-colors motion-reduce:transition-none ${FOCUS_CLS}`;
@@ -52,6 +54,7 @@ const EMPTY_FORM = {
 
 export default function TemplatesPage() {
   const supabase = createClient();
+  const { dialog, ask, inform } = useConfirmDialog();
 
   const [templates, setTemplates] = useState<ScheduleTemplate[]>([]);
   const [loading, setLoading]     = useState(true);
@@ -123,10 +126,22 @@ export default function TemplatesPage() {
     load();
   }
 
+  function askDelete(t: ScheduleTemplate) {
+    const day = DAYS.find(d => d.value === t.day_of_week)?.label.toLowerCase() ?? '';
+    ask({
+      title: 'Supprimer ce créneau type ?',
+      element: `${t.title} · chaque ${day} · ${hhmm(t.start_time)}–${hhmm(t.end_time)}${t.coach ? ` · ${t.coach}` : ''} · ${t.max_capacity} places`,
+      body: 'Il ne sera plus créé lors des prochaines générations du planning. Les cours déjà au planning et leurs inscriptions restent. Pour le mettre en pause seulement, désactive-le.',
+      confirmLabel: 'Supprimer le créneau type',
+      danger: true,
+      run: () => handleDelete(t.id),
+    });
+  }
+
   async function handleDelete(id: string) {
-    if (!confirm('Supprimer ce modèle ?')) return;
     setDeleting(id);
-    await supabase.from('schedule_templates').delete().eq('id', id);
+    const { error } = await supabase.from('schedule_templates').delete().eq('id', id);
+    if (error) inform({ kind: 'error', title: ERROR_TITLE, body: error.message });
     setDeleting(null);
     load();
   }
@@ -143,6 +158,7 @@ export default function TemplatesPage() {
 
   return (
     <div className="sm:p-6 max-w-5xl mx-auto">
+      {dialog}
       {/* Header */}
       <div className="flex flex-wrap items-start justify-between gap-4 mb-8">
         <div className="min-w-0 flex-1 basis-[16rem]">
@@ -187,7 +203,7 @@ export default function TemplatesPage() {
                       <button onClick={() => openEdit(t)} className={ICON_BTN}>
                         <Pencil size={12} />
                       </button>
-                      <button onClick={() => handleDelete(t.id)} disabled={deleting === t.id}
+                      <button onClick={() => askDelete(t)} disabled={deleting === t.id}
                         className={`${ICON_BTN} hover:!text-ax-danger`}>
                         {deleting === t.id ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} />}
                       </button>

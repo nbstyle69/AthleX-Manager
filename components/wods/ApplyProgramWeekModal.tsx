@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { X, Loader2, AlertTriangle, CalendarPlus, ShieldCheck, Trash2, Copy } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
+import { useConfirmDialog } from '@/components/ui/confirm-dialog';
 import {
   AUDIENCES, AUDIENCE_LABEL, Audience, isAudience, mondayOfISO, subscriptionColorVar,
 } from '@/lib/audience';
@@ -120,6 +121,7 @@ export default function ApplyProgramWeekModal({
   onCopyTemplateToOffer,
 }: Props) {
   const supabase = createClient();
+  const { dialog, ask } = useConfirmDialog();
 
   const [loading, setLoading]   = useState(true);
   const [items, setItems]       = useState<ApplicableSource[]>([]);
@@ -238,8 +240,18 @@ export default function ApplyProgramWeekModal({
     });
   }
 
+  function askDeleteTemplate(t: ApplicableSource) {
+    ask({
+      title: 'Supprimer cette semaine type ?',
+      element: t.subtitle ? `${t.title} — ${t.subtitle}` : t.title,
+      body: 'Elle ne sera plus proposée dans la Programmation. Les WOD déjà posés sur le Whiteboard restent en place.',
+      confirmLabel: 'Supprimer la semaine type',
+      danger: true,
+      run: () => deleteTemplate(t),
+    });
+  }
+
   async function deleteTemplate(t: ApplicableSource) {
-    if (!confirm(`Supprimer la semaine type « ${t.title} » ? Les semaines déjà posées sur le Whiteboard restent.`)) return;
     setDeleting(t.sourceId);
     setError(null);
     const { error: rpcError } = await supabase.rpc('delete_week_template', { p_template_id: t.sourceId });
@@ -288,7 +300,7 @@ export default function ApplyProgramWeekModal({
         {i.kind === 'template' && (
           <button
             type="button"
-            onClick={() => deleteTemplate(i)}
+            onClick={() => askDeleteTemplate(i)}
             disabled={deleting === i.sourceId}
             title="Supprimer cette semaine type"
             className="p-2 rounded-ax-control border border-ax-border text-ax-text-muted hover:text-ax-danger hover:border-ax-danger disabled:opacity-40"
@@ -302,6 +314,7 @@ export default function ApplyProgramWeekModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-ax-overlay backdrop-blur-ax-glass p-4">
+      {dialog}
       <div className="bg-ax-surface border border-ax-border rounded-ax-card w-full max-w-lg max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between px-6 py-5 border-b border-ax-border">
           <div>

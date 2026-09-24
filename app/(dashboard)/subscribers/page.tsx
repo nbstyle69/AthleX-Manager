@@ -9,6 +9,7 @@ import { getMyBox } from '@/lib/getMyBox';
 import { getMemberEmails } from '@/lib/memberEmails';
 import UnpaidPanel from '@/components/UnpaidPanel';
 import { Badge } from '@/components/ui/badge';
+import { useConfirmDialog } from '@/components/ui/confirm-dialog';
 
 const INPUT_CLS = 'w-full min-h-11 px-3 py-2.5 rounded-ax-control bg-ax-surface border border-ax-input-border text-base sm:text-sm text-ax-text placeholder:text-ax-text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ax-focus focus-visible:ring-offset-2 focus-visible:ring-offset-ax-surface transition-colors';
 
@@ -131,6 +132,7 @@ function fmtMonth(month: string) {
 
 export default function SubscribersPage() {
   const router = useRouter();
+  const { dialog, ask } = useConfirmDialog();
   const [loading, setLoading] = useState(true);
   const [rows, setRows] = useState<Row[]>([]);
   const [search, setSearch] = useState('');
@@ -305,9 +307,19 @@ export default function SubscribersPage() {
 
   // Échéance comptoir : le montant n'est pas envoyé, la RPC le lit sur la
   // formule du membre et écrit une ligne au journal (en ajout seul).
+  function askCashPayment(r: Row) {
+    if (!r.boxMemberId) return;
+    ask({
+      title: 'Enregistrer un paiement au comptoir ?',
+      element: `${r.username} · ${r.label}`,
+      body: `Le paiement, au prix de la formule, s’ajoute au journal des encaissements et ne pourra plus être modifié ni supprimé. L’adhésion de ${r.username} repasse en « actif ».`,
+      confirmLabel: 'Enregistrer le paiement',
+      run: () => recordCashPayment(r),
+    });
+  }
+
   async function recordCashPayment(r: Row) {
     if (!r.boxMemberId) return;
-    if (!window.confirm(`Enregistrer un encaissement comptoir pour ${r.username} ? Cette écriture est définitive.`)) return;
     setActionBusy(r.key); setActionError(null);
     const { error } = await supabase.rpc('record_member_cash_payment', { p_box_member_id: r.boxMemberId });
     if (error) setActionError(error.message);
@@ -315,11 +327,29 @@ export default function SubscribersPage() {
     setActionBusy(null);
   }
 
-  async function reviewRequest(id: string, action: 'approve' | 'reject') {
-    let note: string | undefined;
-    if (action === 'reject') {
-      note = window.prompt('Motif du refus (optionnel) :') ?? undefined;
-    }
+  // Refus avec motif facultatif, approbation confirmée : « Annuler » n'envoie
+  // jamais rien (le `prompt` natif envoyait le refus même annulé).
+  function askReview(req: CancelRequest, action: 'approve' | 'reject') {
+    ask(action === 'approve'
+      ? {
+          title: 'Approuver la résiliation ?',
+          element: `${req.username} · demande du ${fmtDate(req.created_at)}`,
+          body: 'L’abonnement Stripe s’arrêtera à la fin de la période en cours et l’engagement sera effacé. Tu ne pourras pas revenir en arrière depuis l’application.',
+          confirmLabel: 'Approuver la résiliation',
+          danger: true,
+          run: () => reviewRequest(req.id, 'approve'),
+        }
+      : {
+          title: 'Refuser la demande de résiliation ?',
+          element: `${req.username} · ${REASON_LABEL[req.reason_type] ?? req.reason_type} · envoyée le ${fmtDate(req.created_at)}`,
+          body: 'Son abonnement et son engagement restent inchangés.',
+          field: { label: 'Motif du refus (facultatif)' },
+          confirmLabel: 'Refuser la demande',
+          run: note => reviewRequest(req.id, 'reject', note),
+        });
+  }
+
+  async function reviewRequest(id: string, action: 'approve' | 'reject', note?: string) {
     setActionBusy(`req-${id}`); setActionError(null);
     try {
       const res = await fetch('/api/cancellation-request/review', {
@@ -369,11 +399,12 @@ export default function SubscribersPage() {
     .reduce((s, r) => s + (r.amountCents ?? 0), 0);
 
   if (loading) {
-    return <div className="flex items-center justify-center h-64"><Loader2 className="animate-spin text-ax-text-muted" /></div>;
+    return <div className="flex items-center justify-center h-64"><Loader2 className="animate-spin text-ax-text-muted" />{dialog}</div>;
   }
 
   return (
     <div className="space-y-6">
+      {dialog}
       <div className="flex items-center justify-between">
         <div>
           <div className="flex items-center gap-3">
@@ -428,11 +459,11 @@ export default function SubscribersPage() {
                     <FileText size={13} /> Justificatif
                   </button>
                 )}
-                <button onClick={() => reviewRequest(req.id, 'approve')} disabled={actionBusy === `req-${req.id}`}
+                <button onClick={() => askReview(req, 'approve')} disabled={actionBusy === `req-${req.id}`}
                   className="flex items-center gap-1 text-xs font-bold text-ax-accent-foreground bg-ax-accent border border-ax-accent hover:brightness-110 disabled:opacity-50 rounded-ax-control px-2.5 py-1.5">
                   {actionBusy === `req-${req.id}` ? <Loader2 size={13} className="animate-spin" /> : <Check size={13} />} Approuver
                 </button>
-                <button onClick={() => reviewRequest(req.id, 'reject')} disabled={actionBusy === `req-${req.id}`}
+                <button onClick={() => askReview(req, 'reject')} disabled={actionBusy === `req-${req.id}`}
                   className="flex items-center gap-1 text-xs font-bold text-ax-danger bg-ax-danger-soft hover:brightness-110 disabled:opacity-50 rounded-ax-control px-2.5 py-1.5">
                   <X size={13} /> Refuser
                 </button>
@@ -543,7 +574,7 @@ export default function SubscribersPage() {
                       </button>
                     )}
                     {isCashMember && r.status !== 'cancelled' && (
-                      <button onClick={() => recordCashPayment(r)} disabled={actionBusy === r.key}
+                      <button onClick={() => askCashPayment(r)} disabled={actionBusy === r.key}
                         className="inline-flex items-center gap-1 text-xs font-bold text-ax-warning bg-ax-warning-soft hover:brightness-110 rounded-ax-control px-2.5 py-1.5 disabled:opacity-50">
                         {actionBusy === r.key ? <Loader2 size={13} className="animate-spin" /> : <Banknote size={13} />}
                         Encaissement reçu

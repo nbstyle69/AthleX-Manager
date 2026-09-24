@@ -11,6 +11,8 @@ import { softVar, textTint } from '@/lib/colorVars';
 import HelpButton from '@/components/help/HelpButton';
 import { getMemberEmails } from '@/lib/memberEmails';
 import AthleteSheet from '@/components/dashboard/AthleteSheet';
+import { useConfirmDialog } from '@/components/ui/confirm-dialog';
+import { ERROR_TITLE } from '@/lib/confirmDialog';
 import {
   eloChoiceOf,
   sortMembers,
@@ -256,6 +258,7 @@ function RolePopover({ member, onChange }: {
 export default function MembersPage() {
   const router = useRouter();
   const supabase = createClient();
+  const { dialog, ask, inform } = useConfirmDialog();
 
   const [members,    setMembers]    = useState<Member[]>([]);
   const [allGroups,  setAllGroups]  = useState<{ id: string; name: string; color: string }[]>([]);
@@ -374,17 +377,44 @@ export default function MembersPage() {
   async function changeRole(member: Member, newRole: 'member' | 'coach' | 'owner') {
     if (!boxId || member.role === newRole) return;
     const labels: Record<string, string> = { member: 'Membre', coach: 'Coach', owner: 'Owner' };
-    if (!confirm(`Changer le rôle de ${member.username} → ${labels[newRole]} ?`)) return;
+    const coOwner = members.find(m => m.role === 'owner' && m.id !== member.id);
+    ask(newRole === 'owner'
+      ? {
+          title: `Nommer ${member.username} co-gérant ?`,
+          element: `${labels[member.role]} → Owner`,
+          body: 'Il aura les mêmes accès que toi, facturation comprise.'
+            + (coOwner ? ` ${coOwner.username} redeviendra simple membre.` : ''),
+          confirmLabel: 'Nommer co-gérant',
+          run: () => applyRole(member, newRole),
+        }
+      : {
+          title: `Changer le rôle de ${member.username} ?`,
+          element: `${labels[member.role]} → ${labels[newRole]}`,
+          body: newRole === 'coach'
+            ? 'Il pourra gérer le planning et les WOD, mais pas l’argent.'
+            : 'Il perd les accès de gestion.',
+          confirmLabel: 'Changer le rôle',
+          run: () => applyRole(member, newRole),
+        });
+  }
+
+  async function applyRole(member: Member, newRole: 'member' | 'coach' | 'owner') {
+    if (!boxId) return;
+    const errors: string[] = [];
 
     // If promoting to owner, demote the current owner first (prevent double ownership)
     if (newRole === 'owner') {
       const currentOwner = members.find(m => m.role === 'owner' && m.id !== member.id);
       if (currentOwner) {
-        await supabase.from('box_members').update({ role: 'member' }).eq('member_id', currentOwner.id).eq('box_id', boxId);
+        const { error } = await supabase.from('box_members').update({ role: 'member' }).eq('member_id', currentOwner.id).eq('box_id', boxId);
+        if (error) errors.push(error.message);
       }
     }
 
-    await supabase.from('box_members').update({ role: newRole }).eq('member_id', member.id).eq('box_id', boxId);
+    const { error } = await supabase.from('box_members').update({ role: newRole }).eq('member_id', member.id).eq('box_id', boxId);
+    if (error) errors.push(error.message);
+    // Jusqu'ici, un refus affichait quand même le nouveau rôle.
+    if (errors.length) { inform({ kind: 'error', title: ERROR_TITLE, body: errors.join('\n') }); return; }
     setMembers(prev => prev.map(m => {
       if (m.id === member.id) return { ...m, role: newRole };
       if (newRole === 'owner' && m.role === 'owner') return { ...m, role: 'member' };
@@ -421,9 +451,22 @@ export default function MembersPage() {
     setPlanGroupSaving(null);
   }
 
+  function askDeletePlan(plan: MembershipPlan) {
+    const count = members.filter(m => m.plan_id === plan.id).length;
+    ask({
+      title: `Supprimer la formule « ${plan.name} » (${plan.price_cents > 0 ? `${(plan.price_cents / 100).toFixed(2)} €/mois` : 'Gratuit'}) ?`,
+      element: `${count} membre(s) y sont rattachés.`,
+      body: 'Ils n’auront plus de limite de séances. Leurs prélèvements Stripe continueront au même montant : pour les arrêter, résilie chaque abonnement. Les invitations en attente avec cette formule n’en auront plus. Pour la retirer de la vente sans toucher aux membres, désactive-la plutôt dans Formules.',
+      confirmLabel: 'Supprimer la formule',
+      danger: true,
+      run: () => deletePlan(plan.id),
+    });
+  }
+
   async function deletePlan(planId: string) {
-    if (!confirm('Supprimer ce contrat ? Les membres associés passeront en illimité.')) return;
-    await supabase.from('membership_plans').delete().eq('id', planId);
+    const { error } = await supabase.from('membership_plans').delete().eq('id', planId);
+    // Jusqu'ici, un refus retirait quand même le contrat de l'écran.
+    if (error) { inform({ kind: 'error', title: ERROR_TITLE, body: error.message }); return; }
     setPlans(prev => prev.filter(p => p.id !== planId));
     setMembers(prev => prev.map(m => m.plan_id === planId ? { ...m, plan_id: null } : m));
   }
@@ -468,6 +511,7 @@ export default function MembersPage() {
 
   return (
     <div className="space-y-6">
+      {dialog}
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="min-w-0">
           <div className="flex items-center gap-3">
@@ -517,7 +561,7 @@ export default function MembersPage() {
                   onToggle={(gid, inGroup) => togglePlanGroup(p.id, gid, inGroup)}
                   saving={planGroupSaving?.startsWith(`${p.id}-`) ? planGroupSaving.slice(p.id.length + 1) : null}
                 />
-                <button onClick={() => deletePlan(p.id)} aria-label="Supprimer ce contrat" className="inline-flex items-center justify-center w-8 h-8 rounded-ax-control hover:bg-ax-danger-soft text-ax-text-muted hover:text-ax-danger transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ax-focus focus-visible:ring-offset-2 focus-visible:ring-offset-ax-surface">
+                <button onClick={() => askDeletePlan(p)} aria-label="Supprimer ce contrat" className="inline-flex items-center justify-center w-8 h-8 rounded-ax-control hover:bg-ax-danger-soft text-ax-text-muted hover:text-ax-danger transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ax-focus focus-visible:ring-offset-2 focus-visible:ring-offset-ax-surface">
                   <Trash2 size={13} />
                 </button>
               </div>
