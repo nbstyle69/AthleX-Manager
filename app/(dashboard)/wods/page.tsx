@@ -30,7 +30,7 @@ import PdfImportModal from '@/components/wods/PdfImportModal';
 import { applyWeekNotes } from '@/lib/programWeek';
 import {
   BLOCK_COLOR, BLOCK_LABEL, DAY_LABELS, EMPTY_WOD_FORM, TYPE_COLOR,
-  WodFormState, WodType, formatCap, movementLines, parseCap, sharedWodColumns,
+  WodFormState, WodType, descriptionToSave, formatCap, movementLines, parseCap, sharedWodColumns,
 } from '@/lib/wodFields';
 import { downloadWodCsvTemplate, parseWodImportFile, VALID_WOD_TYPES } from '@/lib/wodImport';
 import { stripWodJson, withWodJson, writeWithWodJsonFallback } from '@/lib/wodJson';
@@ -383,6 +383,8 @@ export default function WODsPage() {
     setSaving(true); setFormError(null);
     const payload = withWodJson({
       ...sharedWodColumns(form, movements),
+      // Séance ouverte sans toucher aux mouvements : description d'origine, intacte.
+      description: descriptionToSave(editWOD?.description ?? null, movements),
       box_id: boxId, created_by: userId,
       scheduled_date: form.date,
       audience: form.audience,

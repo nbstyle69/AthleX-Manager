@@ -119,7 +119,7 @@ export interface SharedWodColumns {
 export function sharedWodColumns(form: WodFormState, movements: string[]): SharedWodColumns {
   return {
     title: form.title.trim(),
-    description: movements.map(l => l.trim()).filter(Boolean).join('\n') || null,
+    description: descriptionToSave(null, movements),
     wod_type: form.wod_type || null,
     block_name: form.block || null,
     time_cap_seconds: parseCap(form.timeCap),
@@ -137,6 +137,22 @@ export function sharedWodColumns(form: WodFormState, movements: string[]): Share
       ? Math.max(0, parseInt(form.tabataRest) || 10)
       : null,
   };
+}
+
+/**
+ * Description à enregistrer depuis l'éditeur. Tant que les lignes de mouvement
+ * lues à l'ouverture sont inchangées, la description d'origine est réécrite
+ * telle quelle : `movementLines` retire les lignes vides et les espaces de
+ * bord de ligne, et une séance simplement ouverte puis enregistrée ne doit
+ * rien perdre. Dès qu'une ligne change, la description est reconstruite
+ * ligne à ligne, comme avant.
+ */
+export function descriptionToSave(original: string | null, movements: string[]): string | null {
+  if (original) {
+    const read = movementLines(original);
+    if (read.length === movements.length && read.every((l, i) => l === movements[i])) return original;
+  }
+  return movements.map(l => l.trim()).filter(Boolean).join('\n') || null;
 }
 
 /** `description` → lignes de l'éditeur de mouvements. */

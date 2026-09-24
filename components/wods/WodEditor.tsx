@@ -342,6 +342,25 @@ export default function WodEditor({
             </datalist>
             <div className="space-y-2">
               {wodRows.map((parsed, i) => {
+                if (parsed.free) {
+                  // Ligne hors catalogue : texte libre, affiché en entier et
+                  // conservé tel quel. Une ligne de séance reste une ligne :
+                  // Entrée n'insère pas de retour, un collage multi-lignes est
+                  // remis sur une ligne.
+                  return (
+                    <div key={i} className="flex gap-2 items-start" data-testid="ligne-libre">
+                      <textarea rows={1}
+                        className={`${inp} flex-1 min-w-0 resize-none [field-sizing:content] min-h-[2.875rem]`}
+                        value={parsed.raw ?? ''}
+                        onChange={e => patchMovement(i, { raw: e.target.value.replace(/\r?\n/g, ' ') })}
+                        onKeyDown={e => { if (e.key === 'Enter') e.preventDefault(); }}
+                        aria-label="Ligne de séance (texte libre)" />
+                      <button type="button" onClick={() => removeMovement(i)} className="p-3 rounded-ax-control bg-ax-surface-secondary border border-ax-border text-ax-text-muted hover:text-ax-danger transition-colors">
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  );
+                }
                 const showWeight = movementRowShowsWeight(parsed);
                 const showUnit = movementRowShowsUnit(parsed);
                 return (
