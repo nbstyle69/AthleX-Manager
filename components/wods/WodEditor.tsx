@@ -364,15 +364,6 @@ export default function WodEditor({
                             onChange={e => patchMovement(i, { repsWomen: e.target.value === '' ? null : parseInt(e.target.value, 10) })}
                             placeholder="F" aria-label="Quantité femmes" />
                         </div>
-                        {/* Seulement les unités permises du mouvement (Row, SkiErg,
-                            Bike Erg : cal ou m) ; rien pour une machine à unité
-                            unique — avant, m · cal · s pour toute ligne cardio. */}
-                        <MovementUnitSelect
-                          name={parsed.name}
-                          unit={parsed.unit}
-                          disabled={parsed.reps == null}
-                          onChange={u => patchMovement(i, { unit: u })}
-                          className={`${inp} !w-20 shrink-0 px-2 disabled:opacity-50`} />
                       </>
                     ) : (
                       <input type="number" min={0} inputMode="numeric"
@@ -381,6 +372,15 @@ export default function WodEditor({
                         onChange={e => patchMovement(i, { reps: e.target.value === '' ? null : parseInt(e.target.value, 10) })}
                         placeholder="Reps" aria-label="Répétitions" />
                     )}
+                    {/* Unité toujours visible : choix parmi les unités permises
+                        (Row, SkiErg, Bike Erg : cal ou m), sinon l'unité fixe
+                        en texte (« m » pour Run, « reps » pour Thruster). */}
+                    <MovementUnitSelect
+                      name={parsed.name}
+                      unit={parsed.unit}
+                      disabled={parsed.reps == null}
+                      onChange={u => patchMovement(i, { unit: u })}
+                      className={`${inp} !w-20 shrink-0 px-2 disabled:opacity-50`} />
                     <input list="box-movement-catalog"
                       className={`${inp} flex-1 min-w-0`}
                       value={parsed.name}
