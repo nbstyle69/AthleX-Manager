@@ -74,13 +74,18 @@ describe('retrait d’un accès payé au comptoir (lot 5-D)', () => {
   });
 
   it('la confirmation est demandée avant le retrait, et seulement pour le comptoir', () => {
+    // Ligne comptoir : la boîte de confirmation affiche la phrase, et le retrait
+    // n'est lancé que par son bouton d'action (`run`), puis la fonction s'arrête.
     expect(page).toMatch(
-      /row\.provenance === 'cash' && !window\.confirm\(RETRAIT_COMPTOIR_CONFIRMATION\)\) return;/,
+      /if \(row\.provenance === 'cash'\) \{[\s\S]{0,300}ask\(\{[\s\S]{0,500}\$\{RETRAIT_COMPTOIR_CONFIRMATION\}[\s\S]{0,300}run: \(\) => executerRetrait\(row\),\s*\}\);\s*return;\s*\}\s*await executerRetrait\(row\);/,
     );
     // L'ordre compte : une confirmation posée après l'UPDATE informerait d'un
-    // geste déjà fait.
+    // geste déjà fait. L'UPDATE ne vit que dans `executerRetrait`, jamais avant
+    // la boîte.
+    const avant = page.slice(page.indexOf('async function retirerAcces'), page.indexOf('async function executerRetrait'));
+    expect(avant).not.toMatch(/from\('program_members'\)/);
     expect(page).toMatch(
-      /RETRAIT_COMPTOIR_CONFIRMATION[\s\S]{0,400}from\('program_members'\)[\s\S]{0,120}status: 'cancelled'/,
+      /async function executerRetrait[\s\S]{0,300}from\('program_members'\)[\s\S]{0,120}status: 'cancelled'/,
     );
   });
 

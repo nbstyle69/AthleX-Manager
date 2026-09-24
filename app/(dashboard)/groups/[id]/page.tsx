@@ -9,6 +9,8 @@ import { getMemberEmails } from '@/lib/memberEmails';
 import { softVar, textTint } from '@/lib/colorVars';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { useConfirmDialog } from '@/components/ui/confirm-dialog';
+import { ERROR_TITLE } from '@/lib/confirmDialog';
 
 const INPUT_CLS = 'w-full min-h-11 px-3 py-2.5 rounded-ax-control bg-ax-surface border border-ax-input-border text-base sm:text-sm text-ax-text placeholder:text-ax-text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ax-focus focus-visible:ring-offset-2 focus-visible:ring-offset-ax-surface transition-colors';
 
@@ -41,6 +43,7 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
   const { id: groupId } = use(params);
   const router = useRouter();
   const supabase = createClient();
+  const { dialog, ask, inform } = useConfirmDialog();
 
   const [group,      setGroup]      = useState<{ id: string; name: string; color: string; wod_visibility_mode: string } | null>(null);
   const [members,    setMembers]    = useState<Member[]>([]);
@@ -158,10 +161,23 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
     setEditing(true);
   }
 
+  function askDeleteGroup() {
+    if (!group) return;
+    ask({
+      title: `Supprimer le groupe « ${group.name} » ?`,
+      element: `${members.length} membre(s) en font partie.`,
+      body: 'Les messages échangés dans ce groupe seront supprimés. Les formules qui y inscrivaient leurs membres ne le feront plus. Les WOD réservés à ce seul groupe deviendront visibles par tous les membres de la box.',
+      confirmLabel: 'Supprimer le groupe',
+      danger: true,
+      run: deleteGroup,
+    });
+  }
+
   async function deleteGroup() {
-    if (!confirm('Supprimer ce groupe ? Les messages associés resteront.')) return;
     setDeleting(true);
-    await supabase.from('message_groups').delete().eq('id', groupId);
+    const { error: e } = await supabase.from('message_groups').delete().eq('id', groupId);
+    // Jusqu'ici, un refus redirigeait quand même vers la liste, comme un succès.
+    if (e) { setDeleting(false); inform({ kind: 'error', title: ERROR_TITLE, body: e.message }); return; }
     router.push('/groups');
   }
 
@@ -186,6 +202,7 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
 
   return (
     <div className="space-y-6 max-w-2xl">
+      {dialog}
       {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3 min-w-0">
@@ -214,7 +231,7 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
             className="flex items-center gap-1.5 text-sm font-bold px-3 py-2 rounded-ax-control border border-ax-border text-ax-text-secondary hover:text-ax-text hover:border-ax-input-border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ax-focus focus-visible:ring-offset-2 focus-visible:ring-offset-ax-surface">
             <MessageSquare size={13} /> Message
           </Link>
-          <button onClick={deleteGroup} disabled={deleting}
+          <button onClick={askDeleteGroup} disabled={deleting}
             className="text-xs font-bold px-3 py-2 rounded-ax-control border border-ax-danger text-ax-danger hover:bg-ax-danger-soft transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ax-focus focus-visible:ring-offset-2 focus-visible:ring-offset-ax-surface">
             {deleting ? <Loader2 size={12} className="animate-spin" /> : 'Supprimer'}
           </button>

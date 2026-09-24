@@ -6,6 +6,8 @@ import { Plus, Pencil, Trash2, X, Loader2, ToggleLeft, ToggleRight } from 'lucid
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { useConfirmDialog } from '@/components/ui/confirm-dialog';
+import { ERROR_TITLE, hhmm } from '@/lib/confirmDialog';
 import { classTypeFormFromTitle, classTypeTitleToSave } from '@/lib/classTypes';
 import ClassTypeField from '@/components/ClassTypeField';
 
@@ -44,6 +46,7 @@ interface Props { open: boolean; onClose: () => void; boxId: string | null; }
 
 export default function TemplatesDrawer({ open, onClose, boxId }: Props) {
   const supabase = createClient();
+  const { dialog, ask, inform } = useConfirmDialog();
   const [templates, setTemplates] = useState<ScheduleTemplate[]>([]);
   const [loading, setLoading]     = useState(false);
   const [showModal, setShowModal] = useState(false);
@@ -106,10 +109,22 @@ export default function TemplatesDrawer({ open, onClose, boxId }: Props) {
     load();
   }
 
+  function askDelete(t: ScheduleTemplate) {
+    const day = DAYS.find(d => d.value === t.day_of_week)?.label.toLowerCase() ?? '';
+    ask({
+      title: 'Supprimer ce créneau type ?',
+      element: `${t.title} · chaque ${day} · ${hhmm(t.start_time)}–${hhmm(t.end_time)}${t.coach ? ` · ${t.coach}` : ''} · ${t.max_capacity} places`,
+      body: 'Il ne sera plus créé lors des prochaines générations du planning. Les cours déjà au planning et leurs inscriptions restent. Pour le mettre en pause seulement, désactive-le.',
+      confirmLabel: 'Supprimer le créneau type',
+      danger: true,
+      run: () => handleDelete(t.id),
+    });
+  }
+
   async function handleDelete(id: string) {
-    if (!confirm('Supprimer ce modèle ?')) return;
     setDeleting(id);
-    await supabase.from('schedule_templates').delete().eq('id', id);
+    const { error } = await supabase.from('schedule_templates').delete().eq('id', id);
+    if (error) inform({ kind: 'error', title: ERROR_TITLE, body: error.message });
     setDeleting(null);
     load();
   }
@@ -123,6 +138,7 @@ export default function TemplatesDrawer({ open, onClose, boxId }: Props) {
 
   return (
     <>
+      {dialog}
       {/* Backdrop */}
       <div className="fixed inset-0 z-40 bg-ax-overlay backdrop-blur-ax-glass" onClick={onClose} />
 
@@ -168,7 +184,7 @@ export default function TemplatesDrawer({ open, onClose, boxId }: Props) {
                                   {t.is_active ? <ToggleRight size={16} /> : <ToggleLeft size={16} />}
                                 </button>
                                 <button onClick={() => openEdit(t)} className={ICON_BTN}><Pencil size={12} /></button>
-                                <button onClick={() => handleDelete(t.id)} disabled={deleting === t.id} className={`${ICON_BTN} hover:!text-ax-danger`}>
+                                <button onClick={() => askDelete(t)} disabled={deleting === t.id} className={`${ICON_BTN} hover:!text-ax-danger`}>
                                   {deleting === t.id ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} />}
                                 </button>
                               </div>

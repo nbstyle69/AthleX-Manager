@@ -16,6 +16,8 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { useConfirmDialog } from '@/components/ui/confirm-dialog';
+import { fullDate } from '@/lib/confirmDialog';
 
 interface Program {
   id: string;
@@ -88,6 +90,7 @@ function genCode(): string {
 /** Onglet « Programmes athlètes » de Marketplace : les programmes vendus aux athlètes de la box. */
 export default function AthleteProgramsWorkspace() {
   const supabase = createClient();
+  const { dialog, ask } = useConfirmDialog();
   const [boxId, setBoxId] = useState<string | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
 
@@ -256,7 +259,23 @@ export default function AthleteProgramsWorkspace() {
     // Un encaissement comptoir est déjà dans la caisse et dans le journal, qui
     // est en ajout seul : retirer l'accès ne rend pas l'argent, et l'app ne
     // peut pas le rendre. Le gérant doit le savoir avant, pas le découvrir après.
-    if (row.provenance === 'cash' && !window.confirm(RETRAIT_COMPTOIR_CONFIRMATION)) return;
+    if (row.provenance === 'cash') {
+      const who = row.profile?.username ?? 'Cet athlète';
+      ask({
+        title: `Retirer l’accès de ${who} à « ${accessProgram.title} » ?`,
+        element: row.purchased_at ? `Payé au comptoir le ${fullDate(row.purchased_at)}` : 'Payé au comptoir',
+        body: `${who} ne verra plus les séances de ce programme. ${RETRAIT_COMPTOIR_CONFIRMATION} Le paiement reste dans le journal des encaissements.`,
+        confirmLabel: 'Retirer l’accès',
+        danger: true,
+        run: () => executerRetrait(row),
+      });
+      return;
+    }
+    await executerRetrait(row);
+  }
+
+  async function executerRetrait(row: ProgramAccessRow) {
+    if (!accessProgram) return;
     setAccessBusyId(row.id);
     setAccessError(null);
     const { data, error } = await supabase
@@ -332,8 +351,18 @@ export default function AthleteProgramsWorkspace() {
     loadAll();
   }
 
+  function askDeleteProgram(p: Program) {
+    ask({
+      title: `Supprimer le programme « ${p.title} » ?`,
+      element: `${p.member_count ?? 0} acheteur(s) · ${p.wod_count ?? 0} séance(s) liée(s)`,
+      body: 'Tous les acheteurs perdront leur accès immédiatement. Les abonnements Stripe en cours ne seront pas arrêtés : résilie-les d’abord. Ce programme ne pourra pas être restauré. Pour arrêter les ventes sans rien retirer, désactive-le plutôt.',
+      confirmLabel: 'Supprimer le programme',
+      danger: true,
+      run: () => handleDelete(p.id),
+    });
+  }
+
   async function handleDelete(id: string) {
-    if (!confirm('Supprimer ce programme et tous ses WODs ?')) return;
     const { data, error } = await supabase.from('programs').delete().eq('id', id).select('id');
     const fail = writeFailure(error, data);
     if (fail) { alert(`Suppression impossible : ${fail}`); return; }
@@ -359,6 +388,7 @@ export default function AthleteProgramsWorkspace() {
 
   return (
     <div className="space-y-8">
+      {dialog}
       {/* Programs */}
       <div>
         <div className="flex items-center justify-between gap-3 flex-wrap mb-4">
@@ -439,7 +469,7 @@ export default function AthleteProgramsWorkspace() {
                   <button onClick={() => toggleActive(p)} className="flex items-center gap-1.5 px-3 py-2 rounded-ax-control hover:bg-ax-hover text-ax-text-secondary hover:text-ax-text text-xs font-semibold transition-all">
                     {p.is_active ? 'Désactiver' : 'Activer'}
                   </button>
-                  <button onClick={() => handleDelete(p.id)} className="flex items-center gap-1.5 px-3 py-2 rounded-ax-control hover:bg-ax-danger-soft text-ax-text-muted hover:text-ax-danger text-xs font-semibold transition-all">
+                  <button onClick={() => askDeleteProgram(p)} className="flex items-center gap-1.5 px-3 py-2 rounded-ax-control hover:bg-ax-danger-soft text-ax-text-muted hover:text-ax-danger text-xs font-semibold transition-all">
                     <Trash2 size={13} /> Supprimer
                   </button>
                   <div className="flex-1 basis-full sm:basis-auto" />

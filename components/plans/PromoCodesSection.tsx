@@ -6,6 +6,8 @@ import {
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { useConfirmDialog } from '@/components/ui/confirm-dialog';
+import { ERROR_TITLE } from '@/lib/confirmDialog';
 
 const INPUT_CLS = 'w-full min-h-11 px-3 py-2.5 rounded-ax-control bg-ax-surface border border-ax-input-border text-base sm:text-sm text-ax-text placeholder:text-ax-text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ax-focus focus-visible:ring-offset-2 focus-visible:ring-offset-ax-surface transition-colors';
 
@@ -44,6 +46,7 @@ export default function PromoCodesSection({
   paymentsReady: boolean;
 }) {
   const [promoCodes, setPromoCodes] = useState<PromoCode[]>([]);
+  const { dialog, ask, inform } = useConfirmDialog();
   const [loading, setLoading] = useState(true);
   const [showPromoForm, setShowPromoForm] = useState(false);
   const [promoForm, setPromoForm] = useState(EMPTY_PROMO_FORM);
@@ -157,11 +160,32 @@ export default function PromoCodesSection({
     setPromoBusyId(null);
   }
 
+  function askDeletePromo(promo: PromoCode) {
+    const discount = promo.discount_type === 'percent'
+      ? `−${promo.percent_off} %`
+      : `−${((promo.amount_off_cents ?? 0) / 100).toFixed(2)} €`;
+    const duration = promo.duration === 'forever'
+      ? 'sans limite de durée'
+      : promo.duration === 'repeating' ? `pendant ${promo.duration_in_months} mois` : 'une fois';
+    ask({
+      title: `Supprimer le code ${promo.code} ?`,
+      element: `${discount}, ${duration}`,
+      body: 'Le code ne pourra plus être saisi au paiement. Les membres qui en bénéficient déjà gardent leur remise.',
+      confirmLabel: 'Supprimer le code',
+      danger: true,
+      run: () => handleDeletePromo(promo),
+    });
+  }
+
   async function handleDeletePromo(promo: PromoCode) {
-    if (!confirm(`Supprimer le code ${promo.code} ? Il ne sera plus utilisable au paiement.`)) return;
     setPromoBusyId(promo.id);
     try {
-      await fetch(`/api/promo-codes/${promo.id}`, { method: 'DELETE' });
+      const res = await fetch(`/api/promo-codes/${promo.id}`, { method: 'DELETE' });
+      // Jusqu'ici, un refus du serveur passait sans message.
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        inform({ kind: 'error', title: ERROR_TITLE, body: data.error ?? `Erreur ${res.status}` });
+      }
       if (boxId) await loadPromoCodes(boxId);
     } catch { /* noop */ }
     setPromoBusyId(null);
@@ -169,6 +193,7 @@ export default function PromoCodesSection({
 
   return (
     <div>
+      {dialog}
       <div className="flex flex-wrap items-center justify-between gap-3 mb-1">
         <h2 className="text-lg font-black text-ax-text">Codes promo</h2>
         <Button variant="ax-mint" onClick={openNewPromo} disabled={!paymentsReady}>
@@ -227,7 +252,7 @@ export default function PromoCodesSection({
                     {promoBusyId === pc.id ? <Loader2 size={13} className="animate-spin" /> : null}
                     {pc.is_active ? 'Désactiver' : 'Activer'}
                   </button>
-                  <button onClick={() => handleDeletePromo(pc)} disabled={promoBusyId === pc.id} className="flex items-center gap-1.5 px-3 py-2 rounded-ax-control hover:bg-ax-danger-soft text-ax-text-muted hover:text-ax-danger text-xs font-semibold transition-all disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ax-focus focus-visible:ring-offset-2 focus-visible:ring-offset-ax-surface">
+                  <button onClick={() => askDeletePromo(pc)} disabled={promoBusyId === pc.id} className="flex items-center gap-1.5 px-3 py-2 rounded-ax-control hover:bg-ax-danger-soft text-ax-text-muted hover:text-ax-danger text-xs font-semibold transition-all disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ax-focus focus-visible:ring-offset-2 focus-visible:ring-offset-ax-surface">
                     <Trash2 size={13} /> Supprimer
                   </button>
                 </div>

@@ -39,6 +39,8 @@ import { cn } from '@/lib/utils';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { useConfirmDialog } from '@/components/ui/confirm-dialog';
+import { ERROR_TITLE, fullDate } from '@/lib/confirmDialog';
 
 interface BoxWOD {
   id: string; box_id: string; created_by: string;
@@ -125,13 +127,7 @@ export default function WODsPage() {
     });
   };
   const [showDateNav, setShowDateNav] = useState(false);
-  const [confirmDialog, setConfirmDialog] = useState<{
-    title: string;
-    message: string;
-    confirmLabel?: string;
-    danger?: boolean;
-    onConfirm: () => void | Promise<void>;
-  } | null>(null);
+  const { dialog, ask, inform } = useConfirmDialog();
   const [groups, setGroups] = useState<{ id: string; name: string; color: string }[]>([]);
   const [wodGroupMap, setWodGroupMap] = useState<Record<string, string[]>>({});
   const [applyModal, setApplyModal] = useState<{ subscriptionId?: string; week?: number } | null>(null);
@@ -470,13 +466,15 @@ export default function WODsPage() {
   }
 
   function deleteWOD(wod: BoxWOD) {
-    setConfirmDialog({
+    ask({
       title: 'Supprimer ce WOD ?',
-      message: `"${wod.title}" sera définitivement supprimé.`,
-      confirmLabel: 'Supprimer',
+      element: `${wod.title}${wod.block_name ? ` · ${BLOCK_LABEL[wod.block_name] ?? wod.block_name}` : ''} — ${fullDate(wod.scheduled_date)}`,
+      body: 'Le WOD est retiré du Whiteboard avec les scores et les validations des athlètes. Les points ELO déjà gagnés ne changent pas. Cette action est définitive.',
+      confirmLabel: 'Supprimer le WOD',
       danger: true,
-      onConfirm: async () => {
-        await supabase.from('box_wods').delete().eq('id', wod.id);
+      run: async () => {
+        const { error } = await supabase.from('box_wods').delete().eq('id', wod.id);
+        if (error) inform({ kind: 'error', title: ERROR_TITLE, body: error.message });
         load();
       },
     });
@@ -487,18 +485,20 @@ export default function WODsPage() {
     const startISO = toISO(weekDates[0]);
     const endISO   = toISO(weekDates[6]);
     const count    = wods.length;
-    setConfirmDialog({
-      title: `Supprimer ${count} WODs ?`,
-      message: `Tous les WODs de la semaine du ${weekDates[0].toLocaleDateString('fr-FR')} au ${weekDates[6].toLocaleDateString('fr-FR')} seront supprimés. Cette action est irréversible.`,
-      confirmLabel: 'Tout supprimer',
+    ask({
+      title: `Supprimer les ${count} WOD de la semaine ?`,
+      element: `Semaine du ${weekDates[0].toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })} au ${fullDate(toISO(weekDates[6]))}`,
+      body: 'Tous les WOD de la semaine sont retirés, y compris ceux reçus d’une programmation, avec les scores et les validations des athlètes. Les points ELO ne changent pas. Cette action est définitive.',
+      confirmLabel: `Supprimer les ${count} WOD`,
       danger: true,
-      onConfirm: async () => {
-        await supabase
+      run: async () => {
+        const { error } = await supabase
           .from('box_wods')
           .delete()
           .eq('box_id', boxId)
           .gte('scheduled_date', startISO)
           .lte('scheduled_date', endISO);
+        if (error) inform({ kind: 'error', title: ERROR_TITLE, body: error.message });
         load();
       },
     });
@@ -948,38 +948,7 @@ export default function WODsPage() {
         />
       )}
 
-      {/* Confirm dialog (custom — replaces native confirm() which can be blocked by browser) */}
-      {confirmDialog && (
-        <div className="fixed inset-0 z-[60] bg-ax-overlay backdrop-blur-ax-glass flex items-center justify-center p-4">
-          <Card className="rounded-ax-panel shadow-ax-panel w-full max-w-md p-6">
-            <div className="flex items-start gap-3 mb-4">
-              <div className={`w-10 h-10 rounded-ax-card flex items-center justify-center shrink-0 ${confirmDialog.danger ? 'bg-ax-danger-soft' : 'bg-ax-accent-soft'}`}>
-                <Trash2 size={18} className={confirmDialog.danger ? 'text-ax-danger' : 'text-ax-accent-text'} />
-              </div>
-              <div className="flex-1">
-                <h3 className="font-display text-lg font-medium uppercase tracking-wide text-ax-text mb-1">{confirmDialog.title}</h3>
-                <p className="text-sm text-ax-text-secondary leading-relaxed">{confirmDialog.message}</p>
-              </div>
-            </div>
-            <div className="flex gap-2 justify-end">
-              <Button variant="ax-outline" onClick={() => setConfirmDialog(null)}>
-                Annuler
-              </Button>
-              <Button
-                variant={confirmDialog.danger ? 'ax-outline' : 'ax-white'}
-                onClick={async () => {
-                  const cb = confirmDialog.onConfirm;
-                  setConfirmDialog(null);
-                  await cb();
-                }}
-                className={confirmDialog.danger ? 'border-ax-danger bg-ax-danger text-ax-background hover:brightness-110 hover:bg-ax-danger' : undefined}
-              >
-                {confirmDialog.confirmLabel ?? 'Confirmer'}
-              </Button>
-            </div>
-          </Card>
-        </div>
-      )}
+      {dialog}
 
       {pdfFile && boxId && userId && (
         <PdfImportModal

@@ -5,6 +5,8 @@ import HelpButton from '@/components/help/HelpButton';
 import { createClient } from '@/lib/supabase/client';
 import { Newspaper, Plus, Trash2, Loader2, X, Image as ImageIcon, MessageCircle, Heart } from 'lucide-react';
 import { getMyBox } from '@/lib/getMyBox';
+import { useConfirmDialog } from '@/components/ui/confirm-dialog';
+import { ERROR_TITLE, fullDate } from '@/lib/confirmDialog';
 
 interface Article {
   id: string;
@@ -21,6 +23,7 @@ const EMPTY = { title: '', body: '', image_url: '' };
 
 export default function ArticlesPage() {
   const supabase = createClient();
+  const { dialog, ask, inform } = useConfirmDialog();
 
   const [articles, setArticles] = useState<Article[]>([]);
   const [loading, setLoading] = useState(true);
@@ -108,9 +111,20 @@ export default function ArticlesPage() {
     load();
   }
 
+  function askDeleteArticle(article: Article) {
+    ask({
+      title: 'Supprimer cet article ?',
+      element: `${article.title} — publié le ${fullDate(article.created_at)} · ${article.likes_count} j’aime · ${article.comments_count} commentaire(s)`,
+      body: 'L’article disparaît du fil de la box avec ses commentaires et ses j’aime. Cette action est définitive.',
+      confirmLabel: 'Supprimer l’article',
+      danger: true,
+      run: () => deleteArticle(article),
+    });
+  }
+
   async function deleteArticle(article: Article) {
-    if (!confirm(`Supprimer "${article.title}" ?`)) return;
-    await supabase.from('box_articles').delete().eq('id', article.id);
+    const { error } = await supabase.from('box_articles').delete().eq('id', article.id);
+    if (error) inform({ kind: 'error', title: ERROR_TITLE, body: error.message });
     load();
   }
 
@@ -122,6 +136,7 @@ export default function ArticlesPage() {
 
   return (
     <div className="space-y-6">
+      {dialog}
       <div className="flex items-center justify-between">
         <div>
           <div className="flex items-center gap-3">
@@ -164,7 +179,7 @@ export default function ArticlesPage() {
                       <button onClick={() => openEdit(a)} className="p-2 rounded-lg hover:bg-white/5 text-gray-400 hover:text-white transition-colors">
                         <Newspaper size={14} />
                       </button>
-                      <button onClick={() => deleteArticle(a)} className="p-2 rounded-lg hover:bg-red-500/10 text-gray-400 hover:text-red-400 transition-colors">
+                      <button onClick={() => askDeleteArticle(a)} className="p-2 rounded-lg hover:bg-red-500/10 text-gray-400 hover:text-red-400 transition-colors">
                         <Trash2 size={14} />
                       </button>
                     </div>

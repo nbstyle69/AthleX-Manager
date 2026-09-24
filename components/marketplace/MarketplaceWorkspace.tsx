@@ -20,6 +20,8 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { useConfirmDialog } from '@/components/ui/confirm-dialog';
+import { ERROR_TITLE } from '@/lib/confirmDialog';
 
 const DISCIPLINES = ['crossfit', 'hyrox', 'hybrid', 'haltero', 'endurance'];
 const LEVELS = ['all', 'beginner', 'intermediate', 'advanced'];
@@ -713,6 +715,7 @@ function MyOffers({ offers, activeBoxId, onChanged }: {
   offers: Programming[]; activeBoxId: string | null; onChanged: () => void;
 }) {
   const supabase = createClient();
+  const { dialog, ask, inform } = useConfirmDialog();
   const [editing, setEditing] = useState<Programming | 'new' | null>(null);
   const [publishError, setPublishError] = useState<{ id: string; message: string } | null>(null);
   const [publishing, setPublishing] = useState<string | null>(null);
@@ -728,14 +731,29 @@ function MyOffers({ offers, activeBoxId, onChanged }: {
     if (error) { setPublishError({ id: o.id, message: error.message }); return; }
     onChanged();
   }
+  function askRemove(o: Programming) {
+    const price = o.billing === 'free' ? 'Gratuite'
+      : o.billing === 'monthly' ? `${(o.price_cents / 100).toFixed(2)} € par mois`
+      : `${(o.price_cents / 100).toFixed(2)} € une fois`;
+    ask({
+      title: `Supprimer l’offre « ${o.title} » ?`,
+      element: `${price} · ${o.weeks_count} semaine(s)`,
+      body: 'Les boxs abonnées perdent leur abonnement et ne recevront plus de semaines. Les séances déjà posées chez elles restent. Les abonnements payants ne sont pas arrêtés chez Stripe : résilie-les d’abord. Pour ne plus la proposer, dépublie-la plutôt.',
+      confirmLabel: 'Supprimer l’offre',
+      danger: true,
+      run: () => remove(o),
+    });
+  }
+
   async function remove(o: Programming) {
-    if (!confirm(`Supprimer « ${o.title} » ? Les boxs abonnées ne recevront plus de nouvelles semaines.`)) return;
-    await supabase.from('box_programming').delete().eq('id', o.id);
+    const { error } = await supabase.from('box_programming').delete().eq('id', o.id);
+    if (error) inform({ kind: 'error', title: ERROR_TITLE, body: error.message });
     onChanged();
   }
 
   return (
     <div>
+      {dialog}
       <div className="flex justify-between items-center gap-3 flex-wrap mb-5">
         <p className="text-sm text-ax-text-secondary">Vos programmations publiées pour d&apos;autres boxs.</p>
         {/* Sans box active, la création échouerait à l'enregistrement : le bouton
@@ -780,7 +798,7 @@ function MyOffers({ offers, activeBoxId, onChanged }: {
                     {publishing === o.id ? <Loader2 size={12} className="animate-spin" /> : o.is_published ? 'Dépublier' : 'Publier'}
                   </Button>
                   <Button variant="ax-outline" size="ax-compact" onClick={() => setEditing(o)} className="w-8 px-0 text-ax-text-secondary hover:text-ax-text" aria-label="Modifier"><Pencil size={14} /></Button>
-                  <Button variant="ax-outline" size="ax-compact" onClick={() => remove(o)} className="w-8 px-0 text-ax-text-secondary hover:text-ax-danger hover:border-ax-danger" aria-label="Supprimer"><Trash2 size={14} /></Button>
+                  <Button variant="ax-outline" size="ax-compact" onClick={() => askRemove(o)} className="w-8 px-0 text-ax-text-secondary hover:text-ax-danger hover:border-ax-danger" aria-label="Supprimer"><Trash2 size={14} /></Button>
                 </div>
               </div>
             </Card>
