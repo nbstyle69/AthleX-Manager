@@ -76,36 +76,39 @@ export default async function DashboardPage() {
     tw:      Array.isArray(s.tw)      ? s.tw[0]      : s.tw,
   }));
 
+  // Couleurs en jetons : lisibles dans les deux thèmes (le trophée blanc
+  // disparaissait en clair), même sens qu'avant (vert = membres actifs,
+  // ambre = en attente, violet = messages).
   const kpis = [
-    { label: 'Tournois actifs',    value: activeTournaments ?? 0, icon: Trophy,        color: '#FFFFFF', href: '/tournaments' },
-    { label: 'Membres',            value: membersCount ?? 0,      icon: Users,         color: '#22C55E', href: '/members' },
-    { label: 'Scores en attente',  value: pendingScores ?? 0,     icon: Clock,         color: '#D97706', href: '/tournaments' },
-    { label: 'Messages non lus',   value: unreadMessages ?? 0,    icon: MessageSquare, color: '#8B5CF6', href: '/messages' },
+    { label: 'Tournois actifs',    value: activeTournaments ?? 0, icon: Trophy,        color: 'var(--ax-text)', href: '/tournaments' },
+    { label: 'Membres',            value: membersCount ?? 0,      icon: Users,         color: 'var(--ax-success)', href: '/members' },
+    { label: 'Scores en attente',  value: pendingScores ?? 0,     icon: Clock,         color: 'var(--ax-warning)', href: '/tournaments' },
+    { label: 'Messages non lus',   value: unreadMessages ?? 0,    icon: MessageSquare, color: 'var(--ax-purple)', href: '/messages' },
   ];
 
   return (
     <div className="space-y-8">
       <div>
         <div className="flex items-center gap-3">
-          <h1 className="text-2xl font-black text-white">Dashboard</h1>
+          <h1 className="font-display text-2xl font-medium uppercase tracking-wide text-ax-text">Dashboard</h1>
           <HelpDock page="dashboard" />
         </div>
-        <p className="text-sm text-gray-400 mt-1">Bienvenue dans AthleX Manager — {box.name}</p>
+        <p className="text-sm text-ax-text-secondary mt-1">Bienvenue dans AthleX Manager — {box.name}</p>
       </div>
 
       {/* KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {kpis.map(({ label, value, icon: Icon, color, href }) => (
           <Link key={label} href={href}
-            className="bg-[#111111] border border-white/8 rounded-2xl p-5 hover:border-white/15 transition-colors group">
+            className="bg-ax-surface border border-ax-border rounded-ax-card p-5 hover:border-ax-input-border transition-colors group">
             <div className="flex items-center justify-between mb-3">
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: `${color}20` }}>
+              <div className="w-10 h-10 rounded-ax-control flex items-center justify-center" style={{ backgroundColor: softVar(color, 0.13) }}>
                 <Icon size={20} style={{ color }} />
               </div>
-              <ChevronRight size={14} className="text-gray-600 group-hover:text-gray-400 transition-colors" />
+              <ChevronRight size={14} className="text-ax-text-muted group-hover:text-ax-text-secondary transition-colors" />
             </div>
-            <p className="text-3xl font-black text-white">{value}</p>
-            <p className="text-xs text-gray-400 font-medium mt-1">{label}</p>
+            <p className="text-3xl font-black text-ax-text">{value}</p>
+            <p className="text-xs text-ax-text-secondary font-medium mt-1">{label}</p>
           </Link>
         ))}
       </div>
@@ -120,25 +123,25 @@ export default async function DashboardPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Tournois récents */}
-        <div className="bg-[#111111] border border-white/8 rounded-2xl p-6">
+        <div className="bg-ax-surface border border-ax-border rounded-ax-card p-6">
           <div className="flex items-center justify-between mb-5">
-            <h2 className="text-sm font-bold text-white">Tournois récents</h2>
-            <Link href="/tournaments" className="text-xs text-white hover:text-white font-semibold">Voir tout →</Link>
+            <h2 className="text-sm font-bold text-ax-text">Tournois récents</h2>
+            <Link href="/tournaments" className="text-xs text-ax-text hover:text-ax-text font-semibold">Voir tout →</Link>
           </div>
           {!recentTournaments?.length ? (
-            <p className="text-sm text-gray-500 text-center py-6">Aucun tournoi créé.</p>
+            <p className="text-sm text-ax-text-muted text-center py-6">Aucun tournoi créé.</p>
           ) : (
             <div className="space-y-3">
               {recentTournaments.map((t: any) => {
                 const sb = statusBadge(t.status);
                 return (
                   <Link key={t.id} href={`/tournaments/${t.id}`}
-                    className="flex items-center justify-between py-3 border-b border-white/5 last:border-0 hover:bg-white/3 rounded-lg px-2 -mx-2 transition-colors">
+                    className="flex items-center justify-between py-3 border-b border-ax-border last:border-0 hover:bg-ax-hover rounded-ax-control px-2 -mx-2 transition-colors">
                     <div>
-                      <p className="text-sm font-semibold text-white">{t.name}</p>
-                      <p className="text-xs text-gray-500 mt-0.5">{(t.tournament_participants as any)?.[0]?.count ?? 0} / {t.max_participants} participants</p>
+                      <p className="text-sm font-semibold text-ax-text">{t.name}</p>
+                      <p className="text-xs text-ax-text-muted mt-0.5">{(t.tournament_participants as any)?.[0]?.count ?? 0} / {t.max_participants} participants</p>
                     </div>
-                    <span className="text-xs font-bold px-2 py-0.5 rounded-md" style={{ backgroundColor: softVar(sb.color, 32 / 255), color: sb.color }}>
+                    <span className="text-xs font-bold px-2 py-0.5 rounded-md" style={{ backgroundColor: softVar(sb.color, 32 / 255), color: `color-mix(in srgb, ${sb.color} 70%, var(--ax-text))` }}>
                       {sb.label}
                     </span>
                   </Link>
@@ -149,31 +152,31 @@ export default async function DashboardPage() {
         </div>
 
         {/* Scores à valider */}
-        <div className="bg-[#111111] border border-white/8 rounded-2xl p-6">
+        <div className="bg-ax-surface border border-ax-border rounded-ax-card p-6">
           <div className="flex items-center justify-between mb-5">
-            <h2 className="text-sm font-bold text-white">Scores à valider</h2>
-            <Link href="/tournaments" className="text-xs text-white hover:text-white font-semibold">Voir tout →</Link>
+            <h2 className="text-sm font-bold text-ax-text">Scores à valider</h2>
+            <Link href="/tournaments" className="text-xs text-ax-text hover:text-ax-text font-semibold">Voir tout →</Link>
           </div>
           {!normalizedScores.length ? (
-            <p className="text-sm text-gray-500 text-center py-6">Aucun score en attente. ✅</p>
+            <p className="text-sm text-ax-text-muted text-center py-6">Aucun score en attente. ✅</p>
           ) : (
             <div className="space-y-2">
               {normalizedScores.map((score: any) => (
                 <Link key={score.id} href={`/tournaments/${score.tournament_id}/scores`}
-                  className="flex items-center gap-3 py-3 border-b border-white/5 last:border-0 hover:bg-white/3 rounded-lg px-2 -mx-2 transition-colors">
-                  <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center text-white text-xs font-black shrink-0">
+                  className="flex items-center gap-3 py-3 border-b border-ax-border last:border-0 hover:bg-ax-hover rounded-ax-control px-2 -mx-2 transition-colors">
+                  <div className="w-8 h-8 rounded-full bg-ax-hover flex items-center justify-center text-ax-text text-xs font-black shrink-0">
                     {(score.profile?.username ?? '?')[0].toUpperCase()}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-white">{score.profile?.username ?? '?'}</p>
-                    <p className="text-xs text-gray-500 truncate">{score.tw?.title ?? ''} · {score.score_value}</p>
+                    <p className="text-sm font-semibold text-ax-text">{score.profile?.username ?? '?'}</p>
+                    <p className="text-xs text-ax-text-muted truncate">{score.tw?.title ?? ''} · {score.score_value}</p>
                   </div>
                   <div className="flex gap-1.5 shrink-0">
-                    <div className="w-6 h-6 rounded-full bg-green-500/10 flex items-center justify-center">
-                      <CheckCircle size={12} className="text-green-500" />
+                    <div className="w-6 h-6 rounded-full bg-ax-success-soft flex items-center justify-center">
+                      <CheckCircle size={12} className="text-ax-success" />
                     </div>
-                    <div className="w-6 h-6 rounded-full bg-red-500/10 flex items-center justify-center">
-                      <XCircle size={12} className="text-red-500" />
+                    <div className="w-6 h-6 rounded-full bg-ax-danger-soft flex items-center justify-center">
+                      <XCircle size={12} className="text-ax-danger" />
                     </div>
                   </div>
                 </Link>

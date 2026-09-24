@@ -7,6 +7,7 @@ import { writeFailure } from '@/lib/writeGuard';
 import { Upload, ImageIcon, Trash2, CheckCircle } from 'lucide-react';
 import { useConfirmDialog } from '@/components/ui/confirm-dialog';
 import { ERROR_TITLE, INPUT_TITLE } from '@/lib/confirmDialog';
+import { Button } from '@/components/ui/button';
 
 export default function LogoUploadWidget() {
   const { dialog, inform } = useConfirmDialog();
@@ -107,19 +108,19 @@ export default function LogoUploadWidget() {
   }
 
   return (
-    <div className="bg-[#111111] border border-white/8 rounded-2xl p-6">
+    <div className="bg-ax-surface border border-ax-border rounded-ax-card p-6">
       {dialog}
-      <h2 className="text-sm font-bold text-white mb-1">Logo de la box</h2>
-      <p className="text-xs text-gray-500 mb-4">
+      <h2 className="text-sm font-bold text-ax-text mb-1">Logo de la box</h2>
+      <p className="text-xs text-ax-text-muted mb-4">
         Visible par tous les membres dans l&apos;app mobile. Carré, 512×512px min, max 2 Mo.
       </p>
 
       <div className="flex items-center gap-5">
-        <div className="w-20 h-20 rounded-2xl border-2 border-dashed border-white/10 flex items-center justify-center overflow-hidden bg-white/[0.03] shrink-0">
+        <div className="w-20 h-20 rounded-ax-card border-2 border-dashed border-ax-border flex items-center justify-center overflow-hidden bg-ax-hover shrink-0">
           {logoUrl ? (
-            <img src={logoUrl} alt="Logo box" className="w-full h-full object-cover rounded-2xl" />
+            <img src={logoUrl} alt="Logo box" className="w-full h-full object-cover rounded-ax-card" />
           ) : (
-            <ImageIcon size={28} className="text-gray-600" />
+            <ImageIcon size={28} className="text-ax-text-muted" />
           )}
         </div>
 
@@ -131,20 +132,21 @@ export default function LogoUploadWidget() {
             onChange={handleUpload}
             className="hidden"
           />
-          <button
+          <Button
             onClick={() => fileRef.current?.click()}
             disabled={uploading}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/20 text-white text-xs font-bold hover:bg-white/30 transition-colors disabled:opacity-50"
+            variant="ax-outline"
+            size="ax-compact"
           >
             <Upload size={14} />
             {uploading ? 'Upload…' : logoUrl ? 'Changer' : 'Uploader'}
-          </button>
+          </Button>
 
           {logoUrl && (
             <button
               onClick={handleRemove}
               disabled={uploading}
-              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-red-500/10 text-red-400 text-xs font-bold hover:bg-red-500/20 transition-colors disabled:opacity-50"
+              className="flex items-center gap-2 px-4 py-2 rounded-ax-control border border-ax-danger bg-ax-danger-soft text-ax-danger text-xs font-bold hover:brightness-110 transition-colors disabled:opacity-50"
             >
               <Trash2 size={14} />
               Supprimer
@@ -152,7 +154,7 @@ export default function LogoUploadWidget() {
           )}
 
           {saved && (
-            <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-400">
+            <div className="flex items-center gap-1.5 text-xs font-bold text-ax-success">
               <CheckCircle size={13} />
               Logo mis à jour !
             </div>

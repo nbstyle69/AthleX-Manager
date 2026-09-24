@@ -39,7 +39,7 @@ export default function TutorialView({
     <div className="mx-auto max-w-5xl px-6 py-8 md:px-8">
       <Link
         href="/help"
-        className="inline-flex items-center gap-1.5 text-xs font-bold text-gray-500 transition-colors hover:text-white"
+        className="inline-flex items-center gap-1.5 text-xs font-bold text-ax-text-muted transition-colors hover:text-ax-text"
       >
         <ArrowLeft size={14} />
         {strings.back}
@@ -47,17 +47,17 @@ export default function TutorialView({
 
       <div className="mt-4 flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-black text-white">{variant.title}</h1>
-          <p className="mt-1 text-sm text-gray-500">{variant.summary}</p>
+          <h1 className="font-display text-2xl font-medium uppercase tracking-wide text-ax-text">{variant.title}</h1>
+          <p className="mt-1 text-sm text-ax-text-muted">{variant.summary}</p>
         </div>
-        <span className="mt-1 shrink-0 rounded-full border border-white/10 px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-gray-400">
+        <span className="mt-1 shrink-0 rounded-full border border-ax-border px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-ax-text-secondary">
           {strings.roles[variant.role]}
         </span>
       </div>
 
       {variant.fallback && (
-        <p className="mt-4 flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-4 py-2.5 text-xs text-gray-300">
-          <Languages size={14} className="shrink-0 text-gray-400" />
+        <p className="mt-4 flex items-center gap-2 rounded-ax-control border border-ax-border bg-ax-hover px-4 py-2.5 text-xs text-ax-text">
+          <Languages size={14} className="shrink-0 text-ax-text-secondary" />
           {strings.untranslated}
         </p>
       )}
@@ -67,11 +67,11 @@ export default function TutorialView({
 
         {variant.headings.length > 0 && (
           <nav className="hidden w-56 shrink-0 lg:block">
-            <p className="text-[11px] font-black uppercase tracking-widest text-gray-500">{strings.toc}</p>
-            <ul className="mt-3 space-y-2 border-l border-white/10 pl-3">
+            <p className="text-[11px] font-black uppercase tracking-widest text-ax-text-muted">{strings.toc}</p>
+            <ul className="mt-3 space-y-2 border-l border-ax-border pl-3">
               {variant.headings.map((h) => (
                 <li key={h.id}>
-                  <a href={`#${h.id}`} className="text-xs text-gray-400 transition-colors hover:text-white">
+                  <a href={`#${h.id}`} className="text-xs text-ax-text-secondary transition-colors hover:text-ax-text">
                     {h.text}
                   </a>
                 </li>
@@ -81,11 +81,11 @@ export default function TutorialView({
         )}
       </div>
 
-      <div className="mt-10 flex items-center justify-between gap-3 border-t border-white/[0.06] pt-5">
+      <div className="mt-10 flex items-center justify-between gap-3 border-t border-ax-border pt-5">
         {variant.previous ? (
           <Link
             href={`/help/${variant.previous.slug}`}
-            className="inline-flex min-w-0 items-center gap-2 text-sm text-gray-400 transition-colors hover:text-white"
+            className="inline-flex min-w-0 items-center gap-2 text-sm text-ax-text-secondary transition-colors hover:text-ax-text"
           >
             <ChevronLeft size={16} className="shrink-0" />
             <span className="truncate">{variant.previous.title}</span>
@@ -96,7 +96,7 @@ export default function TutorialView({
         {variant.next ? (
           <Link
             href={`/help/${variant.next.slug}`}
-            className="inline-flex min-w-0 items-center gap-2 text-right text-sm text-gray-400 transition-colors hover:text-white"
+            className="inline-flex min-w-0 items-center gap-2 text-right text-sm text-ax-text-secondary transition-colors hover:text-ax-text"
           >
             <span className="truncate">{variant.next.title}</span>
             <ChevronRight size={16} className="shrink-0" />
