@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import { useConfirmDialog } from '@/components/ui/confirm-dialog';
 import { useRouter } from 'next/navigation';
 import { Trophy, Users, CheckCircle, Loader2, Ban, Lock, Trash2, RefreshCw } from 'lucide-react';
 
@@ -26,6 +27,7 @@ export default function AdminTournamentsPage() {
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<'all' | 'open' | 'completed' | 'cancelled'>('all');
   const supabase = createClient();
+  const { dialog, ask } = useConfirmDialog();
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -72,8 +74,38 @@ export default function AdminTournamentsPage() {
 
   async function quickAction(action: string, tournamentId: string, e: React.MouseEvent) {
     e.stopPropagation();
-    if (action === 'delete' && !confirm('Supprimer définitivement ce tournoi ?')) return;
-    if (action === 'cancel' && !confirm('Annuler ce tournoi ? Il ne sera plus visible.')) return;
+    const t = tournaments.find(x => x.id === tournamentId);
+    const element = t
+      ? `« ${t.wod_name} » créé par ${t.creator_name} le ${new Date(t.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })} · ${t.participant_count} participant(s) · ${t.score_count} score(s)`
+      : undefined;
+    if (action === 'delete') {
+      ask({
+        title: 'Supprimer ce tournoi ?',
+        element,
+        body: 'Les inscriptions et les scores seront supprimés. Les points ELO déjà attribués restent acquis. Cette action est définitive.',
+        confirmLabel: 'Supprimer le tournoi',
+        danger: true,
+        run: () => runAction(action, tournamentId),
+      });
+      return;
+    }
+    // « Annuler le tournoi » : le bouton de sortie s'appelle « Retour » pour ne
+    // pas se confondre avec l'action.
+    if (action === 'cancel') {
+      ask({
+        title: 'Masquer ce tournoi ?',
+        element,
+        body: 'Il n’apparaîtra plus dans l’application. Les inscriptions et scores sont conservés, et tu pourras le rouvrir.',
+        cancelLabel: 'Retour',
+        confirmLabel: 'Masquer le tournoi',
+        run: () => runAction(action, tournamentId),
+      });
+      return;
+    }
+    await runAction(action, tournamentId);
+  }
+
+  async function runAction(action: string, tournamentId: string) {
     setActionLoading(`${action}-${tournamentId}`);
     if (action === 'delete') {
       await fetch(`/api/admin/daily-tournaments?id=${tournamentId}`, { method: 'DELETE' });
@@ -104,6 +136,7 @@ export default function AdminTournamentsPage() {
 
   return (
     <div className="space-y-6">
+      {dialog}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-emerald-500/20 flex items-center justify-center">

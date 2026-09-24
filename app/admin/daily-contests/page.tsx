@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import { useConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Swords, CheckCircle, XCircle, Youtube, AlertTriangle, ExternalLink, RefreshCw } from 'lucide-react';
 
 interface ContestedScore {
@@ -26,6 +27,7 @@ export default function DailyContestsPage() {
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const supabase = createClient();
+  const { dialog, ask } = useConfirmDialog();
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -62,8 +64,31 @@ export default function DailyContestsPage() {
 
   useEffect(() => { load(); }, [load]);
 
+  const contested = (score: ContestedScore) =>
+    `${score.athlete_name} · ${score.tournament_name} · ${formatScore(score.score_value, score.score_mode)}${score.rx ? ' RX' : ''}`;
+
+  function askValidate(score: ContestedScore) {
+    ask({
+      title: 'Valider ce score contesté ?',
+      element: `${contested(score)}, contesté par ${score.contester_name}${score.contest_reason ? ` : « ${score.contest_reason} »` : ''}`,
+      body: 'Le score sera marqué comme validé et la contestation sera close.',
+      confirmLabel: 'Valider le score',
+      run: () => handleValidate(score),
+    });
+  }
+
+  function askReject(score: ContestedScore) {
+    ask({
+      title: 'Rejeter ce score contesté ?',
+      element: `${contested(score)}, contesté par ${score.contester_name}`,
+      body: 'Le score sera supprimé définitivement. L’athlète reste inscrit au tournoi.',
+      confirmLabel: 'Rejeter et supprimer',
+      danger: true,
+      run: () => handleReject(score),
+    });
+  }
+
   async function handleValidate(score: ContestedScore) {
-    if (!confirm(`Valider le score de ${score.athlete_name} ?`)) return;
     setActionLoading(score.id);
     await supabase
       .from('daily_tournament_scores')
@@ -75,7 +100,6 @@ export default function DailyContestsPage() {
   }
 
   async function handleReject(score: ContestedScore) {
-    if (!confirm(`Rejeter et supprimer le score de ${score.athlete_name} ?`)) return;
     setActionLoading(score.id);
     await supabase
       .from('daily_tournament_scores')
@@ -104,6 +128,7 @@ export default function DailyContestsPage() {
 
   return (
     <div className="space-y-6">
+      {dialog}
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
@@ -211,7 +236,7 @@ export default function DailyContestsPage() {
               {/* Actions */}
               <div className="flex items-center gap-3 pt-2 border-t border-white/[0.04]">
                 <button
-                  onClick={() => handleReject(score)}
+                  onClick={() => askReject(score)}
                   disabled={actionLoading === score.id}
                   className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 font-bold text-sm hover:bg-red-500/20 transition-all disabled:opacity-50"
                 >
@@ -219,7 +244,7 @@ export default function DailyContestsPage() {
                   Rejeter le score
                 </button>
                 <button
-                  onClick={() => handleValidate(score)}
+                  onClick={() => askValidate(score)}
                   disabled={actionLoading === score.id}
                   className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-emerald-500 text-white font-bold text-sm hover:bg-emerald-600 transition-all disabled:opacity-50"
                 >

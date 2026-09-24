@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import { useConfirmDialog } from '@/components/ui/confirm-dialog';
 import Link from 'next/link';
 import {
   MapPin, Plus, Calendar, ChevronRight, Loader2, Eye,
@@ -47,6 +48,7 @@ const STATUS_NEXT: Record<string, string> = {
 
 export default function PhysicalCompetitionsPage() {
   const supabase = createClient();
+  const { dialog, ask } = useConfirmDialog();
   const [comps, setComps] = useState<PhysComp[]>([]);
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState<string | null>(null);
@@ -65,8 +67,18 @@ export default function PhysicalCompetitionsPage() {
 
   useEffect(() => { load(); }, [load]);
 
-  async function handleDelete(id: string, name: string) {
-    if (!confirm(`Supprimer "${name}" ? Les WODs associés seront aussi supprimés.`)) return;
+  function askDelete(c: PhysComp) {
+    ask({
+      title: 'Supprimer cette compétition ?',
+      element: `« ${c.name} » · ${new Date(c.date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}${c.location ? ` · ${c.location}` : ''}`,
+      body: 'Tous ses WOD seront aussi supprimés. Cette action est définitive.',
+      confirmLabel: 'Supprimer la compétition',
+      danger: true,
+      run: () => handleDelete(c.id),
+    });
+  }
+
+  async function handleDelete(id: string) {
     setDeleting(id);
     await supabase.from('physical_wods').delete().eq('competition_id', id);
     await supabase.from('physical_competitions').delete().eq('id', id);
@@ -85,6 +97,7 @@ export default function PhysicalCompetitionsPage() {
 
   return (
     <div className="space-y-6">
+      {dialog}
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
@@ -207,7 +220,7 @@ export default function PhysicalCompetitionsPage() {
                     <Eye size={15} />
                   </Link>
                   <button
-                    onClick={() => handleDelete(c.id, c.name)}
+                    onClick={() => askDelete(c)}
                     disabled={deleting === c.id}
                     className="p-2 rounded-xl bg-[#0A0A0A] hover:bg-red-500/10 text-gray-500 hover:text-red-400 transition-colors disabled:opacity-40"
                   >
