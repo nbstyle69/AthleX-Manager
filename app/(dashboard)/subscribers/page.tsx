@@ -4,12 +4,13 @@ import { Fragment, useState, useEffect, useCallback } from 'react';
 import HelpButton from '@/components/help/HelpButton';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
-import { CreditCard, Loader2, Search, Users, BookOpen, Pause, Play, FileText, Check, X, ChevronDown, ChevronRight, ExternalLink, Banknote } from 'lucide-react';
+import { CreditCard, Loader2, Search, Users, BookOpen, Pause, Play, FileText, Check, X, ChevronDown, ChevronRight, ExternalLink, Banknote, Ban } from 'lucide-react';
 import { getMyBox } from '@/lib/getMyBox';
 import { getMemberEmails } from '@/lib/memberEmails';
 import UnpaidPanel from '@/components/UnpaidPanel';
 import { Badge } from '@/components/ui/badge';
 import { useConfirmDialog } from '@/components/ui/confirm-dialog';
+import { fullDate, type ConfirmChoice } from '@/lib/confirmDialog';
 
 const INPUT_CLS = 'w-full min-h-11 px-3 py-2.5 rounded-ax-control bg-ax-surface border border-ax-input-border text-base sm:text-sm text-ax-text placeholder:text-ax-text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ax-focus focus-visible:ring-offset-2 focus-visible:ring-offset-ax-surface transition-colors';
 
@@ -132,7 +133,7 @@ function fmtMonth(month: string) {
 
 export default function SubscribersPage() {
   const router = useRouter();
-  const { dialog, ask } = useConfirmDialog();
+  const { dialog, ask, inform } = useConfirmDialog();
   const [loading, setLoading] = useState(true);
   const [rows, setRows] = useState<Row[]>([]);
   const [search, setSearch] = useState('');
@@ -325,6 +326,80 @@ export default function SubscribersPage() {
     if (error) setActionError(error.message);
     else await load({ silent: true });
     setActionBusy(null);
+  }
+
+  // Arrêt d'un abonnement par le gérant (S2, option A : aucun remboursement) :
+  // la boîte présente les échéances possibles, l'action ne part que du bouton rouge.
+  function askStopSubscription(r: Row) {
+    if (!r.boxMemberId) return;
+
+    const engaged = !!r.commitmentEndDate && new Date(r.commitmentEndDate) > new Date();
+    const monthsLeft = engaged
+      ? Math.max(1, Math.ceil((new Date(r.commitmentEndDate!).getTime() - Date.now()) / (30.44 * 86400_000)))
+      : 0;
+
+    // N'affiche que ce qui est déjà chargé : le moyen de paiement Stripe
+    // (carte / prélèvement SEPA) n'est pas servi par get_box_billing, seul le
+    // comptoir se reconnaît ici.
+    const element = [
+      r.label,
+      r.amountCents != null ? `${(r.amountCents / 100).toLocaleString('fr-FR')} €/mois` : null,
+      !r.hasStripeSub ? 'payé au comptoir' : null,
+      r.hasStripeSub && r.periodEnd ? `période payée jusqu'au ${fullDate(r.periodEnd)}` : null,
+    ].filter(Boolean).join(' · ');
+
+    const pastDue = r.status === 'past_due';
+    const choices: ConfirmChoice[] | undefined = !r.hasStripeSub
+      ? undefined
+      : [
+          ...(!pastDue && r.periodEnd ? [{
+            value: 'period_end',
+            label: `À la fin de la période payée, le ${fullDate(r.periodEnd)}.`,
+            description: 'Il garde l’accès jusque-là. Aucun prélèvement ensuite.',
+          }] : []),
+          {
+            value: 'now',
+            label: 'Immédiatement.',
+            description: 'L’accès aux réservations s’arrête maintenant et ses réservations à venir sont annulées. Le mois en cours reste encaissé.',
+          },
+        ];
+
+    const corps = `${r.username} sera prévenu par e-mail. L’abonnement ne pourra pas être réactivé : il faudra en souscrire un nouveau.`;
+    const body = !r.hasStripeSub
+      ? `Il paie au comptoir : aucun prélèvement à arrêter. Son adhésion passe en inactive dès maintenant et ses réservations à venir sont annulées. Aucun remboursement n’est fait par l’application.\n\n${corps}`
+      : corps;
+
+    ask({
+      title: `Arrêter l’abonnement de ${r.username} ?`,
+      element,
+      warning: engaged
+        ? `Engagement en cours jusqu’au ${fullDate(r.commitmentEndDate!)} (${monthsLeft} mois restants). Arrêter l’abonnement lève cet engagement : les ${monthsLeft} mois restants ne seront pas prélevés.`
+        : undefined,
+      body,
+      choices,
+      confirmLabel: 'Arrêter l’abonnement',
+      danger: true,
+      run: (_value, choice) => stopMemberSubscription(r, r.hasStripeSub && choice === 'period_end' ? 'period_end' : 'now'),
+    });
+  }
+
+  async function stopMemberSubscription(r: Row, mode: 'period_end' | 'now') {
+    if (!r.boxMemberId) return;
+    setActionBusy(r.key); setActionError(null);
+    try {
+      const res = await fetch('/api/members/stop-subscription', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ box_member_id: r.boxMemberId, mode }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? 'Erreur');
+      if (data.warning) inform({ kind: 'info', title: 'E-mail non envoyé', body: data.warning });
+      await load({ silent: true });
+    } catch (e) {
+      setActionError(e instanceof Error ? e.message : 'Erreur');
+    } finally {
+      setActionBusy(null);
+    }
   }
 
   // Refus avec motif facultatif, approbation confirmée : « Annuler » n'envoie
@@ -586,6 +661,20 @@ export default function SubscribersPage() {
                         {actionBusy === r.key ? <Loader2 size={13} className="animate-spin" /> : r.paused ? <Play size={13} /> : <Pause size={13} />}
                         {r.paused ? 'Reprendre' : 'Geler'}
                       </button>
+                    )}
+                    {r.kind === 'membership' && r.boxMemberId && !r.cancelAtPeriodEnd
+                      && (r.status === 'active' || r.status === 'past_due') && (
+                      <button onClick={() => askStopSubscription(r)} disabled={actionBusy === r.key}
+                        data-testid="arreter-abonnement"
+                        className="inline-flex items-center gap-1 text-xs font-bold text-ax-danger bg-ax-danger-soft hover:brightness-110 rounded-ax-control px-2.5 py-1.5 disabled:opacity-50">
+                        {actionBusy === r.key ? <Loader2 size={13} className="animate-spin" /> : <Ban size={13} />}
+                        Arrêter l’abonnement
+                      </button>
+                    )}
+                    {r.kind === 'membership' && r.cancelAtPeriodEnd && (
+                      <span className="inline-flex items-center px-1 py-1.5 text-xs font-semibold text-ax-warning">
+                        Fin programmée{r.periodEnd ? ` le ${fmtDate(r.periodEnd)}` : ''}
+                      </span>
                     )}
                     </div>
                   </td>

@@ -15,6 +15,14 @@ export interface ConfirmField {
   placeholder?: string;
 }
 
+/** Un choix exclusif (bouton radio) de la boîte de confirmation. */
+export interface ConfirmChoice {
+  value: string;
+  label: string;
+  /** Conséquence du choix, affichée sous son libellé. */
+  description?: string;
+}
+
 export interface ConfirmRequest {
   /** Question posée. */
   title: string;
@@ -29,10 +37,15 @@ export interface ConfirmRequest {
   danger?: boolean;
   /** Champ facultatif (motif…), transmis à `run`. */
   field?: ConfirmField;
+  /** Choix exclusif facultatif : le retenu est transmis à `run`. */
+  choices?: ConfirmChoice[];
+  defaultChoice?: string;
+  /** Avertissement (bandeau) : conséquence notable mais non bloquante. */
+  warning?: string;
   /** Troisième choix, lui aussi exécuté seulement sur clic. */
   secondary?: { label: string; run: () => unknown };
   /** L'action, exécutée seulement après clic sur le bouton d'action. */
-  run: (value: string) => unknown;
+  run: (value: string, choice?: string) => unknown;
 }
 
 export interface InfoRequest {
@@ -46,7 +59,7 @@ export interface InfoRequest {
 
 export type DialogState =
   | { kind: 'idle' }
-  | { kind: 'confirm'; req: ConfirmRequest; busy: boolean; value: string }
+  | { kind: 'confirm'; req: ConfirmRequest; busy: boolean; value: string; choice: string }
   | { kind: 'info'; req: InfoRequest };
 
 export interface DialogController {
@@ -58,6 +71,7 @@ export interface DialogController {
   inform(req: InfoRequest): Promise<void>;
   cancel(): void;
   setValue(value: string): void;
+  setChoice(choice: string): void;
   confirm(): Promise<void>;
   confirmSecondary(): Promise<void>;
   close(): void;
@@ -101,7 +115,11 @@ export function createDialogController(): DialogController {
       finish(false);
       return new Promise<boolean>(resolve => {
         settle = resolve;
-        set({ kind: 'confirm', req, busy: false, value: req.field?.defaultValue ?? '' });
+        set({
+          kind: 'confirm', req, busy: false,
+          value: req.field?.defaultValue ?? '',
+          choice: req.defaultChoice ?? req.choices?.[0]?.value ?? '',
+        });
       });
     },
     inform(req) {
@@ -120,10 +138,13 @@ export function createDialogController(): DialogController {
     setValue(value) {
       if (state.kind === 'confirm' && !state.busy) set({ ...state, value });
     },
+    setChoice(choice) {
+      if (state.kind === 'confirm' && !state.busy) set({ ...state, choice });
+    },
     confirm() {
       if (state.kind !== 'confirm') return Promise.resolve();
-      const { run } = state.req; const value = state.value;
-      return execute(() => run(value));
+      const { run } = state.req; const { value, choice } = state;
+      return execute(() => run(value, choice || undefined));
     },
     confirmSecondary() {
       if (state.kind !== 'confirm' || !state.req.secondary) return Promise.resolve();
