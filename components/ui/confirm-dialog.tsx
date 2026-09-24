@@ -2,7 +2,7 @@
 
 import * as DialogPrimitive from '@radix-ui/react-dialog';
 import { Loader2 } from 'lucide-react';
-import { useMemo, useReducer, useEffect, useRef, type ReactNode } from 'react';
+import { useMemo, useReducer, useEffect, useRef, type MutableRefObject, type ReactNode } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -28,19 +28,33 @@ export function useConfirmDialog(): {
   const ctrl = useMemo(() => createDialogController(), []);
   const [, rerender] = useReducer((n: number) => n + 1, 0);
   useEffect(() => ctrl.subscribe(rerender), [ctrl]);
+  // Sans `Dialog.Trigger`, Radix ne sait pas à qui rendre le focus : on retient
+  // l'élément actif au moment d'ouvrir (le bouton qui a déclenché la boîte).
+  const returnFocus = useRef<HTMLElement | null>(null);
+  const remember = () => {
+    if (ctrl.getState().kind === 'idle' && typeof document !== 'undefined') {
+      returnFocus.current = document.activeElement as HTMLElement | null;
+    }
+  };
   return {
-    dialog: <ConfirmDialogView ctrl={ctrl} />,
-    ask: ctrl.ask,
-    inform: ctrl.inform,
+    dialog: <ConfirmDialogView ctrl={ctrl} returnFocus={returnFocus} />,
+    ask: req => { remember(); return ctrl.ask(req); },
+    inform: req => { remember(); return ctrl.inform(req); },
   };
 }
 
-function ConfirmDialogView({ ctrl }: { ctrl: ReturnType<typeof createDialogController> }) {
+function ConfirmDialogView({ ctrl, returnFocus }: {
+  ctrl: ReturnType<typeof createDialogController>;
+  returnFocus: MutableRefObject<HTMLElement | null>;
+}) {
   const state = ctrl.getState();
   const h = useMemo(() => dialogHandlers(ctrl), [ctrl]);
   const defaultFocus = useRef<HTMLButtonElement>(null);
   const open = state.kind !== 'idle';
   const busy = state.kind === 'confirm' && state.busy;
+  // Une erreur qui remplace la confirmation ouverte ne repasse pas par
+  // l'ouverture de Radix : le focus va à son bouton « Fermer ».
+  useEffect(() => { if (state.kind === 'info') defaultFocus.current?.focus(); }, [state.kind]);
 
   return (
     <DialogPrimitive.Root open={open} onOpenChange={h.onOpenChange}>
@@ -50,6 +64,7 @@ function ConfirmDialogView({ ctrl }: { ctrl: ReturnType<typeof createDialogContr
           data-testid="confirm-dialog"
           role={state.kind === 'confirm' ? 'alertdialog' : 'dialog'}
           onOpenAutoFocus={e => { e.preventDefault(); defaultFocus.current?.focus(); }}
+          onCloseAutoFocus={e => { e.preventDefault(); returnFocus.current?.focus(); returnFocus.current = null; }}
           onEscapeKeyDown={h.onEscapeKeyDown}
           onPointerDownOutside={h.onPointerDownOutside}
           aria-busy={busy || undefined}
