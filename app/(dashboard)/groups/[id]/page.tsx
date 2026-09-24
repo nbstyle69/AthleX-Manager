@@ -29,6 +29,10 @@ interface Member {
 }
 
 const LEVELS = ['rx+', 'rx', 'scaled', 'foundations'];
+// Puces de groupe en 10 px : teinte plus proche du texte que `textTint`, pour
+// rester AA en thème clair même avec la couleur blanche par défaut (4,42:1 sinon).
+const chipTint = (color: string) => `color-mix(in srgb, ${color} 30%, var(--ax-text))`;
+
 const LEVEL_LABEL: Record<string, string> = { 'rx+': 'RX+', rx: 'RX', scaled: 'SCALED', foundations: 'FOUNDATIONS' };
 // Même code couleur qu'avant (rx+ blanc, rx bleu, scaled vert, foundations violet), en jetons lisibles dans les deux thèmes (cf. Membres).
 const LEVEL_COLOR: Record<string, string> = { 'rx+': 'var(--ax-text)', rx: 'var(--ax-info)', scaled: 'var(--ax-success)', foundations: 'var(--ax-purple)' };
@@ -408,7 +412,7 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
                     <p className="text-sm font-semibold text-ax-text break-words min-w-0">{m.username}</p>
                     <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-ax-badge" style={{ color: lvlColor, backgroundColor: softVar(lvlColor, 0.125) }}>{LEVEL_LABEL[m.level] ?? m.level.toUpperCase()}</span>
                     {m.groups.map(g => (
-                      <span key={g.id} className="text-[10px] font-bold px-1.5 py-0.5 rounded-ax-badge break-words" style={{ color: textTint(g.color), backgroundColor: softVar(g.color, 0.08) }}>{g.name}</span>
+                      <span key={g.id} className="text-[10px] font-bold px-1.5 py-0.5 rounded-ax-badge break-words" style={{ color: chipTint(g.color), backgroundColor: softVar(g.color, 0.125) }}>{g.name}</span>
                     ))}
                   </div>
                   <p className="text-xs text-ax-text-muted">⭐ ELO {m.elo}</p>
