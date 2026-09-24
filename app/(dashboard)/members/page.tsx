@@ -1,6 +1,7 @@
 ﻿'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
+import * as Popover from '@radix-ui/react-popover';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -40,6 +41,35 @@ interface Member {
   groups: { id: string; name: string; color: string }[];
 }
 
+// Menu d'une cellule du tableau, ouvert au-dessus de la page (portail) et non
+// plus dans le conteneur défilant du tableau, qui le coupait. Le voile
+// transparent garde le comportement d'avant : un clic à côté ferme le menu
+// sans rien activer dessous. Échap ferme aussi ; le focus revient au bouton.
+function TableMenu({ open, onOpenChange, trigger, align, className, children }: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  trigger: React.ReactNode;
+  align: 'start' | 'end';
+  className: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <Popover.Root open={open} onOpenChange={onOpenChange}>
+      <Popover.Trigger asChild>{trigger}</Popover.Trigger>
+      <Popover.Portal>
+        <div>
+          <div className="fixed inset-0 z-40" onClick={() => onOpenChange(false)} />
+          <Popover.Content side="bottom" align={align} sideOffset={4} collisionPadding={8}
+            onPointerDownOutside={e => e.preventDefault()}
+            className={`z-50 bg-ax-surface border border-ax-border rounded-ax-control shadow-ax-panel py-1 overflow-hidden ${className}`}>
+            {children}
+          </Popover.Content>
+        </div>
+      </Popover.Portal>
+    </Popover.Root>
+  );
+}
+
 function GroupsPopover({ member, allGroups, onToggle, toggling }: {
   member: Member;
   allGroups: { id: string; name: string; color: string }[];
@@ -49,15 +79,13 @@ function GroupsPopover({ member, allGroups, onToggle, toggling }: {
   const [open, setOpen] = useState(false);
   const memberGroupIds = new Set(member.groups.map(g => g.id));
   return (
-    <div className="relative">
-      <button onClick={() => setOpen(v => !v)}
-        className="flex items-center gap-1 text-xs font-semibold text-ax-text-secondary hover:text-ax-text border border-ax-border hover:border-ax-input-border px-2.5 py-1.5 rounded-ax-control transition-colors">
-        Groupes <ChevronDown size={11} className={`transition-transform ${open ? 'rotate-180' : ''}`} />
-      </button>
-      {open && (
-        <>
-          <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
-          <div className="absolute right-0 top-full mt-1 z-20 bg-ax-surface border border-ax-border rounded-ax-control shadow-ax-panel min-w-[180px] py-1 overflow-hidden">
+    <div>
+      <TableMenu open={open} onOpenChange={setOpen} align="end" className="min-w-[180px]" trigger={
+        <button
+          className="flex items-center gap-1 text-xs font-semibold text-ax-text-secondary hover:text-ax-text border border-ax-border hover:border-ax-input-border px-2.5 py-1.5 rounded-ax-control transition-colors">
+          Groupes <ChevronDown size={11} className={`transition-transform ${open ? 'rotate-180' : ''}`} />
+        </button>
+      }>
             {allGroups.length === 0 && <p className="px-3 py-2 text-xs text-ax-text-muted">Aucun groupe</p>}
             {allGroups.map(g => {
               const inGroup = memberGroupIds.has(g.id);
@@ -76,9 +104,7 @@ function GroupsPopover({ member, allGroups, onToggle, toggling }: {
                 </button>
               );
             })}
-          </div>
-        </>
-      )}
+      </TableMenu>
     </div>
   );
 }
@@ -135,21 +161,18 @@ function PlanPopover({ member, plans, onAssign, saving }: {
   const [open, setOpen] = useState(false);
   const currentPlan = plans.find(p => p.id === member.plan_id);
   return (
-    <div className="relative">
-      <button
-        onClick={() => setOpen(v => !v)}
-        disabled={saving}
-        className="flex items-center gap-2 min-w-[8rem] max-w-[13rem] text-left text-xs font-semibold border border-ax-border hover:border-ax-input-border px-2.5 py-1.5 rounded-ax-control transition-colors disabled:opacity-50"
-        style={currentPlan ? { color: textTint(currentPlan.color), borderColor: softVar(currentPlan.color, 0.25), backgroundColor: softVar(currentPlan.color, 0.063) } : { color: 'var(--ax-text-secondary)' }}
-      >
-        {currentPlan && <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: currentPlan.color }} />}
-        {currentPlan ? currentPlan.name : 'Illimité'}
-        <ChevronDown size={11} className={`transition-transform ${open ? 'rotate-180' : ''}`} />
-      </button>
-      {open && (
-        <>
-          <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
-          <div className="absolute left-0 top-full mt-1 z-20 bg-ax-surface border border-ax-border rounded-ax-control shadow-ax-panel min-w-[180px] py-1 overflow-hidden">
+    <div>
+      <TableMenu open={open} onOpenChange={setOpen} align="start" className="min-w-[180px]" trigger={
+        <button
+          disabled={saving}
+          className="flex items-center gap-2 min-w-[8rem] max-w-[13rem] text-left text-xs font-semibold border border-ax-border hover:border-ax-input-border px-2.5 py-1.5 rounded-ax-control transition-colors disabled:opacity-50"
+          style={currentPlan ? { color: textTint(currentPlan.color), borderColor: softVar(currentPlan.color, 0.25), backgroundColor: softVar(currentPlan.color, 0.063) } : { color: 'var(--ax-text-secondary)' }}
+        >
+          {currentPlan && <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: currentPlan.color }} />}
+          {currentPlan ? currentPlan.name : 'Illimité'}
+          <ChevronDown size={11} className={`transition-transform ${open ? 'rotate-180' : ''}`} />
+        </button>
+      }>
             <button
               onClick={() => { onAssign(member.id, null); setOpen(false); }}
               className={`w-full flex items-center gap-2.5 px-3 py-2 text-xs hover:bg-ax-hover transition-colors text-left ${!member.plan_id ? 'text-ax-text' : 'text-ax-text-secondary'}`}
@@ -180,9 +203,7 @@ function PlanPopover({ member, plans, onAssign, saving }: {
                 </button>
               );
             })}
-          </div>
-        </>
-      )}
+      </TableMenu>
     </div>
   );
 }
@@ -201,18 +222,16 @@ function RolePopover({ member, onChange }: {
   const current = ROLES.find(r => r.key === member.role) ?? ROLES[0];
   const Icon = current.icon;
   return (
-    <div className="relative">
-      <button onClick={() => setOpen(v => !v)} disabled={member.is_banned}
-        className={`flex items-center gap-1.5 text-xs font-bold px-2.5 py-1.5 rounded-ax-control border transition-colors ${member.is_banned ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer hover:border-ax-input-border'}`}
-        style={{ color: current.color, borderColor: softVar(current.color, 0.25), backgroundColor: softVar(current.color, 0.063) }}>
-        <Icon size={12} />
-        {current.label}
-        <ChevronDown size={10} className={`transition-transform ${open ? 'rotate-180' : ''}`} />
-      </button>
-      {open && (
-        <>
-          <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
-          <div className="absolute left-0 top-full mt-1 z-20 bg-ax-surface border border-ax-border rounded-ax-control shadow-ax-panel min-w-[150px] py-1 overflow-hidden">
+    <div>
+      <TableMenu open={open} onOpenChange={setOpen} align="start" className="min-w-[150px]" trigger={
+        <button disabled={member.is_banned}
+          className={`flex items-center gap-1.5 text-xs font-bold px-2.5 py-1.5 rounded-ax-control border transition-colors ${member.is_banned ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer hover:border-ax-input-border'}`}
+          style={{ color: current.color, borderColor: softVar(current.color, 0.25), backgroundColor: softVar(current.color, 0.063) }}>
+          <Icon size={12} />
+          {current.label}
+          <ChevronDown size={10} className={`transition-transform ${open ? 'rotate-180' : ''}`} />
+        </button>
+      }>
             {ROLES.map(r => {
               const selected = member.role === r.key;
               const RIcon = r.icon;
@@ -229,9 +248,7 @@ function RolePopover({ member, onChange }: {
                 </button>
               );
             })}
-          </div>
-        </>
-      )}
+      </TableMenu>
     </div>
   );
 }
