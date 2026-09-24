@@ -141,7 +141,7 @@ export default async function DashboardPage() {
                       <p className="text-sm font-semibold text-ax-text">{t.name}</p>
                       <p className="text-xs text-ax-text-muted mt-0.5">{(t.tournament_participants as any)?.[0]?.count ?? 0} / {t.max_participants} participants</p>
                     </div>
-                    <span className="text-xs font-bold px-2 py-0.5 rounded-md" style={{ backgroundColor: softVar(sb.color, 32 / 255), color: sb.color }}>
+                    <span className="text-xs font-bold px-2 py-0.5 rounded-md" style={{ backgroundColor: softVar(sb.color, 32 / 255), color: `color-mix(in srgb, ${sb.color} 70%, var(--ax-text))` }}>
                       {sb.label}
                     </span>
                   </Link>
