@@ -11,7 +11,6 @@ import {
   movementRowShowsUnit,
   movementRowShowsWeight,
   movementRowsFromLines,
-  serializeMovementRows,
   updateMovementRow,
 } from '@/lib/wodMovementRows';
 import {
@@ -19,20 +18,25 @@ import {
   CardioUnit,
   EMPTY_CARDIO_ENTRY,
   isCardioLine,
-  parseCardioLine,
-  serializeCardio,
-  splitCardioLines,
 } from '@/lib/cardioBlock';
 import {
   EMPTY_STRENGTH_ENTRY,
   StrengthEntry,
   StrengthLoadUnit,
   isStrengthLine,
-  parseStrengthLine,
-  serializeStrength,
-  splitStrengthLines,
 } from '@/lib/strengthBlock';
 import { BLOCKS, DAY_LABELS, WOD_TYPES, WodFormState } from '@/lib/wodFields';
+import {
+  CardioRow,
+  StrengthRow,
+  cardioRowsFromLines,
+  composeMovements,
+  serializeCardioRow,
+  serializeStrengthRow,
+  strengthRowsFromLines,
+  updateCardioRow,
+  updateStrengthRow,
+} from '@/lib/wodEditorLines';
 import { softVar, textTint } from '@/lib/colorVars';
 import { programColor } from '@/components/wods/RestrictionBadges';
 import { RestDay, estJourRepos } from '@/lib/programContent';
@@ -107,22 +111,13 @@ export default function WodEditor({
   const isWhiteboard = mode === 'whiteboard';
   const isProgram = mode === 'program';
 
-  // Les lignes de force sont éditées structurées ; `movements` ne reçoit que
-  // leur sérialisation. Le tampon local garde une ligne vide affichable (que la
-  // sérialisation, elle, refuse d'écrire).
-  const [strengthRows, setStrengthRows] = useState<StrengthEntry[]>(
-    () => splitStrengthLines(movements)
-      .strength
-      .map(l => parseStrengthLine(l))
-      .filter((e): e is StrengthEntry => e !== null),
-  );
+  // Les lignes de force et de cardio sont éditées structurées ; `movements` ne
+  // reçoit que leur sérialisation, ou leur texte d'origine tant qu'elles ne sont
+  // pas modifiées (cf. `lib/wodEditorLines.ts`). Le tampon local garde une ligne
+  // vide affichable (que la sérialisation, elle, refuse d'écrire).
+  const [strengthRows, setStrengthRows] = useState<StrengthRow[]>(() => strengthRowsFromLines(movements));
 
-  const [cardioRows, setCardioRows] = useState<CardioEntry[]>(
-    () => splitCardioLines(movements)
-      .cardio
-      .map(l => parseCardioLine(l))
-      .filter((e): e is CardioEntry => e !== null),
-  );
+  const [cardioRows, setCardioRows] = useState<CardioRow[]>(() => cardioRowsFromLines(movements));
 
   // Même principe pour le metcon : les lignes sont éditées structurées et
   // sérialisées à l'écriture seulement (cf. `lib/wodMovementRows.ts`).
@@ -130,12 +125,8 @@ export default function WodEditor({
     () => movementRowsFromLines(movements.filter(l => !isStrengthLine(l) && !isCardioLine(l))),
   );
 
-  const commit = (wod: MovementRow[], strength: StrengthEntry[], cardio: CardioEntry[]) =>
-    setMovements([
-      ...strength.map(serializeStrength).filter(Boolean),
-      ...cardio.map(serializeCardio).filter(Boolean),
-      ...serializeMovementRows(wod),
-    ]);
+  const commit = (wod: MovementRow[], strength: StrengthRow[], cardio: CardioRow[]) =>
+    setMovements(composeMovements(wod, strength, cardio));
 
   const setWod = (rows: MovementRow[]) => {
     setWodRows(rows);
@@ -145,23 +136,23 @@ export default function WodEditor({
   const removeMovement = (i: number) => setWod(wodRows.filter((_, idx) => idx !== i));
   const patchMovement = (i: number, patch: Partial<MovementRow>) => setWod(updateMovementRow(wodRows, i, patch));
 
-  const setStrength = (rows: StrengthEntry[]) => {
+  const setStrength = (rows: StrengthRow[]) => {
     setStrengthRows(rows);
     commit(wodRows, rows, cardioRows);
   };
   const addStrength = () => setStrength([...strengthRows, { ...EMPTY_STRENGTH_ENTRY }]);
   const removeStrength = (i: number) => setStrength(strengthRows.filter((_, idx) => idx !== i));
   const updateStrength = (i: number, patch: Partial<StrengthEntry>) =>
-    setStrength(strengthRows.map((e, idx) => (idx === i ? { ...e, ...patch } : e)));
+    setStrength(updateStrengthRow(strengthRows, i, patch));
 
-  const setCardio = (rows: CardioEntry[]) => {
+  const setCardio = (rows: CardioRow[]) => {
     setCardioRows(rows);
     commit(wodRows, strengthRows, rows);
   };
   const addCardio = () => setCardio([...cardioRows, { ...EMPTY_CARDIO_ENTRY }]);
   const removeCardio = (i: number) => setCardio(cardioRows.filter((_, idx) => idx !== i));
   const updateCardio = (i: number, patch: Partial<CardioEntry>) =>
-    setCardio(cardioRows.map((e, idx) => (idx === i ? { ...e, ...patch } : e)));
+    setCardio(updateCardioRow(cardioRows, i, patch));
 
   const { catalog: movementCatalog } = useMovementCatalog();
   const cardioCatalog = movementCatalog.filter(mv => mv.unit === 'm' || mv.unit === 'cal');
@@ -515,7 +506,7 @@ export default function WodEditor({
                       onChange={ev => updateStrength(i, { loadNote: ev.target.value || null })}
                       placeholder="Charge libre (RPE 9, RM du jour…)" aria-label="Charge libre" />
                   </div>
-                  <p className="text-[11px] text-ax-text-muted">{serializeStrength(e) || 'Nomme l’exercice pour enregistrer cette série.'}</p>
+                  <p className="text-[11px] text-ax-text-muted break-words">{serializeStrengthRow(e) || 'Nomme l’exercice pour enregistrer cette série.'}</p>
                 </div>
               ))}
               {strengthRows.length === 0 && (
@@ -633,7 +624,7 @@ export default function WodEditor({
                         onChange={ev => updateCardio(i, { rpe: ev.target.value || null })}
                         placeholder="RPE (6)" aria-label="RPE" />
                     </div>
-                    <p className="text-[11px] text-ax-text-muted">{serializeCardio(e) || 'Choisis l’exercice pour enregistrer cette série.'}</p>
+                    <p className="text-[11px] text-ax-text-muted break-words">{serializeCardioRow(e) || 'Choisis l’exercice pour enregistrer cette série.'}</p>
                   </div>
                 );
               })}
