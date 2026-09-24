@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { LandingHeader } from '@/components/landing/header';
 import { useLanguage } from '@/components/language-provider';
+import { useConfirmDialog } from '@/components/ui/confirm-dialog';
 
 // Ordre aligné sur t.funnel.pricing.features : l'icône suit la position, le
 // libellé vient de la traduction.
@@ -30,6 +31,7 @@ export default function PricingPage() {
 }
 
 function PricingContent() {
+  const { dialog, inform } = useConfirmDialog();
   const { t } = useLanguage();
   const p = t.funnel.pricing;
   const params = useSearchParams();
@@ -59,16 +61,17 @@ function PricingContent() {
       if (data.url) {
         window.location.href = data.url;
       } else {
-        alert(data.error ?? p.checkoutError);
+        inform({ kind: 'error', title: t.funnel.common.errorTitle, closeLabel: t.funnel.common.close, body: data.error ?? p.checkoutError });
       }
     } catch (err: unknown) {
-      alert(err instanceof Error ? err.message : t.funnel.common.networkError);
+      inform({ kind: 'error', title: t.funnel.common.errorTitle, closeLabel: t.funnel.common.close, body: err instanceof Error ? err.message : t.funnel.common.networkError });
     }
     setLoading(false);
   }
 
   return (
     <div className="min-h-screen bg-background text-foreground font-sans antialiased">
+      {dialog}
       <LandingHeader />
 
       {/* Hero */}

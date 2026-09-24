@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import {
   createDialogController,
   dialogHandlers,
+  infoButtonLabel,
   type ConfirmRequest,
   type InfoRequest,
 } from '@/lib/confirmDialog';
@@ -124,7 +125,7 @@ function ConfirmDialogView({ ctrl, returnFocus }: {
               </DialogPrimitive.Description>
               <div className="mt-6 flex justify-end">
                 <Button ref={defaultFocus} variant="ax-white" onClick={h.onCloseClick} className="w-full sm:w-auto">
-                  {state.req.kind === 'error' ? 'Fermer' : 'OK'}
+                  {infoButtonLabel(state.req)}
                 </Button>
               </div>
             </>

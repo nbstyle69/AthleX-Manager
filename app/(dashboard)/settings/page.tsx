@@ -8,6 +8,8 @@ import HelpButton from '@/components/help/HelpButton';
 import PublicPageSection from '@/components/settings/PublicPageSection';
 import BoxPaymentsSection from '@/components/settings/BoxPaymentsSection';
 import { Upload, ImageIcon, Trash2, CheckCircle, Phone, MapPin, Calendar, User, Users, FileText, Mail, Download, Loader2 } from 'lucide-react';
+import { useConfirmDialog } from '@/components/ui/confirm-dialog';
+import { ERROR_TITLE, INPUT_TITLE } from '@/lib/confirmDialog';
 
 type GeoResult = {
   latitude: number;
@@ -72,6 +74,7 @@ async function geocodeAddress(address: string): Promise<GeoResult | null> {
 const BOX_SETTINGS_COLUMNS = 'id, owner_id, name, slug, tagline, description, logo_url, cover_url, terms_pdf_url, address, city, postal_code, country, latitude, longitude, phone, contact_email, website_url, instagram_url, google_maps_url, founded_at, is_active, is_listed' as const;
 
 export default function SettingsPage() {
+  const { dialog, inform } = useConfirmDialog();
   const supabase = createClient();
   const fileRef = useRef<HTMLInputElement>(null);
   const coverRef = useRef<HTMLInputElement>(null);
@@ -181,11 +184,11 @@ export default function SettingsPage() {
 
     // Validate file
     if (!file.type.startsWith('image/')) {
-      alert('Veuillez sélectionner une image (PNG, JPG, WEBP).');
+      inform({ kind: 'info', title: INPUT_TITLE, body: 'Veuillez sélectionner une image (PNG, JPG, WEBP).' });
       return;
     }
     if (file.size > 2 * 1024 * 1024) {
-      alert('L\'image ne doit pas dépasser 2 Mo.');
+      inform({ kind: 'info', title: INPUT_TITLE, body: 'L\'image ne doit pas dépasser 2 Mo.' });
       return;
     }
 
@@ -201,7 +204,7 @@ export default function SettingsPage() {
       .upload(path, file, { upsert: true, contentType: file.type });
 
     if (uploadError) {
-      alert(`Erreur upload: ${uploadError.message}`);
+      inform({ kind: 'error', title: ERROR_TITLE, body: `Erreur upload: ${uploadError.message}` });
       setUploading(false);
       return;
     }
@@ -222,7 +225,7 @@ export default function SettingsPage() {
 
     const updateFail = writeFailure(updateError, updated);
     if (updateFail) {
-      alert(`Erreur mise à jour: ${updateFail}`);
+      inform({ kind: 'error', title: ERROR_TITLE, body: `Erreur mise à jour: ${updateFail}` });
     } else {
       setLogoUrl(publicUrl);
       setSaved(true);
@@ -243,7 +246,7 @@ export default function SettingsPage() {
       .select('id');
 
     const fail = writeFailure(error, data);
-    if (fail) alert(`Suppression du logo impossible : ${fail}`);
+    if (fail) inform({ kind: 'error', title: ERROR_TITLE, body: `Suppression du logo impossible : ${fail}` });
     else setLogoUrl(null);
     setUploading(false);
   }
@@ -253,11 +256,11 @@ export default function SettingsPage() {
     if (!file || !box) return;
 
     if (!file.type.startsWith('image/')) {
-      alert('Veuillez sélectionner une image (PNG, JPG, WEBP).');
+      inform({ kind: 'info', title: INPUT_TITLE, body: 'Veuillez sélectionner une image (PNG, JPG, WEBP).' });
       return;
     }
     if (file.size > 4 * 1024 * 1024) {
-      alert('L\'image ne doit pas dépasser 4 Mo.');
+      inform({ kind: 'info', title: INPUT_TITLE, body: 'L\'image ne doit pas dépasser 4 Mo.' });
       return;
     }
 
@@ -272,7 +275,7 @@ export default function SettingsPage() {
       .upload(path, file, { upsert: true, contentType: file.type });
 
     if (uploadError) {
-      alert(`Erreur upload: ${uploadError.message}`);
+      inform({ kind: 'error', title: ERROR_TITLE, body: `Erreur upload: ${uploadError.message}` });
       setUploadingCover(false);
       return;
     }
@@ -288,7 +291,7 @@ export default function SettingsPage() {
 
     const updateFail = writeFailure(updateError, updated);
     if (updateFail) {
-      alert(`Erreur mise à jour: ${updateFail}`);
+      inform({ kind: 'error', title: ERROR_TITLE, body: `Erreur mise à jour: ${updateFail}` });
     } else {
       setCoverUrl(publicUrl);
       setSavedCover(true);
@@ -304,7 +307,7 @@ export default function SettingsPage() {
     const { data, error } = await supabase
       .from('boxes').update({ cover_url: null }).eq('id', box.id).select('id');
     const fail = writeFailure(error, data);
-    if (fail) alert(`Suppression de la bannière impossible : ${fail}`);
+    if (fail) inform({ kind: 'error', title: ERROR_TITLE, body: `Suppression de la bannière impossible : ${fail}` });
     else setCoverUrl(null);
     setUploadingCover(false);
   }
@@ -314,11 +317,11 @@ export default function SettingsPage() {
     if (!file || !box) return;
 
     if (file.type !== 'application/pdf') {
-      alert('Veuillez sélectionner un fichier PDF.');
+      inform({ kind: 'info', title: INPUT_TITLE, body: 'Veuillez sélectionner un fichier PDF.' });
       return;
     }
     if (file.size > 10 * 1024 * 1024) {
-      alert('Le PDF ne doit pas dépasser 10 Mo.');
+      inform({ kind: 'info', title: INPUT_TITLE, body: 'Le PDF ne doit pas dépasser 10 Mo.' });
       return;
     }
 
@@ -332,7 +335,7 @@ export default function SettingsPage() {
       .upload(path, file, { upsert: true, contentType: 'application/pdf' });
 
     if (uploadError) {
-      alert(`Erreur upload: ${uploadError.message}`);
+      inform({ kind: 'error', title: ERROR_TITLE, body: `Erreur upload: ${uploadError.message}` });
       setUploadingTerms(false);
       return;
     }
@@ -348,7 +351,7 @@ export default function SettingsPage() {
 
     const updateFail = writeFailure(updateError, updated);
     if (updateFail) {
-      alert(`Erreur mise à jour: ${updateFail}`);
+      inform({ kind: 'error', title: ERROR_TITLE, body: `Erreur mise à jour: ${updateFail}` });
     } else {
       setTermsPdfUrl(publicUrl);
       setSavedTerms(true);
@@ -364,30 +367,30 @@ export default function SettingsPage() {
     const { data, error } = await supabase
       .from('boxes').update({ terms_pdf_url: null }).eq('id', box.id).select('id');
     const fail = writeFailure(error, data);
-    if (fail) alert(`Suppression du PDF impossible : ${fail}`);
+    if (fail) inform({ kind: 'error', title: ERROR_TITLE, body: `Suppression du PDF impossible : ${fail}` });
     else setTermsPdfUrl(null);
     setUploadingTerms(false);
   }
 
   async function handleSaveInfo() {
     if (!box) return;
-    if (!name.trim()) { alert('Le nom de la box est requis.'); return; }
+    if (!name.trim()) { inform({ kind: 'info', title: INPUT_TITLE, body: 'Le nom de la box est requis.' }); return; }
     if (websiteUrl.trim() && !/^https?:\/\/.+/i.test(websiteUrl.trim())) {
-      alert('Le site web doit commencer par http:// ou https://');
+      inform({ kind: 'info', title: INPUT_TITLE, body: 'Le site web doit commencer par http:// ou https://' });
       return;
     }
     if (contactEmail.trim() && !contactEmail.trim().includes('@')) {
-      alert('Vérifie le format de l\'email.');
+      inform({ kind: 'info', title: INPUT_TITLE, body: 'Vérifie le format de l\'email.' });
       return;
     }
     if (googleMapsUrl.trim() && !/^https?:\/\/.+/i.test(googleMapsUrl.trim())) {
-      alert('Le lien Google Maps doit commencer par http:// ou https://');
+      inform({ kind: 'info', title: INPUT_TITLE, body: 'Le lien Google Maps doit commencer par http:// ou https://' });
       return;
     }
 
     const graceDays = Number(dunningGraceDays);
     if (!Number.isInteger(graceDays) || graceDays < 0 || graceDays > 90) {
-      alert('Le délai avant suspension doit être un nombre de jours entre 0 et 90.');
+      inform({ kind: 'info', title: INPUT_TITLE, body: 'Le délai avant suspension doit être un nombre de jours entre 0 et 90.' });
       return;
     }
 
@@ -425,7 +428,7 @@ export default function SettingsPage() {
           if (geo.postal_code) payload.postal_code = geo.postal_code;
           if (geo.country) payload.country = geo.country;
         } else {
-          alert("Adresse introuvable : impossible de la situer précisément. Vérifie l'adresse (rue, code postal, ville) ou colle le lien Google Maps du lieu.");
+          inform({ kind: 'info', title: 'Adresse introuvable', body: "Adresse introuvable : impossible de la situer précisément. Vérifie l'adresse (rue, code postal, ville) ou colle le lien Google Maps du lieu." });
         }
       }
     } else {
@@ -441,7 +444,7 @@ export default function SettingsPage() {
     });
     if (!dunningRes.ok) {
       const json = await dunningRes.json().catch(() => ({ error: 'Erreur' }));
-      alert(`Erreur: ${json.error ?? 'délai avant suspension non enregistré'}`);
+      inform({ kind: 'error', title: ERROR_TITLE, body: `Erreur: ${json.error ?? 'délai avant suspension non enregistré'}` });
       setSavingInfo(false);
       return;
     }
@@ -450,7 +453,7 @@ export default function SettingsPage() {
       .update(payload).eq('id', box.id).select(BOX_SETTINGS_COLUMNS).maybeSingle();
 
     if (error || !updated) {
-      alert(`Erreur: ${error?.message ?? 'aucune ligne modifiée (droits insuffisants)'}`);
+      inform({ kind: 'error', title: ERROR_TITLE, body: `Erreur: ${error?.message ?? 'aucune ligne modifiée (droits insuffisants)'}` });
     } else {
       if (updated) setBox(updated);
       setSavedInfo(true);
@@ -469,6 +472,7 @@ export default function SettingsPage() {
 
   return (
     <div className="space-y-8 max-w-2xl">
+      {dialog}
       <div>
         <div className="flex items-center gap-3">
           <h1 className="text-2xl font-black text-white">Réglages</h1>

@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import { Loader2, Star, CalendarClock, Check, PartyPopper } from 'lucide-react';
+import { useConfirmDialog } from '@/components/ui/confirm-dialog';
 
 const supabase = createClient();
 
@@ -37,6 +38,7 @@ function fmt(dt: string) {
 }
 
 export default function SuiviPage() {
+  const { dialog, inform } = useConfirmDialog();
   const [loading, setLoading] = useState(true);
   const [followups, setFollowups] = useState<Followup[]>([]);
   const [slotsByBox, setSlotsByBox] = useState<Record<string, Slot[]>>({});
@@ -112,7 +114,7 @@ export default function SuiviPage() {
 
   async function book(slotId: string) {
     const { error } = await supabase.rpc('book_appointment_slot', { p_slot_id: slotId });
-    if (error) { alert(error.message === 'SLOT_FULL' ? 'Ce créneau est complet.' : 'Réservation impossible.'); }
+    if (error) { inform({ kind: 'error', title: 'Réservation impossible', body: error.message === 'SLOT_FULL' ? 'Ce créneau est complet.' : 'Réservation impossible.' }); }
     await load();
   }
 
@@ -122,6 +124,7 @@ export default function SuiviPage() {
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-8">
+      {dialog}
       <h1 className="text-2xl font-black text-white mb-1">Ton parcours</h1>
       <p className="text-sm text-gray-400 mb-6">Après ta séance d&apos;essai, on t&apos;accompagne pour la suite.</p>
 

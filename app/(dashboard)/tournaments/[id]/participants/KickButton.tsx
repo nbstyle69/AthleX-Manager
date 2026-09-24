@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { UserX, Loader2 } from 'lucide-react';
 import { useConfirmDialog } from '@/components/ui/confirm-dialog';
+import { ERROR_TITLE } from '@/lib/confirmDialog';
 
 export default function KickButton({
   tournamentId,
@@ -20,7 +21,7 @@ export default function KickButton({
   const router = useRouter();
   const supabase = createClient();
   const [kicking, setKicking] = useState(false);
-  const { dialog, ask } = useConfirmDialog();
+  const { dialog, ask, inform } = useConfirmDialog();
 
   function askKick() {
     ask({
@@ -42,7 +43,7 @@ export default function KickButton({
       .eq('athlete_id', athleteId);
     setKicking(false);
     if (error) {
-      alert(`Erreur : ${error.message}`);
+      inform({ kind: 'error', title: ERROR_TITLE, body: `Erreur : ${error.message}` });
       return;
     }
     router.refresh();

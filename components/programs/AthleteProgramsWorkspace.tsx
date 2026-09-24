@@ -17,7 +17,7 @@ import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { useConfirmDialog } from '@/components/ui/confirm-dialog';
-import { fullDate } from '@/lib/confirmDialog';
+import { fullDate, ERROR_TITLE } from '@/lib/confirmDialog';
 
 interface Program {
   id: string;
@@ -90,7 +90,7 @@ function genCode(): string {
 /** Onglet « Programmes athlètes » de Marketplace : les programmes vendus aux athlètes de la box. */
 export default function AthleteProgramsWorkspace() {
   const supabase = createClient();
-  const { dialog, ask } = useConfirmDialog();
+  const { dialog, ask, inform } = useConfirmDialog();
   const [boxId, setBoxId] = useState<string | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
 
@@ -346,7 +346,7 @@ export default function AthleteProgramsWorkspace() {
 
     setSaving(false);
     const fail = writeFailure(res.error, res.data);
-    if (fail) { alert(`Impossible d'enregistrer le programme : ${fail}`); return; }
+    if (fail) { inform({ kind: 'error', title: ERROR_TITLE, body: `Impossible d'enregistrer le programme : ${fail}` }); return; }
     setShowForm(false);
     loadAll();
   }
@@ -365,7 +365,7 @@ export default function AthleteProgramsWorkspace() {
   async function handleDelete(id: string) {
     const { data, error } = await supabase.from('programs').delete().eq('id', id).select('id');
     const fail = writeFailure(error, data);
-    if (fail) { alert(`Suppression impossible : ${fail}`); return; }
+    if (fail) { inform({ kind: 'error', title: ERROR_TITLE, body: `Suppression impossible : ${fail}` }); return; }
     loadAll();
   }
 
@@ -373,7 +373,7 @@ export default function AthleteProgramsWorkspace() {
     const { data, error } = await supabase
       .from('programs').update({ is_active: !p.is_active }).eq('id', p.id).select('id');
     const fail = writeFailure(error, data);
-    if (fail) { alert(`Impossible de changer l'état du programme : ${fail}`); return; }
+    if (fail) { inform({ kind: 'error', title: ERROR_TITLE, body: `Impossible de changer l'état du programme : ${fail}` }); return; }
     loadAll();
   }
 
