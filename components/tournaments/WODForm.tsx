@@ -101,7 +101,7 @@ export default function WODForm({ tournamentId, divisions = [], isLeague = false
     Array.isArray(initial?.movements) ? initial.movements : []
   );
 
-  // AI Generator state
+  // Générateur de WOD (moteurs déterministes, pas d'IA)
   const [showGen,      setShowGen]      = useState(false);
   const [genLoading,   setGenLoading]   = useState(false);
   const [genSport,     setGenSport]     = useState<'functional'|'hybrid'>('functional');
@@ -257,12 +257,12 @@ export default function WODForm({ tournamentId, divisions = [], isLeague = false
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
 
-      {/* ── AI Generator panel ── */}
+      {/* ── Générateur de WOD ── */}
       <div className="border border-white/30 rounded-xl overflow-hidden">
         <button type="button" onClick={() => setShowGen(v => !v)}
           className="w-full flex items-center gap-2 px-4 py-3 bg-white/10 hover:bg-white/15 transition-colors text-left">
           <Sparkles size={15} className="text-white" />
-          <span className="text-sm font-bold text-white">Générer avec l&apos;IA</span>
+          <span className="text-sm font-bold text-white">Générer un WOD</span>
           <span className="ml-auto text-gray-500">{showGen ? <ChevronUp size={14}/> : <ChevronDown size={14}/>}</span>
         </button>
 
@@ -402,8 +402,10 @@ export default function WODForm({ tournamentId, divisions = [], isLeague = false
             {genError && <p className="text-xs text-red-400">{genError}</p>}
 
             <button type="button" onClick={generateWOD} disabled={genLoading}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold text-white disabled:opacity-60 transition-colors ${
-                genSport === 'hybrid' ? 'bg-orange-500' : 'bg-white'
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold disabled:opacity-60 transition-colors ${
+                // Même paire que le bouton d'enregistrement : le passage de l'or
+                // au blanc avait laissé ici un texte blanc sur fond blanc.
+                genSport === 'hybrid' ? 'bg-orange-500 text-white' : 'bg-white text-[#0A0A0A]'
               }`}>
               {genLoading ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
               {genLoading ? 'Génération en cours...' : 'Générer le WOD'}
