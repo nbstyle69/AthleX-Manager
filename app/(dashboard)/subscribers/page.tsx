@@ -8,6 +8,9 @@ import { CreditCard, Loader2, Search, Users, BookOpen, Pause, Play, FileText, Ch
 import { getMyBox } from '@/lib/getMyBox';
 import { getMemberEmails } from '@/lib/memberEmails';
 import UnpaidPanel from '@/components/UnpaidPanel';
+import { Badge } from '@/components/ui/badge';
+
+const INPUT_CLS = 'w-full min-h-11 px-3 py-2.5 rounded-ax-control bg-ax-surface border border-ax-input-border text-base sm:text-sm text-ax-text placeholder:text-ax-text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ax-focus focus-visible:ring-offset-2 focus-visible:ring-offset-ax-surface transition-colors';
 
 const supabase = createClient();
 
@@ -49,11 +52,14 @@ interface CancelRequest {
   username: string;
 }
 
-const STATUS_STYLE: Record<string, { label: string; color: string }> = {
-  active:    { label: 'Actif',    color: '#22C55E' },
-  past_due:  { label: 'Impayé',   color: '#F59E0B' },
-  cancelled: { label: 'Annulé',   color: '#EF4444' },
-  refunded:  { label: 'Remboursé', color: '#EF4444' },
+// Même sens qu'avant (actif vert, impayé orange, annulé/remboursé rouge, autre
+// statut gris), en jetons lisibles dans les deux thèmes ; le libellé porte le sens.
+type StatusVariant = 'success' | 'warning' | 'danger' | 'neutral';
+const STATUS_STYLE: Record<string, { label: string; variant: StatusVariant }> = {
+  active:    { label: 'Actif',    variant: 'success' },
+  past_due:  { label: 'Impayé',   variant: 'warning' },
+  cancelled: { label: 'Annulé',   variant: 'danger' },
+  refunded:  { label: 'Remboursé', variant: 'danger' },
 };
 
 function fmtPrice(cents: number | null) {
@@ -363,7 +369,7 @@ export default function SubscribersPage() {
     .reduce((s, r) => s + (r.amountCents ?? 0), 0);
 
   if (loading) {
-    return <div className="flex items-center justify-center h-64"><Loader2 className="animate-spin text-gray-500" /></div>;
+    return <div className="flex items-center justify-center h-64"><Loader2 className="animate-spin text-ax-text-muted" /></div>;
   }
 
   return (
@@ -371,31 +377,31 @@ export default function SubscribersPage() {
       <div className="flex items-center justify-between">
         <div>
           <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-black text-white">Abonnés</h1>
+            <h1 className="font-display text-2xl font-medium uppercase tracking-wide text-ax-text">Abonnés</h1>
             <HelpButton />
           </div>
-          <p className="text-sm text-gray-400 mt-1">Tous les membres qui paient (abonnements salle + programmes)</p>
+          <p className="text-sm text-ax-text-secondary mt-1">Tous les membres qui paient (abonnements salle + programmes)</p>
         </div>
       </div>
 
       {/* KPIs */}
       <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-        <div className="bg-[#111111] border border-white/8 rounded-2xl p-4">
-          <p className="text-xs text-gray-500 font-bold uppercase tracking-wider">Abonnements actifs</p>
-          <p className="text-2xl font-black text-white mt-1">{activeCount}</p>
+        <div className="bg-ax-surface border border-ax-border rounded-ax-card p-4">
+          <p className="text-xs text-ax-text-muted font-bold uppercase tracking-wider">Abonnements actifs</p>
+          <p className="text-2xl font-black text-ax-text mt-1">{activeCount}</p>
         </div>
-        <div className="bg-[#111111] border border-white/8 rounded-2xl p-4">
-          <p className="text-xs text-gray-500 font-bold uppercase tracking-wider">Revenu mensuel (salle)</p>
-          <p className="text-2xl font-black text-white mt-1">{fmtPrice(mrrCents)}</p>
+        <div className="bg-ax-surface border border-ax-border rounded-ax-card p-4">
+          <p className="text-xs text-ax-text-muted font-bold uppercase tracking-wider">Revenu mensuel (salle)</p>
+          <p className="text-2xl font-black text-ax-text mt-1">{fmtPrice(mrrCents)}</p>
         </div>
-        <div className="bg-[#111111] border border-white/8 rounded-2xl p-4">
-          <p className="text-xs text-gray-500 font-bold uppercase tracking-wider">Total lignes</p>
-          <p className="text-2xl font-black text-white mt-1">{rows.length}</p>
+        <div className="bg-ax-surface border border-ax-border rounded-ax-card p-4">
+          <p className="text-xs text-ax-text-muted font-bold uppercase tracking-wider">Total lignes</p>
+          <p className="text-2xl font-black text-ax-text mt-1">{rows.length}</p>
         </div>
       </div>
 
       {actionError && (
-        <div className="bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-2.5 text-sm text-red-400">{actionError}</div>
+        <div className="bg-ax-danger-soft border border-ax-danger rounded-ax-control px-4 py-2.5 text-sm text-ax-danger">{actionError}</div>
       )}
 
       {/* Impayés : relance, encaissement, suspension des droits */}
@@ -403,31 +409,31 @@ export default function SubscribersPage() {
 
       {/* Demandes de résiliation anticipée (motif légitime + justificatif) */}
       {cancelReqs.length > 0 && (
-        <div className="bg-amber-500/[0.06] border border-amber-500/25 rounded-2xl p-4 space-y-3">
-          <p className="text-sm font-black text-amber-300">Demandes de résiliation ({cancelReqs.length})</p>
+        <div className="bg-ax-warning-soft border border-ax-warning rounded-ax-card p-4 space-y-3">
+          <p className="text-sm font-black text-ax-warning">Demandes de résiliation ({cancelReqs.length})</p>
           {cancelReqs.map(req => (
-            <div key={req.id} className="flex items-start justify-between gap-4 bg-black/20 border border-white/[0.06] rounded-xl p-3">
+            <div key={req.id} className="flex flex-wrap items-start justify-between gap-4 bg-ax-surface border border-ax-border rounded-ax-control p-3">
               <div className="min-w-0">
-                <p className="text-sm font-bold text-white">
+                <p className="text-sm font-bold text-ax-text break-words">
                   {req.username}
-                  <span className="ml-2 text-xs font-semibold text-amber-400">{REASON_LABEL[req.reason_type] ?? req.reason_type}</span>
+                  <span className="ml-2 text-xs font-semibold text-ax-warning">{REASON_LABEL[req.reason_type] ?? req.reason_type}</span>
                 </p>
-                {req.message && <p className="text-xs text-gray-400 mt-1 whitespace-pre-wrap">{req.message}</p>}
-                <p className="text-[10px] text-gray-600 mt-1">{fmtDate(req.created_at)}</p>
+                {req.message && <p className="text-xs text-ax-text-secondary mt-1 whitespace-pre-wrap break-words">{req.message}</p>}
+                <p className="text-[10px] text-ax-text-muted mt-1">{fmtDate(req.created_at)}</p>
               </div>
-              <div className="flex items-center gap-2 flex-shrink-0">
+              <div className="flex flex-wrap items-center gap-2 flex-shrink-0">
                 {req.document_path && (
                   <button onClick={() => viewDoc(req.id)}
-                    className="flex items-center gap-1 text-xs font-bold text-gray-300 bg-white/5 hover:bg-white/10 rounded-lg px-2.5 py-1.5">
+                    className="flex items-center gap-1 text-xs font-bold text-ax-text-secondary bg-ax-surface-secondary hover:bg-ax-hover rounded-ax-control px-2.5 py-1.5">
                     <FileText size={13} /> Justificatif
                   </button>
                 )}
                 <button onClick={() => reviewRequest(req.id, 'approve')} disabled={actionBusy === `req-${req.id}`}
-                  className="flex items-center gap-1 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 rounded-lg px-2.5 py-1.5">
+                  className="flex items-center gap-1 text-xs font-bold text-ax-accent-foreground bg-ax-accent border border-ax-accent hover:brightness-110 disabled:opacity-50 rounded-ax-control px-2.5 py-1.5">
                   {actionBusy === `req-${req.id}` ? <Loader2 size={13} className="animate-spin" /> : <Check size={13} />} Approuver
                 </button>
                 <button onClick={() => reviewRequest(req.id, 'reject')} disabled={actionBusy === `req-${req.id}`}
-                  className="flex items-center gap-1 text-xs font-bold text-red-400 bg-red-500/10 hover:bg-red-500/20 disabled:opacity-50 rounded-lg px-2.5 py-1.5">
+                  className="flex items-center gap-1 text-xs font-bold text-ax-danger bg-ax-danger-soft hover:brightness-110 disabled:opacity-50 rounded-ax-control px-2.5 py-1.5">
                   <X size={13} /> Refuser
                 </button>
               </div>
@@ -439,66 +445,66 @@ export default function SubscribersPage() {
       {/* Filters */}
       <div className="flex items-center gap-3 flex-wrap">
         <div className="relative flex-1 min-w-[200px]">
-          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
+          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-ax-text-muted" />
           <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Rechercher un membre, une formule…"
-            className="w-full bg-[#111111] border border-white/10 rounded-xl pl-9 pr-3 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-white/30" />
+            className={`${INPUT_CLS} pl-9`} />
         </div>
         {(['all', 'membership', 'program'] as const).map(f => (
-          <button key={f} onClick={() => setFilter(f)}
-            className={`px-3 py-2 rounded-xl text-xs font-bold transition-colors ${filter === f ? 'bg-white text-black' : 'bg-[#111111] border border-white/10 text-gray-400 hover:text-white'}`}>
+          <button key={f} onClick={() => setFilter(f)} aria-pressed={filter === f}
+            className={`px-3 py-2 rounded-ax-control text-xs font-bold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ax-focus focus-visible:ring-offset-2 focus-visible:ring-offset-ax-surface ${filter === f ? 'bg-ax-text text-ax-background' : 'bg-ax-surface border border-ax-border text-ax-text-secondary hover:text-ax-text'}`}>
             {f === 'all' ? 'Tout' : f === 'membership' ? 'Salle' : 'Programmes'}
           </button>
         ))}
       </div>
 
       {/* Table */}
-      <div className="bg-[#111111] border border-white/8 rounded-2xl overflow-hidden">
-        <table className="w-full text-sm">
+      <div className="bg-ax-surface border border-ax-border rounded-ax-card overflow-x-auto" data-testid="tableau-abonnes">
+        <table className="w-full min-w-[64rem] text-sm">
           <thead>
-            <tr className="border-b border-white/8 text-left">
-              <th className="px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Membre</th>
-              <th className="px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Type</th>
-              <th className="px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Formule / Programme</th>
-              <th className="px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Inscrit le</th>
-              <th className="px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Montant</th>
-              <th className="px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Statut</th>
-              <th className="px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Prochaine échéance</th>
-              <th className="px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider text-right">Actions</th>
+            <tr className="border-b border-ax-border text-left">
+              <th className="px-4 py-3 text-xs font-bold text-ax-text-muted uppercase tracking-wider">Membre</th>
+              <th className="px-4 py-3 text-xs font-bold text-ax-text-muted uppercase tracking-wider">Type</th>
+              <th className="px-4 py-3 text-xs font-bold text-ax-text-muted uppercase tracking-wider">Formule / Programme</th>
+              <th className="px-4 py-3 text-xs font-bold text-ax-text-muted uppercase tracking-wider">Inscrit le</th>
+              <th className="px-4 py-3 text-xs font-bold text-ax-text-muted uppercase tracking-wider">Montant</th>
+              <th className="px-4 py-3 text-xs font-bold text-ax-text-muted uppercase tracking-wider">Statut</th>
+              <th className="px-4 py-3 text-xs font-bold text-ax-text-muted uppercase tracking-wider">Prochaine échéance</th>
+              <th className="px-4 py-3 text-xs font-bold text-ax-text-muted uppercase tracking-wider text-right">Actions</th>
             </tr>
           </thead>
           <tbody>
             {current.map(r => {
-              const st = STATUS_STYLE[r.status] ?? { label: r.status, color: '#9CA3AF' };
+              const st = STATUS_STYLE[r.status] ?? { label: r.status, variant: 'neutral' as StatusVariant };
               const history = memberInvoices(r);
               const cash = memberCash(r);
               const historyOpen = openHistory === r.key;
               const isCashMember = r.kind === 'membership' && !r.hasStripeSub;
               return (
                 <Fragment key={r.key}>
-                <tr className="border-b border-white/[0.04] hover:bg-white/[0.02]">
+                <tr className="border-b border-ax-border hover:bg-ax-hover">
                   <td className="px-4 py-3">
-                    <p className="font-semibold text-white">{r.username}</p>
-                    <p className="text-xs text-gray-500">{r.email}</p>
+                    <p className="font-semibold text-ax-text break-words min-w-[10rem]">{r.username}</p>
+                    <p className="text-xs text-ax-text-muted [overflow-wrap:anywhere]">{r.email}</p>
                   </td>
                   <td className="px-4 py-3">
-                    <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-gray-400">
+                    <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-ax-text-secondary">
                       {r.kind === 'membership' ? <Users size={13} /> : <BookOpen size={13} />}
                       {r.kind === 'membership' ? 'Salle' : 'Programme'}
                     </span>
                   </td>
                   <td className="px-4 py-3">
-                    <span className="inline-flex items-center gap-2 text-white font-semibold">
-                      <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: r.color }} />
+                    <span className="inline-flex items-center gap-2 text-ax-text font-semibold">
+                      <span className="w-2.5 h-2.5 rounded-full shrink-0 border border-ax-border" style={{ backgroundColor: r.color }} />
                       {r.label}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-xs text-gray-400">{fmtDate(r.joinedAt)}</td>
-                  <td className="px-4 py-3 font-bold text-white">
-                    {fmtPrice(r.amountCents)}{r.kind === 'membership' && <span className="text-[10px] text-gray-500 font-semibold">/mois</span>}
+                  <td className="px-4 py-3 text-xs text-ax-text-secondary">{fmtDate(r.joinedAt)}</td>
+                  <td className="px-4 py-3 font-bold text-ax-text">
+                    {fmtPrice(r.amountCents)}{r.kind === 'membership' && <span className="text-[10px] text-ax-text-muted font-semibold">/mois</span>}
                     {(() => {
                       const thisMonth = memberInvoices(r).find(i => i.month === currentMonthKey());
                       return !thisMonth ? null : (
-                        <span className="block text-[10px] font-semibold text-sky-400/80">
+                        <span className="block text-[10px] font-semibold text-ax-info">
                           facturé ce mois : {fmtPrice(thisMonth.amount_due_cents)}
                           {thisMonth.status !== 'paid' && ` (${INVOICE_STATUS_LABEL[thisMonth.status ?? ''] ?? thisMonth.status})`}
                         </span>
@@ -506,46 +512,45 @@ export default function SubscribersPage() {
                     })()}
                   </td>
                   <td className="px-4 py-3">
-                    <span className="inline-flex items-center gap-1.5 text-xs font-bold px-2 py-1 rounded-lg"
-                      style={{ color: st.color, backgroundColor: `${st.color}18` }}>
+                    <Badge variant={st.variant} className="font-bold">
                       {st.label}
-                    </span>
+                    </Badge>
                     {r.paused && (
-                      <span className="block mt-1 text-[10px] font-semibold text-sky-400">En pause</span>
+                      <span className="block mt-1 text-[10px] font-semibold text-ax-info">En pause</span>
                     )}
                     {r.cancelAtPeriodEnd && (
-                      <span className="block mt-1 text-[10px] font-semibold text-amber-400">Résiliation prévue</span>
+                      <span className="block mt-1 text-[10px] font-semibold text-ax-warning">Résiliation prévue</span>
                     )}
                   </td>
-                  <td className="px-4 py-3 text-xs text-gray-400">
+                  <td className="px-4 py-3 text-xs text-ax-text-secondary">
                     {fmtDate(r.periodEnd)}
                     {r.cancelAtPeriodEnd && r.periodEnd && (
-                      <span className="block text-[10px] text-amber-400/80">fin d'abonnement</span>
+                      <span className="block text-[10px] text-ax-warning">fin d'abonnement</span>
                     )}
                     {!r.cancelAtPeriodEnd && r.commitmentEndDate && new Date(r.commitmentEndDate) > new Date() && (
-                      <span className="block text-[10px] text-amber-400/80">engagé jusqu'au {fmtDate(r.commitmentEndDate)}</span>
+                      <span className="block text-[10px] text-ax-warning">engagé jusqu'au {fmtDate(r.commitmentEndDate)}</span>
                     )}
                     {r.paused && r.pauseResumesAt && (
-                      <span className="block text-[10px] text-sky-400/80">reprise le {fmtDate(r.pauseResumesAt)}</span>
+                      <span className="block text-[10px] text-ax-info">reprise le {fmtDate(r.pauseResumesAt)}</span>
                     )}
                   </td>
                   <td className="px-4 py-3 text-right space-x-2 whitespace-nowrap">
                     {(history.length > 0 || cash.length > 0) && (
                       <button onClick={() => setOpenHistory(historyOpen ? null : r.key)}
-                        className="inline-flex items-center gap-1 text-xs font-bold text-gray-300 bg-white/5 hover:bg-white/10 rounded-lg px-2.5 py-1.5">
+                        className="inline-flex items-center gap-1 text-xs font-bold text-ax-text-secondary bg-ax-surface-secondary hover:bg-ax-hover rounded-ax-control px-2.5 py-1.5">
                         {historyOpen ? <ChevronDown size={13} /> : <ChevronRight size={13} />} {history.length > 0 ? 'Factures' : 'Encaissements'}
                       </button>
                     )}
                     {isCashMember && r.status !== 'cancelled' && (
                       <button onClick={() => recordCashPayment(r)} disabled={actionBusy === r.key}
-                        className="inline-flex items-center gap-1 text-xs font-bold text-amber-400 bg-amber-500/10 hover:bg-amber-500/20 rounded-lg px-2.5 py-1.5 disabled:opacity-50">
+                        className="inline-flex items-center gap-1 text-xs font-bold text-ax-warning bg-ax-warning-soft hover:brightness-110 rounded-ax-control px-2.5 py-1.5 disabled:opacity-50">
                         {actionBusy === r.key ? <Loader2 size={13} className="animate-spin" /> : <Banknote size={13} />}
                         Encaissement reçu
                       </button>
                     )}
                     {r.kind === 'membership' && r.hasStripeSub && r.status !== 'cancelled' && (
                       <button onClick={() => togglePause(r)} disabled={actionBusy === r.key}
-                        className={`inline-flex items-center gap-1 text-xs font-bold rounded-lg px-2.5 py-1.5 disabled:opacity-50 ${r.paused ? 'text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20' : 'text-sky-400 bg-sky-500/10 hover:bg-sky-500/20'}`}>
+                        className={`inline-flex items-center gap-1 text-xs font-bold rounded-ax-control px-2.5 py-1.5 disabled:opacity-50 ${r.paused ? 'text-ax-success bg-ax-success-soft hover:brightness-110' : 'text-ax-info bg-ax-info-soft hover:brightness-110'}`}>
                         {actionBusy === r.key ? <Loader2 size={13} className="animate-spin" /> : r.paused ? <Play size={13} /> : <Pause size={13} />}
                         {r.paused ? 'Reprendre' : 'Geler'}
                       </button>
@@ -553,9 +558,9 @@ export default function SubscribersPage() {
                   </td>
                 </tr>
                 {historyOpen && (
-                  <tr className="border-b border-white/[0.04] bg-black/30">
+                  <tr className="border-b border-ax-border bg-ax-surface-secondary">
                     <td colSpan={8} className="px-4 py-3">
-                      <p className="text-xs font-bold text-gray-400 mb-2">
+                      <p className="text-xs font-bold text-ax-text-secondary mb-2">
                         {history.length > 0
                           ? 'Historique de facturation (montants réellement prélevés)'
                           : 'Encaissements au comptoir (journal, non modifiable)'}
@@ -563,26 +568,26 @@ export default function SubscribersPage() {
                       <div className="space-y-1">
                         {cash.map(c => (
                           <div key={c.id} className="flex items-center gap-3 text-xs">
-                            <span className="w-32 text-gray-400 capitalize">{fmtMonth(c.collected_at.slice(0, 7))}</span>
-                            <span className="w-24 font-bold text-white">{fmtPrice(c.amount_cents)}</span>
-                            <span className="text-amber-400">
+                            <span className="w-32 text-ax-text-secondary capitalize">{fmtMonth(c.collected_at.slice(0, 7))}</span>
+                            <span className="w-24 font-bold text-ax-text">{fmtPrice(c.amount_cents)}</span>
+                            <span className="text-ax-warning">
                               {c.source === 'invitation' ? 'Comptoir · 1re échéance' : 'Comptoir'}
                             </span>
-                            <span className="text-gray-600">{fmtDate(c.collected_at)}</span>
-                            {c.plan_name && <span className="text-gray-600">{c.plan_name}</span>}
+                            <span className="text-ax-text-muted">{fmtDate(c.collected_at)}</span>
+                            {c.plan_name && <span className="text-ax-text-muted">{c.plan_name}</span>}
                           </div>
                         ))}
                         {history.map(inv => (
                           <div key={inv.id} className="flex items-center gap-3 text-xs">
-                            <span className="w-32 text-gray-400 capitalize">{fmtMonth(inv.month)}</span>
-                            <span className="w-24 font-bold text-white">{fmtPrice(inv.amount_due_cents)}</span>
-                            <span className={inv.status === 'paid' ? 'text-emerald-400' : 'text-amber-400'}>
+                            <span className="w-32 text-ax-text-secondary capitalize">{fmtMonth(inv.month)}</span>
+                            <span className="w-24 font-bold text-ax-text">{fmtPrice(inv.amount_due_cents)}</span>
+                            <span className={inv.status === 'paid' ? 'text-ax-success' : 'text-ax-warning'}>
                               {INVOICE_STATUS_LABEL[inv.status ?? ''] ?? inv.status}
                             </span>
-                            <span className="text-gray-600">{fmtDate(inv.created)}</span>
+                            <span className="text-ax-text-muted">{fmtDate(inv.created)}</span>
                             {inv.url && (
                               <a href={inv.url} target="_blank" rel="noopener noreferrer"
-                                className="inline-flex items-center gap-1 text-gray-400 hover:text-white">
+                                className="inline-flex items-center gap-1 text-ax-text-secondary hover:text-ax-text">
                                 <ExternalLink size={12} /> {inv.number ?? 'Facture'}
                               </a>
                             )}
@@ -596,8 +601,8 @@ export default function SubscribersPage() {
               );
             })}
             {current.length === 0 && (
-              <tr><td colSpan={8} className="px-4 py-10 text-center text-sm text-gray-600">
-                <CreditCard size={22} className="mx-auto mb-2 text-gray-700" />
+              <tr><td colSpan={8} className="px-4 py-10 text-center text-sm text-ax-text-muted">
+                <CreditCard size={22} className="mx-auto mb-2 text-ax-text-muted" />
                 Aucun abonné pour l'instant.
               </td></tr>
             )}
@@ -608,50 +613,49 @@ export default function SubscribersPage() {
       {/* Anciens membres : abonnements résiliés ou remboursés */}
       {former.length > 0 && (
         <div className="space-y-2">
-          <p className="text-sm font-black text-gray-400">Anciens membres ({former.length})</p>
-          <div className="bg-[#111111] border border-white/8 rounded-2xl overflow-hidden opacity-80">
-            <table className="w-full text-sm">
+          <p className="text-sm font-black text-ax-text-secondary">Anciens membres ({former.length})</p>
+          <div className="bg-ax-surface border border-ax-border rounded-ax-card overflow-x-auto" data-testid="tableau-anciens">
+            <table className="w-full min-w-[56rem] text-sm">
               <thead>
-                <tr className="border-b border-white/8 text-left">
-                  <th className="px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Membre</th>
-                  <th className="px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Type</th>
-                  <th className="px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Formule / Programme</th>
-                  <th className="px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Inscrit le</th>
-                  <th className="px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Montant</th>
-                  <th className="px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Statut</th>
-                  <th className="px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Fin d'abonnement</th>
+                <tr className="border-b border-ax-border text-left">
+                  <th className="px-4 py-3 text-xs font-bold text-ax-text-muted uppercase tracking-wider">Membre</th>
+                  <th className="px-4 py-3 text-xs font-bold text-ax-text-muted uppercase tracking-wider">Type</th>
+                  <th className="px-4 py-3 text-xs font-bold text-ax-text-muted uppercase tracking-wider">Formule / Programme</th>
+                  <th className="px-4 py-3 text-xs font-bold text-ax-text-muted uppercase tracking-wider">Inscrit le</th>
+                  <th className="px-4 py-3 text-xs font-bold text-ax-text-muted uppercase tracking-wider">Montant</th>
+                  <th className="px-4 py-3 text-xs font-bold text-ax-text-muted uppercase tracking-wider">Statut</th>
+                  <th className="px-4 py-3 text-xs font-bold text-ax-text-muted uppercase tracking-wider">Fin d'abonnement</th>
                 </tr>
               </thead>
               <tbody>
                 {former.map(r => {
-                  const st = STATUS_STYLE[r.status] ?? { label: r.status, color: '#9CA3AF' };
+                  const st = STATUS_STYLE[r.status] ?? { label: r.status, variant: 'neutral' as StatusVariant };
                   return (
-                    <tr key={r.key} className="border-b border-white/[0.04] hover:bg-white/[0.02]">
+                    <tr key={r.key} className="border-b border-ax-border hover:bg-ax-hover">
                       <td className="px-4 py-3">
-                        <p className="font-semibold text-gray-300">{r.username}</p>
-                        <p className="text-xs text-gray-600">{r.email}</p>
+                        <p className="font-semibold text-ax-text-secondary break-words min-w-[10rem]">{r.username}</p>
+                        <p className="text-xs text-ax-text-muted [overflow-wrap:anywhere]">{r.email}</p>
                       </td>
                       <td className="px-4 py-3">
-                        <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-gray-500">
+                        <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-ax-text-muted">
                           {r.kind === 'membership' ? <Users size={13} /> : <BookOpen size={13} />}
                           {r.kind === 'membership' ? 'Salle' : 'Programme'}
                         </span>
                       </td>
                       <td className="px-4 py-3">
-                        <span className="inline-flex items-center gap-2 text-gray-300 font-semibold">
-                          <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: r.color }} />
+                        <span className="inline-flex items-center gap-2 text-ax-text-secondary font-semibold">
+                          <span className="w-2.5 h-2.5 rounded-full shrink-0 border border-ax-border" style={{ backgroundColor: r.color }} />
                           {r.label}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-xs text-gray-500">{fmtDate(r.joinedAt)}</td>
-                      <td className="px-4 py-3 font-bold text-gray-300">{fmtPrice(r.amountCents)}</td>
+                      <td className="px-4 py-3 text-xs text-ax-text-muted">{fmtDate(r.joinedAt)}</td>
+                      <td className="px-4 py-3 font-bold text-ax-text-secondary">{fmtPrice(r.amountCents)}</td>
                       <td className="px-4 py-3">
-                        <span className="inline-flex items-center gap-1.5 text-xs font-bold px-2 py-1 rounded-lg"
-                          style={{ color: st.color, backgroundColor: `${st.color}18` }}>
+                        <Badge variant={st.variant} className="font-bold">
                           {st.label}
-                        </span>
+                        </Badge>
                       </td>
-                      <td className="px-4 py-3 text-xs text-gray-500">{fmtDate(r.periodEnd)}</td>
+                      <td className="px-4 py-3 text-xs text-ax-text-muted">{fmtDate(r.periodEnd)}</td>
                     </tr>
                   );
                 })}

@@ -3,6 +3,9 @@
 import { useCallback, useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { writeFailure } from '@/lib/writeGuard';
+import { softVar } from '@/lib/colorVars';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import {
   Plus, Pencil, Trash2, X, Calendar, CreditCard,
 } from 'lucide-react';
@@ -25,6 +28,8 @@ export interface MembershipPlan {
   commitment_months: number;
   terms: string | null;
 }
+
+const INPUT_CLS = 'w-full min-h-11 px-3 py-2.5 rounded-ax-control bg-ax-surface border border-ax-input-border text-base sm:text-sm text-ax-text placeholder:text-ax-text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ax-focus focus-visible:ring-offset-2 focus-visible:ring-offset-ax-surface transition-colors';
 
 const PLAN_COLORS = ['#FFFFFF', '#EF4444', '#3B82F6', '#8B5CF6', '#16A34A', '#F59E0B', '#EC4899'];
 
@@ -213,49 +218,47 @@ export default function MembershipPlansSection({ boxId }: { boxId: string | null
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-1">
-        <h2 className="text-lg font-black text-white">Offres d&apos;accès à la salle</h2>
-        <button onClick={openNewPlan} className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold transition-all">
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-1">
+        <h2 className="text-lg font-black text-ax-text">Offres d&apos;accès à la salle</h2>
+        <Button variant="ax-mint" onClick={openNewPlan}>
           <Plus size={16} /> Créer une offre
-        </button>
+        </Button>
       </div>
-      <p className="text-xs text-gray-500 mb-4">
-        <span className="font-semibold text-gray-400">Abonnement</span> (mensuel, quota séances/semaine) · <span className="font-semibold text-gray-400">Drop-in</span> (1 séance) · <span className="font-semibold text-gray-400">Carnet</span> (N séances valables X mois). Un prix &gt; 0 affiche l&apos;offre sur ta page publique (paiement Stripe). Une formule mensuelle à 0 € reste « gratuite » et s&apos;assigne manuellement dans Membres.
+      <p className="text-xs text-ax-text-muted mb-4">
+        <span className="font-semibold text-ax-text-secondary">Abonnement</span> (mensuel, quota séances/semaine) · <span className="font-semibold text-ax-text-secondary">Drop-in</span> (1 séance) · <span className="font-semibold text-ax-text-secondary">Carnet</span> (N séances valables X mois). Un prix &gt; 0 affiche l&apos;offre sur ta page publique (paiement Stripe). Une formule mensuelle à 0 € reste « gratuite » et s&apos;assigne manuellement dans Membres.
       </p>
 
       {loading ? (
-        <div className="text-center py-10 text-gray-500">Chargement…</div>
+        <div className="text-center py-10 text-ax-text-muted">Chargement…</div>
       ) : plans.length === 0 ? (
-        <div className="text-center py-12 bg-[#111] border border-white/[0.06] rounded-2xl">
-          <CreditCard size={36} className="mx-auto text-gray-600 mb-3" />
-          <p className="text-gray-500 text-sm">Aucune formule d&apos;abonnement</p>
-          <p className="text-gray-600 text-xs mt-1">Créez votre première formule mensuelle</p>
+        <div className="text-center py-12 bg-ax-surface border border-ax-border rounded-ax-card">
+          <CreditCard size={36} className="mx-auto text-ax-text-muted mb-3" />
+          <p className="text-ax-text-muted text-sm">Aucune formule d&apos;abonnement</p>
+          <p className="text-ax-text-muted text-xs mt-1">Créez votre première formule mensuelle</p>
         </div>
       ) : (
         <div className="grid gap-3">
           {plans.map(pl => (
-            <div key={pl.id} className={`bg-[#111] border border-white/[0.06] rounded-2xl p-5 ${!pl.is_active ? 'opacity-50' : ''}`}>
-              <div className="flex items-start justify-between">
+            <div key={pl.id} className={`bg-ax-surface border border-ax-border rounded-ax-card p-5 ${!pl.is_active ? 'border-dashed border-ax-input-border' : ''}`}>
+              <div className="flex items-start justify-between gap-3">
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: pl.color }} />
-                    <span className="font-bold text-white text-base truncate">{pl.name}</span>
-                    <span className={`text-[10px] px-2 py-0.5 rounded-md font-bold ${
-                      pl.plan_type === 'drop_in' ? 'bg-blue-500/10 text-blue-400'
-                      : pl.plan_type === 'pack' ? 'bg-purple-500/10 text-purple-400'
-                      : pl.plan_type === 'trial' ? 'bg-amber-500/10 text-amber-400'
-                      : 'bg-emerald-500/10 text-emerald-400'}`}>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="w-3 h-3 rounded-full shrink-0 border border-ax-border" style={{ backgroundColor: pl.color }} />
+                    <span className="font-bold text-ax-text text-base break-words min-w-0">{pl.name}</span>
+                    <Badge variant={pl.plan_type === 'drop_in' ? 'info' : pl.plan_type === 'trial' ? 'warning' : 'success'}
+                      className="text-[10px] px-2 py-0.5 font-bold"
+                      style={pl.plan_type === 'pack' ? { color: 'var(--ax-purple)', backgroundColor: softVar('var(--ax-purple)', 0.125) } : undefined}>
                       {pl.plan_type === 'drop_in' ? 'Drop-in'
                         : pl.plan_type === 'pack' ? 'Carnet'
                         : pl.plan_type === 'trial' ? 'Essai'
                         : 'Abonnement'}
-                    </span>
+                    </Badge>
                     {!pl.is_active && (
-                      <span className="text-[10px] px-2 py-0.5 rounded-md bg-red-500/10 text-red-400 font-semibold">Inactif</span>
+                      <Badge variant="danger" className="text-[10px] px-2 py-0.5">Inactif</Badge>
                     )}
                   </div>
-                  {pl.description && <p className="text-xs text-gray-500 mt-1 line-clamp-2">{pl.description}</p>}
-                  <div className="flex items-center gap-1.5 mt-2 text-xs text-gray-500">
+                  {pl.description && <p className="text-xs text-ax-text-muted mt-1 break-words">{pl.description}</p>}
+                  <div className="flex flex-wrap items-center gap-1.5 mt-2 text-xs text-ax-text-muted">
                     <Calendar size={13} />
                     <span className="font-semibold">
                       {pl.plan_type === 'trial'
@@ -269,26 +272,26 @@ export default function MembershipPlansSection({ boxId }: { boxId: string | null
                         : 'Séances illimitées'}
                     </span>
                     {pl.plan_type === 'subscription' && (pl.commitment_months ?? 0) > 0 && (
-                      <span className="font-semibold text-amber-400/90">· engagement {pl.commitment_months} mois</span>
+                      <span className="font-semibold text-ax-warning">· engagement {pl.commitment_months} mois</span>
                     )}
                   </div>
                 </div>
                 <div className="flex items-center gap-2 ml-4 flex-shrink-0">
-                  <span className="text-sm font-black text-emerald-400 bg-emerald-500/10 px-3 py-1.5 rounded-xl whitespace-nowrap">
+                  <span className="text-sm font-black text-ax-success bg-ax-success-soft px-3 py-1.5 rounded-ax-control whitespace-nowrap">
                     {formatPrice(pl.price_cents)}
-                    {pl.plan_type === 'subscription' && pl.price_cents > 0 && <span className="text-[10px] text-gray-500 font-semibold"> /mois</span>}
+                    {pl.plan_type === 'subscription' && pl.price_cents > 0 && <span className="text-[10px] text-ax-text-muted font-semibold"> /mois</span>}
                   </span>
                 </div>
               </div>
 
-              <div className="flex items-center gap-2 mt-4 pt-3 border-t border-white/[0.06]">
-                <button onClick={() => openEditPlan(pl)} className="flex items-center gap-1.5 px-3 py-2 rounded-lg hover:bg-white/5 text-gray-400 hover:text-white text-xs font-semibold transition-all">
+              <div className="flex flex-wrap items-center gap-2 mt-4 pt-3 border-t border-ax-border">
+                <button onClick={() => openEditPlan(pl)} className="flex items-center gap-1.5 px-3 py-2 rounded-ax-control hover:bg-ax-hover text-ax-text-secondary hover:text-ax-text text-xs font-semibold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ax-focus focus-visible:ring-offset-2 focus-visible:ring-offset-ax-surface">
                   <Pencil size={13} /> Modifier
                 </button>
-                <button onClick={() => togglePlanActive(pl)} className="flex items-center gap-1.5 px-3 py-2 rounded-lg hover:bg-white/5 text-gray-400 hover:text-white text-xs font-semibold transition-all">
+                <button onClick={() => togglePlanActive(pl)} className="flex items-center gap-1.5 px-3 py-2 rounded-ax-control hover:bg-ax-hover text-ax-text-secondary hover:text-ax-text text-xs font-semibold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ax-focus focus-visible:ring-offset-2 focus-visible:ring-offset-ax-surface">
                   {pl.is_active ? 'Désactiver' : 'Activer'}
                 </button>
-                <button onClick={() => handleDeletePlan(pl.id)} className="flex items-center gap-1.5 px-3 py-2 rounded-lg hover:bg-red-500/10 text-gray-500 hover:text-red-400 text-xs font-semibold transition-all">
+                <button onClick={() => handleDeletePlan(pl.id)} className="flex items-center gap-1.5 px-3 py-2 rounded-ax-control hover:bg-ax-danger-soft text-ax-text-muted hover:text-ax-danger text-xs font-semibold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ax-focus focus-visible:ring-offset-2 focus-visible:ring-offset-ax-surface">
                   <Trash2 size={13} /> Supprimer
                 </button>
               </div>
@@ -299,18 +302,18 @@ export default function MembershipPlansSection({ boxId }: { boxId: string | null
 
       {/* Modal form — Abonnement (formule) */}
       {showPlanForm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-          <div className="w-full max-w-lg bg-[#111] border border-white/[0.06] rounded-2xl p-6 max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-ax-overlay backdrop-blur-ax-glass p-4">
+          <div className="w-full max-w-lg bg-ax-surface border border-ax-border rounded-ax-panel shadow-ax-panel p-6 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-lg font-black text-white">
+              <h2 className="text-lg font-black text-ax-text">
                 {editPlanId ? 'Modifier l\'offre' : 'Nouvelle offre'}
               </h2>
-              <button onClick={() => setShowPlanForm(false)} className="text-gray-500 hover:text-white"><X size={20} /></button>
+              <button onClick={() => setShowPlanForm(false)} aria-label="Fermer" className="text-ax-text-muted hover:text-ax-text"><X size={20} /></button>
             </div>
 
             <div className="space-y-4">
               <div>
-                <label className="text-xs font-bold text-gray-400 mb-2 block">Type d&apos;offre</label>
+                <label className="text-xs font-bold text-ax-text-secondary mb-2 block">Type d&apos;offre</label>
                 <div className="grid grid-cols-2 gap-2">
                   {([
                     { v: 'subscription', label: 'Abonnement', desc: 'Mensuel récurrent' },
@@ -322,28 +325,29 @@ export default function MembershipPlansSection({ boxId }: { boxId: string | null
                       key={o.v}
                       type="button"
                       onClick={() => setPlanForm({ ...planForm, plan_type: o.v })}
-                      className={`p-3 rounded-xl border-2 text-left transition-all ${planForm.plan_type === o.v ? 'border-emerald-500 bg-emerald-500/10' : 'border-white/10 hover:border-white/20'}`}
+                      aria-pressed={planForm.plan_type === o.v}
+                      className={`p-3 rounded-ax-control border-2 text-left transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ax-focus focus-visible:ring-offset-2 focus-visible:ring-offset-ax-surface ${planForm.plan_type === o.v ? 'border-ax-accent-text bg-ax-accent-soft' : 'border-ax-border hover:border-ax-input-border'}`}
                     >
-                      <span className="text-sm font-bold text-white block">{o.label}</span>
-                      <span className="text-[11px] text-gray-500">{o.desc}</span>
+                      <span className="text-sm font-bold text-ax-text block">{o.label}</span>
+                      <span className="text-[11px] text-ax-text-muted">{o.desc}</span>
                     </button>
                   ))}
                 </div>
               </div>
 
               <div>
-                <label className="text-xs font-bold text-gray-400 mb-1 block">Nom *</label>
+                <label className="text-xs font-bold text-ax-text-secondary mb-1 block">Nom *</label>
                 <input
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white outline-none focus:border-emerald-500/50"
+                  className={INPUT_CLS}
                   value={planForm.name} onChange={e => setPlanForm({ ...planForm, name: e.target.value })}
                   placeholder={planForm.plan_type === 'drop_in' ? 'Séance à l\'unité' : planForm.plan_type === 'pack' ? 'Carnet 10 séances' : planForm.plan_type === 'trial' ? 'Séance découverte' : 'Essentiel, Premium…'}
                 />
               </div>
 
               <div>
-                <label className="text-xs font-bold text-gray-400 mb-1 block">Description</label>
+                <label className="text-xs font-bold text-ax-text-secondary mb-1 block">Description</label>
                 <textarea
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white outline-none focus:border-emerald-500/50 min-h-[70px]"
+                  className={`${INPUT_CLS} min-h-[70px] [field-sizing:content]`}
                   value={planForm.description} onChange={e => setPlanForm({ ...planForm, description: e.target.value })}
                   placeholder="Accès illimité aux cours…"
                 />
@@ -352,27 +356,27 @@ export default function MembershipPlansSection({ boxId }: { boxId: string | null
               {planForm.plan_type === 'subscription' && (
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="text-xs font-bold text-gray-400 mb-1 block">Prix (€/mois)</label>
+                    <label className="text-xs font-bold text-ax-text-secondary mb-1 block">Prix (€/mois)</label>
                     <input
                       type="number" min={0} step="0.01"
-                      className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white outline-none focus:border-emerald-500/50"
+                      className={INPUT_CLS}
                       value={planForm.price} onChange={e => setPlanForm({ ...planForm, price: e.target.value })}
                       placeholder="0 = gratuit"
                     />
                   </div>
                   <div>
-                    <label className="text-xs font-bold text-gray-400 mb-1 block">Séances / semaine</label>
+                    <label className="text-xs font-bold text-ax-text-secondary mb-1 block">Séances / semaine</label>
                     <input
                       type="number" min={1}
-                      className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white outline-none focus:border-emerald-500/50"
+                      className={INPUT_CLS}
                       value={planForm.max_sessions_per_week} onChange={e => setPlanForm({ ...planForm, max_sessions_per_week: e.target.value })}
                       placeholder="∞ (illimité)"
                     />
                   </div>
                   <div>
-                    <label className="text-xs font-bold text-gray-400 mb-1 block">Engagement</label>
+                    <label className="text-xs font-bold text-ax-text-secondary mb-1 block">Engagement</label>
                     <select
-                      className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white outline-none focus:border-emerald-500/50"
+                      className={INPUT_CLS}
                       value={planForm.commitment_months}
                       onChange={e => setPlanForm({ ...planForm, commitment_months: e.target.value })}
                     >
@@ -381,13 +385,13 @@ export default function MembershipPlansSection({ boxId }: { boxId: string | null
                       <option value="6">6 mois</option>
                       <option value="12">12 mois</option>
                     </select>
-                    <p className="text-[11px] text-gray-500 mt-1.5">Durée minimale avant résiliation libre. Au-delà, l&apos;adhérent peut résilier au mois.</p>
+                    <p className="text-[11px] text-ax-text-muted mt-1.5">Durée minimale avant résiliation libre. Au-delà, l&apos;adhérent peut résilier au mois.</p>
                   </div>
                   <div className="col-span-2">
-                    <label className="text-xs font-bold text-gray-400 mb-1 block">Conditions / mentions (affichées à la souscription)</label>
+                    <label className="text-xs font-bold text-ax-text-secondary mb-1 block">Conditions / mentions (affichées à la souscription)</label>
                     <textarea
                       rows={3}
-                      className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white outline-none focus:border-emerald-500/50 resize-none"
+                      className={`${INPUT_CLS} min-h-[5.5rem] [field-sizing:content] resize-none`}
                       value={planForm.terms} onChange={e => setPlanForm({ ...planForm, terms: e.target.value })}
                       placeholder="Ex. Prix TTC. Horaires d'accès 6h–22h. Résiliation possible pour motif légitime (déménagement, blessure) sur justificatif."
                     />
@@ -397,18 +401,18 @@ export default function MembershipPlansSection({ boxId }: { boxId: string | null
 
               {planForm.plan_type === 'trial' && (
                 <div className="space-y-3">
-                  <div className="px-3 py-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20">
-                    <p className="text-xs font-bold text-amber-300">Gratuite par construction</p>
-                    <p className="text-[11px] text-amber-200/70 mt-1">
+                  <div className="px-3 py-2.5 rounded-ax-control bg-ax-warning-soft border border-ax-warning">
+                    <p className="text-xs font-bold text-ax-warning">Gratuite par construction</p>
+                    <p className="text-[11px] text-ax-text-secondary mt-1">
                       Pas de prix à saisir : la base refuse une offre Essai payante. Une seule offre Essai par box.
                       Le visiteur réserve un cours à venir sans créer de compte, et son dossier arrive dans Prospects.
                     </p>
                   </div>
                   <div>
-                    <label className="text-xs font-bold text-gray-400 mb-1 block">Conditions / mentions (affichées au visiteur)</label>
+                    <label className="text-xs font-bold text-ax-text-secondary mb-1 block">Conditions / mentions (affichées au visiteur)</label>
                     <textarea
                       rows={3}
-                      className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white outline-none focus:border-emerald-500/50 resize-none"
+                      className={`${INPUT_CLS} min-h-[5.5rem] [field-sizing:content] resize-none`}
                       value={planForm.terms} onChange={e => setPlanForm({ ...planForm, terms: e.target.value })}
                       placeholder="Ex. Une séance d'essai par personne. Prévoir des chaussures de sport. Présente-toi 10 minutes avant le cours."
                     />
@@ -418,42 +422,42 @@ export default function MembershipPlansSection({ boxId }: { boxId: string | null
 
               {planForm.plan_type === 'drop_in' && (
                 <div>
-                  <label className="text-xs font-bold text-gray-400 mb-1 block">Prix (€)</label>
+                  <label className="text-xs font-bold text-ax-text-secondary mb-1 block">Prix (€)</label>
                   <input
                     type="number" min={0} step="0.01"
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white outline-none focus:border-emerald-500/50"
+                    className={INPUT_CLS}
                     value={planForm.price} onChange={e => setPlanForm({ ...planForm, price: e.target.value })}
                     placeholder="15.00"
                   />
-                  <p className="text-[11px] text-gray-500 mt-1.5">Donne droit à 1 réservation, valable 14 jours après l&apos;achat.</p>
+                  <p className="text-[11px] text-ax-text-muted mt-1.5">Donne droit à 1 réservation, valable 14 jours après l&apos;achat.</p>
                 </div>
               )}
 
               {planForm.plan_type === 'pack' && (
                 <div className="grid grid-cols-3 gap-3">
                   <div>
-                    <label className="text-xs font-bold text-gray-400 mb-1 block">Prix (€)</label>
+                    <label className="text-xs font-bold text-ax-text-secondary mb-1 block">Prix (€)</label>
                     <input
                       type="number" min={0} step="0.01"
-                      className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white outline-none focus:border-emerald-500/50"
+                      className={INPUT_CLS}
                       value={planForm.price} onChange={e => setPlanForm({ ...planForm, price: e.target.value })}
                       placeholder="120.00"
                     />
                   </div>
                   <div>
-                    <label className="text-xs font-bold text-gray-400 mb-1 block">Séances</label>
+                    <label className="text-xs font-bold text-ax-text-secondary mb-1 block">Séances</label>
                     <input
                       type="number" min={1}
-                      className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white outline-none focus:border-emerald-500/50"
+                      className={INPUT_CLS}
                       value={planForm.credits} onChange={e => setPlanForm({ ...planForm, credits: e.target.value })}
                       placeholder="10"
                     />
                   </div>
                   <div>
-                    <label className="text-xs font-bold text-gray-400 mb-1 block">Validité (mois)</label>
+                    <label className="text-xs font-bold text-ax-text-secondary mb-1 block">Validité (mois)</label>
                     <input
                       type="number" min={1}
-                      className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white outline-none focus:border-emerald-500/50"
+                      className={INPUT_CLS}
                       value={planForm.validity_months} onChange={e => setPlanForm({ ...planForm, validity_months: e.target.value })}
                       placeholder="12"
                     />
@@ -462,13 +466,14 @@ export default function MembershipPlansSection({ boxId }: { boxId: string | null
               )}
 
               <div>
-                <label className="text-xs font-bold text-gray-400 mb-2 block">Couleur</label>
+                <label className="text-xs font-bold text-ax-text-secondary mb-2 block">Couleur</label>
                 <div className="flex items-center gap-2">
                   {PLAN_COLORS.map(c => (
                     <button
                       key={c}
                       onClick={() => setPlanForm({ ...planForm, color: c })}
-                      className={`w-7 h-7 rounded-full border-2 transition-all ${planForm.color === c ? 'border-white scale-110' : 'border-transparent'}`}
+                      aria-pressed={planForm.color === c}
+                      className={`w-7 h-7 rounded-full border-2 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ax-focus focus-visible:ring-offset-2 focus-visible:ring-offset-ax-surface ${planForm.color === c ? 'border-ax-text scale-110' : 'border-ax-border'}`}
                       style={{ backgroundColor: c }}
                       aria-label={c}
                     />
@@ -481,24 +486,24 @@ export default function MembershipPlansSection({ boxId }: { boxId: string | null
                   <input
                     type="checkbox" checked={planForm.is_active}
                     onChange={e => setPlanForm({ ...planForm, is_active: e.target.checked })}
-                    className="w-4 h-4 rounded accent-emerald-500"
+                    className="w-4 h-4 rounded accent-ax-accent-text"
                   />
-                  <span className="text-sm text-gray-300 font-semibold">Active (visible pour les athlètes)</span>
+                  <span className="text-sm text-ax-text-secondary font-semibold">Active (visible pour les athlètes)</span>
                 </label>
               </div>
 
-              {planError && <p className="text-xs text-red-400">{planError}</p>}
+              {planError && <p className="text-xs text-ax-danger">{planError}</p>}
             </div>
 
-            <div className="flex justify-end gap-3 mt-6">
-              <button onClick={() => setShowPlanForm(false)} className="px-4 py-2.5 rounded-xl text-sm font-bold text-gray-400 hover:text-white hover:bg-white/5 transition-all">Annuler</button>
-              <button
+            <div className="flex flex-wrap justify-end gap-3 mt-6">
+              <Button variant="ax-outline" onClick={() => setShowPlanForm(false)}>Annuler</Button>
+              <Button
+                variant="ax-mint"
                 onClick={handleSavePlan}
                 disabled={planSaving || !planForm.name.trim()}
-                className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white text-sm font-bold transition-all"
               >
                 {planSaving ? 'Enregistrement…' : editPlanId ? 'Modifier' : 'Créer l\'offre'}
-              </button>
+              </Button>
             </div>
           </div>
         </div>

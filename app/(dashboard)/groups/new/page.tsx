@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/client';
 import { ArrowLeft, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { getMyBox } from '@/lib/getMyBox';
+import { Button } from '@/components/ui/button';
 
 const COLORS = [
   '#FFFFFF', '#8B5CF6', '#EC4899', '#EF4444',
@@ -39,47 +40,48 @@ export default function NewGroupPage() {
     router.push(`/groups/${created.id}`);
   }
 
-  const inp = 'w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-white transition-colors';
+  const inp = 'w-full min-h-11 px-3 py-2.5 rounded-ax-control bg-ax-surface border border-ax-input-border text-base sm:text-sm text-ax-text placeholder:text-ax-text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ax-focus focus-visible:ring-offset-2 focus-visible:ring-offset-ax-surface transition-colors';
 
   return (
     <div className="max-w-lg space-y-6">
       <div className="flex items-center gap-3">
-        <Link href="/groups" className="text-gray-400 hover:text-white transition-colors"><ArrowLeft size={18} /></Link>
-        <h1 className="text-xl font-black text-white">Créer un groupe</h1>
+        <Link href="/groups" className="text-ax-text-secondary hover:text-ax-text transition-colors"><ArrowLeft size={18} /></Link>
+        <h1 className="font-display text-xl font-medium uppercase tracking-wide text-ax-text">Créer un groupe</h1>
       </div>
 
-      <form onSubmit={handleSubmit} className="bg-[#111111] border border-white/8 rounded-2xl p-6 space-y-5">
-        {error && <div className="bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3 text-sm text-red-400">{error}</div>}
+      <form onSubmit={handleSubmit} className="bg-ax-surface border border-ax-border rounded-ax-card p-6 space-y-5">
+        {error && <div className="bg-ax-danger-soft border border-ax-danger rounded-ax-control px-4 py-3 text-sm text-ax-danger">{error}</div>}
 
         <div>
-          <label className="block text-xs font-semibold text-gray-400 mb-1.5 uppercase tracking-wider">Nom *</label>
+          <label className="block text-xs font-semibold text-ax-text-secondary mb-1.5 uppercase tracking-wider">Nom *</label>
           <input className={inp} value={name} onChange={e => setName(e.target.value)} placeholder="ex: Athlètes RX" required />
         </div>
 
         <div>
-          <label className="block text-xs font-semibold text-gray-400 mb-3 uppercase tracking-wider">Couleur</label>
+          <label className="block text-xs font-semibold text-ax-text-secondary mb-3 uppercase tracking-wider">Couleur</label>
           <div className="flex flex-wrap gap-3">
             {COLORS.map(c => (
               <button
                 key={c} type="button"
                 onClick={() => setColor(c)}
-                className={`w-9 h-9 rounded-xl transition-all ${color === c ? 'ring-2 ring-white ring-offset-2 ring-offset-[#111111] scale-110' : 'hover:scale-105'}`}
+                aria-pressed={color === c} aria-label={c}
+                className={`w-9 h-9 rounded-ax-control border border-ax-border transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ax-focus focus-visible:ring-offset-2 focus-visible:ring-offset-ax-surface ${color === c ? 'ring-2 ring-ax-text ring-offset-2 ring-offset-ax-surface scale-110' : 'hover:scale-105'}`}
                 style={{ backgroundColor: c }}
               />
             ))}
           </div>
           <div className="flex items-center gap-3 mt-3">
-            <div className="w-8 h-8 rounded-xl shrink-0" style={{ backgroundColor: color }} />
-            <span className="text-sm text-gray-400 font-mono">{color}</span>
+            <div className="w-8 h-8 rounded-ax-control shrink-0 border border-ax-border" style={{ backgroundColor: color }} />
+            <span className="text-sm text-ax-text-secondary font-mono">{color}</span>
           </div>
         </div>
 
-        <div className="flex justify-end gap-3 pt-2">
-          <Link href="/groups" className="px-4 py-2.5 text-sm text-gray-400 hover:text-white border border-white/10 rounded-xl">Annuler</Link>
-          <button type="submit" disabled={saving || !name.trim()} className="flex items-center gap-2 px-5 py-2.5 text-sm font-bold bg-white hover:bg-white text-[#0A0A0A] rounded-xl disabled:opacity-60">
+        <div className="flex flex-wrap justify-end gap-3 pt-2">
+          <Button asChild variant="ax-outline"><Link href="/groups">Annuler</Link></Button>
+          <Button type="submit" variant="ax-white" disabled={saving || !name.trim()}>
             {saving && <Loader2 size={14} className="animate-spin" />}
             Créer et ajouter des membres
-          </button>
+          </Button>
         </div>
       </form>
     </div>
