@@ -468,7 +468,7 @@ export default function WODsPage() {
   function deleteWOD(wod: BoxWOD) {
     ask({
       title: 'Supprimer ce WOD ?',
-      element: `${wod.title}${wod.block_name ? ` · ${BLOCK_LABEL[wod.block_name] ?? wod.block_name}` : ''} — ${fullDate(wod.scheduled_date)}`,
+      element: `${wod.title}${wod.block_name && BLOCK_LABEL[wod.block_name] ? ` · ${BLOCK_LABEL[wod.block_name]}` : ''} — ${fullDate(wod.scheduled_date)}`,
       body: 'Le WOD est retiré du Whiteboard avec les scores et les validations des athlètes. Les points ELO déjà gagnés ne changent pas. Cette action est définitive.',
       confirmLabel: 'Supprimer le WOD',
       danger: true,
