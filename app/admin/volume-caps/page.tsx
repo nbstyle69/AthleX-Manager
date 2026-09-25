@@ -6,6 +6,8 @@ import {
   CATALOG_UNITS, validateVolumeCapPatch,
   type CatalogUnit, type SkeletonRow, type VolumeCapRow,
 } from '@/lib/adminCatalog';
+import { Button } from '@/components/ui/button';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
 
 /**
  * Plafonds de volume par mouvement (§5.4, `wod_volume_caps`) : les 19 lignes
@@ -13,6 +15,8 @@ import {
  * (×0,7 Scaled/Inter, ×1,3 Elite/Pro) restent des constantes du moteur.
  * La banque de squelettes (`wod_skeletons`) est listée en lecture seule.
  */
+
+const FOCUS = 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ax-focus';
 
 interface CapDraft { rx_total: string; unit: CatalogUnit; active: boolean }
 
@@ -72,116 +76,118 @@ export default function AdminVolumeCapsPage() {
 
   return (
     <div className="space-y-8">
-      <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-xl bg-amber-500/20 flex items-center justify-center">
-          <Gauge size={22} className="text-amber-400" />
+      <div className="flex items-center gap-3 min-w-0">
+        <div className="w-10 h-10 shrink-0 rounded-ax-control bg-ax-warning-soft flex items-center justify-center">
+          <Gauge size={22} className="text-ax-warning" />
         </div>
-        <div>
-          <h1 className="text-xl font-black text-white">Plafonds de volume &amp; squelettes</h1>
-          <p className="text-sm text-gray-400">
+        <div className="min-w-0">
+          <h1 className="font-display text-2xl font-medium uppercase tracking-wide text-ax-text">Plafonds de volume &amp; squelettes</h1>
+          <p className="text-sm text-ax-text-secondary break-words">
             Table §5.4 du générateur (total RX par WOD ; Scaled/Inter ×0,7, Elite/Pro ×1,3 dans le moteur) · banque de squelettes en lecture seule
           </p>
         </div>
       </div>
 
-      {error && <p className="text-sm text-red-400" data-testid="caps-error">{error}</p>}
+      {error && <p role="alert" className="text-sm text-ax-danger" data-testid="caps-error">{error}</p>}
 
       {loading ? (
         <div className="flex items-center justify-center py-20">
-          <div className="w-8 h-8 border-2 border-emerald-500/30 border-t-emerald-500 rounded-full animate-spin" />
+          <div className="w-8 h-8 border-2 border-ax-border border-t-ax-accent-text rounded-full animate-spin" />
         </div>
       ) : (
         <>
           <section>
-            <h2 className="text-sm font-black text-white mb-3">Plafonds ({caps.length})</h2>
-            <div className="overflow-hidden rounded-2xl border border-white/[0.06]">
-              <table className="w-full text-sm" data-testid="caps-table">
-                <thead>
-                  <tr className="bg-white/[0.03] text-left">
-                    <th className="px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Plafond</th>
-                    <th className="px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Cible</th>
-                    <th className="px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Total RX</th>
-                    <th className="px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Unité</th>
-                    <th className="px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Actif</th>
-                    <th className="px-4 py-3"></th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-white/[0.04]">
-                  {caps.map(c => {
-                    const d = drafts[c.label];
-                    return (
-                      <tr key={c.label} data-testid={`cap-row-${c.label}`} className={c.active ? '' : 'opacity-60'}>
-                        <td className="px-4 py-2.5 font-bold text-white">{c.label}</td>
-                        <td className="px-4 py-2.5 text-xs text-gray-400 font-mono">
-                          {c.family ? `famille ${c.family}${c.band ? ` · ${c.band}` : ''}` : (c.ids ?? []).join(', ')}
-                        </td>
-                        <td className="px-4 py-2.5">
-                          <input
-                            type="number" min={1}
-                            value={d.rx_total}
-                            onChange={e => patch(c.label, { rx_total: e.target.value })}
-                            data-testid={`cap-total-${c.label}`}
-                            className="w-24 bg-white/5 border border-white/10 rounded-lg px-2 py-1 text-white font-black text-emerald-400 focus:outline-none focus:border-emerald-500/50"
-                          />
-                        </td>
-                        <td className="px-4 py-2.5">
-                          <select
-                            value={d.unit}
-                            onChange={e => patch(c.label, { unit: e.target.value as CatalogUnit })}
-                            className="bg-white/5 border border-white/10 rounded-lg px-2 py-1 text-xs text-white"
+            <h2 className="text-sm font-black text-ax-text mb-3">Plafonds ({caps.length})</h2>
+            {/* À 390 px, seul le tableau défile : champs et bouton restent entiers. */}
+            <Table aria-label="Plafonds de volume" data-testid="caps-table">
+              <TableHeader>
+                <TableRow className="hover:bg-transparent">
+                  <TableHead className="font-bold uppercase tracking-wider">Plafond</TableHead>
+                  <TableHead className="font-bold uppercase tracking-wider">Cible</TableHead>
+                  <TableHead className="font-bold uppercase tracking-wider whitespace-nowrap">Total RX</TableHead>
+                  <TableHead className="font-bold uppercase tracking-wider">Unité</TableHead>
+                  <TableHead className="font-bold uppercase tracking-wider">Actif</TableHead>
+                  <TableHead className="relative"><span className="sr-only">Enregistrer</span></TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {caps.map(c => {
+                  const d = drafts[c.label];
+                  return (
+                    // Inactif : fond secondaire au lieu d'une transparence qui
+                    // rendait la ligne illisible ; la case « Actif » dit l'état.
+                    <TableRow key={c.label} data-testid={`cap-row-${c.label}`} className={c.active ? '' : 'bg-ax-surface-secondary'}>
+                      <TableCell className={`font-bold min-w-[10rem] break-words ${c.active ? 'text-ax-text' : 'text-ax-text-secondary'}`}>{c.label}</TableCell>
+                      <TableCell className="text-xs text-ax-text-secondary font-mono min-w-[10rem] break-words">
+                        {c.family ? `famille ${c.family}${c.band ? ` · ${c.band}` : ''}` : (c.ids ?? []).join(', ')}
+                      </TableCell>
+                      <TableCell>
+                        <input
+                          type="number" min={1}
+                          value={d.rx_total}
+                          onChange={e => patch(c.label, { rx_total: e.target.value })}
+                          aria-label={`Total RX · ${c.label}`}
+                          data-testid={`cap-total-${c.label}`}
+                          className={`w-24 rounded-ax-control border border-ax-input-border bg-ax-surface px-2 py-1 font-black text-ax-success ${FOCUS}`}
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <select
+                          value={d.unit}
+                          onChange={e => patch(c.label, { unit: e.target.value as CatalogUnit })}
+                          aria-label={`Unité · ${c.label}`}
+                          className={`rounded-ax-control border border-ax-input-border bg-ax-surface px-2 py-1 text-xs text-ax-text ${FOCUS}`}
+                        >
+                          {CATALOG_UNITS.map(u => <option key={u} value={u}>{u}</option>)}
+                        </select>
+                      </TableCell>
+                      <TableCell>
+                        <input type="checkbox" checked={d.active} onChange={e => patch(c.label, { active: e.target.checked })} aria-label={`Actif · ${c.label}`} className="w-4 h-4 accent-[var(--ax-accent)]" data-testid={`cap-active-${c.label}`} />
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {savedLabel === c.label && !isDirty(c) ? (
+                          <span className="inline-flex items-center gap-1 text-xs text-ax-success whitespace-nowrap" data-testid={`cap-saved-${c.label}`}><Check size={12} /> enregistré</span>
+                        ) : (
+                          <Button
+                            variant="ax-mint"
+                            size="ax-compact"
+                            onClick={() => save(c)}
+                            disabled={!isDirty(c) || saving === c.label}
+                            data-testid={`cap-save-${c.label}`}
                           >
-                            {CATALOG_UNITS.map(u => <option key={u} value={u} className="text-black">{u}</option>)}
-                          </select>
-                        </td>
-                        <td className="px-4 py-2.5">
-                          <input type="checkbox" checked={d.active} onChange={e => patch(c.label, { active: e.target.checked })} className="accent-emerald-500" data-testid={`cap-active-${c.label}`} />
-                        </td>
-                        <td className="px-4 py-2.5 text-right">
-                          {savedLabel === c.label && !isDirty(c) ? (
-                            <span className="inline-flex items-center gap-1 text-xs text-emerald-400" data-testid={`cap-saved-${c.label}`}><Check size={12} /> enregistré</span>
-                          ) : (
-                            <button
-                              onClick={() => save(c)}
-                              disabled={!isDirty(c) || saving === c.label}
-                              data-testid={`cap-save-${c.label}`}
-                              className="inline-flex items-center gap-1 px-3 py-1 rounded-lg bg-emerald-500 text-black text-xs font-bold hover:bg-emerald-400 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-                            >
-                              {saving === c.label && <Loader2 size={12} className="animate-spin" />}
-                              Enregistrer
-                            </button>
-                          )}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
+                            {saving === c.label && <Loader2 size={12} className="animate-spin" />}
+                            Enregistrer
+                          </Button>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
           </section>
 
           <section>
-            <h2 className="text-sm font-black text-white mb-1 flex items-center gap-2">
-              <Lock size={14} className="text-gray-500" /> Squelettes ({skeletons.length}) · lecture seule
+            <h2 className="text-sm font-black text-ax-text mb-1 flex items-center gap-2">
+              <Lock size={14} className="text-ax-text-muted" /> Squelettes ({skeletons.length}) · lecture seule
             </h2>
-            <p className="text-xs text-gray-500 mb-3">La banque est maintenue dans le package `wod-engine` (athlex-app) et exportée en base ; elle ne s&apos;édite pas ici.</p>
-            <div className="overflow-hidden rounded-2xl border border-white/[0.06]">
-              <table className="w-full text-sm" data-testid="skeletons-table">
-                <thead>
-                  <tr className="bg-white/[0.03] text-left">
-                    <th className="px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Id</th>
-                    <th className="px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Discipline</th>
-                    <th className="px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Format</th>
-                    <th className="px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Actif</th>
-                    <th className="px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Version</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-white/[0.04]">
-                  {skeletons.map(s => (
-                    <SkeletonRows key={s.id} s={s} open={openSkeleton === s.id} onToggle={() => setOpenSkeleton(o => (o === s.id ? null : s.id))} />
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <p className="text-xs text-ax-text-secondary mb-3">La banque est maintenue dans le package `wod-engine` (athlex-app) et exportée en base ; elle ne s&apos;édite pas ici.</p>
+            <Table aria-label="Squelettes" data-testid="skeletons-table">
+              <TableHeader>
+                <TableRow className="hover:bg-transparent">
+                  <TableHead className="font-bold uppercase tracking-wider">Id</TableHead>
+                  <TableHead className="font-bold uppercase tracking-wider">Discipline</TableHead>
+                  <TableHead className="font-bold uppercase tracking-wider">Format</TableHead>
+                  <TableHead className="font-bold uppercase tracking-wider">Actif</TableHead>
+                  <TableHead className="font-bold uppercase tracking-wider">Version</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {skeletons.map(s => (
+                  <SkeletonRows key={s.id} s={s} open={openSkeleton === s.id} onToggle={() => setOpenSkeleton(o => (o === s.id ? null : s.id))} />
+                ))}
+              </TableBody>
+            </Table>
           </section>
         </>
       )}
@@ -192,19 +198,27 @@ export default function AdminVolumeCapsPage() {
 function SkeletonRows({ s, open, onToggle }: { s: SkeletonRow; open: boolean; onToggle: () => void }) {
   return (
     <>
-      <tr onClick={onToggle} className="cursor-pointer hover:bg-white/[0.02]" data-testid={`skeleton-row-${s.id}`}>
-        <td className="px-4 py-2.5 font-mono text-xs text-white">{s.id}</td>
-        <td className="px-4 py-2.5 text-gray-300">{s.discipline}</td>
-        <td className="px-4 py-2.5 text-gray-300">{s.format}</td>
-        <td className="px-4 py-2.5 text-xs">{s.active ? <span className="text-emerald-400">actif</span> : <span className="text-gray-500">inactif</span>}</td>
-        <td className="px-4 py-2.5 text-gray-500 font-mono text-xs">v{s.version}</td>
-      </tr>
+      <TableRow
+        onClick={onToggle}
+        // Même action au clavier qu'à la souris.
+        tabIndex={0}
+        aria-expanded={open}
+        onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onToggle(); } }}
+        className="cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ax-focus"
+        data-testid={`skeleton-row-${s.id}`}
+      >
+        <TableCell className="font-mono text-xs text-ax-text break-all min-w-[8rem]">{s.id}</TableCell>
+        <TableCell className="text-ax-text-secondary">{s.discipline}</TableCell>
+        <TableCell className="text-ax-text-secondary">{s.format}</TableCell>
+        <TableCell className="text-xs">{s.active ? <span className="text-ax-success">actif</span> : <span className="text-ax-text-secondary">inactif</span>}</TableCell>
+        <TableCell className="text-ax-text-secondary font-mono text-xs">v{s.version}</TableCell>
+      </TableRow>
       {open && (
-        <tr>
-          <td colSpan={5} className="px-4 pb-3">
-            <pre className="p-3 rounded-xl bg-black/40 text-[11px] text-gray-400 overflow-x-auto whitespace-pre-wrap break-all">{JSON.stringify(s.definition, null, 2)}</pre>
-          </td>
-        </tr>
+        <TableRow className="hover:bg-transparent">
+          <TableCell colSpan={5} className="pt-0">
+            <pre className="p-3 rounded-ax-control bg-ax-surface-secondary border border-ax-border text-[11px] text-ax-text-secondary overflow-x-auto whitespace-pre-wrap break-all">{JSON.stringify(s.definition, null, 2)}</pre>
+          </TableCell>
+        </TableRow>
       )}
     </>
   );

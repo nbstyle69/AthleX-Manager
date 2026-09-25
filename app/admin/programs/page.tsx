@@ -4,6 +4,8 @@ import { useEffect, useState, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useConfirmDialog } from '@/components/ui/confirm-dialog';
 import { BookOpen, Plus, Pencil, Trash2, ExternalLink, X, Check, Users, ShoppingCart, Image as ImageIcon, Upload, Loader2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { PURPLE_SOFT, SUB_ORANGE_SOFT, SUB_ORANGE_TEXT, chipClass } from '@/components/admin/adminTokens';
 
 interface Affiliate {
   id: string;
@@ -29,6 +31,10 @@ interface Program {
 }
 
 type Tab = 'affiliates' | 'programs';
+
+const FOCUS = 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ax-focus';
+const FIELD_LABEL = 'block text-xs font-bold text-ax-text-secondary uppercase tracking-wider mb-1.5';
+const ICON_BUTTON = `p-2 rounded-ax-control text-ax-text-secondary transition-colors motion-reduce:transition-none ${FOCUS}`;
 
 const EMPTY_AFF: Omit<Affiliate, 'id'> = { name: '', logo_url: '', category: 'functional', description: '', sort_order: 0, is_active: true };
 const EMPTY_PRG: Omit<Program, 'id'> = { affiliate_id: '', name: '', description: '', price: null, currency: 'EUR', url: '', image_url: '', sort_order: 0, is_active: true };
@@ -202,44 +208,42 @@ export default function AdminProgramsPage() {
 
   const affName = (id: string) => affiliates.find(a => a.id === id)?.name ?? '—';
 
-  const INPUT = "w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-emerald-500/50";
+  // D13 : apparence seulement. Champs au rendu de `Input` (lot 1).
+  const INPUT = "w-full min-w-0 min-h-11 rounded-ax-control border border-ax-input-border bg-ax-surface px-3 py-2.5 text-base text-ax-text placeholder:text-ax-text-muted sm:text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ax-focus focus-visible:ring-offset-2 focus-visible:ring-offset-ax-surface";
 
   return (
     <div className="space-y-6">
       {dialog}
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-violet-500/20 flex items-center justify-center">
-            <BookOpen size={22} className="text-violet-400" />
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div className="flex items-center gap-3 min-w-0">
+          <div className={`w-10 h-10 shrink-0 rounded-ax-control ${PURPLE_SOFT} flex items-center justify-center`}>
+            <BookOpen size={22} className="text-ax-purple" />
           </div>
-          <div>
-            <h1 className="text-xl font-black text-white">Programmes athlètes</h1>
-            <p className="text-sm text-gray-400">{affiliates.length} affilié{affiliates.length > 1 ? 's' : ''} · {programs.length} programme{programs.length > 1 ? 's' : ''}</p>
+          <div className="min-w-0">
+            <h1 className="font-display text-2xl font-medium uppercase tracking-wide text-ax-text">Programmes athlètes</h1>
+            <p className="text-sm text-ax-text-secondary">{affiliates.length} affilié{affiliates.length > 1 ? 's' : ''} · {programs.length} programme{programs.length > 1 ? 's' : ''}</p>
           </div>
         </div>
-        <button
-          onClick={tab === 'affiliates' ? openCreateAff : openCreatePrg}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-500/20 text-emerald-400 text-sm font-bold hover:bg-emerald-500/30 transition-all border border-emerald-500/30"
-        >
+        <Button variant="ax-mint" onClick={tab === 'affiliates' ? openCreateAff : openCreatePrg}>
           <Plus size={16} />
           {tab === 'affiliates' ? 'Nouvel affilié' : 'Nouveau programme'}
-        </button>
+        </Button>
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-2">
-        <button onClick={() => setTab('affiliates')} className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all border ${tab === 'affiliates' ? 'bg-violet-500/20 text-violet-400 border-violet-500/30' : 'bg-white/5 text-gray-400 border-white/10 hover:text-white'}`}>
+      <div className="flex flex-wrap gap-2">
+        <button onClick={() => setTab('affiliates')} aria-pressed={tab === 'affiliates'} className={`${chipClass(tab === 'affiliates')} flex items-center gap-2 px-4 py-2 normal-case tracking-normal text-sm`}>
           <Users size={14} /> Affiliés ({affiliates.length})
         </button>
-        <button onClick={() => setTab('programs')} className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all border ${tab === 'programs' ? 'bg-violet-500/20 text-violet-400 border-violet-500/30' : 'bg-white/5 text-gray-400 border-white/10 hover:text-white'}`}>
+        <button onClick={() => setTab('programs')} aria-pressed={tab === 'programs'} className={`${chipClass(tab === 'programs')} flex items-center gap-2 px-4 py-2 normal-case tracking-normal text-sm`}>
           <ShoppingCart size={14} /> Programmes ({programs.length})
         </button>
       </div>
 
       {loading && (
         <div className="flex items-center justify-center py-20">
-          <div className="w-8 h-8 border-2 border-emerald-500/30 border-t-emerald-500 rounded-full animate-spin" />
+          <div className="w-8 h-8 border-2 border-ax-border border-t-ax-accent-text rounded-full animate-spin" />
         </div>
       )}
 
@@ -247,103 +251,105 @@ export default function AdminProgramsPage() {
       {!loading && tab === 'affiliates' && (
         <>
           {creatingAff && (
-            <div className="bg-[#111111] border border-white/[0.06] rounded-2xl p-6 space-y-4">
-              <div className="flex items-center justify-between">
-                <h2 className="text-sm font-black text-white uppercase tracking-wider">{editingAff ? 'Modifier l\'affilié' : 'Nouvel affilié'}</h2>
-                <button onClick={closeAffForm} className="text-gray-500 hover:text-white"><X size={18} /></button>
+            <div className="bg-ax-surface border border-ax-border rounded-ax-card p-6 space-y-4">
+              <div className="flex items-center justify-between gap-3">
+                <h2 className="text-sm font-black text-ax-text uppercase tracking-wider">{editingAff ? 'Modifier l\'affilié' : 'Nouvel affilié'}</h2>
+                <button onClick={closeAffForm} aria-label="Fermer" className={`rounded-ax-control p-1 text-ax-text-secondary hover:text-ax-text hover:bg-ax-hover ${FOCUS}`}><X size={18} /></button>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">Nom</label>
+                  <label className={FIELD_LABEL}>Nom</label>
                   <input value={affForm.name} onChange={e => setAffForm({...affForm, name: e.target.value})} placeholder="HWPO, CompTrain..." className={INPUT} />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">Logo</label>
+                  <label className={FIELD_LABEL}>Logo</label>
                   <div className="flex items-center gap-3">
                     {logoPreview ? (
-                      <img src={logoPreview} alt="" className="w-12 h-12 rounded-xl object-cover shrink-0 border border-white/10" />
+                      <img src={logoPreview} alt="" className="w-12 h-12 rounded-ax-control object-cover shrink-0 border border-ax-border" />
                     ) : (
-                      <div className="w-12 h-12 rounded-xl bg-white/5 border border-dashed border-white/20 flex items-center justify-center shrink-0">
-                        <ImageIcon size={16} className="text-gray-600" />
+                      <div className="w-12 h-12 rounded-ax-control bg-ax-surface-secondary border border-dashed border-ax-input-border flex items-center justify-center shrink-0">
+                        <ImageIcon size={16} className="text-ax-text-muted" />
                       </div>
                     )}
-                    <label className="flex-1 cursor-pointer">
-                      <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 hover:border-emerald-500/50 transition-colors text-sm text-gray-400 hover:text-white">
-                        <Upload size={14} />
-                        {logoFile ? logoFile.name : 'Choisir un fichier…'}
+                    <label className="relative flex-1 min-w-0 cursor-pointer rounded-ax-control focus-within:ring-2 focus-within:ring-ax-focus">
+                      <div className="flex items-center gap-2 min-h-11 px-3 py-2.5 rounded-ax-control bg-ax-surface border border-ax-input-border hover:bg-ax-hover transition-colors text-sm text-ax-text-secondary hover:text-ax-text motion-reduce:transition-none">
+                        <Upload size={14} className="shrink-0" />
+                        <span className="min-w-0 break-all">{logoFile ? logoFile.name : 'Choisir un fichier…'}</span>
                       </div>
-                      <input type="file" accept="image/*" onChange={handleLogoSelect} className="hidden" />
+                      <input type="file" accept="image/*" onChange={handleLogoSelect} className="sr-only" />
                     </label>
                     {(logoPreview || affForm.logo_url) && (
-                      <button type="button" onClick={() => { setLogoFile(null); setLogoPreview(null); setAffForm({...affForm, logo_url: ''}); }} className="p-2 rounded-lg text-gray-500 hover:text-red-400 hover:bg-red-500/10 transition-all">
+                      <button type="button" aria-label="Retirer le logo" onClick={() => { setLogoFile(null); setLogoPreview(null); setAffForm({...affForm, logo_url: ''}); }} className={`${ICON_BUTTON} hover:text-ax-danger hover:bg-ax-danger-soft`}>
                         <X size={14} />
                       </button>
                     )}
                   </div>
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">Catégorie</label>
+                  <label className={FIELD_LABEL}>Catégorie</label>
                   <select value={affForm.category} onChange={e => setAffForm({...affForm, category: e.target.value})} className={INPUT}>
                     <option value="functional">Functional Fitness</option>
                     <option value="hybrid">Hybrid</option>
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">Ordre</label>
+                  <label className={FIELD_LABEL}>Ordre</label>
                   <input type="number" value={affForm.sort_order} onChange={e => setAffForm({...affForm, sort_order: parseInt(e.target.value)||0})} className={INPUT} />
                 </div>
               </div>
               <div>
-                <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">Description</label>
+                <label className={FIELD_LABEL}>Description</label>
                 <input value={affForm.description ?? ''} onChange={e => setAffForm({...affForm, description: e.target.value})} placeholder="Par Mat Fraser — Programming élite" className={INPUT} />
               </div>
               <label className="flex items-center gap-2 cursor-pointer">
-                <input type="checkbox" checked={affForm.is_active} onChange={e => setAffForm({...affForm, is_active: e.target.checked})} className="rounded border-white/20 bg-white/5 text-emerald-500" />
-                <span className="text-sm text-gray-300">Actif</span>
+                <input type="checkbox" checked={affForm.is_active} onChange={e => setAffForm({...affForm, is_active: e.target.checked})} className="w-4 h-4 rounded accent-[var(--ax-accent)]" />
+                <span className="text-sm text-ax-text">Actif</span>
               </label>
-              <div className="flex gap-3 pt-2">
-                <button onClick={saveAff} disabled={savingAff || !affForm.name.trim()} className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-500/20 text-emerald-400 text-sm font-bold hover:bg-emerald-500/30 border border-emerald-500/30 disabled:opacity-40">
+              <div className="flex flex-wrap gap-3 pt-2">
+                <Button variant="ax-mint" onClick={saveAff} disabled={savingAff || !affForm.name.trim()}>
                   {(savingAff || uploadingLogo) ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} />} {uploadingLogo ? 'Upload du logo...' : savingAff ? 'Enregistrement...' : editingAff ? 'Modifier' : 'Créer'}
-                </button>
-                <button onClick={closeAffForm} className="px-5 py-2.5 rounded-xl bg-white/5 text-gray-400 text-sm font-bold hover:text-white border border-white/10">Annuler</button>
+                </Button>
+                <Button variant="ax-outline" onClick={closeAffForm}>Annuler</Button>
               </div>
             </div>
           )}
 
           {affiliates.length === 0 ? (
-            <div className="text-center py-20 text-gray-500">
-              <Users size={40} className="mx-auto mb-3 opacity-30" />
+            <div className="text-center py-20 text-ax-text-secondary">
+              <Users size={40} className="mx-auto mb-3 text-ax-text-muted" />
               <p className="text-sm font-bold">Aucun affilié</p>
             </div>
           ) : (
             <div className="space-y-2">
               {affiliates.map(a => (
-                <div key={a.id} className={`flex items-center gap-4 bg-[#111111] border rounded-2xl p-4 transition-all ${a.is_active ? 'border-white/[0.06] hover:border-white/10' : 'border-white/[0.03] opacity-50'}`}>
+                // Inactif : carte en pointillés et étiquette « inactif », sans
+                // transparence qui rendait le texte illisible.
+                <div key={a.id} className={`flex flex-wrap sm:flex-nowrap items-center gap-x-4 gap-y-2 border rounded-ax-card p-4 ${a.is_active ? 'bg-ax-surface border-ax-border' : 'bg-ax-surface-secondary border-dashed border-ax-input-border'}`}>
                   {a.logo_url ? (
-                    <img src={a.logo_url} className="w-10 h-10 rounded-xl object-cover shrink-0" alt="" />
+                    <img src={a.logo_url} className="w-10 h-10 rounded-ax-control object-cover shrink-0" alt="" />
                   ) : (
-                    <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center shrink-0">
-                      <span className="text-lg font-black text-gray-500">{a.name[0]}</span>
+                    <div className="w-10 h-10 rounded-ax-control bg-ax-surface-secondary border border-ax-border flex items-center justify-center shrink-0">
+                      <span className="text-lg font-black text-ax-text-secondary">{a.name[0]}</span>
                     </div>
                   )}
-                  <div className={`w-2.5 h-2.5 rounded-full shrink-0 ${a.category === 'hybrid' ? 'bg-orange-400' : 'bg-emerald-400'}`} />
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <p className="text-sm font-black text-white truncate">{a.name}</p>
-                      <span className="text-[10px] font-bold text-gray-500">{programs.filter(p => p.affiliate_id === a.id).length} prog.</span>
-                      {!a.is_active && <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-red-500/15 text-red-400">inactif</span>}
+                  <div className={`w-2.5 h-2.5 rounded-full shrink-0 ${a.category === 'hybrid' ? 'bg-[color:var(--ax-sub-orange-text)]' : 'bg-ax-success'}`} aria-hidden="true" />
+                  <div className="flex-1 min-w-0 basis-40">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="text-sm font-black text-ax-text break-words min-w-0">{a.name}</p>
+                      <span className="text-[10px] font-bold text-ax-text-secondary whitespace-nowrap">{programs.filter(p => p.affiliate_id === a.id).length} prog.</span>
+                      {!a.is_active && <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-ax-badge bg-ax-danger-soft text-ax-danger">inactif</span>}
                     </div>
-                    {a.description && <p className="text-xs text-gray-500 truncate mt-0.5">{a.description}</p>}
+                    {a.description && <p className="text-xs text-ax-text-secondary break-words mt-0.5">{a.description}</p>}
                   </div>
-                  <span className={`text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-lg shrink-0 ${a.category === 'hybrid' ? 'text-orange-400 bg-orange-500/15' : 'text-emerald-400 bg-emerald-500/15'}`}>
+                  <span className={`text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-ax-badge shrink-0 ${a.category === 'hybrid' ? `${SUB_ORANGE_TEXT} ${SUB_ORANGE_SOFT}` : 'text-ax-success bg-ax-success-soft'}`}>
                     {a.category === 'hybrid' ? 'Hybrid' : 'Functional'}
                   </span>
-                  <div className="flex items-center gap-1 shrink-0">
-                    <button onClick={() => toggleAff(a)} className="p-2 rounded-lg text-gray-500 hover:text-yellow-400 hover:bg-yellow-500/10 transition-all" title={a.is_active ? 'Désactiver' : 'Activer'}>
-                      <div className={`w-3 h-3 rounded-full border-2 ${a.is_active ? 'border-emerald-400 bg-emerald-400' : 'border-gray-500'}`} />
+                  <div className="flex items-center gap-1 shrink-0 ml-auto sm:ml-0">
+                    <button onClick={() => toggleAff(a)} className={`${ICON_BUTTON} hover:bg-ax-hover`} title={a.is_active ? 'Désactiver' : 'Activer'} aria-label={`${a.is_active ? 'Désactiver' : 'Activer'} ${a.name}`}>
+                      <div className={`w-3 h-3 rounded-full border-2 ${a.is_active ? 'border-ax-success bg-ax-success' : 'border-ax-text-secondary'}`} />
                     </button>
-                    <button onClick={() => openEditAff(a)} className="p-2 rounded-lg text-gray-500 hover:text-white hover:bg-white/10 transition-all"><Pencil size={14} /></button>
-                    <button onClick={() => askDeleteAff(a)} className="p-2 rounded-lg text-gray-500 hover:text-red-400 hover:bg-red-500/10 transition-all"><Trash2 size={14} /></button>
+                    <button onClick={() => openEditAff(a)} aria-label={`Modifier ${a.name}`} className={`${ICON_BUTTON} hover:text-ax-text hover:bg-ax-hover`}><Pencil size={14} /></button>
+                    <button onClick={() => askDeleteAff(a)} aria-label={`Supprimer ${a.name}`} className={`${ICON_BUTTON} hover:text-ax-danger hover:bg-ax-danger-soft`}><Trash2 size={14} /></button>
                   </div>
                 </div>
               ))}
@@ -356,92 +362,92 @@ export default function AdminProgramsPage() {
       {!loading && tab === 'programs' && (
         <>
           {creatingPrg && (
-            <div className="bg-[#111111] border border-white/[0.06] rounded-2xl p-6 space-y-4">
-              <div className="flex items-center justify-between">
-                <h2 className="text-sm font-black text-white uppercase tracking-wider">{editingPrg ? 'Modifier le programme' : 'Nouveau programme'}</h2>
-                <button onClick={closePrgForm} className="text-gray-500 hover:text-white"><X size={18} /></button>
+            <div className="bg-ax-surface border border-ax-border rounded-ax-card p-6 space-y-4">
+              <div className="flex items-center justify-between gap-3">
+                <h2 className="text-sm font-black text-ax-text uppercase tracking-wider">{editingPrg ? 'Modifier le programme' : 'Nouveau programme'}</h2>
+                <button onClick={closePrgForm} aria-label="Fermer" className={`rounded-ax-control p-1 text-ax-text-secondary hover:text-ax-text hover:bg-ax-hover ${FOCUS}`}><X size={18} /></button>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">Affilié</label>
+                  <label className={FIELD_LABEL}>Affilié</label>
                   <select value={prgForm.affiliate_id} onChange={e => setPrgForm({...prgForm, affiliate_id: e.target.value})} className={INPUT}>
                     <option value="">— Choisir —</option>
                     {affiliates.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">Nom du programme</label>
+                  <label className={FIELD_LABEL}>Nom du programme</label>
                   <input value={prgForm.name} onChange={e => setPrgForm({...prgForm, name: e.target.value})} placeholder="HWPO Flagship..." className={INPUT} />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">Prix (€)</label>
+                  <label className={FIELD_LABEL}>Prix (€)</label>
                   <input type="number" step="0.01" value={prgForm.price ?? ''} onChange={e => setPrgForm({...prgForm, price: e.target.value ? parseFloat(e.target.value) : null})} placeholder="49.99" className={INPUT} />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">URL d'achat</label>
+                  <label className={FIELD_LABEL}>URL d&apos;achat</label>
                   <input value={prgForm.url} onChange={e => setPrgForm({...prgForm, url: e.target.value})} placeholder="https://..." className={INPUT} />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">Image URL</label>
+                  <label className={FIELD_LABEL}>Image URL</label>
                   <input value={prgForm.image_url ?? ''} onChange={e => setPrgForm({...prgForm, image_url: e.target.value})} placeholder="https://..." className={INPUT} />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">Ordre</label>
+                  <label className={FIELD_LABEL}>Ordre</label>
                   <input type="number" value={prgForm.sort_order} onChange={e => setPrgForm({...prgForm, sort_order: parseInt(e.target.value)||0})} className={INPUT} />
                 </div>
               </div>
               <div>
-                <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">Description</label>
+                <label className={FIELD_LABEL}>Description</label>
                 <input value={prgForm.description ?? ''} onChange={e => setPrgForm({...prgForm, description: e.target.value})} placeholder="Le programme complet..." className={INPUT} />
               </div>
               <label className="flex items-center gap-2 cursor-pointer">
-                <input type="checkbox" checked={prgForm.is_active} onChange={e => setPrgForm({...prgForm, is_active: e.target.checked})} className="rounded border-white/20 bg-white/5 text-emerald-500" />
-                <span className="text-sm text-gray-300">Actif</span>
+                <input type="checkbox" checked={prgForm.is_active} onChange={e => setPrgForm({...prgForm, is_active: e.target.checked})} className="w-4 h-4 rounded accent-[var(--ax-accent)]" />
+                <span className="text-sm text-ax-text">Actif</span>
               </label>
-              <div className="flex gap-3 pt-2">
-                <button onClick={savePrg} disabled={savingPrg || !prgForm.name.trim() || !prgForm.url.trim() || !prgForm.affiliate_id} className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-500/20 text-emerald-400 text-sm font-bold hover:bg-emerald-500/30 border border-emerald-500/30 disabled:opacity-40">
+              <div className="flex flex-wrap gap-3 pt-2">
+                <Button variant="ax-mint" onClick={savePrg} disabled={savingPrg || !prgForm.name.trim() || !prgForm.url.trim() || !prgForm.affiliate_id}>
                   <Check size={16} /> {savingPrg ? 'Enregistrement...' : editingPrg ? 'Modifier' : 'Créer'}
-                </button>
-                <button onClick={closePrgForm} className="px-5 py-2.5 rounded-xl bg-white/5 text-gray-400 text-sm font-bold hover:text-white border border-white/10">Annuler</button>
+                </Button>
+                <Button variant="ax-outline" onClick={closePrgForm}>Annuler</Button>
               </div>
             </div>
           )}
 
           {programs.length === 0 ? (
-            <div className="text-center py-20 text-gray-500">
-              <ShoppingCart size={40} className="mx-auto mb-3 opacity-30" />
+            <div className="text-center py-20 text-ax-text-secondary">
+              <ShoppingCart size={40} className="mx-auto mb-3 text-ax-text-muted" />
               <p className="text-sm font-bold">Aucun programme</p>
-              <p className="text-xs mt-1">Créez d'abord un affilié, puis ajoutez ses programmes</p>
+              <p className="text-xs mt-1">Créez d&apos;abord un affilié, puis ajoutez ses programmes</p>
             </div>
           ) : (
             <div className="space-y-2">
               {programs.map(p => (
-                <div key={p.id} className={`flex items-center gap-4 bg-[#111111] border rounded-2xl p-4 transition-all ${p.is_active ? 'border-white/[0.06] hover:border-white/10' : 'border-white/[0.03] opacity-50'}`}>
+                <div key={p.id} className={`flex flex-wrap sm:flex-nowrap items-center gap-x-4 gap-y-2 border rounded-ax-card p-4 ${p.is_active ? 'bg-ax-surface border-ax-border' : 'bg-ax-surface-secondary border-dashed border-ax-input-border'}`}>
                   {p.image_url ? (
-                    <img src={p.image_url} className="w-10 h-10 rounded-xl object-cover shrink-0" alt="" />
+                    <img src={p.image_url} className="w-10 h-10 rounded-ax-control object-cover shrink-0" alt="" />
                   ) : (
-                    <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center shrink-0">
-                      <ImageIcon size={16} className="text-gray-600" />
+                    <div className="w-10 h-10 rounded-ax-control bg-ax-surface-secondary border border-ax-border flex items-center justify-center shrink-0">
+                      <ImageIcon size={16} className="text-ax-text-muted" />
                     </div>
                   )}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <p className="text-sm font-black text-white truncate">{p.name}</p>
-                      {!p.is_active && <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-red-500/15 text-red-400">inactif</span>}
+                  <div className="flex-1 min-w-0 basis-40">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="text-sm font-black text-ax-text break-words min-w-0">{p.name}</p>
+                      {!p.is_active && <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-ax-badge bg-ax-danger-soft text-ax-danger">inactif</span>}
                     </div>
-                    <p className="text-xs text-gray-500 truncate mt-0.5">{affName(p.affiliate_id)}</p>
-                    {p.description && <p className="text-xs text-gray-600 truncate mt-0.5">{p.description}</p>}
+                    <p className="text-xs text-ax-text-secondary break-words mt-0.5">{affName(p.affiliate_id)}</p>
+                    {p.description && <p className="text-xs text-ax-text-secondary break-words mt-0.5">{p.description}</p>}
                   </div>
-                  <span className="text-sm font-black text-emerald-400 shrink-0">
+                  <span className="text-sm font-black text-ax-success shrink-0">
                     {p.price != null ? `${p.price.toFixed(2)}€` : 'Gratuit'}
                   </span>
-                  <div className="flex items-center gap-1 shrink-0">
-                    <a href={p.url} target="_blank" rel="noopener noreferrer" className="p-2 rounded-lg text-gray-500 hover:text-blue-400 hover:bg-blue-500/10 transition-all"><ExternalLink size={14} /></a>
-                    <button onClick={() => togglePrg(p)} className="p-2 rounded-lg text-gray-500 hover:text-yellow-400 hover:bg-yellow-500/10 transition-all">
-                      <div className={`w-3 h-3 rounded-full border-2 ${p.is_active ? 'border-emerald-400 bg-emerald-400' : 'border-gray-500'}`} />
+                  <div className="flex items-center gap-1 shrink-0 ml-auto sm:ml-0">
+                    <a href={p.url} target="_blank" rel="noopener noreferrer" aria-label={`Ouvrir la page d'achat de ${p.name}`} className={`${ICON_BUTTON} hover:text-ax-info hover:bg-ax-info-soft`}><ExternalLink size={14} /></a>
+                    <button onClick={() => togglePrg(p)} aria-label={`${p.is_active ? 'Désactiver' : 'Activer'} ${p.name}`} title={p.is_active ? 'Désactiver' : 'Activer'} className={`${ICON_BUTTON} hover:bg-ax-hover`}>
+                      <div className={`w-3 h-3 rounded-full border-2 ${p.is_active ? 'border-ax-success bg-ax-success' : 'border-ax-text-secondary'}`} />
                     </button>
-                    <button onClick={() => openEditPrg(p)} className="p-2 rounded-lg text-gray-500 hover:text-white hover:bg-white/10 transition-all"><Pencil size={14} /></button>
-                    <button onClick={() => deletePrg(p.id)} className="p-2 rounded-lg text-gray-500 hover:text-red-400 hover:bg-red-500/10 transition-all"><Trash2 size={14} /></button>
+                    <button onClick={() => openEditPrg(p)} aria-label={`Modifier ${p.name}`} className={`${ICON_BUTTON} hover:text-ax-text hover:bg-ax-hover`}><Pencil size={14} /></button>
+                    <button onClick={() => deletePrg(p.id)} aria-label={`Supprimer ${p.name}`} className={`${ICON_BUTTON} hover:text-ax-danger hover:bg-ax-danger-soft`}><Trash2 size={14} /></button>
                   </div>
                 </div>
               ))}
