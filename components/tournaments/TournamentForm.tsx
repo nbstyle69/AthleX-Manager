@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { Loader2, Upload, ImageIcon, Trash2, Lock } from 'lucide-react';
 import { fromDateInput } from '@/lib/datetime';
-import { initialTournamentForm, tournamentUpdatePayload } from '@/lib/tournamentForm';
+import { initialTournamentForm, statusEditable, tournamentUpdatePayload } from '@/lib/tournamentForm';
 import { useConfirmDialog } from '@/components/ui/confirm-dialog';
 import { ERROR_TITLE, INPUT_TITLE } from '@/lib/confirmDialog';
 
@@ -64,11 +64,12 @@ export default function TournamentForm({ boxId, initial, allowedFormats = ['simp
 
   const set = (k: string, v: any) => setForm(f => ({ ...f, [k]: v }));
 
-  // A closed tournament keeps its own option so the select isn't blank; it is
-  // reopened via the lifecycle buttons, not here.
-  const statusOptions = form.status === 'completed'
-    ? [...STATUSES, { value: 'completed', label: 'Clôturé' }]
-    : STATUSES;
+  // Statut en modification : la liste n'est proposée qu'à un tournoi ouvert
+  // (ouvert → en cours). En cours ou clôturé : affiché en lecture seule ; la
+  // clôture et la réouverture passent par leurs boutons dédiés, pas par ici.
+  const statusLocked = !!initial && !statusEditable(start.status);
+  const statusLabel = start.status === 'completed' ? 'Clôturé'
+    : STATUSES.find(s => s.value === start.status)?.label ?? start.status;
 
   async function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -111,9 +112,10 @@ export default function TournamentForm({ boxId, initial, allowedFormats = ['simp
     setError(null);
     const supabase = createClient();
     if (initial?.id) {
-      // Modification : champs changés seulement, jamais le format.
+      // Modification : champs changés seulement, jamais le format ; « Publier »
+      // n'y force plus le statut (lib/tournamentForm.ts).
       const update = tournamentUpdatePayload(start, form, {
-        boxId, publish, bannerUrl, initialBannerUrl: initial?.banner_url ?? null,
+        boxId, bannerUrl, initialBannerUrl: initial?.banner_url ?? null,
       });
       const { error: err } = await supabase.from('tournaments').update(update).eq('id', initial.id);
       setSaving(false);
@@ -267,9 +269,13 @@ export default function TournamentForm({ boxId, initial, allowedFormats = ['simp
           </div>
           <div>
             <label className={lbl}>Statut</label>
-            <select className={inp} value={form.status} onChange={e => set('status', e.target.value)}>
-              {statusOptions.map(s => <option key={s.value} value={s.value} className="text-black">{s.label}</option>)}
-            </select>
+            {statusLocked ? (
+              <div className={inp} aria-readonly="true" data-testid="statut-lecture-seule">{statusLabel}</div>
+            ) : (
+              <select className={inp} value={form.status} onChange={e => set('status', e.target.value)}>
+                {STATUSES.map(s => <option key={s.value} value={s.value} className="text-black">{s.label}</option>)}
+              </select>
+            )}
           </div>
         </div>
         <div className="grid grid-cols-2 gap-4">
