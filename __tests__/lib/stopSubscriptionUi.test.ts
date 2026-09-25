@@ -46,7 +46,8 @@ describe('page Abonnés — bouton « Arrêter l’abonnement »', () => {
   });
 
   it('l’élément ne montre que ce qui est chargé : comptoir ou période payée', () => {
-    expect(subscribers).toMatch(/!r\.hasStripeSub \? 'payé au comptoir' : null,/);
+    // S4 : « payé au comptoir » vient de paymentMethodLabel (repli inchangé).
+    expect(subscribers).toContain('paymentMethodLabel(r.hasStripeSub, r.paymentMethodType),');
     expect(subscribers).toContain("r.hasStripeSub && r.periodEnd ? `période payée jusqu'au ${fullDate(r.periodEnd)}` : null,");
   });
 

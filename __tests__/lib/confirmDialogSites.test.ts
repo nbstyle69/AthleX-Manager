@@ -29,14 +29,16 @@ const SITES: Site[] = [
   { id: 'B1', file: 'app/(dashboard)/groups/[id]/page.tsx', opens: 'onClick={askDeleteGroup}', direct: 'onClick={deleteGroup}', run: /function askDeleteGroup[\s\S]{0,900}run: deleteGroup,/ },
   { id: 'B2', file: 'app/(dashboard)/invitations/page.tsx', opens: 'askRevoke(inv)', direct: 'revoke(inv)', run: /function askRevoke[\s\S]{0,900}run: \(\) => revoke\(invitation\)/ },
   { id: 'B3', file: 'app/(dashboard)/members/page.tsx', opens: 'onChange={changeRole}', direct: 'onChange={applyRole}', run: /async function changeRole[\s\S]{0,700}ask\(newRole === 'owner'[\s\S]{0,600}run: \(\) => applyRole\(member, newRole\)[\s\S]{0,600}run: \(\) => applyRole\(member, newRole\)/ },
-  { id: 'B4', file: 'app/(dashboard)/members/page.tsx', opens: 'askDeletePlan(p)', direct: 'deletePlan(p.id)', run: /function askDeletePlan[\s\S]{0,1200}run: \(\) => deletePlan\(plan\.id\)/ },
-  { id: 'B5', file: 'components/plans/MembershipPlansSection.tsx', opens: 'askDeletePlan(pl)', direct: 'handleDeletePlan(pl.id)', run: /function askDeletePlan[\s\S]{0,900}run: \(\) => handleDeletePlan\(pl\.id\)/ },
+  // B4, B5, B10, B11 (S4) : la boîte passe par askDeleteWithSubscriptions
+  // (lib/deleteWithSubscriptions.ts, testé dans deleteWithSubscriptions.test.ts).
+  { id: 'B4', file: 'app/(dashboard)/members/page.tsx', opens: 'askDeletePlan(p)', direct: 'askDeleteWithSubscriptions(', run: /function askDeletePlan[\s\S]{0,200}return askDeleteWithSubscriptions\(\{\s*ask, inform, kind: 'plan'/ },
+  { id: 'B5', file: 'components/plans/MembershipPlansSection.tsx', opens: 'askDeletePlan(pl)', direct: 'askDeleteWithSubscriptions(', run: /function askDeletePlan[\s\S]{0,200}return askDeleteWithSubscriptions\(\{\s*ask, inform, kind: 'plan'/ },
   { id: 'B6', file: 'components/plans/PromoCodesSection.tsx', opens: 'askDeletePromo(pc)', direct: 'handleDeletePromo(pc)', run: /function askDeletePromo[\s\S]{0,1100}run: \(\) => handleDeletePromo\(promo\)/ },
   { id: 'B7', file: 'app/(dashboard)/subscribers/page.tsx', opens: 'askCashPayment(r)', direct: 'recordCashPayment(r)', run: /function askCashPayment[\s\S]{0,700}run: \(\) => recordCashPayment\(r\)/ },
   { id: 'B8a', file: 'app/(dashboard)/subscribers/page.tsx', opens: "askReview(req, 'approve')", direct: "reviewRequest(req.id, 'approve')", run: /function askReview[\s\S]{0,700}run: \(\) => reviewRequest\(req\.id, 'approve'\)/ },
   { id: 'B8b', file: 'app/(dashboard)/subscribers/page.tsx', opens: "askReview(req, 'reject')", direct: "reviewRequest(req.id, 'reject')", run: /function askReview[\s\S]{0,1400}field: \{ label: 'Motif du refus \(facultatif\)' \},[\s\S]{0,120}run: note => reviewRequest\(req\.id, 'reject', note\)/ },
-  { id: 'B10', file: 'components/programs/AthleteProgramsWorkspace.tsx', opens: 'askDeleteProgram(p)', direct: 'handleDelete(p.id)', run: /function askDeleteProgram[\s\S]{0,900}run: \(\) => handleDelete\(p\.id\)/ },
-  { id: 'B11', file: 'components/marketplace/MarketplaceWorkspace.tsx', opens: 'askRemove(o)', direct: 'remove(o)', run: /function askRemove[\s\S]{0,1100}run: \(\) => remove\(o\)/ },
+  { id: 'B10', file: 'components/programs/AthleteProgramsWorkspace.tsx', opens: 'askDeleteProgram(p)', direct: 'askDeleteWithSubscriptions(', run: /function askDeleteProgram[\s\S]{0,200}return askDeleteWithSubscriptions\(\{\s*ask, inform, kind: 'program'/ },
+  { id: 'B11', file: 'components/marketplace/MarketplaceWorkspace.tsx', opens: 'askRemove(o)', direct: 'askDeleteWithSubscriptions(', run: /function askRemove[\s\S]{0,600}return askDeleteWithSubscriptions\(\{\s*ask, inform, kind: 'offer'/ },
 ];
 
 describe('Sections A et B : le bouton de l’écran ouvre la boîte, l’action part de son bouton d’action', () => {
