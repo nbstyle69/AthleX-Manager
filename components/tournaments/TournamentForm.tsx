@@ -370,11 +370,15 @@ export default function TournamentForm({ boxId, initial, allowedFormats = ['simp
           {saving && <Loader2 size={14} className="animate-spin" />}
           Enregistrer
         </button>
-        <button type="button" disabled={saving} onClick={(e) => handleSubmit(e as any, true)}
-          className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold bg-white hover:bg-white text-[#0A0A0A] disabled:opacity-60 transition-colors">
-          {saving && <Loader2 size={14} className="animate-spin" />}
-          Publier
-        </button>
+        {/* « Publier » à la création seulement (il y ouvre les inscriptions) : en
+            modification il ne changerait rien de plus qu'« Enregistrer ». */}
+        {!initial && (
+          <button type="button" disabled={saving} onClick={(e) => handleSubmit(e as any, true)}
+            className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold bg-white hover:bg-white text-[#0A0A0A] disabled:opacity-60 transition-colors">
+            {saving && <Loader2 size={14} className="animate-spin" />}
+            Publier
+          </button>
+        )}
       </div>
     </form>
   );
