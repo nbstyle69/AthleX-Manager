@@ -250,7 +250,8 @@ describe('schedule : chaque arrêt, selon l’impayé', () => {
     expect(b1.archive_scheduled_by).toBe('sa');
     expect(typeof b1.archive_scheduled_at).toBe('string');
     expect(b1.archived_at).toBeNull();
-    expect(db.writes.filter(w => w.table === 'boxes')).toHaveLength(1);
+    // Une écriture de programmation, puis la date d'envoi de l'e-mail d'archivage.
+    expect(db.writes.filter(w => w.table === 'boxes')).toHaveLength(2);
   });
 
   it('achat en une fois, plan Multi, abonnements d’autres boxs : jamais touchés', async () => {
@@ -356,7 +357,8 @@ describe('échec partiel, puis relance', () => {
     // E-mails de la relance : m1 (son arrêt), puis gérant et comptoir, une fois chacun.
     expect(emails().slice(mailsBefore).map(e => e.to)).toEqual(['m1@exemple.fr', 'gerant@exemple.fr', 'm4@exemple.fr']);
     // La programmation reste celle du premier appel (une seule écriture sur boxes).
-    expect(db.writes.filter(w => w.table === 'boxes')).toHaveLength(1);
+    // Une écriture de programmation, puis la date d'envoi de l'e-mail d'archivage.
+    expect(db.writes.filter(w => w.table === 'boxes')).toHaveLength(2);
 
     const mailsAfter = emails().length;
     mockSubUpdate.mockClear();
@@ -396,6 +398,65 @@ describe('plus rien ne paie : archivage immédiat', () => {
     const res = await call('schedule');
     expect(res._data).toEqual({ ok: true, archived: true, stopped: 0 });
     expect(stripeIds()).toEqual([]);
+  });
+});
+
+describe('archive_notified_at : l’e-mail d’archivage part une seule fois (PR 3)', () => {
+  const scheduledBox = (notified: string | null) => [{ ...world().boxes[0], archive_scheduled_at: '2026-09-25T10:00:00Z', archive_notified_at: notified }, ...world().boxes.slice(1)];
+  const nothingLeft = { box_members: [world().box_members[2], world().box_members[3]], program_members: [], box_programming_subscriptions: [], pending_entitlements: [] };
+
+  it('programmation complète : la date d’envoi est gardée en base, après les e-mails', async () => {
+    await call('schedule');
+    const b1 = db.tables.boxes.find(b => b.id === 'b1')!;
+    expect(typeof b1.archive_notified_at).toBe('string');
+    expect(db.writes.filter(w => w.table === 'boxes').map(w => Object.keys(w.values ?? {}))).toEqual([
+      ['archive_scheduled_at', 'archive_scheduled_by'], ['archive_notified_at'],
+    ]);
+  });
+
+  it('échec partiel : pas d’e-mail, pas de date d’envoi', async () => {
+    mockSubUpdate.mockImplementation(async (sid: string) => { if (sid === 'sub_o2') throw new Error('x'); stripeState[sid].cancel_at_period_end = true; return { id: sid }; });
+    expect((await call('schedule'))._status).toBe(502);
+    expect(db.tables.boxes.find(b => b.id === 'b1')!.archive_notified_at ?? null).toBeNull();
+  });
+
+  it('cas rare : programmée, rien à arrêter, jamais prévenue → l’e-mail part enfin, une fois', async () => {
+    // Un arrêt avait échoué, puis l'abonnement s'est terminé ailleurs : plus rien à arrêter.
+    stripeState.sub_box.cancel_at_period_end = true;
+    setup({ ...nothingLeft, boxes: scheduledBox(null) });
+    const res = await call('schedule');
+    expect(res._status).toBe(200);
+    expect(res._data).toMatchObject({ scheduled: true, stopped: 0 });
+    expect(emails().map(e => e.to).sort()).toEqual(['gerant@exemple.fr', 'm4@exemple.fr']);
+    expect(typeof db.tables.boxes.find(b => b.id === 'b1')!.archive_notified_at).toBe('string');
+    expect(mockSubUpdate).not.toHaveBeenCalled();
+  });
+
+  it('déjà prévenue et rien à arrêter : 409, aucun e-mail', async () => {
+    stripeState.sub_box.cancel_at_period_end = true;
+    setup({ ...nothingLeft, boxes: scheduledBox('2026-09-25T10:05:00Z') });
+    const res = await call('schedule');
+    expect(res._status).toBe(409);
+    expect(res._data.error).toBe('L’archivage de cette box est déjà programmé et tous ses abonnements sont arrêtés.');
+    expect(emails()).toEqual([]);
+  });
+
+  it('déjà prévenue mais un arrêt restait : il est fait, sans renvoyer l’e-mail d’archivage', async () => {
+    setup({ boxes: scheduledBox('2026-09-25T10:05:00Z'), box_members: [world().box_members[0], world().box_members[3]], program_members: [], box_programming_subscriptions: [], pending_entitlements: [] });
+    stripeState.sub_box.cancel_at_period_end = true;
+    const res = await call('schedule');
+    expect(res._data).toMatchObject({ scheduled: true, stopped: 1 });
+    expect(emails().map(e => e.to)).toEqual(['m1@exemple.fr']);
+  });
+
+  it('archivage immédiat : membres au comptoir prévenus, date d’envoi gardée', async () => {
+    setup({
+      box_members: [world().box_members[1], world().box_members[3]],
+      program_members: [], box_programming_subscriptions: [], pending_entitlements: [],
+      box_subscriptions: [{ id: 'bs1', box_id: 'b1', billing_source: 'manual', status: 'active', stripe_subscription_id: null, current_period_end: null }],
+    });
+    await call('schedule');
+    expect(typeof db.tables.boxes.find(b => b.id === 'b1')!.archive_notified_at).toBe('string');
   });
 });
 

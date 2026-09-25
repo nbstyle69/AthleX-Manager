@@ -7,9 +7,6 @@ import { countOf, deCount } from '@/lib/plural';
 const ROOTS = ['app', 'components', 'lib'];
 // Contenu généré des tutoriels : régénéré par son script, hors de cette garde.
 const EXCLUS = [path.join('lib', 'tutorials')];
-// Corrigé par #391 (« l’arrêt d’1 abonnement »), qui n'est pas encore sur main :
-// ce fichier n'est pas touché ici pour ne pas croiser #391. À retirer après son merge.
-const EN_ATTENTE_391 = path.join('lib', 'boxArchiveSchedule.ts');
 
 function files(dir: string): string[] {
   const out: string[] = [];
@@ -50,7 +47,7 @@ describe('accords des nombres connus (garde sur tout le Manager)', () => {
   });
 
   it('aucun « de 1 » devant un mot (élision : « d’1 »)', () => {
-    const hits = all.filter(f => f !== EN_ATTENTE_391).flatMap(f => codeLines(fs.readFileSync(f, 'utf8'))
+    const hits = all.flatMap(f => codeLines(fs.readFileSync(f, 'utf8'))
       .filter(({ l }) => DE_UN.test(l))
       .map(({ l, n }) => `${f}:${n}: ${l.trim().slice(0, 90)}`));
     expect(hits).toEqual([]);

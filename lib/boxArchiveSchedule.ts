@@ -37,6 +37,8 @@ const isPastDue = (status: string | null | undefined) => status === 'past_due' |
 interface BoxRow {
   id: string; name: string; stripe_account_id: string | null; contact_email: string | null;
   owner_id: string | null; archived_at: string | null; archive_scheduled_at: string | null;
+  /** Envoi de l'e-mail d'archivage (athlex-app `20270129`) ; remis à NULL par la base à l'annulation. */
+  archive_notified_at: string | null;
 }
 interface MemberRow {
   id: string; box_id: string; member_id: string; plan_id: string | null; status: string | null;
@@ -81,7 +83,7 @@ type Db = SupabaseClient;
 export async function loadArchiveTargets(supabase: Db, boxId: string): Promise<ArchiveTargets | null> {
   const { data: boxRaw } = await supabase
     .from('boxes')
-    .select('id, name, stripe_account_id, contact_email, owner_id, archived_at, archive_scheduled_at')
+    .select('id, name, stripe_account_id, contact_email, owner_id, archived_at, archive_scheduled_at, archive_notified_at')
     .eq('id', boxId).maybeSingle();
   const box = boxRaw as BoxRow | null;
   if (!box) return null;
@@ -376,9 +378,6 @@ export async function archiveSchedule(supabase: Db, t: ArchiveTargets, actorId: 
 
   const failed: string[] = [];
   let stopped = 0;
-  // Arrêts tentés : une relance réussie sans rien à arrêter n'envoie rien (un
-  // échec rend 502 avant, ce compte ne sert qu'en l'absence d'échec).
-  let attempted = 0;
   let notEmailed = 0;
   let lastEnd: string | null = null;
   let stillPaying = false;
@@ -411,7 +410,6 @@ export async function archiveSchedule(supabase: Db, t: ArchiveTargets, actorId: 
     }
     const mode: StopMode = pastDue ? 'now' : 'period_end';
     const profile = profileById.get(m.member_id) ?? null;
-    attempted += 1;
     try {
       const { emailed } = await stopBoxMember(supabase, {
         member: m, box: boxInfo, profile, planName: m.plan_id ? planName.get(m.plan_id) ?? null : null, mode, actorId,
@@ -453,7 +451,6 @@ export async function archiveSchedule(supabase: Db, t: ArchiveTargets, actorId: 
       }
       periodEnd = st.periodEnd;
       if (isPastDue(st.status)) mode = 'now';
-      attempted += 1;
       await stopSubscription({ stripeAccount: s.account ?? undefined, subscriptionId: s.subscriptionId, mode, idempotencyKey: archiveStopKey(s, mode) });
       stopped += 1;
     } catch {
@@ -521,13 +518,14 @@ export async function archiveSchedule(supabase: Db, t: ArchiveTargets, actorId: 
     };
   }
 
-  // Relance sur une box déjà programmée où il n'y avait plus rien à arrêter :
-  // la programmation est complète, les e-mails sont déjà partis.
-  if (resuming && attempted === 0) {
-    return { status: 409, body: { error: 'L’archivage de cette box est déjà programmé et tous ses abonnements sont arrêtés.' } };
-  }
-
   const warn = (n: number) => (n > 0 ? { warning: n === 1 ? '1 e-mail n’est pas parti : préviens la personne directement.' : `${n} e-mails ne sont pas partis : préviens ces personnes directement.` } : {});
+  // L'e-mail d'archivage (gérant, comptoir) est parti : la date d'envoi est
+  // gardée en base, et la base l'efface à l'annulation. Une relance ne le
+  // renvoie donc jamais, même si plus rien n'était à arrêter.
+  const markNotified = async () => {
+    const { error } = await supabase.from('boxes').update({ archive_notified_at: new Date().toISOString() }).eq('id', box.id);
+    if (error) console.error('archive_notified_at update failed:', error.message);
+  };
   const sendCounter = async (immediate: boolean) => {
     for (const m of t.counterMembers) {
       const p = profileById.get(m.member_id) ?? null;
@@ -547,7 +545,16 @@ export async function archiveSchedule(supabase: Db, t: ArchiveTargets, actorId: 
       .eq('id', box.id).is('archived_at', null);
     if (error) return { status: 502, body: { error: error.message, stopped } };
     await sendCounter(true);
+    await markNotified();
     return { status: 200, body: { ok: true, archived: true, stopped, ...warn(notEmailed) } };
+  }
+
+  // Déjà prévenus : rien n'est renvoyé. Sans rien à arrêter, la relance n'a pas d'objet.
+  if (box.archive_notified_at) {
+    if (stopped === 0) {
+      return { status: 409, body: { error: 'L’archivage de cette box est déjà programmé et tous ses abonnements sont arrêtés.' } };
+    }
+    return { status: 200, body: { ok: true, scheduled: true, stopped, last_end: lastEnd, ...warn(notEmailed) } };
   }
 
   // Tous les arrêts ont réussi : e-mail au gérant (réponse vers AthleX) et aux
@@ -564,6 +571,7 @@ export async function archiveSchedule(supabase: Db, t: ArchiveTargets, actorId: 
     notEmailed += 1;
   }
   await sendCounter(false);
+  await markNotified();
 
   return { status: 200, body: { ok: true, scheduled: true, stopped, last_end: lastEnd, ...warn(notEmailed) } };
 }
