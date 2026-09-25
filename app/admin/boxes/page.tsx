@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/client';
 import { Building2, Search, Users, Calendar, CheckCircle, XCircle, ChevronRight, Plus, X, MapPin } from 'lucide-react';
 import Link from 'next/link';
 import { FREE_TIER, formatExpiredSince, planTierClasses } from '@/lib/boxPlanTier';
-import { Sparkles, Archive } from 'lucide-react';
+import { Sparkles, Archive, CalendarClock } from 'lucide-react';
 import { useConfirmDialog } from '@/components/ui/confirm-dialog';
 import { ERROR_TITLE } from '@/lib/confirmDialog';
 import { Button } from '@/components/ui/button';
@@ -34,6 +34,7 @@ interface BoxItem {
       le réglage vit dans la fiche de la box. */
   auto_programming: boolean;
   archived_at: string | null;
+  archive_scheduled_at: string | null;
 }
 
 export default function AdminBoxesPage() {
@@ -68,6 +69,7 @@ export default function AdminBoxesPage() {
         logo_url: b.logo_url ?? null,
         auto_programming: b.auto_programming === true,
         archived_at: b.archived_at ?? null,
+        archive_scheduled_at: b.archive_scheduled_at ?? null,
       };
     });
     setBoxes(mapped);
@@ -286,6 +288,16 @@ export default function AdminBoxesPage() {
                       className="flex items-center gap-1 text-[10px] font-bold text-ax-warning bg-ax-warning-soft px-2 py-0.5 rounded-ax-badge"
                     >
                       <Archive size={10} /> {new Date(box.archived_at).toLocaleDateString('fr-FR')}
+                    </span>
+                  )}
+                  {/* Archivage (PR 3) : la liste signale, l'annulation se fait dans la fiche. */}
+                  {box.archive_scheduled_at && !box.archived_at && (
+                    <span
+                      data-testid={`archivage-programme-${box.id}`}
+                      title={`Archivage programmé le ${new Date(box.archive_scheduled_at).toLocaleDateString('fr-FR')}`}
+                      className="flex items-center gap-1 text-[10px] font-bold text-ax-warning bg-ax-warning-soft px-2 py-0.5 rounded-ax-badge"
+                    >
+                      <CalendarClock size={10} /> Archivage programmé
                     </span>
                   )}
                   {/* Lot J2 : la liste signale, elle ne règle pas. */}
