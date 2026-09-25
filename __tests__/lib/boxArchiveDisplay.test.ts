@@ -156,6 +156,16 @@ describe('Refus dans une boîte d’information (point 3)', () => {
     expect(s).toContain('{dialog}');
   });
 
+  it.each([
+    'app/box/[slug]/MembershipManageButton.tsx',
+    'app/box/[slug]/MembershipSubscribeButton.tsx',
+    'app/box/[slug]/ProgramBuyButton.tsx',
+    'app/box/[slug]/TrialBookingCta.tsx',
+  ])('%s : la fenêtre d’achat (z-[100]) se ferme, sinon elle cacherait la boîte (z-[60])', (p) => {
+    const s = read(p);
+    expect(s.match(/setOpen\(false\); void inform\(entryRefusalInfo\((refusal|closed)\)\)/g)).toHaveLength(EXPECTED_CHECKS[p] ?? 1);
+  });
+
   it('marketplace : la fenêtre « S’abonner » a sa propre boîte, et la rend', () => {
     const s = read('components/marketplace/MarketplaceWorkspace.tsx');
     const modal = s.slice(s.indexOf('function SubscribeModal('), s.indexOf('function MyOffers('));
@@ -166,6 +176,25 @@ describe('Refus dans une boîte d’information (point 3)', () => {
 });
 
 describe('archive_notified_at (point 5)', () => {
+  it('la route archive-schedule passe le client serveur (seule la clé serveur écrit la colonne)', () => {
+    const s = read('app/api/admin/boxes/[id]/archive-schedule/route.ts');
+    expect(s).toMatch(/const supabase = createServiceClient\(\);[\s\S]*archiveSchedule\(supabase, targets, user\.id\)/);
+  });
+
+  it('aucun fichier du navigateur n’écrit les colonnes d’archivage', () => {
+    const COLS = /\b(archived_at|archived_by|archive_scheduled_at|archive_scheduled_by|archive_notified_at)\s*:/;
+    const walk = (d: string): string[] => require('fs').readdirSync(d, { withFileTypes: true }).flatMap((e: any) => {
+      const p = join(d, e.name);
+      return e.isDirectory() ? (e.name === 'node_modules' ? [] : walk(p)) : /\.tsx?$/.test(e.name) ? [p] : [];
+    });
+    const hits = ['app', 'components', 'lib'].flatMap(r => walk(join(process.cwd(), r)))
+      .filter(f => /^\s*['"]use client['"]/.test(readFileSync(f, 'utf8')))
+      .flatMap(f => readFileSync(f, 'utf8').split(/\.(?:update|insert|upsert)\(/).slice(1)
+        .filter(after => COLS.test(after.slice(0, after.indexOf(')') + 1)))
+        .map(() => f));
+    expect(hits).toEqual([]);
+  });
+
   it('la cible d’archivage lit la date d’envoi', () => {
     expect(read('lib/boxArchiveSchedule.ts')).toContain(".select('id, name, stripe_account_id, contact_email, owner_id, archived_at, archive_scheduled_at, archive_notified_at')");
   });

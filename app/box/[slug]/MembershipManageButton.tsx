@@ -40,7 +40,7 @@ export default function MembershipManageButton({ plans }: Props) {
       });
       const data = await res.json();
       const refusal = entryRefusalFrom(data);
-      if (refusal) { setLoading(false); void inform(entryRefusalInfo(refusal)); return; }
+      if (refusal) { setLoading(false); setOpen(false); void inform(entryRefusalInfo(refusal)); return; }
       if (res.status === 401) {
         throw new Error('Connecte-toi à ton compte AthleX pour changer de formule.');
       }

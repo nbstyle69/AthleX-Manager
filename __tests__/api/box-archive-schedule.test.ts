@@ -457,6 +457,13 @@ describe('archive_notified_at : l’e-mail d’archivage part une seule fois (PR
     });
     await call('schedule');
     expect(typeof db.tables.boxes.find(b => b.id === 'b1')!.archive_notified_at).toBe('string');
+    // Après `archived_at`, jamais avant : sur une box ouverte, le déclencheur de la base la remettrait à vide.
+    // (#390 : programmer d'abord, puis archiver quand plus rien ne paie.)
+    expect(db.writes.filter(w => w.table === 'boxes').map(w => Object.keys(w.values ?? {}))).toEqual([
+      ['archive_scheduled_at', 'archive_scheduled_by'],
+      ['archived_at', 'archived_by', 'archive_scheduled_at', 'archive_scheduled_by'],
+      ['archive_notified_at'],
+    ]);
   });
 });
 

@@ -32,7 +32,7 @@ export default function ProgramBuyButton({ programId, priceLabel, recurring }: P
       });
       const data = await res.json();
       const refusal = entryRefusalFrom(data);
-      if (refusal) { setLoading(false); void inform(entryRefusalInfo(refusal)); return; }
+      if (refusal) { setLoading(false); setOpen(false); void inform(entryRefusalInfo(refusal)); return; }
       if (!res.ok) throw new Error(data.error ?? 'Erreur de paiement');
       window.location.href = data.url;
     } catch (e: any) {

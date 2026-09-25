@@ -121,7 +121,7 @@ export default function TrialBookingCta({
       });
       const data = await res.json();
       const closed = entryRefusalFrom(data);
-      if (closed) { void inform(entryRefusalInfo(closed)); return; }
+      if (closed) { setOpen(false); void inform(entryRefusalInfo(closed)); return; }
       if (!data?.ok) {
         setError(refusal(data?.reason));
         return;
@@ -154,7 +154,7 @@ export default function TrialBookingCta({
       });
       const data = await res.json();
       const closed = entryRefusalFrom(data);
-      if (closed) { void inform(entryRefusalInfo(closed)); return; }
+      if (closed) { setOpen(false); void inform(entryRefusalInfo(closed)); return; }
       if (!data?.ok) {
         setError(refusal(data?.reason));
         // Un créneau qui vient de se remplir n'est plus proposable : la liste
