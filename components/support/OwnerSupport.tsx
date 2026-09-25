@@ -162,7 +162,7 @@ export default function OwnerSupport({ boxId, userId }: { boxId: string; userId:
             return (
               <div key={m.id} className={`flex ${mine ? 'justify-end' : 'justify-start'}`}>
                 <div className={`max-w-[80%] rounded-ax-card px-4 py-2.5 ${mine ? 'bg-ax-hover text-ax-text' : 'bg-ax-success-soft border border-ax-success text-ax-text'}`}>
-                  <p className="text-[10px] font-bold uppercase tracking-wider mb-1 opacity-60">
+                  <p className="text-[10px] font-bold uppercase tracking-wider mb-1 text-ax-text-secondary">
                     {mine ? 'Vous' : 'Support AthleX'} · {fmt(m.created_at)}
                   </p>
                   <p className="text-sm whitespace-pre-wrap">{m.body}</p>

@@ -244,7 +244,7 @@ export default function BoxStatsPage() {
               ))}
             </div>
           </div>
-          <div className="flex items-end gap-[2px] h-40">
+          <div className="flex items-end gap-[2px] h-40 overflow-x-clip">
             {filledChart.map((d) => (
               <div key={d.date} className="flex-1 h-full flex flex-col items-center justify-end group relative">
                 <div className="absolute -top-8 bg-ax-surface-secondary border border-ax-border rounded-ax-control px-2 py-1 text-[10px] text-ax-text font-bold opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">
@@ -324,7 +324,7 @@ export default function BoxStatsPage() {
               ))}
             </div>
           </div>
-          <div className="flex items-end gap-[2px] h-40">
+          <div className="flex items-end gap-[2px] h-40 overflow-x-clip">
             {filledResaChart.map((d) => (
               <div key={d.date} className="flex-1 h-full flex flex-col items-center justify-end group relative">
                 <div className="absolute -top-8 bg-ax-surface-secondary border border-ax-border rounded-ax-control px-2 py-1 text-[10px] text-ax-text font-bold opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">

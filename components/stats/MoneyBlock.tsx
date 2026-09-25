@@ -314,7 +314,7 @@ export default function MoneyBlock({ boxId }: { boxId: string }) {
           {history.length === 0 ? (
             <p className="text-xs text-ax-text-muted py-6 text-center">Aucun encaissement sur la période.</p>
           ) : (
-            <div className="flex items-end gap-2 h-36">
+            <div className="flex items-end gap-2 h-36 overflow-x-clip">
               {history.map(h => {
                 const total = monthTotal(h);
                 return (
