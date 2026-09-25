@@ -6,6 +6,7 @@ import { useConfirmDialog } from '@/components/ui/confirm-dialog';
 import { FileText, Plus, Pencil, Trash2, X, Bug, Sparkles, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { useModalEscape } from '@/lib/modalEscape';
 
 interface ChangelogEntry {
   id: string;
@@ -18,9 +19,9 @@ interface ChangelogEntry {
 
 // Même couleur par type qu'avant, en jetons lisibles dans les deux thèmes.
 const TYPE_OPTIONS: { value: ChangelogEntry['type']; label: string; icon: any; color: string }[] = [
-  { value: 'feature', label: 'Feature', icon: Sparkles, color: 'text-ax-success bg-ax-success-soft' },
-  { value: 'fix', label: 'Fix', icon: Bug, color: 'text-ax-danger bg-ax-danger-soft' },
-  { value: 'update', label: 'Update', icon: RefreshCw, color: 'text-ax-info bg-ax-info-soft' },
+  { value: 'feature', label: 'Nouveauté', icon: Sparkles, color: 'text-ax-success bg-ax-success-soft' },
+  { value: 'fix', label: 'Correction', icon: Bug, color: 'text-ax-danger bg-ax-danger-soft' },
+  { value: 'update', label: 'Amélioration', icon: RefreshCw, color: 'text-ax-info bg-ax-info-soft' },
 ];
 
 const FOCUS = 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ax-focus';
@@ -38,6 +39,8 @@ export default function AdminChangelogPage() {
   const [saving, setSaving] = useState(false);
   const supabase = createClient();
   const { dialog, ask } = useConfirmDialog();
+  // Échap ferme sans enregistrer ; le focus revient au bouton d'ouverture.
+  useModalEscape(showForm, () => setShowForm(false));
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -117,7 +120,7 @@ export default function AdminChangelogPage() {
             <FileText size={22} className="text-ax-info" />
           </div>
           <div className="min-w-0">
-            <h1 className="font-display text-2xl font-medium uppercase tracking-wide text-ax-text">Changelog</h1>
+            <h1 className="font-display text-2xl font-medium uppercase tracking-wide text-ax-text">Nouveautés</h1>
             <p className="text-sm text-ax-text-secondary">{entries.length} entrées · affiché dans l&apos;app mobile</p>
           </div>
         </div>
@@ -205,7 +208,7 @@ export default function AdminChangelogPage() {
       ) : entries.length === 0 ? (
         <div className="text-center py-20">
           <FileText size={40} className="text-ax-text-muted mx-auto mb-3" />
-          <p className="text-ax-text-secondary text-sm">Aucune entrée de changelog</p>
+          <p className="text-ax-text-secondary text-sm">Aucune entrée dans les nouveautés</p>
           <button onClick={openNew} className={`mt-3 rounded-ax-control text-ax-accent-text text-sm font-bold hover:underline ${FOCUS}`}>
             Créer la première
           </button>
@@ -229,7 +232,7 @@ export default function AdminChangelogPage() {
                       <div className="flex flex-wrap items-center gap-2 mb-1">
                         <p className="text-sm font-black text-ax-text break-words min-w-0">{entry.title}</p>
                         <span className={`text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-ax-badge ${tc.color}`}>
-                          {entry.type}
+                          {tc.label}
                         </span>
                       </div>
                       {entry.body && (

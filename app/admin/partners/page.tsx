@@ -6,6 +6,7 @@ import { useConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Plus, Pencil, Trash2, Handshake, Globe, Tag, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { useModalEscape } from '@/lib/modalEscape';
 
 interface Partner {
   id: string;
@@ -63,6 +64,8 @@ export default function PartnersAdminPage() {
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
   const [logoFile, setLogoFile] = useState<File | null>(null);
+  // Échap ferme sans enregistrer ; le focus revient au bouton d'ouverture.
+  useModalEscape(showForm, () => setShowForm(false));
 
   useEffect(() => { loadPartners(); }, []);
 

@@ -7,6 +7,9 @@ import { Swords, CheckCircle, XCircle, Youtube, AlertTriangle, ExternalLink, Ref
 import { Button } from '@/components/ui/button';
 import { SUB_ORANGE_SOFT, SUB_ORANGE_TEXT } from '@/components/admin/adminTokens';
 
+// Libellés affichés seulement : `score_mode` garde ses valeurs en base.
+const SCORE_MODE_LABEL: Record<string, string> = { time: 'Temps', reps: 'Répétitions', rounds: 'Tours' };
+
 interface ContestedScore {
   id: string;
   tournament_id: string;
@@ -190,7 +193,7 @@ export default function DailyContestsPage() {
                 </div>
                 <div>
                   <p className="text-xs text-ax-text-secondary uppercase tracking-wider font-bold mb-1">Mode</p>
-                  <p className="text-sm font-bold text-ax-text">{score.score_mode}</p>
+                  <p className="text-sm font-bold text-ax-text">{SCORE_MODE_LABEL[score.score_mode] ?? score.score_mode}</p>
                 </div>
                 <div>
                   <p className="text-xs text-ax-text-secondary uppercase tracking-wider font-bold mb-1">RX</p>

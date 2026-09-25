@@ -3,10 +3,11 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Check, Gauge, Loader2, Lock } from 'lucide-react';
 import {
-  CATALOG_UNITS, validateVolumeCapPatch,
+  CATALOG_UNITS, FAMILY_LABEL, LOAD_BAND_LABEL, validateVolumeCapPatch,
   type CatalogUnit, type SkeletonRow, type VolumeCapRow,
 } from '@/lib/adminCatalog';
 import { Button } from '@/components/ui/button';
+import { TRACK_LABEL } from '@/lib/autoProgramming';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
 
 /**
@@ -119,7 +120,7 @@ export default function AdminVolumeCapsPage() {
                     <TableRow key={c.label} data-testid={`cap-row-${c.label}`} className={c.active ? '' : 'bg-ax-surface-secondary'}>
                       <TableCell className={`font-bold min-w-[10rem] break-words ${c.active ? 'text-ax-text' : 'text-ax-text-secondary'}`}>{c.label}</TableCell>
                       <TableCell className="text-xs text-ax-text-secondary font-mono min-w-[10rem] break-words">
-                        {c.family ? `famille ${c.family}${c.band ? ` · ${c.band}` : ''}` : (c.ids ?? []).join(', ')}
+                        {c.family ? `famille ${FAMILY_LABEL[c.family] ?? c.family}${c.band ? ` · ${LOAD_BAND_LABEL[c.band] ?? c.band}` : ''}` : (c.ids ?? []).join(', ')}
                       </TableCell>
                       <TableCell>
                         <input
@@ -175,7 +176,7 @@ export default function AdminVolumeCapsPage() {
             <Table aria-label="Squelettes" data-testid="skeletons-table">
               <TableHeader>
                 <TableRow className="hover:bg-transparent">
-                  <TableHead className="font-bold uppercase tracking-wider">Id</TableHead>
+                  <TableHead className="font-bold uppercase tracking-wider">Identifiant</TableHead>
                   <TableHead className="font-bold uppercase tracking-wider">Discipline</TableHead>
                   <TableHead className="font-bold uppercase tracking-wider">Format</TableHead>
                   <TableHead className="font-bold uppercase tracking-wider">Actif</TableHead>
@@ -208,7 +209,7 @@ function SkeletonRows({ s, open, onToggle }: { s: SkeletonRow; open: boolean; on
         data-testid={`skeleton-row-${s.id}`}
       >
         <TableCell className="font-mono text-xs text-ax-text break-all min-w-[8rem]">{s.id}</TableCell>
-        <TableCell className="text-ax-text-secondary">{s.discipline}</TableCell>
+        <TableCell className="text-ax-text-secondary">{TRACK_LABEL[s.discipline as keyof typeof TRACK_LABEL] ?? s.discipline}</TableCell>
         <TableCell className="text-ax-text-secondary">{s.format}</TableCell>
         <TableCell className="text-xs">{s.active ? <span className="text-ax-success">actif</span> : <span className="text-ax-text-secondary">inactif</span>}</TableCell>
         <TableCell className="text-ax-text-secondary font-mono text-xs">v{s.version}</TableCell>

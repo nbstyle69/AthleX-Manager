@@ -299,7 +299,7 @@ export default function AdminProgramsPage() {
               </div>
               <div>
                 <label className={FIELD_LABEL}>Description</label>
-                <input value={affForm.description ?? ''} onChange={e => setAffForm({...affForm, description: e.target.value})} placeholder="Par Mat Fraser — Programming élite" className={INPUT} />
+                <input value={affForm.description ?? ''} onChange={e => setAffForm({...affForm, description: e.target.value})} placeholder="Par Mat Fraser — programmation élite" className={INPUT} />
               </div>
               <label className="flex items-center gap-2 cursor-pointer">
                 <input type="checkbox" checked={affForm.is_active} onChange={e => setAffForm({...affForm, is_active: e.target.checked})} className="w-4 h-4 rounded accent-[var(--ax-accent)]" />
@@ -307,7 +307,7 @@ export default function AdminProgramsPage() {
               </label>
               <div className="flex flex-wrap gap-3 pt-2">
                 <Button variant="ax-mint" onClick={saveAff} disabled={savingAff || !affForm.name.trim()}>
-                  {(savingAff || uploadingLogo) ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} />} {uploadingLogo ? 'Upload du logo...' : savingAff ? 'Enregistrement...' : editingAff ? 'Modifier' : 'Créer'}
+                  {(savingAff || uploadingLogo) ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} />} {uploadingLogo ? 'Envoi du logo...' : savingAff ? 'Enregistrement...' : editingAff ? 'Modifier' : 'Créer'}
                 </Button>
                 <Button variant="ax-outline" onClick={closeAffForm}>Annuler</Button>
               </div>
@@ -388,7 +388,7 @@ export default function AdminProgramsPage() {
                   <input value={prgForm.url} onChange={e => setPrgForm({...prgForm, url: e.target.value})} placeholder="https://..." className={INPUT} />
                 </div>
                 <div>
-                  <label className={FIELD_LABEL}>Image URL</label>
+                  <label className={FIELD_LABEL}>URL de l&apos;image</label>
                   <input value={prgForm.image_url ?? ''} onChange={e => setPrgForm({...prgForm, image_url: e.target.value})} placeholder="https://..." className={INPUT} />
                 </div>
                 <div>

@@ -1,16 +1,17 @@
 'use client';
 
-import { Fragment, useCallback, useEffect, useMemo, useState } from 'react';
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Check, Loader2, Plus, Search, X } from 'lucide-react';
 import {
   CATALOG_FAMILIES, CATALOG_MODALITIES, CATALOG_PATTERNS, CATALOG_UNITS, LOAD_BANDS, LOAD_BAND_LABEL,
-  LOAD_CATEGORIES, LOAD_CATEGORY_LABEL, LOAD_UNITS, MODALITY_LABEL, emptyLoadTable, validateMovementPatch,
+  LOAD_CATEGORIES, LOAD_CATEGORY_LABEL, LOAD_UNITS, MODALITY_LABEL, FAMILY_LABEL, PATTERN_LABEL, emptyLoadTable, validateMovementPatch,
   type CatalogFamily, type CatalogModality, type CatalogPattern, type CatalogUnit, type LoadBand, type LoadCategory,
   type LoadTable, type LoadUnit, type MovementCatalogAdminRow, type MovementCatalogPatch,
 } from '@/lib/adminCatalog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
+import { revealEditForm } from '@/lib/admin/revealEditForm';
 
 /**
  * Onglet « Catalogue » de /admin/movements : liste de `movement_catalog`
@@ -189,7 +190,18 @@ export default function MovementCatalogEditor() {
 
   const dirty = !!draft && (creating || (selected && JSON.stringify(draftToBody(draft)) !== JSON.stringify(draftToBody(draftFromRow(selected)))));
 
-  const selectRow = (id: string) => { setCreating(false); setSelectedId(id); };
+  // Sous 1280 px, la ligne touchée amène la fiche à l'écran, focus sur son
+  // premier champ. Le compteur attend que la fiche de la ligne soit rendue.
+  const formRef = useRef<HTMLDivElement>(null);
+  const [revealTick, setRevealTick] = useState(0);
+  const revealed = useRef(0);
+  useEffect(() => {
+    if (revealTick === revealed.current || !draft) return;
+    revealed.current = revealTick;
+    revealEditForm(formRef.current, q => window.matchMedia(q));
+  }, [revealTick, draft]);
+
+  const selectRow = (id: string) => { setCreating(false); setSelectedId(id); setRevealTick(t => t + 1); };
 
   return (
     <div className="space-y-4">
@@ -255,7 +267,7 @@ export default function MovementCatalogEditor() {
                       <span className={`font-bold break-words ${r.active ? 'text-ax-text' : 'text-ax-text-secondary'}`}>{r.name}</span>
                       <span className="ml-2 font-mono text-[10px] text-ax-text-secondary break-all">{r.id}</span>
                     </TableCell>
-                    <TableCell className="text-ax-text-secondary">{r.family}</TableCell>
+                    <TableCell className="text-ax-text-secondary">{FAMILY_LABEL[r.family] ?? r.family}</TableCell>
                     <TableCell className="text-ax-text-secondary whitespace-nowrap">
                       {(r.units_allowed ?? []).join(' · ')}
                       {r.load_unit && <span className="ml-2 px-1.5 py-0.5 rounded-ax-badge bg-ax-warning-soft text-ax-warning text-[10px] font-bold uppercase">{r.load_unit}</span>}
@@ -283,7 +295,7 @@ export default function MovementCatalogEditor() {
           </div>
 
           {draft && (
-            <div className="w-full xl:w-[26rem] shrink-0 order-1 xl:order-none" data-testid="catalog-form">
+            <div ref={formRef} className="w-full xl:w-[26rem] shrink-0 order-1 xl:order-none scroll-mt-4" data-testid="catalog-form">
               <div className="bg-ax-surface border border-ax-border rounded-ax-card p-5 space-y-4 xl:sticky xl:top-6 xl:max-h-[calc(100vh-3rem)] xl:overflow-y-auto">
                 <div className="flex items-start justify-between gap-3">
                   <h2 className="text-sm font-black text-ax-text break-words min-w-0">{creating ? 'Nouveau mouvement' : draft.name}</h2>
@@ -297,7 +309,7 @@ export default function MovementCatalogEditor() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {creating && (
                     <div className="sm:col-span-2">
-                      <label className={lbl}>id (snake_case, définitif)</label>
+                      <label className={lbl}>Identifiant (snake_case, définitif)</label>
                       <input value={draft.id} onChange={e => patchDraft({ id: e.target.value })} placeholder="ex. db_box_step_up" className={inp} data-testid="catalog-id" />
                     </div>
                   )}
@@ -308,7 +320,7 @@ export default function MovementCatalogEditor() {
                   <div>
                     <label className={lbl}>Famille</label>
                     <select value={draft.family} onChange={e => patchDraft({ family: e.target.value as CatalogFamily })} className={inp} data-testid="catalog-family">
-                      {CATALOG_FAMILIES.map(f => <option key={f} value={f}>{f}</option>)}
+                      {CATALOG_FAMILIES.map(f => <option key={f} value={f}>{FAMILY_LABEL[f]}</option>)}
                     </select>
                   </div>
                   <div>
@@ -318,7 +330,7 @@ export default function MovementCatalogEditor() {
                     </select>
                   </div>
                   <div className="sm:col-span-2">
-                    <label className={lbl}>Pattern</label>
+                    <label className={lbl}>Schéma moteur</label>
                     <div className="flex flex-wrap gap-1.5">
                       {CATALOG_PATTERNS.map(p => (
                         <button
@@ -326,7 +338,7 @@ export default function MovementCatalogEditor() {
                           data-testid={`catalog-pattern-${p}`}
                           aria-pressed={draft.pattern.includes(p)}
                           className={toggleChip(draft.pattern.includes(p), 'accent')}
-                        >{p}</button>
+                        >{PATTERN_LABEL[p]}</button>
                       ))}
                     </div>
                   </div>

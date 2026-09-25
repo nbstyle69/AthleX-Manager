@@ -57,7 +57,7 @@ export default function MovementStats() {
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <p className="text-sm text-ax-text-secondary">{statsError ? '—' : `${stats.length} mouvements trackés · ${totalReps.toLocaleString()} reps au total`}</p>
+        <p className="text-sm text-ax-text-secondary">{statsError ? '—' : `${stats.length} mouvements suivis · ${totalReps.toLocaleString()} reps au total`}</p>
         <div className="relative w-full sm:w-72">
           <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-ax-text-muted pointer-events-none" />
           <Input
@@ -143,7 +143,7 @@ export default function MovementStats() {
               <div className="bg-ax-surface border border-ax-border rounded-ax-card p-5 lg:sticky lg:top-6">
                 <div className="flex items-center gap-2 mb-4">
                   <TrendingUp size={16} className="text-ax-success" />
-                  <h2 className="text-sm font-black text-ax-text">Top athlètes</h2>
+                  <h2 className="text-sm font-black text-ax-text">Meilleurs athlètes</h2>
                 </div>
                 <p className="text-xs text-ax-text-secondary mb-4 break-words">{selected.movement} · {unitLabel(selected.unit)}</p>
                 <div className="space-y-2">

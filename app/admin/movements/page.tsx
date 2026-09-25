@@ -24,7 +24,7 @@ export default function AdminMovementsPage() {
           </div>
           <div className="min-w-0">
             <h1 className="font-display text-2xl font-medium uppercase tracking-wide text-ax-text">Mouvements</h1>
-            <p className="text-sm text-ax-text-secondary break-words">Volumes des athlètes et catalogue `movement_catalog` du générateur</p>
+            <p className="text-sm text-ax-text-secondary break-words">Volumes des athlètes et catalogue des mouvements du générateur</p>
           </div>
         </div>
         <div className="flex gap-1 p-1 rounded-ax-control border border-ax-border" role="tablist">

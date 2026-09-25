@@ -6,6 +6,13 @@ import { Award, Search, Users } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { PURPLE_SOFT, SUB_ORANGE_SOFT, SUB_ORANGE_TEXT, chipClass } from '@/components/admin/adminTokens';
 
+// Libellés affichés seulement : le filtre et la base gardent les clés.
+const CATEGORY_LABEL: Record<string, string> = {
+  activity: 'Activité', tournament: 'Tournoi', social: 'Social', wod: 'WOD',
+  elo: 'ELO', movement: 'Mouvement', other: 'Autre',
+};
+const categoryLabel = (c: string) => CATEGORY_LABEL[c] ?? c;
+
 interface Badge {
   badge_key: string;
   title: string;
@@ -107,7 +114,7 @@ export default function AdminBadgesPage() {
             aria-pressed={catFilter === c}
             className={chipClass(catFilter === c)}
           >
-            {c === 'all' ? 'Tous' : c}
+            {c === 'all' ? 'Tous' : categoryLabel(c)}
           </button>
         ))}
       </div>
@@ -132,7 +139,7 @@ export default function AdminBadgesPage() {
               </div>
               <div className="flex flex-wrap items-center justify-between gap-2 mt-4">
                 <span className={`text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-ax-badge ${catColor(b.category)}`}>
-                  {b.category}
+                  {categoryLabel(b.category)}
                 </span>
                 <div className="flex items-center gap-1.5">
                   <Users size={12} className="text-ax-text-muted" />
