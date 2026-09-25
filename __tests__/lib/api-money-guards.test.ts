@@ -85,6 +85,11 @@ const CLASSIFICATION: Record<string, Classe> = {
   'invitations/send': 'owner_admin',
   // Arret d'un abonnement de salle (S2) : argent -> gerant ou co-gerant seul.
   'members/stop-subscription': 'owner_admin',
+  // S4 : bannissement et suppressions qui arretent des abonnements Stripe.
+  'marketplace/offers/delete': 'owner_admin',
+  'members/ban': 'owner_admin',
+  'membership-plans/delete': 'owner_admin',
+  'programs/delete': 'owner_admin',
   'pause-membership': 'owner_admin',
   'promo-codes': 'owner_admin',
   'promo-codes/[id]': 'owner_admin',

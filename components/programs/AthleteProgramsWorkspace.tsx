@@ -18,6 +18,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { useConfirmDialog } from '@/components/ui/confirm-dialog';
 import { fullDate, ERROR_TITLE } from '@/lib/confirmDialog';
+import { askDeleteWithSubscriptions, countOf } from '@/lib/deleteWithSubscriptions';
 
 interface Program {
   id: string;
@@ -351,27 +352,24 @@ export default function AthleteProgramsWorkspace() {
     loadAll();
   }
 
+  // La route compte d'abord les abonnements Stripe actifs (S4, B10) ; s'il y
+  // en a, « Arrêter et désactiver » : le programme n'est pas supprimé.
   function askDeleteProgram(p: Program) {
-    ask({
+    return askDeleteWithSubscriptions({
+      ask, inform, kind: 'program',
+      url: '/api/programs/delete', payload: { program_id: p.id },
       title: `Supprimer le programme « ${p.title} » ?`,
-      element: `${p.member_count ?? 0} acheteur(s) · ${p.wod_count ?? 0} séance(s) liée(s)`,
-      body: 'Tous les acheteurs perdront leur accès immédiatement. Les abonnements Stripe en cours ne seront pas arrêtés : résilie-les d’abord. Ce programme ne pourra pas être restauré. Pour arrêter les ventes sans rien retirer, désactive-le plutôt.',
+      element: `${countOf(p.member_count ?? 0, 'acheteur', 'acheteurs')} · ${countOf(p.wod_count ?? 0, 'séance liée', 'séances liées')}`,
+      body: 'Tous les acheteurs perdront leur accès immédiatement. Ce programme ne pourra pas être restauré. Pour arrêter les ventes sans rien retirer, désactive-le plutôt.',
       confirmLabel: 'Supprimer le programme',
-      danger: true,
-      run: () => handleDelete(p.id),
+      deactivate: () => toggleActive(p, false),
+      onDone: loadAll,
     });
   }
 
-  async function handleDelete(id: string) {
-    const { data, error } = await supabase.from('programs').delete().eq('id', id).select('id');
-    const fail = writeFailure(error, data);
-    if (fail) { inform({ kind: 'error', title: ERROR_TITLE, body: `Suppression impossible : ${fail}` }); return; }
-    loadAll();
-  }
-
-  async function toggleActive(p: Program) {
+  async function toggleActive(p: Program, active = !p.is_active) {
     const { data, error } = await supabase
-      .from('programs').update({ is_active: !p.is_active }).eq('id', p.id).select('id');
+      .from('programs').update({ is_active: active }).eq('id', p.id).select('id');
     const fail = writeFailure(error, data);
     if (fail) { inform({ kind: 'error', title: ERROR_TITLE, body: `Impossible de changer l'état du programme : ${fail}` }); return; }
     loadAll();

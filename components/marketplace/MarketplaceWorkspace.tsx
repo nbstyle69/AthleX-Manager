@@ -22,6 +22,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { useConfirmDialog } from '@/components/ui/confirm-dialog';
 import { ERROR_TITLE } from '@/lib/confirmDialog';
+import { askDeleteWithSubscriptions, countOf } from '@/lib/deleteWithSubscriptions';
 
 const DISCIPLINES = ['crossfit', 'hyrox', 'hybrid', 'haltero', 'endurance'];
 const LEVELS = ['all', 'beginner', 'intermediate', 'advanced'];
@@ -723,10 +724,10 @@ function MyOffers({ offers, activeBoxId, onChanged }: {
   // La publication passe par `publish_programming` : le serveur refuse une
   // offre sans description, objectif, public visé, ou avec une semaine vide.
   // Son message est affiché tel quel — c'est lui qui dit ce qui manque.
-  async function togglePublish(o: Programming) {
+  async function togglePublish(o: Programming, publish = !o.is_published) {
     setPublishing(o.id);
     setPublishError(null);
-    const { error } = await supabase.rpc('publish_programming', { p_id: o.id, p_publish: !o.is_published });
+    const { error } = await supabase.rpc('publish_programming', { p_id: o.id, p_publish: publish });
     setPublishing(null);
     if (error) { setPublishError({ id: o.id, message: error.message }); return; }
     onChanged();
@@ -735,20 +736,19 @@ function MyOffers({ offers, activeBoxId, onChanged }: {
     const price = o.billing === 'free' ? 'Gratuite'
       : o.billing === 'monthly' ? `${(o.price_cents / 100).toFixed(2)} € par mois`
       : `${(o.price_cents / 100).toFixed(2)} € une fois`;
-    ask({
+    // La route compte d'abord les abonnements Stripe actifs (S4, B11) ;
+    // « Désactiver » = dépublier, sans appel Stripe ; « Arrêter et désactiver »
+    // dépublie aussi, l'offre n'est pas supprimée.
+    return askDeleteWithSubscriptions({
+      ask, inform, kind: 'offer',
+      url: '/api/marketplace/offers/delete', payload: { programming_id: o.id },
       title: `Supprimer l’offre « ${o.title} » ?`,
-      element: `${price} · ${o.weeks_count} semaine(s)`,
-      body: 'Les boxs abonnées perdent leur abonnement et ne recevront plus de semaines. Les séances déjà posées chez elles restent. Les abonnements payants ne sont pas arrêtés chez Stripe : résilie-les d’abord. Pour ne plus la proposer, dépublie-la plutôt.',
+      element: `${price} · ${countOf(o.weeks_count, 'semaine', 'semaines')}`,
+      body: 'Les boxs abonnées perdent leur abonnement et ne recevront plus de semaines. Les séances déjà posées chez elles restent. Pour ne plus la proposer, dépublie-la plutôt.',
       confirmLabel: 'Supprimer l’offre',
-      danger: true,
-      run: () => remove(o),
+      deactivate: () => togglePublish(o, false),
+      onDone: onChanged,
     });
-  }
-
-  async function remove(o: Programming) {
-    const { error } = await supabase.from('box_programming').delete().eq('id', o.id);
-    if (error) inform({ kind: 'error', title: ERROR_TITLE, body: error.message });
-    onChanged();
   }
 
   return (

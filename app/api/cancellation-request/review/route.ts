@@ -1,23 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server';
-import Stripe from 'stripe';
 import { createServiceClient, getServerUser } from '@/lib/supabase/server';
 import { isBoxOwnerAdmin } from '@/lib/isBoxOwnerAdmin';
-
-function getStripe() {
-  return new Stripe(process.env.STRIPE_SECRET_KEY!, {
-    apiVersion: '2023-10-16' as any,
-  });
-}
+import { stopSubscription } from '@/lib/stripe/stopSubscription';
+import {
+  REVIEW_EMAIL_WARNING, memberFirstName, reviewEmailContent, sendMemberEmail, stopKey,
+} from '@/lib/members/stopMembership';
 
 const ACTIVE_STATUSES = ['active', 'trialing', 'past_due'];
 
 /**
  * Le gérant de la box approuve ou refuse une demande de résiliation anticipée.
  * Approuver → résilie l'abonnement à la fin de la période et lève l'engagement.
+ * Dans les deux cas, le membre reçoit un e-mail (réponse vers la box). Pas de
+ * ligne de journal : une approbation n'est pas un arrêt décidé par le gérant.
  * Body: { request_id: string, action: 'approve' | 'reject', note?: string }
  */
 export async function POST(req: NextRequest) {
-  const stripe = getStripe();
   try {
     const user = await getServerUser();
     if (!user?.id) {
@@ -50,27 +48,33 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Non autorisé pour cette box.' }, { status: 403 });
     }
 
-    if (action === 'approve') {
-      const { data: memberRaw } = await supabase
+    const [{ data: memberRaw }, { data: boxRaw }, { data: profileRaw }] = await Promise.all([
+      supabase
         .from('box_members')
-        .select('id, stripe_subscription_id, subscription_status')
+        .select('id, plan_id, stripe_subscription_id, subscription_status, subscription_current_period_end')
         .eq('box_id', request.box_id)
         .eq('member_id', request.member_id)
-        .maybeSingle();
-      const member = memberRaw as {
-        id: string; stripe_subscription_id: string | null; subscription_status: string | null;
-      } | null;
+        .maybeSingle(),
+      supabase.from('boxes').select('name, stripe_account_id, contact_email').eq('id', request.box_id).single(),
+      supabase.from('profiles').select('email, username, full_name').eq('id', request.member_id).maybeSingle(),
+    ]);
+    const member = memberRaw as {
+      id: string; plan_id: string | null; stripe_subscription_id: string | null;
+      subscription_status: string | null; subscription_current_period_end: string | null;
+    } | null;
+    const box = boxRaw as { name: string; stripe_account_id: string | null; contact_email: string | null } | null;
+    const profile = profileRaw as { email: string | null; username: string | null; full_name: string | null } | null;
 
+    if (action === 'approve') {
       if (member?.stripe_subscription_id && ACTIVE_STATUSES.includes(member.subscription_status ?? '')) {
-        const { data: box } = await supabase
-          .from('boxes').select('stripe_account_id').eq('id', request.box_id).single();
-        const stripeAccount = (box as { stripe_account_id: string | null } | null)?.stripe_account_id;
-        if (stripeAccount) {
-          await stripe.subscriptions.update(
-            member.stripe_subscription_id,
-            { cancel_at_period_end: true },
-            { stripeAccount },
-          );
+        if (box?.stripe_account_id) {
+          // Même clé que l'arrêt S2 en fin de période : rejouer ne crée rien de plus.
+          await stopSubscription({
+            stripeAccount: box.stripe_account_id,
+            subscriptionId: member.stripe_subscription_id,
+            mode: 'period_end',
+            idempotencyKey: stopKey(member.id, member.stripe_subscription_id, 'period_end'),
+          });
         }
       }
 
@@ -82,19 +86,41 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    const reviewNote = (note as string | undefined)?.trim() || null;
     await supabase
       .from('membership_cancellation_requests')
       .update({
         status: action === 'approve' ? 'approved' : 'rejected',
-        review_note: (note as string | undefined)?.trim() || null,
+        review_note: reviewNote,
         reviewed_by: user.id,
         reviewed_at: new Date().toISOString(),
       })
       .eq('id', request.id);
 
-    return NextResponse.json({ ok: true });
+    // E-mail au membre : son échec n'annule pas la réponse.
+    let sent = false;
+    if (profile?.email) {
+      const { data: planRaw } = member?.plan_id
+        ? await supabase.from('membership_plans').select('name').eq('id', member.plan_id).maybeSingle()
+        : { data: null };
+      const boxName = box?.name ?? 'Ta box';
+      sent = await sendMemberEmail({
+        to: profile.email,
+        ...reviewEmailContent({
+          action, firstName: memberFirstName(profile), boxName,
+          planName: (planRaw as { name: string } | null)?.name ?? null,
+          periodEnd: member?.subscription_current_period_end ?? null,
+          note: reviewNote,
+        }),
+        boxName,
+        replyTo: box?.contact_email ?? null,
+        tag: 'cancellation-review',
+      });
+    }
+
+    return NextResponse.json({ ok: true, ...(sent ? {} : { warning: REVIEW_EMAIL_WARNING }) });
   } catch (err: any) {
-    console.error('cancellation-request review error:', err);
-    return NextResponse.json({ error: err.message }, { status: 500 });
+    console.error('cancellation-request review error:', err?.message ?? err);
+    return NextResponse.json({ error: err?.message ?? 'Erreur' }, { status: 500 });
   }
 }

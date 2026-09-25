@@ -26,6 +26,26 @@ function getStripe() {
   });
 }
 
+/**
+ * État Stripe d'un abonnement (lecture serveur) : déjà en voie d'arrêt, et fin
+ * de la période payée. Sert là où la base ne garde pas de drapeau « fin
+ * programmée » (programmes, offres) : relancer un arrêt déjà fait ne doit ni
+ * re-journaliser ni re-prévenir.
+ */
+export async function readSubscriptionState({
+  stripeAccount,
+  subscriptionId,
+}: { stripeAccount: string; subscriptionId: string }): Promise<{ stopping: boolean; status: string | null; periodEnd: string | null }> {
+  const stripe = getStripe();
+  const sub: any = await stripe.subscriptions.retrieve(subscriptionId, {}, { stripeAccount });
+  const epoch = sub?.current_period_end ?? sub?.items?.data?.[0]?.current_period_end ?? null;
+  return {
+    stopping: !!sub?.cancel_at_period_end || sub?.status === 'canceled',
+    status: sub?.status ?? null,
+    periodEnd: epoch ? new Date(epoch * 1000).toISOString() : null,
+  };
+}
+
 export async function stopSubscription({
   stripeAccount,
   subscriptionId,

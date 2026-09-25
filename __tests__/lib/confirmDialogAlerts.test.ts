@@ -316,12 +316,7 @@ const ATTENDU: { file: string; kind: 'error' | 'info'; title: string; body: stri
     "title": "ERROR_TITLE",
     "body": "`Suppression du logo impossible : ${fail}`"
   },
-  {
-    "file": "components/plans/MembershipPlansSection.tsx",
-    "kind": "error",
-    "title": "ERROR_TITLE",
-    "body": "`Suppression impossible : ${fail}`"
-  },
+  // S4 : l'erreur de suppression vient de la route, via lib/deleteWithSubscriptions.ts.
   {
     "file": "components/plans/MembershipPlansSection.tsx",
     "kind": "error",
@@ -334,12 +329,7 @@ const ATTENDU: { file: string; kind: 'error' | 'info'; title: string; body: stri
     "title": "ERROR_TITLE",
     "body": "`Impossible d'enregistrer le programme : ${fail}`"
   },
-  {
-    "file": "components/programs/AthleteProgramsWorkspace.tsx",
-    "kind": "error",
-    "title": "ERROR_TITLE",
-    "body": "`Suppression impossible : ${fail}`"
-  },
+  // S4 : l'erreur de suppression vient de la route, via lib/deleteWithSubscriptions.ts.
   {
     "file": "components/programs/AthleteProgramsWorkspace.tsx",
     "kind": "error",

@@ -11,6 +11,7 @@ import UnpaidPanel from '@/components/UnpaidPanel';
 import { Badge } from '@/components/ui/badge';
 import { useConfirmDialog } from '@/components/ui/confirm-dialog';
 import { fullDate, type ConfirmChoice } from '@/lib/confirmDialog';
+import { paymentMethodLabel } from '@/lib/paymentMethodLabel';
 
 const INPUT_CLS = 'w-full min-h-11 px-3 py-2.5 rounded-ax-control bg-ax-surface border border-ax-input-border text-base sm:text-sm text-ax-text placeholder:text-ax-text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ax-focus focus-visible:ring-offset-2 focus-visible:ring-offset-ax-surface transition-colors';
 
@@ -32,6 +33,8 @@ interface Row {
   memberId: string | null;
   boxMemberId: string | null;
   hasStripeSub: boolean;
+  /** `card`, `sepa_debit`… quand get_box_billing le servira (sinon absent). */
+  paymentMethodType: string | null;
   paused: boolean;
   pauseResumesAt: string | null;
   commitmentEndDate: string | null;
@@ -90,6 +93,8 @@ interface BillingRow {
   commitment_end_date: string | null;
   amount_cents: number | null;
   has_stripe_sub: boolean | null;
+  /** Pas encore servi par la RPC : migration athlex-app décrite dans la PR S4. */
+  payment_method_type?: string | null;
 }
 
 /** Une ligne du journal comptoir : montant réellement encaissé en espèces. */
@@ -244,6 +249,7 @@ export default function SubscribersPage() {
         memberId: r.member_id ?? null,
         boxMemberId: r.id ?? null,
         hasStripeSub: !!r.has_stripe_sub,
+        paymentMethodType: r.payment_method_type ?? null,
         paused: !!r.subscription_paused,
         pauseResumesAt: r.pause_resumes_at ?? null,
         commitmentEndDate: r.commitment_end_date ?? null,
@@ -268,6 +274,7 @@ export default function SubscribersPage() {
         memberId: r.user_id ?? null,
         boxMemberId: null,
         hasStripeSub: false,
+        paymentMethodType: null,
         paused: false,
         pauseResumesAt: null,
         commitmentEndDate: null,
@@ -338,13 +345,13 @@ export default function SubscribersPage() {
       ? Math.max(1, Math.ceil((new Date(r.commitmentEndDate!).getTime() - Date.now()) / (30.44 * 86400_000)))
       : 0;
 
-    // N'affiche que ce qui est déjà chargé : le moyen de paiement Stripe
-    // (carte / prélèvement SEPA) n'est pas servi par get_box_billing, seul le
-    // comptoir se reconnaît ici.
+    // N'affiche que ce qui est déjà chargé : « carte » / « prélèvement SEPA »
+    // dès que get_box_billing servira payment_method_type ; d'ici là, seul le
+    // comptoir se reconnaît.
     const element = [
       r.label,
       r.amountCents != null ? `${(r.amountCents / 100).toLocaleString('fr-FR')} €/mois` : null,
-      !r.hasStripeSub ? 'payé au comptoir' : null,
+      paymentMethodLabel(r.hasStripeSub, r.paymentMethodType),
       r.hasStripeSub && r.periodEnd ? `période payée jusqu'au ${fullDate(r.periodEnd)}` : null,
     ].filter(Boolean).join(' · ');
 
@@ -409,7 +416,7 @@ export default function SubscribersPage() {
       ? {
           title: 'Approuver la résiliation ?',
           element: `${req.username} · demande du ${fmtDate(req.created_at)}`,
-          body: 'L’abonnement Stripe s’arrêtera à la fin de la période en cours et l’engagement sera effacé. Tu ne pourras pas revenir en arrière depuis l’application.',
+          body: 'L’abonnement Stripe s’arrêtera à la fin de la période en cours et l’engagement sera effacé. Le membre reçoit un e-mail de confirmation. Tu ne pourras pas revenir en arrière depuis l’application.',
           confirmLabel: 'Approuver la résiliation',
           danger: true,
           run: () => reviewRequest(req.id, 'approve'),
@@ -417,7 +424,7 @@ export default function SubscribersPage() {
       : {
           title: 'Refuser la demande de résiliation ?',
           element: `${req.username} · ${REASON_LABEL[req.reason_type] ?? req.reason_type} · envoyée le ${fmtDate(req.created_at)}`,
-          body: 'Son abonnement et son engagement restent inchangés.',
+          body: 'Son abonnement et son engagement restent inchangés. Le membre reçoit un e-mail avec ton motif, s’il y en a un.',
           field: { label: 'Motif du refus (facultatif)' },
           confirmLabel: 'Refuser la demande',
           run: note => reviewRequest(req.id, 'reject', note),
@@ -433,6 +440,7 @@ export default function SubscribersPage() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? 'Erreur');
+      if (data.warning) inform({ kind: 'info', title: 'E-mail non envoyé', body: data.warning });
       await load();
     } catch (e) {
       setActionError(e instanceof Error ? e.message : 'Erreur');

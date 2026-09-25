@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useConfirmDialog } from '@/components/ui/confirm-dialog';
 import { ERROR_TITLE } from '@/lib/confirmDialog';
+import { askDeleteWithSubscriptions } from '@/lib/deleteWithSubscriptions';
 import {
   Plus, Pencil, Trash2, X, Calendar, CreditCard,
 } from 'lucide-react';
@@ -202,27 +203,23 @@ export default function MembershipPlansSection({ boxId }: { boxId: string | null
     await loadPlans(boxId);
   }
 
+  // La route compte d'abord les abonnements Stripe actifs : s'il y en a, la
+  // boîte propose « Désactiver » ou « Arrêter puis supprimer » (S4, B5).
   function askDeletePlan(pl: MembershipPlan) {
-    ask({
+    return askDeleteWithSubscriptions({
+      ask, inform, kind: 'plan',
+      url: '/api/membership-plans/delete', payload: { plan_id: pl.id },
       title: `Supprimer la formule « ${pl.name} » (${formatPrice(pl.price_cents)}) ?`,
-      body: 'Les membres qui y sont rattachés n’auront plus de limite de séances. Leurs prélèvements Stripe continueront au même montant : pour les arrêter, résilie chaque abonnement. Les invitations en attente avec cette formule n’en auront plus. Pour la retirer de la vente sans toucher aux membres, désactive-la plutôt.',
+      body: 'Les membres qui y sont rattachés n’auront plus de limite de séances. Les invitations en attente avec cette formule n’en auront plus. Pour la retirer de la vente sans toucher aux membres, désactive-la plutôt.',
       confirmLabel: 'Supprimer la formule',
-      danger: true,
-      run: () => handleDeletePlan(pl.id),
+      deactivate: () => togglePlanActive(pl, false),
+      onDone: () => boxId && loadPlans(boxId),
     });
   }
 
-  async function handleDeletePlan(id: string) {
+  async function togglePlanActive(pl: MembershipPlan, active = !pl.is_active) {
     const { data, error } = await supabase
-      .from('membership_plans').delete().eq('id', id).select('id');
-    const fail = writeFailure(error, data);
-    if (fail) { inform({ kind: 'error', title: ERROR_TITLE, body: `Suppression impossible : ${fail}` }); return; }
-    if (boxId) await loadPlans(boxId);
-  }
-
-  async function togglePlanActive(pl: MembershipPlan) {
-    const { data, error } = await supabase
-      .from('membership_plans').update({ is_active: !pl.is_active }).eq('id', pl.id).select('id');
+      .from('membership_plans').update({ is_active: active }).eq('id', pl.id).select('id');
     const fail = writeFailure(error, data);
     if (fail) { inform({ kind: 'error', title: ERROR_TITLE, body: `Impossible de changer l'état de la formule : ${fail}` }); return; }
     if (boxId) await loadPlans(boxId);
