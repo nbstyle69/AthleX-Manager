@@ -103,10 +103,13 @@ describe('B5 — suppression d’une formule', () => {
     expect(mockSubUpdate).not.toHaveBeenCalled();
   });
 
-  it('check : nombre exact des abonnements Stripe actifs ou en impayé (le comptoir ne compte pas)', async () => {
-    setupPlan([bm(1), bm(2, { subscription_status: 'past_due' }), bm(3, { stripe_subscription_id: null })]);
+  it('check : nombre exact des abonnements Stripe actifs ou en impayé (le comptoir ne compte pas), impayés et engagés', async () => {
+    setupPlan([
+      bm(1, { commitment_end_date: '2099-01-01' }), bm(2, { subscription_status: 'past_due' }),
+      bm(3, { stripe_subscription_id: null }), bm(4, { commitment_end_date: '2020-01-01' }),
+    ]);
     const res: any = await plansDelete(req({ plan_id: 'plan-1', action: 'check' }));
-    expect(res._data).toEqual({ ok: true, active_subscriptions: 2 });
+    expect(res._data).toEqual({ ok: true, active_subscriptions: 3, past_due: 1, engaged: 1 });
     expect(chains.box_members.in).toHaveBeenCalledWith('subscription_status', ['active', 'trialing', 'past_due']);
     expect(chains.membership_plans.delete).not.toHaveBeenCalled();
   });
@@ -179,6 +182,37 @@ describe('B5 — suppression d’une formule', () => {
   });
 });
 
+describe('B5 — impayé dans « Arrêter puis supprimer »', () => {
+  it('un impayé est arrêté en now (clé :now, e-mail « arrêté »), les autres en period_end', async () => {
+    setupPlan([bm(1), bm(2, { subscription_status: 'past_due' })]);
+    const res: any = await plansDelete(req({ plan_id: 'plan-1', action: 'stop_then_delete' }));
+    expect(res._data).toMatchObject({ ok: true, deleted: true });
+    expect(mockSubUpdate).toHaveBeenCalledTimes(1);
+    expect(mockSubUpdate).toHaveBeenCalledWith('sub_1', { cancel_at_period_end: true }, expect.objectContaining({ idempotencyKey: 'stop:bm-1:sub_1:period_end' }));
+    expect(mockSubCancel).toHaveBeenCalledTimes(1);
+    expect(mockSubCancel).toHaveBeenCalledWith('sub_2', { prorate: false, invoice_now: false },
+      { stripeAccount: 'acct_1', idempotencyKey: 'stop:bm-2:sub_2:now' });
+    expect(chains.box_member_subscription_actions.insert).toHaveBeenCalledWith(expect.objectContaining({ box_member_id: 'bm-2', mode: 'now', refund_cents: 0 }));
+    expect(emails().map(m => m.subject)).toEqual([
+      'Ton abonnement à AthleX Fitness prendra fin le lundi 12 octobre 2026',
+      'Ton abonnement à AthleX Fitness est arrêté',
+    ]);
+  });
+
+  it('un impayé déjà marqué « fin de période » est quand même arrêté tout de suite', async () => {
+    setupPlan([bm(1, { subscription_status: 'past_due', subscription_cancel_at_period_end: true })]);
+    await plansDelete(req({ plan_id: 'plan-1', action: 'stop_then_delete' }));
+    expect(mockSubCancel).toHaveBeenCalledTimes(1);
+  });
+
+  it('message d’échec au singulier', async () => {
+    setupPlan([bm(1), bm(2)]);
+    mockSubUpdate.mockImplementation(async (id: string) => { if (id === 'sub_2') throw new Error('x'); return { id }; });
+    const res: any = await plansDelete(req({ plan_id: 'plan-1', action: 'stop_then_delete' }));
+    expect(res._data.error).toMatch(/^Stripe a refusé l’arrêt de 1 abonnement : membre2\./);
+  });
+});
+
 /* ──────────────────────────── B10 : programme ─────────────────────────── */
 
 function setupProgram(buyers: any[], members: any[] = []) {
@@ -188,46 +222,92 @@ function setupProgram(buyers: any[], members: any[] = []) {
   chains.box_members = makeChain({ awaited: { data: members, error: null } });
 }
 const buyer = (i: number) => ({ id: `pm-${i}`, user_id: `u-${i}`, stripe_subscription_id: `sub_p${i}`, status: 'active' });
+const stripeState = (map: Record<string, any>) => mockSubRetrieve.mockImplementation(async (id: string) => ({
+  id, status: 'active', cancel_at_period_end: false, current_period_end: 1791849600, ...(map[id] ?? {}),
+}));
 
-describe('B10 — suppression d’un programme payant', () => {
+describe('B10 — programme payant : refus, puis « Arrêter et désactiver »', () => {
+  it('check : nombre total, à arrêter, impayés (lus chez Stripe), fin la plus tardive', async () => {
+    setupProgram([buyer(1), buyer(2), buyer(3), { ...buyer(4), stripe_subscription_id: null }]);
+    stripeState({ sub_p2: { status: 'past_due' }, sub_p3: { cancel_at_period_end: true } });
+    const res: any = await programsDelete(req({ program_id: 'prog-1', action: 'check' }));
+    expect(res._data).toEqual({ ok: true, active_subscriptions: 3, to_stop: 2, past_due: 1, last_end: '2026-10-13T00:00:00.000Z' });
+    expect(mockSubUpdate).not.toHaveBeenCalled();
+    expect(chains.programs.update).not.toHaveBeenCalled();
+  });
+
   it('delete refusée avec abonnements actifs : 409 et le nombre exact', async () => {
     setupProgram([buyer(1), buyer(2), { ...buyer(3), stripe_subscription_id: null }]);
     const res: any = await programsDelete(req({ program_id: 'prog-1', action: 'delete' }));
     expect(res._status).toBe(409);
     expect(res._data.active_subscriptions).toBe(2);
+    expect(res._data.error).toMatch(/^2 abonnements Stripe sont encore actifs/);
     expect(chains.programs.delete).not.toHaveBeenCalled();
   });
 
-  it('arrêter puis supprimer : clé idempotente, journal seulement pour un acheteur membre, e-mail à chacun', async () => {
-    setupProgram([buyer(1), buyer(2)], [{ id: 'bm-u1', member_id: 'u-1' }]);
+  it('delete possible quand le dernier abonnement est terminé', async () => {
+    setupProgram([]);
+    const res: any = await programsDelete(req({ program_id: 'prog-1', action: 'delete' }));
+    expect(res._data).toEqual({ ok: true, deleted: true });
+    expect(chains.programs.delete).toHaveBeenCalledTimes(1);
+  });
+
+  it('l’ancienne action stop_then_delete est refusée', async () => {
+    setupProgram([buyer(1)]);
     const res: any = await programsDelete(req({ program_id: 'prog-1', action: 'stop_then_delete' }));
-    expect(res._data).toMatchObject({ ok: true, deleted: true, stopped: 2 });
+    expect(res._status).toBe(400);
+    expect(mockSubUpdate).not.toHaveBeenCalled();
+  });
+
+  it('arrêter et désactiver : period_end idempotent, journal pour l’acheteur membre, e-mail « accès jusqu’au », programme désactivé et PAS supprimé', async () => {
+    setupProgram([buyer(1), buyer(2)], [{ id: 'bm-u1', member_id: 'u-1' }]);
+    stripeState({});
+    const res: any = await programsDelete(req({ program_id: 'prog-1', action: 'stop_then_deactivate' }));
+    expect(res._data).toMatchObject({ ok: true, deactivated: true, stopped: 2 });
     expect(mockSubUpdate).toHaveBeenCalledWith('sub_p1', { cancel_at_period_end: true },
       { stripeAccount: 'acct_1', idempotencyKey: 'stop:program:pm-1:sub_p1:period_end' });
     expect(chains.box_member_subscription_actions.insert).toHaveBeenCalledTimes(1);
-    expect(chains.box_member_subscription_actions.insert).toHaveBeenCalledWith(expect.objectContaining({ box_member_id: 'bm-u1', actor_id: 'owner-1' }));
+    expect(chains.box_member_subscription_actions.insert).toHaveBeenCalledWith(expect.objectContaining({ box_member_id: 'bm-u1', mode: 'period_end', actor_id: 'owner-1' }));
     const mails = emails();
     expect(mails).toHaveLength(2);
     expect(mails[0].subject).toBe('AthleX Fitness a retiré le programme Force 12 semaines');
-    expect(chains.programs.delete).toHaveBeenCalledTimes(1);
-  });
-
-  it('échec partiel : programme gardé', async () => {
-    setupProgram([buyer(1), buyer(2)]);
-    mockSubUpdate.mockImplementation(async (id: string) => { if (id === 'sub_p1') throw new Error('x'); return { id }; });
-    const res: any = await programsDelete(req({ program_id: 'prog-1', action: 'stop_then_delete' }));
-    expect(res._status).toBe(502);
-    expect(res._data.failed).toEqual(['acheteur1']);
+    expect(mails[0].html).toContain("tu gardes l'accès jusqu'au mardi 13 octobre 2026");
+    expect(mails[0].html).not.toContain('s\'arrête aujourd\'hui');
+    expect(chains.programs.update).toHaveBeenCalledWith(expect.objectContaining({ is_active: false }));
     expect(chains.programs.delete).not.toHaveBeenCalled();
   });
 
-  it('abonnement déjà en voie d’arrêt chez Stripe : pas de nouvel appel ni d’e-mail', async () => {
+  it('impayé (lu chez Stripe) : arrêt now, clé :now, e-mail « arrêté », journal now', async () => {
+    setupProgram([buyer(1)], [{ id: 'bm-u1', member_id: 'u-1' }]);
+    stripeState({ sub_p1: { status: 'past_due' } });
+    await programsDelete(req({ program_id: 'prog-1', action: 'stop_then_deactivate' }));
+    expect(mockSubUpdate).not.toHaveBeenCalled();
+    expect(mockSubCancel).toHaveBeenCalledWith('sub_p1', { prorate: false, invoice_now: false },
+      { stripeAccount: 'acct_1', idempotencyKey: 'stop:program:pm-1:sub_p1:now' });
+    expect(chains.box_member_subscription_actions.insert).toHaveBeenCalledWith(expect.objectContaining({ mode: 'now' }));
+    expect(emails()[0].subject).toBe('Ton abonnement au programme Force 12 semaines est arrêté');
+  });
+
+  it('échec partiel : rien désactivé, le message nomme l’échec', async () => {
+    setupProgram([buyer(1), buyer(2)]);
+    stripeState({});
+    mockSubUpdate.mockImplementation(async (id: string) => { if (id === 'sub_p1') throw new Error('x'); return { id }; });
+    const res: any = await programsDelete(req({ program_id: 'prog-1', action: 'stop_then_deactivate' }));
+    expect(res._status).toBe(502);
+    expect(res._data.failed).toEqual(['acheteur1']);
+    expect(res._data.stopped).toBe(1);
+    expect(res._data.error).toContain('Le programme n’a pas été désactivé');
+    expect(chains.programs.update).not.toHaveBeenCalled();
+    expect(chains.programs.delete).not.toHaveBeenCalled();
+  });
+
+  it('relance : un abonnement déjà en voie d’arrêt chez Stripe n’est ni rappelé ni re-prévenu', async () => {
     setupProgram([buyer(1)]);
-    mockSubRetrieve.mockResolvedValue({ status: 'active', cancel_at_period_end: true, current_period_end: 1791849600 });
-    await programsDelete(req({ program_id: 'prog-1', action: 'stop_then_delete' }));
+    stripeState({ sub_p1: { cancel_at_period_end: true } });
+    const res: any = await programsDelete(req({ program_id: 'prog-1', action: 'stop_then_deactivate' }));
     expect(mockSubUpdate).not.toHaveBeenCalled();
     expect(emails()).toHaveLength(0);
-    expect(chains.programs.delete).toHaveBeenCalledTimes(1);
+    expect(res._data).toMatchObject({ ok: true, deactivated: true, stopped: 0 });
   });
 });
 
@@ -242,34 +322,52 @@ function setupOffer(subs: any[]) {
   });
   chains.profiles = makeChain({ awaited: { data: subs.map((_s, i) => ({ id: `own-${i}`, email: `g${i}@exemple.fr`, username: `g${i}`, full_name: null })), error: null } });
 }
-const osub = (i: number) => ({ id: `bps-${i}`, subscriber_box_id: `sb-${i}`, stripe_subscription_id: `sub_o${i}`, status: 'active' });
+const osub = (i: number, extra: any = {}) => ({ id: `bps-${i}`, subscriber_box_id: `sb-${i}`, stripe_subscription_id: `sub_o${i}`, status: 'active', ...extra });
 
-describe('B11 — suppression d’une offre Marketplace', () => {
-  it('check puis delete refusée : nombre exact, rien supprimé', async () => {
-    setupOffer([osub(1), osub(2)]);
-    expect((await offersDelete(req({ programming_id: 'off-1', action: 'check' })) as any)._data.active_subscriptions).toBe(2);
+describe('B11 — offre Marketplace : refus, puis « Arrêter et désactiver »', () => {
+  it('check puis delete refusée : nombre exact, impayé compté, rien supprimé', async () => {
+    setupOffer([osub(1), osub(2, { status: 'past_due' })]);
+    stripeState({ sub_o2: { status: 'past_due' } });
+    const chk: any = await offersDelete(req({ programming_id: 'off-1', action: 'check' }));
+    expect(chk._data).toMatchObject({ active_subscriptions: 2, to_stop: 2, past_due: 1 });
+    expect(chains.box_programming_subscriptions.in).toHaveBeenCalledWith('status', ['active', 'past_due']);
     const res: any = await offersDelete(req({ programming_id: 'off-1', action: 'delete' }));
     expect(res._status).toBe(409);
     expect(chains.box_programming.delete).not.toHaveBeenCalled();
     expect(mockSubUpdate).not.toHaveBeenCalled();
   });
 
-  it('arrêter puis supprimer : period_end idempotent, e-mail au gérant de la box abonnée, suppression', async () => {
+  it('arrêter et désactiver : period_end idempotent, e-mail « reçoit ses semaines jusqu’au », offre dépubliée et PAS supprimée', async () => {
     setupOffer([osub(1)]);
-    const res: any = await offersDelete(req({ programming_id: 'off-1', action: 'stop_then_delete' }));
-    expect(res._data).toMatchObject({ ok: true, deleted: true });
+    stripeState({});
+    const res: any = await offersDelete(req({ programming_id: 'off-1', action: 'stop_then_deactivate' }));
+    expect(res._data).toMatchObject({ ok: true, deactivated: true });
     expect(mockSubUpdate).toHaveBeenCalledWith('sub_o1', { cancel_at_period_end: true },
       { stripeAccount: 'acct_1', idempotencyKey: 'stop:programming:bps-1:sub_o1:period_end' });
-    expect(emails()[0].to).toBe('g0@exemple.fr');
-    expect(chains.box_programming.delete).toHaveBeenCalledTimes(1);
+    const [mail] = emails();
+    expect(mail.to).toBe('g0@exemple.fr');
+    expect(mail.html).toContain("Box 1 reçoit ses semaines jusqu'au mardi 13 octobre 2026");
+    expect(chains.box_programming.update).toHaveBeenCalledWith(expect.objectContaining({ is_published: false }));
+    expect(chains.box_programming.delete).not.toHaveBeenCalled();
   });
 
-  it('échec partiel : offre gardée', async () => {
+  it('impayé : arrêt now, clé :now', async () => {
+    setupOffer([osub(1, { status: 'past_due' })]);
+    stripeState({ sub_o1: { status: 'past_due' } });
+    await offersDelete(req({ programming_id: 'off-1', action: 'stop_then_deactivate' }));
+    expect(mockSubCancel).toHaveBeenCalledWith('sub_o1', { prorate: false, invoice_now: false },
+      { stripeAccount: 'acct_1', idempotencyKey: 'stop:programming:bps-1:sub_o1:now' });
+    expect(emails()[0].subject).toBe('L’abonnement de Box 1 à l’offre Engine est arrêté');
+  });
+
+  it('échec partiel : offre ni dépubliée ni supprimée', async () => {
     setupOffer([osub(1), osub(2)]);
+    stripeState({});
     mockSubUpdate.mockImplementation(async (id: string) => { if (id === 'sub_o2') throw new Error('x'); return { id }; });
-    const res: any = await offersDelete(req({ programming_id: 'off-1', action: 'stop_then_delete' }));
+    const res: any = await offersDelete(req({ programming_id: 'off-1', action: 'stop_then_deactivate' }));
     expect(res._status).toBe(502);
     expect(res._data.failed).toEqual(['Box 2']);
+    expect(chains.box_programming.update).not.toHaveBeenCalled();
     expect(chains.box_programming.delete).not.toHaveBeenCalled();
   });
 });
