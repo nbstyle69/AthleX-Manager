@@ -41,7 +41,20 @@ export const LOAD_CATEGORY_LABEL: Record<LoadCategory, string> = {
 
 export const LOAD_BANDS = ['light', 'medium', 'heavy'] as const;
 export type LoadBand = typeof LOAD_BANDS[number];
-export const LOAD_BAND_LABEL: Record<LoadBand, string> = { light: 'Light', medium: 'Medium', heavy: 'Heavy' };
+export const LOAD_BAND_LABEL: Record<LoadBand, string> = { light: 'Léger', medium: 'Moyen', heavy: 'Lourd' };
+
+// Libellés affichés seulement (lot 7b) : les clés restent celles des CHECK
+// de la base, envoyées telles quelles par les routes.
+export const FAMILY_LABEL: Record<CatalogFamily, string> = {
+  barbell: 'Barre', dumbbell: 'Haltère', kettlebell: 'Kettlebell', gym: 'Gymnastique',
+  bodyweight: 'Poids du corps', erg: 'Ergomètre', run: 'Course', sled: 'Traîneau', carry: 'Portage',
+  sandbag: 'Sac de sable', wallball: 'Wall ball', jump_rope: 'Corde à sauter', box: 'Box',
+  machine: 'Machine', cable: 'Poulie', other: 'Autre',
+};
+export const PATTERN_LABEL: Record<CatalogPattern, string> = {
+  squat: 'Squat', hinge: 'Charnière de hanche', push_v: 'Poussée verticale', push_h: 'Poussée horizontale',
+  pull_v: 'Tirage vertical', pull_h: 'Tirage horizontal', carry: 'Portage', lunge: 'Fente', core: 'Gainage', mono: 'Monostructural',
+};
 
 /** `[H, F]` par bande, par catégorie — la forme de `movement_catalog.loads`. */
 export type LoadTable = Record<LoadCategory, Record<LoadBand, [number, number]>>;

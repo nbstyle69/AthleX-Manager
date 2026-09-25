@@ -3,6 +3,15 @@
 import { useEffect, useState, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { Award, Search, Users } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { PURPLE_SOFT, SUB_ORANGE_SOFT, SUB_ORANGE_TEXT, chipClass } from '@/components/admin/adminTokens';
+
+// Libellés affichés seulement : le filtre et la base gardent les clés.
+const CATEGORY_LABEL: Record<string, string> = {
+  activity: 'Activité', tournament: 'Tournoi', social: 'Social', wod: 'WOD',
+  elo: 'ELO', movement: 'Mouvement', other: 'Autre',
+};
+const categoryLabel = (c: string) => CATEGORY_LABEL[c] ?? c;
 
 interface Badge {
   badge_key: string;
@@ -61,35 +70,37 @@ export default function AdminBadgesPage() {
 
   const totalEarned = badges.reduce((s, b) => s + b.earned_count, 0);
 
+  // Même couleur par catégorie qu'avant, en jetons lisibles dans les deux thèmes.
   const catColor = (c: string) =>
-    c === 'activity' ? 'text-orange-400 bg-orange-500/15' :
-    c === 'tournament' ? 'text-yellow-400 bg-yellow-500/15' :
-    c === 'social' ? 'text-blue-400 bg-blue-500/15' :
-    c === 'wod' ? 'text-emerald-400 bg-emerald-500/15' :
-    c === 'elo' ? 'text-purple-400 bg-purple-500/15' :
-    c === 'movement' ? 'text-red-400 bg-red-500/15' :
-    'text-gray-400 bg-white/5';
+    c === 'activity' ? `${SUB_ORANGE_TEXT} ${SUB_ORANGE_SOFT}` :
+    c === 'tournament' ? 'text-ax-warning bg-ax-warning-soft' :
+    c === 'social' ? 'text-ax-info bg-ax-info-soft' :
+    c === 'wod' ? 'text-ax-success bg-ax-success-soft' :
+    c === 'elo' ? `text-ax-purple ${PURPLE_SOFT}` :
+    c === 'movement' ? 'text-ax-danger bg-ax-danger-soft' :
+    'text-ax-text-secondary bg-ax-neutral-soft';
 
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-yellow-500/20 flex items-center justify-center">
-            <Award size={22} className="text-yellow-400" />
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="w-10 h-10 shrink-0 rounded-ax-control bg-ax-warning-soft flex items-center justify-center">
+            <Award size={22} className="text-ax-warning" />
           </div>
-          <div>
-            <h1 className="text-xl font-black text-white">Badges</h1>
-            <p className="text-sm text-gray-400">{badges.length} badges · {totalEarned} attribués au total</p>
+          <div className="min-w-0">
+            <h1 className="font-display text-2xl font-medium uppercase tracking-wide text-ax-text">Badges</h1>
+            <p className="text-sm text-ax-text-secondary">{badges.length} badges · {totalEarned} attribués au total</p>
           </div>
         </div>
-        <div className="relative">
-          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
-          <input
+        <div className="relative w-full sm:w-64">
+          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-ax-text-muted pointer-events-none" />
+          <Input
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="Rechercher..."
-            className="pl-9 pr-4 py-2 rounded-xl bg-white/5 border border-white/10 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-emerald-500/50 w-64"
+            aria-label="Rechercher un badge"
+            className="pl-9"
           />
         </div>
       </div>
@@ -100,45 +111,42 @@ export default function AdminBadgesPage() {
           <button
             key={c}
             onClick={() => setCatFilter(c)}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all ${
-              catFilter === c
-                ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-                : 'bg-white/5 text-gray-500 border border-white/10 hover:text-white'
-            }`}
+            aria-pressed={catFilter === c}
+            className={chipClass(catFilter === c)}
           >
-            {c === 'all' ? 'Tous' : c}
+            {c === 'all' ? 'Tous' : categoryLabel(c)}
           </button>
         ))}
       </div>
 
       {loading ? (
         <div className="flex items-center justify-center py-20">
-          <div className="w-8 h-8 border-2 border-emerald-500/30 border-t-emerald-500 rounded-full animate-spin" />
+          <div className="w-8 h-8 border-2 border-ax-border border-t-ax-accent-text rounded-full animate-spin" />
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {filtered.map(b => (
             <div
               key={b.badge_key}
-              className="bg-[#111111] border border-white/[0.06] rounded-2xl p-5 hover:border-white/10 transition-all"
+              className="bg-ax-surface border border-ax-border rounded-ax-card p-5 transition-colors hover:bg-ax-hover motion-reduce:transition-none"
             >
               <div className="flex items-start gap-3 mb-3">
-                <span className="text-3xl">{b.icon}</span>
+                <span className="text-3xl shrink-0" aria-hidden="true">{b.icon}</span>
                 <div className="min-w-0 flex-1">
-                  <p className="text-sm font-black text-white truncate">{b.title}</p>
-                  <p className="text-xs text-gray-500 mt-0.5">{b.description}</p>
+                  <p className="text-sm font-black text-ax-text break-words">{b.title}</p>
+                  <p className="text-xs text-ax-text-secondary mt-0.5 break-words">{b.description}</p>
                 </div>
               </div>
-              <div className="flex items-center justify-between mt-4">
-                <span className={`text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-lg ${catColor(b.category)}`}>
-                  {b.category}
+              <div className="flex flex-wrap items-center justify-between gap-2 mt-4">
+                <span className={`text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-ax-badge ${catColor(b.category)}`}>
+                  {categoryLabel(b.category)}
                 </span>
                 <div className="flex items-center gap-1.5">
-                  <Users size={12} className="text-gray-500" />
-                  <span className="text-xs font-bold text-gray-400">{b.earned_count} gagné{b.earned_count > 1 ? 's' : ''}</span>
+                  <Users size={12} className="text-ax-text-muted" />
+                  <span className="text-xs font-bold text-ax-text-secondary">{b.earned_count} gagné{b.earned_count > 1 ? 's' : ''}</span>
                 </div>
               </div>
-              <p className="text-[10px] text-gray-600 mt-2 font-mono">{b.badge_key}</p>
+              <p className="text-[10px] text-ax-text-secondary mt-2 font-mono break-all">{b.badge_key}</p>
             </div>
           ))}
         </div>

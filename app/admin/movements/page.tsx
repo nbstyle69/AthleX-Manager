@@ -18,16 +18,16 @@ export default function AdminMovementsPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-4 flex-wrap">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-red-500/20 flex items-center justify-center">
-            <Dumbbell size={22} className="text-red-400" />
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="w-10 h-10 shrink-0 rounded-ax-control bg-ax-danger-soft flex items-center justify-center">
+            <Dumbbell size={22} className="text-ax-danger" />
           </div>
-          <div>
-            <h1 className="text-xl font-black text-white">Mouvements</h1>
-            <p className="text-sm text-gray-400">Volumes des athlètes et catalogue `movement_catalog` du générateur</p>
+          <div className="min-w-0">
+            <h1 className="font-display text-2xl font-medium uppercase tracking-wide text-ax-text">Mouvements</h1>
+            <p className="text-sm text-ax-text-secondary break-words">Volumes des athlètes et catalogue des mouvements du générateur</p>
           </div>
         </div>
-        <div className="flex gap-1 p-1 rounded-xl bg-white/5 border border-white/10" role="tablist">
+        <div className="flex gap-1 p-1 rounded-ax-control border border-ax-border" role="tablist">
           {TABS.map(t => (
             <button
               key={t.id}
@@ -35,8 +35,8 @@ export default function AdminMovementsPage() {
               aria-selected={tab === t.id}
               onClick={() => setTab(t.id)}
               data-testid={`movements-tab-${t.id}`}
-              className={`px-4 py-1.5 rounded-lg text-sm font-bold transition-colors ${
-                tab === t.id ? 'bg-emerald-500 text-black' : 'text-gray-400 hover:text-white'
+              className={`px-4 py-1.5 rounded-ax-control text-sm font-bold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ax-focus motion-reduce:transition-none ${
+                tab === t.id ? 'bg-ax-accent-soft text-ax-accent-text' : 'text-ax-text-secondary hover:text-ax-text hover:bg-ax-hover'
               }`}
             >
               {t.label}
