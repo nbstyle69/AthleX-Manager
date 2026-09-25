@@ -73,3 +73,35 @@ describe('AdminSupportInbox : deux accents, chacun son sens', () => {
     expect(src).toContain('text-sm whitespace-pre-wrap break-words');
   });
 });
+
+describe('lot 7a : libellés (affichage seulement)', () => {
+  const reports = read('app/admin/reports/page.tsx');
+  it('Signalements : libellés accentués', () => {
+    for (const s of [
+      "harassment: 'Harcèlement'", "inappropriate: 'Contenu inapproprié'", "nudity: 'Nudité'", "video: 'Vidéo'",
+      "resolved:  'Résolu'", "dismissed: 'Rejeté'", "label: 'Traités'", "label: 'Rejetés'",
+      'Modérateur du contenu', 'Résolus (vue)', 'sélectionné{checkedIds.size > 1', '<Check size={12} /> Résoudre',
+      "'Signalé par', 'Utilisateur visé'", '>Détail du signalement</h2>', 'aria-label="Détail du signalement"',
+      '<Row label="Signalé par"', '<Row label="Utilisateur visé"', '<Check size={14} /> Résolu',
+    ]) expect(reports).toContain(s);
+    expect(reports).not.toMatch(/Harcelement|inapproprie'|Nudite|'Video'|'Resolu|'Rejete|Traites|Moderateur|Resolus|selectionne|Resoudre|Signale par|Utilisateur vise|Detail du/);
+  });
+  it('Signalements : valeurs internes inchangées (clés, statuts, filtres)', () => {
+    expect(reports).toContain("type ReportStatus = 'pending' | 'reviewing' | 'resolved' | 'dismissed';");
+    expect(reports).toMatch(/\{ value: 'resolved',\s+label: 'Traités'\s+\},/);
+    expect(reports).toContain(".eq('status', filter)");
+    expect(reports).toContain("onClick={() => bulkUpdate('resolved')}");
+  });
+  it('« Owner » devient « Gérant » à l’écran, jamais dans les valeurs', () => {
+    expect(read('app/admin/boxes/page.tsx')).toContain('font-bold">Gérant</p>');
+    const fiche = read('app/admin/boxes/[id]/page.tsx');
+    expect(fiche).toContain('rounded-ax-badge">GÉRANT</span>}');
+    expect(fiche).toContain('Le gérant ne peut créer que les formats que tu coches ici.');
+    expect(read('components/support/AdminSupportInbox.tsx')).toContain('Toutes les demandes des gérants/coachs.');
+    // Plus aucun « Owner » affiché dans les fichiers de 7a (JSX ou chaîne) ; owner_id, box_owner… restent.
+    for (const f of FILES) {
+      expect(read(f)).not.toMatch(/>[^<{}]*\b(?:Owner|OWNER|owners?)\b(?![_.?-])[^<{}]*<|['"`][^'"`\n]*\b(?:Owner|owners?)\b(?![_.?-])[^'"`\n]*['"`]/);
+    }
+    expect(fiche).toContain('const isOwner = p?.id === owner?.id;');
+  });
+});
