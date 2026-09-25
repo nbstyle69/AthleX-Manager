@@ -298,12 +298,21 @@ export default function AttendanceBlock({ boxId }: { boxId: string }) {
                     <td className="text-[10px] font-medium text-ax-text-muted pr-2">{label}</td>
                     {hours.map(h => {
                       const n = cellAt(i + 1, h);
+                      // Chiffre AA sur son fond dans les deux thèmes : texte
+                      // normal sur cellule faible, inversé sur cellule forte
+                      // (le fond des fortes est relevé hors de la zone grise).
+                      const brut = 0.15 + (n / maxCell) * 0.75;
+                      const forte = brut >= 0.35;
+                      const intensite = forte ? Math.max(brut, 0.65) : brut;
                       return (
                         <td key={h}>
                           <div
                             title={`${label} ${String(h).padStart(2, '0')}h · ${n} réservation(s)`}
-                            className="w-8 h-6 rounded-md flex items-center justify-center text-[10px] font-bold text-ax-text"
-                            style={{ backgroundColor: n === 0 ? 'var(--ax-hover)' : `color-mix(in srgb, var(--ax-text) ${Math.round((0.15 + (n / maxCell) * 0.75) * 100)}%, transparent)` }}
+                            className="w-8 h-6 rounded-md flex items-center justify-center text-[10px] font-bold"
+                            style={{
+                              backgroundColor: n === 0 ? 'var(--ax-hover)' : `color-mix(in srgb, var(--ax-text) ${Math.round(intensite * 100)}%, transparent)`,
+                              color: forte && n > 0 ? 'var(--ax-background)' : 'var(--ax-text)',
+                            }}
                           >
                             {n > 0 ? n : ''}
                           </div>
