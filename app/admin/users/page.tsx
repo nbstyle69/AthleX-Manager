@@ -3,6 +3,10 @@
 import { useEffect, useState, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { Users, Search, Building2, ChevronUp, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
+import { ADMIN_LEVEL_COLOR, PURPLE_SOFT, SUB_ORANGE_TEXT } from '@/components/admin/adminTokens';
 
 const PAGE_SIZE = 50;
 
@@ -114,145 +118,140 @@ export default function AdminUsersPage() {
     return list;
   })();
 
+  // Même sens qu'avant (super admin vert, admin bleu, gérant violet, autres
+  // neutres), en jetons lisibles dans les deux thèmes.
   const roleColor = (r: string) =>
-    r === 'super_admin' ? 'text-emerald-400 bg-emerald-500/15' :
-    r === 'admin' ? 'text-blue-400 bg-blue-500/15' :
-    r === 'box_owner' ? 'text-purple-400 bg-purple-500/15' :
-    'text-gray-400 bg-white/5';
-
-  const levelColor = (l: string) =>
-    l === 'pro' ? 'text-red-400' :
-    l === 'gx' ? 'text-purple-400' :
-    l === 'rx+' ? 'text-orange-400' :
-    l === 'rx' ? 'text-emerald-400' :
-    l === 'inter' ? 'text-blue-400' :
-    'text-gray-400';
+    r === 'super_admin' ? 'text-ax-success bg-ax-success-soft' :
+    r === 'admin' ? 'text-ax-info bg-ax-info-soft' :
+    r === 'box_owner' ? `text-ax-purple ${PURPLE_SOFT}` :
+    'text-ax-text-secondary bg-ax-neutral-soft';
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-purple-500/20 flex items-center justify-center">
-            <Users size={22} className="text-purple-400" />
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div className="flex items-center gap-3 min-w-0">
+          <div className={`w-10 h-10 shrink-0 rounded-ax-control ${PURPLE_SOFT} flex items-center justify-center`}>
+            <Users size={22} className="text-ax-purple" />
           </div>
-          <div>
-            <h1 className="text-xl font-black text-white">Utilisateurs</h1>
-            <p className="text-sm text-gray-400">{totalCount} athlètes inscrits</p>
+          <div className="min-w-0">
+            <h1 className="font-display text-2xl font-medium uppercase tracking-wide text-ax-text">Utilisateurs</h1>
+            <p className="text-sm text-ax-text-secondary">{totalCount} athlètes inscrits</p>
           </div>
         </div>
-        <div className="relative">
-          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
-          <input
+        <div className="relative w-full sm:w-64">
+          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-ax-text-muted pointer-events-none" />
+          <Input
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="Rechercher..."
-            className="pl-9 pr-4 py-2 rounded-xl bg-white/5 border border-white/10 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-emerald-500/50 w-64"
+            aria-label="Rechercher un utilisateur"
+            className="pl-9"
           />
         </div>
       </div>
 
       {loading ? (
         <div className="flex items-center justify-center py-20">
-          <div className="w-8 h-8 border-2 border-emerald-500/30 border-t-emerald-500 rounded-full animate-spin" />
+          <div className="w-8 h-8 border-2 border-ax-border border-t-ax-accent-text rounded-full animate-spin" />
         </div>
       ) : (
-        <div className="overflow-hidden rounded-2xl border border-white/[0.06]">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="bg-white/[0.03] text-left">
-                {[
-                  { key: 'username' as SortCol, label: 'Utilisateur' },
-                  { key: 'role' as SortCol, label: 'Rôle' },
-                  { key: 'box' as SortCol, label: 'Box' },
-                  { key: 'level' as SortCol, label: 'Niveau' },
-                  { key: 'elo' as SortCol, label: 'ELO' },
-                  { key: 'matches' as SortCol, label: 'Matchs' },
-                  { key: 'wins' as SortCol, label: 'Wins' },
-                  { key: 'date' as SortCol, label: 'Inscrit le' },
-                ].map(col => (
-                  <th key={col.label}
-                    onClick={() => toggleSort(col.key)}
-                    className={`px-5 py-3 text-xs font-bold uppercase tracking-wider select-none cursor-pointer hover:text-white transition-colors ${
-                      sortCol === col.key ? 'text-emerald-400' : 'text-gray-500'
+        // À 390 px, le défilement horizontal est limité au tableau : mêmes
+        // colonnes, même ordre, rien de masqué.
+        <Table aria-label="Utilisateurs">
+          <TableHeader>
+            <TableRow className="hover:bg-transparent">
+              {[
+                { key: 'username' as SortCol, label: 'Utilisateur' },
+                { key: 'role' as SortCol, label: 'Rôle' },
+                { key: 'box' as SortCol, label: 'Box' },
+                { key: 'level' as SortCol, label: 'Niveau' },
+                { key: 'elo' as SortCol, label: 'ELO' },
+                { key: 'matches' as SortCol, label: 'Matchs' },
+                { key: 'wins' as SortCol, label: 'Wins' },
+                { key: 'date' as SortCol, label: 'Inscrit le' },
+              ].map(col => (
+                <TableHead key={col.label}
+                  aria-sort={sortCol === col.key ? (sortDir === 'asc' ? 'ascending' : 'descending') : undefined}
+                  className="px-5 whitespace-nowrap">
+                  {/* Bouton dans l'en-tête : le tri marche aussi au clavier, même action qu'au clic. */}
+                  <button type="button" onClick={() => toggleSort(col.key)}
+                    className={`inline-flex items-center gap-1 rounded-ax-control font-bold uppercase tracking-wider select-none transition-colors hover:text-ax-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ax-focus motion-reduce:transition-none ${
+                      sortCol === col.key ? 'text-ax-accent-text' : 'text-ax-text-secondary'
                     }`}>
-                    <span className="inline-flex items-center gap-1">
-                      {col.label}
-                      {sortCol === col.key && (
-                        sortDir === 'asc' ? <ChevronUp size={11} /> : <ChevronDown size={11} />
-                      )}
-                    </span>
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-white/[0.04]">
-              {filtered.map(u => (
-                <tr key={u.id} className="hover:bg-white/[0.02] transition-colors">
-                  <td className="px-5 py-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-xs font-black text-gray-400">
-                        {u.username?.[0]?.toUpperCase() ?? '?'}
-                      </div>
-                      <span className="font-bold text-white">{u.username}</span>
-                    </div>
-                  </td>
-                  <td className="px-5 py-4">
-                    <span className={`text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-lg ${roleColor(u.role)}`}>
-                      {u.role}
-                    </span>
-                  </td>
-                  <td className="px-5 py-4">
-                    {u.box_name ? (
-                      <span className="flex items-center gap-1.5 text-xs font-semibold text-orange-400">
-                        <Building2 size={12} />
-                        {u.box_name}
-                      </span>
-                    ) : (
-                      <span className="text-xs text-gray-600">—</span>
+                    {col.label}
+                    {sortCol === col.key && (
+                      sortDir === 'asc' ? <ChevronUp size={11} /> : <ChevronDown size={11} />
                     )}
-                  </td>
-                  <td className="px-5 py-4">
-                    <span className={`text-xs font-black uppercase ${levelColor(u.level)}`}>
-                      {u.level}
-                    </span>
-                  </td>
-                  <td className="px-5 py-4">
-                    <span className="font-black text-yellow-500">{u.elo}</span>
-                  </td>
-                  <td className="px-5 py-4 text-gray-300">{u.total_matches}</td>
-                  <td className="px-5 py-4 text-gray-300">{u.wins}</td>
-                  <td className="px-5 py-4 text-gray-500 text-xs">
-                    {new Date(u.created_at).toLocaleDateString('fr-FR')}
-                  </td>
-                </tr>
+                  </button>
+                </TableHead>
               ))}
-            </tbody>
-          </table>
-        </div>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {filtered.map(u => (
+              <TableRow key={u.id}>
+                <TableCell className="px-5 py-4">
+                  <div className="flex items-center gap-3 min-w-[11rem]">
+                    <div className="w-8 h-8 shrink-0 rounded-full bg-ax-neutral-soft flex items-center justify-center text-xs font-black text-ax-text-secondary">
+                      {u.username?.[0]?.toUpperCase() ?? '?'}
+                    </div>
+                    <span className="font-bold text-ax-text break-words">{u.username}</span>
+                  </div>
+                </TableCell>
+                <TableCell className="px-5 py-4">
+                  <span className={`whitespace-nowrap text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-ax-badge ${roleColor(u.role)}`}>
+                    {u.role}
+                  </span>
+                </TableCell>
+                <TableCell className="px-5 py-4">
+                  {u.box_name ? (
+                    <span className={`flex items-center gap-1.5 text-xs font-semibold min-w-[9rem] break-words ${SUB_ORANGE_TEXT}`}>
+                      <Building2 size={12} className="shrink-0" />
+                      {u.box_name}
+                    </span>
+                  ) : (
+                    <span className="text-xs text-ax-text-muted">—</span>
+                  )}
+                </TableCell>
+                <TableCell className="px-5 py-4">
+                  <span className="text-xs font-black uppercase" style={{ color: ADMIN_LEVEL_COLOR[u.level] ?? 'var(--ax-level-scaled)' }}>
+                    {u.level}
+                  </span>
+                </TableCell>
+                <TableCell className="px-5 py-4">
+                  <span className="font-black text-ax-warning">{u.elo}</span>
+                </TableCell>
+                <TableCell className="px-5 py-4 text-ax-text">{u.total_matches}</TableCell>
+                <TableCell className="px-5 py-4 text-ax-text">{u.wins}</TableCell>
+                <TableCell className="px-5 py-4 text-ax-text-secondary text-xs whitespace-nowrap">
+                  {new Date(u.created_at).toLocaleDateString('fr-FR')}
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
       )}
 
       {/* Pagination */}
       {totalPages > 1 && (
-        <div className="flex items-center justify-between pt-2">
-          <p className="text-xs text-gray-500">
+        <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
+          <p className="text-xs text-ax-text-secondary">
             Page {page + 1} / {totalPages} &nbsp;·&nbsp; {totalCount} utilisateurs
           </p>
           <div className="flex items-center gap-2">
-            <button
+            <Button variant="ax-outline" size="ax-compact"
               onClick={() => setPage(p => Math.max(0, p - 1))}
-              disabled={page === 0 || loading}
-              className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold border border-white/10 text-gray-400 hover:text-white hover:border-white/20 disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
+              disabled={page === 0 || loading}>
               <ChevronLeft size={13} /> Préc.
-            </button>
-            <span className="text-xs font-black text-white tabular-nums w-16 text-center">
+            </Button>
+            <span className="text-xs font-black text-ax-text tabular-nums w-16 text-center">
               {page * PAGE_SIZE + 1}–{Math.min((page + 1) * PAGE_SIZE, totalCount)}
             </span>
-            <button
+            <Button variant="ax-outline" size="ax-compact"
               onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))}
-              disabled={page >= totalPages - 1 || loading}
-              className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold border border-white/10 text-gray-400 hover:text-white hover:border-white/20 disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
+              disabled={page >= totalPages - 1 || loading}>
               Suiv. <ChevronRight size={13} />
-            </button>
+            </Button>
           </div>
         </div>
       )}

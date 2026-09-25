@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { Archive, ArchiveRestore, Trash2, AlertTriangle } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 
 interface Deletion {
   name: string;
@@ -82,100 +84,100 @@ export default function BoxArchiveBlock({
   const canDelete = deletion?.empty === true && !archived;
 
   return (
-    <div className="bg-[#111111] border border-white/[0.06] rounded-2xl p-6 space-y-3" data-testid={`archive-block-${boxId}`}>
-      <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider flex items-center gap-2">
+    <div className="bg-ax-surface border border-ax-border rounded-ax-card p-6 space-y-3" data-testid={`archive-block-${boxId}`}>
+      <h3 className="text-sm font-bold text-ax-text-secondary uppercase tracking-wider flex items-center gap-2">
         <Archive size={14} /> Retirer cette box
       </h3>
 
       {archived ? (
         <>
-          <p className="text-xs text-gray-500">
+          <p className="text-xs text-ax-text-secondary">
             Cette box est archivée depuis le {new Date(archivedAt).toLocaleDateString('fr-FR')}.
             Ses membres n&apos;y ont plus accès et elle n&apos;est plus générée. Rien n&apos;a été supprimé.
           </p>
-          <button
+          <Button
+            variant="ax-mint"
             onClick={() => void setArchived(false)}
             disabled={busy}
             data-testid={`reactiver-${boxId}`}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 disabled:opacity-50 text-white text-sm font-bold transition-colors"
           >
             <ArchiveRestore size={14} /> {busy ? 'Réactivation...' : 'Réactiver cette box'}
-          </button>
+          </Button>
         </>
       ) : (
         <>
-          <p className="text-xs text-gray-500">
+          <p className="text-xs text-ax-text-secondary">
             L&apos;archivage retire la box des annuaires et des listes, et coupe l&apos;accès de ses
             membres. Il est réversible et ne supprime rien.
           </p>
-          <button
+          <Button
+            variant="ax-outline"
             onClick={() => setConfirmArchive(true)}
             disabled={busy}
             data-testid={`archiver-${boxId}`}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl border border-amber-500/40 text-amber-300 hover:bg-amber-500/10 disabled:opacity-50 text-sm font-bold transition-colors"
+            className="border-ax-warning text-ax-warning hover:bg-ax-warning-soft"
           >
             <Archive size={14} /> Archiver cette box
-          </button>
+          </Button>
         </>
       )}
 
-      <div className="pt-3 border-t border-white/[0.06] space-y-2">
-        <button
+      <div className="pt-3 border-t border-ax-border space-y-2">
+        <Button
+          variant="ax-outline"
           onClick={() => { setTypedName(''); setConfirmDelete(true); }}
           disabled={busy || !canDelete}
           data-testid={`supprimer-${boxId}`}
           title={archived
             ? 'Réactive la box avant de la supprimer, pour voir ce qu’elle contient'
             : canDelete ? 'Supprimer définitivement' : 'Cette box n’est pas vide'}
-          className="flex items-center gap-2 px-4 py-2 rounded-xl border border-red-500/40 text-red-300 hover:bg-red-500/10 disabled:opacity-40 disabled:cursor-not-allowed text-sm font-bold transition-colors"
+          className="border-ax-danger text-ax-danger hover:bg-ax-danger-soft disabled:cursor-not-allowed"
         >
           <Trash2 size={14} /> Supprimer définitivement
-        </button>
+        </Button>
 
         {deletion && !deletion.empty && (
-          <div className="text-xs text-gray-500 space-y-1" data-testid={`blocage-${boxId}`}>
-            <p className="text-amber-400">
+          <div className="text-xs text-ax-text-secondary space-y-1" data-testid={`blocage-${boxId}`}>
+            <p className="text-ax-warning break-words">
               Suppression impossible : cette box contient {deletion.blockers.join(', ')}.
             </p>
             <p>Archive-la plutôt : rien ne sera perdu et l&apos;opération se défait.</p>
           </div>
         )}
         {deletion?.empty && !archived && (
-          <p className="text-xs text-gray-500">
+          <p className="text-xs text-ax-text-secondary">
             Cette box est vide : aucune donnée ne partirait avec elle.
           </p>
         )}
       </div>
 
-      {error && <p className="text-xs text-red-400" data-testid={`archive-error-${boxId}`}>{error}</p>}
+      {error && <p className="text-xs text-ax-danger" data-testid={`archive-error-${boxId}`}>{error}</p>}
 
       {confirmArchive && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-          <div className="bg-[#111111] border border-white/[0.08] rounded-2xl p-6 w-full max-w-md space-y-4">
-            <div className="flex items-center gap-2">
-              <AlertTriangle size={18} className="text-amber-400" />
-              <h2 className="text-lg font-black text-white">Archiver « {boxName} » ?</h2>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-ax-overlay backdrop-blur-sm p-4">
+          <div role="dialog" aria-modal="true" className="bg-ax-surface border border-ax-border shadow-ax-panel rounded-ax-panel p-6 w-full max-w-md max-h-[calc(100vh-2rem)] overflow-y-auto space-y-4">
+            <div className="flex items-start gap-2">
+              <AlertTriangle size={18} className="text-ax-warning shrink-0 mt-1" />
+              <h2 className="min-w-0 font-display text-xl font-medium tracking-wide text-ax-text break-words">Archiver « {boxName} » ?</h2>
             </div>
-            <p className="text-sm text-gray-300">
+            <p className="text-sm text-ax-text-secondary">
               Ses membres perdront l&apos;accès à la box : elle disparaîtra de leur application,
               de l&apos;annuaire public et des recherches. La programmation automatique ne la
               générera plus.
             </p>
-            <p className="text-sm text-emerald-300">
+            <p className="text-sm text-ax-success">
               Rien n&apos;est supprimé, et l&apos;opération se défait : « Réactiver » remet tout en place.
             </p>
-            <div className="flex items-center gap-3">
-              <button
-                onClick={() => setConfirmArchive(false)}
-                className="flex-1 py-2.5 rounded-xl border border-white/10 text-gray-300 text-sm font-bold hover:text-white transition-colors"
-              >
+            <div className="flex flex-col-reverse sm:flex-row gap-3">
+              <Button variant="ax-outline" onClick={() => setConfirmArchive(false)} className="flex-1">
                 Annuler
-              </button>
+              </Button>
+              {/* Ambre plein comme avant : l'archivage est réversible, pas destructif. */}
               <button
                 onClick={() => void setArchived(true)}
                 disabled={busy}
                 data-testid={`archiver-confirmer-${boxId}`}
-                className="flex-1 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-black text-sm font-bold transition-colors"
+                className="flex-1 min-h-10 px-5 py-2 rounded-ax-control border border-ax-warning bg-ax-warning text-sm font-semibold text-ax-background transition-[filter] hover:brightness-110 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ax-focus focus-visible:ring-offset-2 focus-visible:ring-offset-ax-surface motion-reduce:transition-none"
               >
                 {busy ? 'Archivage...' : 'Archiver'}
               </button>
@@ -185,45 +187,42 @@ export default function BoxArchiveBlock({
       )}
 
       {confirmDelete && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-          <div className="bg-[#111111] border border-white/[0.08] rounded-2xl p-6 w-full max-w-md space-y-4">
-            <div className="flex items-center gap-2">
-              <Trash2 size={18} className="text-red-400" />
-              <h2 className="text-lg font-black text-white">Supprimer « {boxName} » ?</h2>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-ax-overlay backdrop-blur-sm p-4">
+          <div role="dialog" aria-modal="true" className="bg-ax-surface border border-ax-border shadow-ax-panel rounded-ax-panel p-6 w-full max-w-md max-h-[calc(100vh-2rem)] overflow-y-auto space-y-4">
+            <div className="flex items-start gap-2">
+              <Trash2 size={18} className="text-ax-danger shrink-0 mt-1" />
+              <h2 className="min-w-0 font-display text-xl font-medium tracking-wide text-ax-text break-words">Supprimer « {boxName} » ?</h2>
             </div>
-            <p className="text-sm text-gray-300">
+            <p className="text-sm text-ax-text-secondary">
               La box et tout ce qui s&apos;y rattache seront supprimés définitivement. Le compte du
               propriétaire n&apos;est pas touché : il perd seulement son rôle sur cette box.
             </p>
             <div>
-              <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">
+              <label className="block text-xs font-bold text-ax-text-secondary uppercase tracking-wider mb-1.5">
                 Retape le nom exact de la box
               </label>
-              <input
+              <Input
                 value={typedName}
                 onChange={e => setTypedName(e.target.value)}
                 autoFocus
                 placeholder={boxName}
                 data-testid={`supprimer-saisie-${boxId}`}
-                className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-red-500/50"
               />
             </div>
-            {error && <p className="text-xs text-red-400">{error}</p>}
-            <div className="flex items-center gap-3">
-              <button
-                onClick={() => { setConfirmDelete(false); setError(null); }}
-                className="flex-1 py-2.5 rounded-xl border border-white/10 text-gray-300 text-sm font-bold hover:text-white transition-colors"
-              >
+            {error && <p className="text-xs text-ax-danger">{error}</p>}
+            <div className="flex flex-col-reverse sm:flex-row gap-3">
+              <Button variant="ax-outline" onClick={() => { setConfirmDelete(false); setError(null); }} className="flex-1">
                 Annuler
-              </button>
-              <button
+              </Button>
+              <Button
+                variant="ax-danger"
                 onClick={() => void remove()}
                 disabled={busy || typedName.trim() !== boxName}
                 data-testid={`supprimer-confirmer-${boxId}`}
-                className="flex-1 py-2.5 rounded-xl bg-red-500 hover:bg-red-600 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-bold transition-colors"
+                className="flex-1 disabled:cursor-not-allowed"
               >
                 {busy ? 'Suppression...' : 'Supprimer'}
-              </button>
+              </Button>
             </div>
           </div>
         </div>
