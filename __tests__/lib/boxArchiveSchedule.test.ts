@@ -6,7 +6,7 @@ import {
   type ArchiveCheckView,
 } from '@/lib/boxArchive';
 import { confirmAction, createDialogController, dialogHandlers } from '@/lib/confirmDialog';
-import { counterMemberArchiveEmail, ownerArchiveEmail, programArchiveEmail, publisherArchiveEmail } from '@/lib/boxArchiveSchedule';
+import { arretDe, counterMemberArchiveEmail, ownerArchiveEmail, programArchiveEmail, publisherArchiveEmail } from '@/lib/boxArchiveSchedule';
 import { stopEmailContent } from '@/lib/members/stopMembership';
 
 const read = (p: string) => readFileSync(join(process.cwd(), p), 'utf8').replace(/\r\n/g, '\n');
@@ -94,7 +94,7 @@ describe('déroulé : check, boîte, schedule seulement sur le bouton d’action
   });
 
   it('échec partiel (502) : message affiché tel quel, puis rechargement à sa fermeture (la box est programmée)', async () => {
-    const msg = 'Stripe a refusé l’arrêt de 1 abonnement : membre2. L’archivage est programmé et les entrées sont fermées ; les autres abonnements sont bien arrêtés.';
+    const msg = 'Stripe a refusé l’arrêt d’1 abonnement : membre2. L’archivage est programmé et les entrées sont fermées ; les autres abonnements sont bien arrêtés.';
     fetchSpy.mockResolvedValueOnce(answer(check())).mockResolvedValueOnce(answer({ error: msg }, false));
     const ctrl = createDialogController();
     const onDone = jest.fn();
@@ -169,6 +169,29 @@ describe('box en archivage programmé : état et annulation', () => {
     expect(block).toContain('onClick={askUnschedule}');
     expect(block).toContain('const canDelete = deletion?.empty === true && !archived && !scheduled;');
     expect(read('app/admin/boxes/[id]/page.tsx')).toContain('archiveScheduledAt={box.archive_scheduled_at ?? null}');
+  });
+});
+
+describe('pluriels : le nombre est connu, jamais de « (s) » (règle S4)', () => {
+  it('message d’échec : « d’1 abonnement » / « de 3 abonnements »', () => {
+    expect(arretDe(1)).toBe('d’1 abonnement');
+    expect(arretDe(3)).toBe('de 3 abonnements');
+  });
+  it('relance et fiche : « 1 abonnement n’est pas… » / « 3 abonnements ne sont pas… »', () => {
+    expect(relaunchRequest(NAME, 1, jest.fn()).body).toMatch(/^1 abonnement n’est pas encore arrêté chez Stripe\./);
+    expect(relaunchRequest(NAME, 3, jest.fn()).body).toMatch(/^3 abonnements ne sont pas encore arrêtés chez Stripe\./);
+    const block = read('components/admin/BoxArchiveBlock.tsx');
+    expect(block).toContain("{toStop === 1 ? '1 abonnement n’est pas encore arrêté' : `${toStop} abonnements ne sont pas encore arrêtés`}");
+  });
+  it('bandeau de la boîte : singulier et pluriel accordés', () => {
+    const one = archiveScheduleRequest(NAME, check({ members: { active: 1, past_due: 0, committed: 1, to_stop: 1, already_stopping: 0 }, counter_members: 1 }), jest.fn()).warning;
+    expect(one).toBe('1 membre paie encore par Stripe. Paient aussi par Stripe : 1 abonnement à un programme, 1 offre achetée à une autre box. 1 membre est encore engagé : l’arrêt lève son engagement. 1 membre paie au comptoir : il garde l’accès jusqu’à l’archivage et reçoit un e-mail.');
+  });
+  it('aucun « (s) » dans les textes de l’archivage', () => {
+    for (const f of ['lib/boxArchiveSchedule.ts', 'lib/boxArchive.ts', 'components/admin/BoxArchiveBlock.tsx', 'lib/boxEntryGuard.ts']) {
+      // Un mot suivi de « (s) » puis d'une espace ou d'une ponctuation : du texte, pas un appel `f(s);`.
+      expect(read(f)).not.toMatch(/[a-zà-ÿ]\(s\)(?=[\s.,:!?’'])/i);
+    }
   });
 });
 

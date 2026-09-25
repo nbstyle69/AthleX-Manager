@@ -5,7 +5,6 @@ import {
   type StopProfile,
 } from '@/lib/members/stopMembership';
 import { offerStopEmail } from '@/lib/stopProductSubscriptions';
-import { countOf } from '@/lib/deleteWithSubscriptions';
 import { ATHLEX_CONTACT_EMAIL } from '@/lib/site-url';
 
 /**
@@ -274,6 +273,9 @@ export type ArchiveCheck = Awaited<ReturnType<typeof archiveCheck>>;
 export const archiveStopKey = (s: Pick<StripeSub, 'kind' | 'rowId' | 'subscriptionId'>, mode: StopMode) =>
   `stop:archive:${s.kind}:${s.rowId}:${s.subscriptionId}:${mode}`;
 
+/** « d’1 abonnement » / « de 3 abonnements » : le nombre est connu, singulier ou pluriel accordé (règle S4). */
+export const arretDe = (n: number) => (n === 1 ? 'd’1 abonnement' : `de ${n} abonnements`);
+
 const reply = (boxName: string) => `Pour toute question, réponds à cet e-mail : il arrive directement à ${boxName}.`;
 
 /** E-mail au gérant (texte du relevé, ajustement validé en #390). */
@@ -511,7 +513,7 @@ export async function archiveSchedule(supabase: Db, t: ArchiveTargets, actorId: 
     return {
       status: 502,
       body: {
-        error: `Stripe a refusé l’arrêt de ${countOf(failed.length, 'abonnement', 'abonnements')} : ${failed.join(', ')}. L’archivage est programmé et les entrées sont fermées ; les autres abonnements sont bien arrêtés. Relance les arrêts pour terminer : les abonnements déjà arrêtés ne seront pas rappelés. L’e-mail au gérant et aux membres au comptoir partira quand tout sera arrêté.`,
+        error: `Stripe a refusé l’arrêt ${arretDe(failed.length)} : ${failed.join(', ')}. L’archivage est programmé et les entrées sont fermées ; les autres abonnements sont bien arrêtés. Relance les arrêts pour terminer : les abonnements déjà arrêtés ne seront pas rappelés. L’e-mail au gérant et aux membres au comptoir partira quand tout sera arrêté.`,
         failed,
         stopped,
         scheduled: true,

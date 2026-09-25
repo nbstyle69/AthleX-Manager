@@ -315,7 +315,7 @@ describe('échec partiel, puis relance', () => {
     expect(res._status).toBe(502);
     expect(res._data.failed).toEqual(['l’offre Programmation voisine de Éditeur Voisin']);
     expect(res._data.scheduled).toBe(true);
-    expect(res._data.error).toBe('Stripe a refusé l’arrêt de 1 abonnement : l’offre Programmation voisine de Éditeur Voisin. L’archivage est programmé et les entrées sont fermées ; les autres abonnements sont bien arrêtés. Relance les arrêts pour terminer : les abonnements déjà arrêtés ne seront pas rappelés. L’e-mail au gérant et aux membres au comptoir partira quand tout sera arrêté.');
+    expect(res._data.error).toBe('Stripe a refusé l’arrêt d’1 abonnement : l’offre Programmation voisine de Éditeur Voisin. L’archivage est programmé et les entrées sont fermées ; les autres abonnements sont bien arrêtés. Relance les arrêts pour terminer : les abonnements déjà arrêtés ne seront pas rappelés. L’e-mail au gérant et aux membres au comptoir partira quand tout sera arrêté.');
     const b1 = db.tables.boxes.find(b => b.id === 'b1')!;
     expect(typeof b1.archive_scheduled_at).toBe('string');
     expect(b1.archive_scheduled_by).toBe('sa');
@@ -324,6 +324,16 @@ describe('échec partiel, puis relance', () => {
     // L'e-mail d'archivage attend que tout soit arrêté.
     expect(emails().map(e => e.to)).not.toContain('gerant@exemple.fr');
     expect(emails().map(e => e.to)).not.toContain('m4@exemple.fr');
+  });
+
+  it('pluriel : le nombre est connu, pas de « (s) » — « de 3 abonnements »', async () => {
+    mockSubUpdate.mockImplementation(async (sid: string) => {
+      if (['sub_p1', 'sub_o1', 'sub_o2'].includes(sid)) throw new Error('Stripe down');
+      stripeState[sid].cancel_at_period_end = true; return { id: sid };
+    });
+    const res = await call('schedule');
+    expect(res._data.error).toMatch(/^Stripe a refusé l’arrêt de 3 abonnements : un acheteur de programme, une box abonnée, l’offre Programmation voisine de Éditeur Voisin\. /);
+    expect(res._data.error).not.toContain('(s)');
   });
 
   it('la relance complète sans double appel, envoie l’e-mail d’archivage une fois ; une troisième ne fait rien', async () => {
