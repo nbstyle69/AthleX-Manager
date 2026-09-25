@@ -41,7 +41,10 @@ export function collect() {
           .sort()
       : [];
     byLocale[locale] = Object.fromEntries(
-      files.map((f) => [f.replace(/\.mdx$/, ''), fs.readFileSync(path.join(dir, f), 'utf8')]),
+      // Fins de ligne normalisées : un poste Windows (core.autocrlf) lit les
+      // sources en CRLF ; sans cela, le fichier généré embarquait des « \r » et
+      // différait de celui du dépôt (LF) sans aucun changement de texte.
+      files.map((f) => [f.replace(/\.mdx$/, ''), fs.readFileSync(path.join(dir, f), 'utf8').replace(/\r\n/g, '\n')]),
     );
   }
   return byLocale;
@@ -132,7 +135,8 @@ ${maps.join('\n')}
 
 function writeIfChanged(file, out) {
   const previous = fs.existsSync(file) ? fs.readFileSync(file, 'utf8') : null;
-  if (previous !== out) fs.writeFileSync(file, out);
+  // Une copie de travail en CRLF (Windows) n'est pas un changement : on ne réécrit pas.
+  if (previous?.replace(/\r\n/g, '\n') !== out) fs.writeFileSync(file, out);
 }
 
 /** Écrit les composants TSX et retire ceux dont le MDX source a disparu. */
