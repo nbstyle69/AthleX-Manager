@@ -196,7 +196,7 @@ export default function AdminSupportInbox({ userId, accent = 'emerald' }: { user
     <div className="max-w-3xl space-y-6">
       <div>
         <h1 className="font-display text-2xl font-medium uppercase tracking-wide text-ax-text flex items-center gap-3"><LifeBuoy size={24} className="shrink-0" /> Support — demandes des boxs</h1>
-        <p className="text-sm text-ax-text-secondary mt-1">Toutes les demandes des owners/coachs. Répondez dans le fil et mettez à jour le statut.</p>
+        <p className="text-sm text-ax-text-secondary mt-1">Toutes les demandes des gérants/coachs. Répondez dans le fil et mettez à jour le statut.</p>
       </div>
 
       {/* À 390 px, les filtres passent à la ligne au lieu de sortir de l'écran. */}

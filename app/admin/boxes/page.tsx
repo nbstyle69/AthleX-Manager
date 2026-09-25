@@ -324,7 +324,7 @@ export default function AdminBoxesPage() {
               {/* Footer */}
               <div className="flex flex-wrap items-center justify-between gap-2 pt-3 border-t border-ax-border">
                 <div className="min-w-0">
-                  <p className="text-[10px] text-ax-text-secondary uppercase tracking-wider font-bold">Owner</p>
+                  <p className="text-[10px] text-ax-text-secondary uppercase tracking-wider font-bold">Gérant</p>
                   <p className="text-xs font-semibold text-ax-text break-words">{box.owner_name}</p>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">

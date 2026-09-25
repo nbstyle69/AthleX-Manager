@@ -29,17 +29,17 @@ interface Report {
 
 const REASON_LABELS: Record<string, string> = {
   spam: 'Spam',
-  harassment: 'Harcelement',
-  inappropriate: 'Contenu inapproprie',
+  harassment: 'Harcèlement',
+  inappropriate: 'Contenu inapproprié',
   hate: 'Discours haineux',
   cheating: 'Tricherie',
-  nudity: 'Nudite',
+  nudity: 'Nudité',
   violence: 'Violence',
   other: 'Autre',
 };
 
 const TYPE_LABELS: Record<string, string> = {
-  video: 'Video',
+  video: 'Vidéo',
   message: 'Message',
   profile: 'Profil',
   comment: 'Commentaire',
@@ -61,8 +61,8 @@ const ACTION_WIDE = 'flex-1 min-w-[7rem] inline-flex items-center justify-center
 const STATUS_LABELS: Record<ReportStatus, string> = {
   pending:   'En attente',
   reviewing: 'En cours',
-  resolved:  'Resolu',
-  dismissed: 'Rejete',
+  resolved:  'Résolu',
+  dismissed: 'Rejeté',
 };
 
 export default function AdminReportsPage() {
@@ -133,8 +133,8 @@ export default function AdminReportsPage() {
   const FILTER_OPTS = [
     { value: 'pending',   label: 'En attente' },
     { value: 'reviewing', label: 'En cours'   },
-    { value: 'resolved',  label: 'Traites'    },
-    { value: 'dismissed', label: 'Rejetes'    },
+    { value: 'resolved',  label: 'Traités'    },
+    { value: 'dismissed', label: 'Rejetés'    },
     { value: 'all',       label: 'Tous'       },
   ] as const;
 
@@ -150,7 +150,7 @@ export default function AdminReportsPage() {
           Signalements
         </h1>
         <p className="text-sm text-ax-text-secondary mt-1">
-          Moderateur du contenu — tri par urgence (plus ancien en premier pour En attente)
+          Modérateur du contenu — tri par urgence (plus ancien en premier pour En attente)
         </p>
       </div>
 
@@ -174,7 +174,7 @@ export default function AdminReportsPage() {
           <Check size={18} className="text-ax-success shrink-0" />
           <div>
             <p className="text-2xl font-black text-ax-text">{resolvedCount}</p>
-            <p className="text-[11px] text-ax-success font-bold uppercase tracking-wider">Resolus (vue)</p>
+            <p className="text-[11px] text-ax-success font-bold uppercase tracking-wider">Résolus (vue)</p>
           </div>
         </div>
       </div>
@@ -197,7 +197,7 @@ export default function AdminReportsPage() {
       {checkedIds.size > 0 && (
         <div className="flex flex-wrap items-center gap-3 px-4 py-3 bg-ax-surface-secondary border border-ax-border rounded-ax-control">
           <span className="text-sm font-bold text-ax-text">
-            {checkedIds.size} selectionne{checkedIds.size > 1 ? 's' : ''}
+            {checkedIds.size} sélectionné{checkedIds.size > 1 ? 's' : ''}
           </span>
           <div className="flex flex-wrap gap-2 ml-auto">
             <button
@@ -220,7 +220,7 @@ export default function AdminReportsPage() {
               disabled={bulkLoading}
               className={`${ACTION} border-ax-success bg-ax-success-soft text-ax-success`}
             >
-              <Check size={12} /> Resoudre
+              <Check size={12} /> Résoudre
             </button>
             <button
               onClick={() => setCheckedIds(new Set())}
@@ -257,7 +257,7 @@ export default function AdminReportsPage() {
                     : <Square size={15} />}
                 </button>
               </TableHead>
-              {['Date', 'Type', 'Raison', 'Signale par', 'Utilisateur vise', 'Statut'].map(h => (
+              {['Date', 'Type', 'Raison', 'Signalé par', 'Utilisateur visé', 'Statut'].map(h => (
                 <TableHead key={h} className="font-bold uppercase tracking-wider whitespace-nowrap">{h}</TableHead>
               ))}
               <TableHead className="font-bold uppercase tracking-wider text-right">Actions</TableHead>
@@ -321,12 +321,12 @@ export default function AdminReportsPage() {
           onClick={() => setSelected(null)}
         >
           <div
-            role="dialog" aria-modal="true" aria-label="Detail du signalement"
+            role="dialog" aria-modal="true" aria-label="Détail du signalement"
             className="bg-ax-surface border border-ax-border shadow-ax-panel rounded-ax-panel max-w-xl w-full max-h-[90vh] overflow-y-auto p-6"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between gap-3 mb-4">
-              <h2 className="font-display text-xl font-medium tracking-wide text-ax-text">Detail du signalement</h2>
+              <h2 className="font-display text-xl font-medium tracking-wide text-ax-text">Détail du signalement</h2>
               <button onClick={() => setSelected(null)} aria-label="Fermer" className="rounded-ax-control p-1 text-ax-text-secondary hover:text-ax-text hover:bg-ax-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ax-focus">
                 <X size={20} />
               </button>
@@ -335,8 +335,8 @@ export default function AdminReportsPage() {
             <div className="space-y-3 text-sm">
               <Row label="Type"           value={TYPE_LABELS[selected.content_type] ?? selected.content_type} />
               <Row label="Raison"         value={REASON_LABELS[selected.reason] ?? selected.reason} />
-              <Row label="Signale par"    value={selected.reporter?.username ?? '—'} />
-              <Row label="Utilisateur vise" value={selected.reported_user?.username ?? '—'} />
+              <Row label="Signalé par"    value={selected.reporter?.username ?? '—'} />
+              <Row label="Utilisateur visé" value={selected.reported_user?.username ?? '—'} />
               <Row label="Content ID"     value={selected.content_id ?? '—'} mono />
               <Row label="Date"           value={new Date(selected.created_at).toLocaleString('fr-FR')} />
 
@@ -378,7 +378,7 @@ export default function AdminReportsPage() {
                 onClick={() => updateStatus(selected.id, 'resolved', adminNotes)}
                 className={`${ACTION_WIDE} border-ax-success bg-ax-success-soft text-ax-success`}
               >
-                <Check size={14} /> Resolu
+                <Check size={14} /> Résolu
               </button>
             </div>
           </div>

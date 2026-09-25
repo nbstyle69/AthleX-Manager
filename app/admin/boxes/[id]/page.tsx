@@ -417,7 +417,7 @@ export default function BoxDetailPage() {
                         </div>
                         <div className="min-w-0">
                           <span className="font-bold text-ax-text break-words">{p?.username ?? 'Inconnu'}</span>
-                          {isOwner && <span className="ml-2 text-[9px] font-black text-ax-warning border border-ax-warning px-1.5 py-0.5 rounded-ax-badge">OWNER</span>}
+                          {isOwner && <span className="ml-2 text-[9px] font-black text-ax-warning border border-ax-warning px-1.5 py-0.5 rounded-ax-badge">GÉRANT</span>}
                         </div>
                       </div>
                     </TableCell>
@@ -649,7 +649,7 @@ function FormatPermissions({ boxId, current, onSaved }: { boxId: string; current
       <h3 className={`${CARD_TITLE} flex items-center gap-2`}>
         <Trophy size={14} /> Formats de tournoi autorisés
       </h3>
-      <p className="text-xs text-ax-text-secondary">L'owner ne peut créer que les formats que tu coches ici.</p>
+      <p className="text-xs text-ax-text-secondary">Le gérant ne peut créer que les formats que tu coches ici.</p>
       <div className="space-y-2">
         {TOURNAMENT_FORMATS.map(f => {
           const on = selected.includes(f.key);
