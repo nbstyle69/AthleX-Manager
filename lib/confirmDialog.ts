@@ -13,6 +13,8 @@ export interface ConfirmField {
   label: string;
   defaultValue?: string;
   placeholder?: string;
+  /** Saisie exigée à l'identique (nom retapé) : sinon le bouton d'action reste inactif. */
+  mustEqual?: string;
 }
 
 /** Un choix exclusif (bouton radio) de la boîte de confirmation. */
@@ -39,6 +41,8 @@ export interface ConfirmRequest {
   cancelLabel?: string;
   /** Action destructive ou irréversible : bouton rouge. */
   danger?: boolean;
+  /** Action réversible mais lourde (archivage) : bouton ambre. Ignoré si `danger`. */
+  tone?: 'warning';
   /** Champ facultatif (motif…), transmis à `run`. */
   field?: ConfirmField;
   /** Choix exclusif facultatif : le retenu est transmis à `run`. */
@@ -79,6 +83,12 @@ export interface DialogController {
   confirm(): Promise<void>;
   confirmSecondary(): Promise<void>;
   close(): void;
+}
+
+/** Le champ exige une saisie à l'identique qui n'est pas encore faite. */
+export function confirmBlocked(state: { req: ConfirmRequest; value: string }): boolean {
+  const must = state.req.field?.mustEqual;
+  return must !== undefined && state.value.trim() !== must;
 }
 
 /** Bouton d'action affiché : celui du choix retenu, sinon celui de la boîte. */
@@ -152,7 +162,7 @@ export function createDialogController(): DialogController {
       if (state.kind === 'confirm' && !state.busy) set({ ...state, choice });
     },
     confirm() {
-      if (state.kind !== 'confirm') return Promise.resolve();
+      if (state.kind !== 'confirm' || confirmBlocked(state)) return Promise.resolve();
       const { run } = state.req; const { value, choice } = state;
       return execute(() => run(value, choice || undefined));
     },
