@@ -377,6 +377,7 @@ export default function BoxDetailPage() {
               boxId={box.id}
               boxName={box.name}
               archivedAt={box.archived_at ?? null}
+              archiveScheduledAt={box.archive_scheduled_at ?? null}
               onChanged={loadData}
             />
           </div>

@@ -3,6 +3,7 @@ import Stripe from 'stripe';
 import { createClient, createServiceClient } from '@/lib/supabase/server';
 import { isBoxOwnerAdmin } from '@/lib/isBoxOwnerAdmin';
 import { SITE_URL } from '@/lib/site-url';
+import { refuseClosedBox } from '@/lib/boxEntryGuard';
 
 function getStripe() {
   return new Stripe(process.env.STRIPE_SECRET_KEY!, {
@@ -74,6 +75,11 @@ export async function POST(req: NextRequest) {
     if (p.publisher_box_id === subscriber_box_id) {
       return NextResponse.json({ error: 'Une box ne peut pas s\'abonner à sa propre offre.' }, { status: 400 });
     }
+
+    // Archivage (PR 2) : la box acheteuse comme l'éditrice doivent accepter des entrées.
+    const refus = await refuseClosedBox(supabase, subscriber_box_id, 'achat')
+      ?? await refuseClosedBox(supabase, p.publisher_box_id, 'achat');
+    if (refus) return refus;
 
     // Déjà abonnée ?
     const { data: existingSub } = await supabase

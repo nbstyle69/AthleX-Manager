@@ -3,6 +3,7 @@ import Stripe from 'stripe';
 import { createServiceClient, getServerUser } from '@/lib/supabase/server';
 import { buyerIdentity, customerEmailField, identityMetadata } from '@/lib/buyerIdentity';
 import { SITE_URL } from '@/lib/site-url';
+import { refuseClosedBox } from '@/lib/boxEntryGuard';
 
 function getStripe() {
   return new Stripe(process.env.STRIPE_SECRET_KEY!, {
@@ -60,6 +61,10 @@ export async function POST(req: NextRequest) {
     if (p.price_cents <= 0) {
       return NextResponse.json({ error: 'Ce programme est gratuit — rejoins-le directement dans l\'app.' }, { status: 400 });
     }
+
+    // Archivage (PR 2) : box archivée ou en archivage programmé → refus.
+    const refus = await refuseClosedBox(supabase, p.box_id, 'achat');
+    if (refus) return refus;
 
     const { data: box } = await supabase
       .from('boxes')

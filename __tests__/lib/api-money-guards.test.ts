@@ -46,6 +46,10 @@ const CLASSIFICATION: Record<string, Classe> = {
   // `platform_admin` couvre les deux, la distinction se teste dans
   // `__tests__/api/admin-box-archive.test.ts`.
   'admin/boxes/[id]/archive': 'platform_admin',
+  // Archivage PR 2 (paiement) : arrête les abonnements Stripe d'une box, puis
+  // programme son archivage. `super_admin` seul, testé dans
+  // `__tests__/api/box-archive-schedule.test.ts`.
+  'admin/boxes/[id]/archive-schedule': 'platform_admin',
   'admin/boxes/[id]/auto-programming': 'platform_admin',
   'admin/boxes/[id]/deletion': 'platform_admin',
   'admin/daily-tournaments': 'platform_admin',
@@ -153,6 +157,33 @@ function routes(dir: string, prefix = ''): string[] {
 function source(route: string): string {
   return fs.readFileSync(path.join(API_DIR, ...route.split('/'), 'route.ts'), 'utf8');
 }
+
+/**
+ * Archivage PR 2 : routes d'entrée (adhésion, achat, invitation, essai,
+ * abonnement de la box). Chacune refuse une box archivée ou en archivage
+ * programmé — la clé serveur contourne la règle de la base (PR 1). Les routes
+ * d'essai, anonymes et sans clé serveur, rendent le refus de la RPC.
+ */
+const ENTREES: Record<string, string> = {
+  'create-membership-checkout': "refuseClosedBox(supabase, p.box_id, 'achat')",
+  'change-membership-plan': "refuseClosedBox(supabase, p.box_id, 'achat')",
+  'create-program-checkout': "refuseClosedBox(supabase, p.box_id, 'achat')",
+  'create-programming-checkout': "refuseClosedBox(supabase, p.publisher_box_id, 'achat')",
+  'invitations/send': "refuseClosedBox(service, invitation.box_id, 'adhesion')",
+  'invitations/accept': "boxEntryRefusal(service, invBoxId, 'adhesion')",
+  'box/invite-code': "refuseClosedBox(service, box.id, 'adhesion')",
+  'trial/book': 'rpcEntryRefusal(result)',
+  'trial/slots': 'rpcEntryRefusal(data)',
+  'create-checkout': "refuseClosedBox(supabase, box_id, 'abonnement_box')",
+  'stripe-portal': "refuseClosedBox(supabase, box_id, 'abonnement_box')",
+  'pause-membership': "refuseClosedBox(supabase, member.box_id, 'achat')",
+};
+
+describe('archivage : chaque route d’entrée porte la garde de box fermée', () => {
+  it.each(Object.entries(ENTREES))('/api/%s', (route, garde) => {
+    expect(source(route)).toContain(garde);
+  });
+});
 
 describe('gardes des routes d’API (inventaire dérivé du disque)', () => {
   const inventaire = routes(API_DIR);

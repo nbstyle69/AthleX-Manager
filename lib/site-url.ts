@@ -15,3 +15,6 @@ export const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://athlexapp.e
  * l'envoi, sans effet sur la création de l'invitation.
  */
 export const MAIL_FROM = process.env.RESEND_FROM ?? 'AthleX <noreply@athlexapp.eu>';
+
+/** Adresse de réponse quand l'e-mail vient d'AthleX et non d'une box (celle des mentions légales). */
+export const ATHLEX_CONTACT_EMAIL = 'contact@athlexapp.eu';

@@ -11,6 +11,10 @@ import { createServiceClient, getServerUser } from '@/lib/supabase/server';
  * L'écriture passe en service role, qui contourne la RLS — nécessaire, car la
  * policy `boxes_hide_archived` (migration `20261224`) masque justement la box
  * une fois archivée : sans le service role, on ne pourrait plus la rouvrir.
+ *
+ * Archivage PR 2 : archiver passe désormais par
+ * `/api/admin/boxes/[id]/archive-schedule` (arrêt des abonnements Stripe, puis
+ * archivage programmé ou immédiat). Ici, seulement « Réactiver ».
  */
 
 async function checkSuperAdmin() {
@@ -38,13 +42,17 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   if (typeof body?.archived !== 'boolean') {
     return NextResponse.json({ error: 'archived : booléen attendu' }, { status: 400 });
   }
+  // Archiver ici laisserait les abonnements Stripe prélever une box archivée.
+  if (body.archived) {
+    return NextResponse.json({
+      error: 'Pour archiver une box, passe par la programmation de l’archivage : elle arrête d’abord les abonnements Stripe.',
+    }, { status: 409 });
+  }
 
   const supabase = createServiceClient();
   const { data, error } = await supabase
     .from('boxes')
-    .update(body.archived
-      ? { archived_at: new Date().toISOString(), archived_by: user.id }
-      : { archived_at: null, archived_by: null })
+    .update({ archived_at: null, archived_by: null })
     .eq('id', id)
     .select('id, name, archived_at, archived_by')
     .single();

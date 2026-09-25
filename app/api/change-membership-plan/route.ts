@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { createServiceClient, getServerUser } from '@/lib/supabase/server';
+import { refuseClosedBox } from '@/lib/boxEntryGuard';
 
 function getStripe() {
   return new Stripe(process.env.STRIPE_SECRET_KEY!, {
@@ -61,6 +62,10 @@ export async function POST(req: NextRequest) {
     if (p.price_cents <= 0) {
       return NextResponse.json({ error: 'Cette formule est gratuite — rapproche-toi de ta box.' }, { status: 400 });
     }
+
+    // Archivage (PR 2) : box archivée ou en archivage programmé → refus.
+    const refus = await refuseClosedBox(supabase, p.box_id, 'achat');
+    if (refus) return refus;
 
     // Identité de l'appelant : issue de la session, jamais du body.
     const userId = user.id;
