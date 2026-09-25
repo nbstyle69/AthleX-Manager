@@ -96,7 +96,7 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
       } catch (err: any) {
         if (err?.code !== 'resource_missing') {
           return NextResponse.json(
-            { error: `Stripe n’a pas pu désactiver le code : ${err?.message ?? 'erreur inconnue'}. Rien n’a été supprimé.` },
+            { error: `Stripe n’a pas pu désactiver le code : ${String(err?.message ?? 'erreur inconnue').replace(/\.$/, '')}. Rien n’a été supprimé.` },
             { status: 502 },
           );
         }

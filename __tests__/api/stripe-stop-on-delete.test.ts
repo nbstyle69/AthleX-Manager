@@ -286,10 +286,10 @@ describe('B6 — suppression d’un code promo', () => {
 
   it('échec Stripe : 502 avec le message, rien supprimé en base', async () => {
     setupPromo();
-    mockCouponDel.mockRejectedValue(Object.assign(new Error('Stripe indisponible'), { code: 'api_error' }));
+    mockCouponDel.mockRejectedValue(Object.assign(new Error('Stripe indisponible.'), { code: 'api_error' }));
     const res: any = await call();
     expect(res._status).toBe(502);
-    expect(res._data.error).toContain('Stripe indisponible');
+    expect(res._data.error).toBe('Stripe n’a pas pu désactiver le code : Stripe indisponible. Rien n’a été supprimé.');
     expect(chains.membership_promo_codes.delete).not.toHaveBeenCalled();
   });
 
