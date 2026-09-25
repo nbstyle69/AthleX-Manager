@@ -7,6 +7,7 @@ import FinishTournamentButton from '@/components/tournaments/FinishTournamentBut
 import DeleteTournamentButton from '@/components/tournaments/DeleteTournamentButton';
 import { tournamentStatusInfo } from '@/lib/utils';
 import { softVar } from '@/lib/colorVars';
+import { countOf } from '@/lib/plural';
 
 export default async function TournamentDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -100,7 +101,7 @@ export default async function TournamentDetailPage({ params }: { params: Promise
           )}
           {st.key !== 'completed' && (pendingCount ?? 0) > 0 && (
             <p className="text-amber-400 mt-1 font-semibold">
-              {pendingCount} score(s) à valider avant de distribuer l’ELO.
+              {countOf(pendingCount ?? 0, 'score', 'scores')} à valider avant de distribuer l’ELO.
             </p>
           )}
           {st.key === 'review' && (pendingCount ?? 0) === 0 && (participantCount ?? 0) > 0 && (

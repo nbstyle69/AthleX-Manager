@@ -8,6 +8,7 @@ import { createClient } from '@/lib/supabase/client';
 import { softVar } from '@/lib/colorVars';
 import { getMyBox } from '@/lib/getMyBox';
 import { Input } from '@/components/ui/input';
+import { countOf } from '@/lib/plural';
 
 interface Group { id: string; name: string; color: string | null; }
 interface ChatMessage {
@@ -180,7 +181,7 @@ export default function MessagesPage() {
             <h2 className="text-sm font-black text-ax-text">Conversations</h2>
             <HelpButton />
           </div>
-          <p className="text-xs text-ax-text-muted mt-0.5">{groups.length} groupe(s)</p>
+          <p className="text-xs text-ax-text-muted mt-0.5">{countOf(groups.length, 'groupe', 'groupes')}</p>
         </div>
         <div className="flex-1 overflow-y-auto">
           {groups.length === 0 ? (

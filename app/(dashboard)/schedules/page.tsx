@@ -19,6 +19,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { useConfirmDialog } from '@/components/ui/confirm-dialog';
 import { fullDate, hhmm, ERROR_TITLE } from '@/lib/confirmDialog';
+import { countOf } from '@/lib/plural';
 
 const FOCUS_CLS = 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ax-focus focus-visible:ring-offset-2 focus-visible:ring-offset-ax-surface';
 const ICON_BTN = `rounded-ax-control text-ax-text-secondary hover:text-ax-text hover:bg-ax-hover transition-colors motion-reduce:transition-none ${FOCUS_CLS}`;
@@ -565,7 +566,7 @@ export default function SchedulesPage() {
     const nobody = item.confirmed_count === 0 && item.waiting_count === 0;
     ask({
       title: 'Supprimer ce cours ?',
-      element: `${item.title} · ${fullDate(item.scheduled_date)} · ${hhmm(item.start_time)}–${hhmm(item.end_time)}${item.coach ? ` · ${item.coach}` : ''} — ${item.confirmed_count} inscrit(s), ${item.waiting_count} en attente`,
+      element: `${item.title} · ${fullDate(item.scheduled_date)} · ${hhmm(item.start_time)}–${hhmm(item.end_time)}${item.coach ? ` · ${item.coach}` : ''} — ${countOf(item.confirmed_count, 'inscrit', 'inscrits')}, ${item.waiting_count} en attente`,
       body: nobody
         ? 'Personne n’est inscrit. Les autres semaines ne changent pas.'
         : 'Le cours est retiré du planning avec toutes ses inscriptions, sa liste d’attente et les présences déjà pointées. Les participants ne sont pas prévenus et les séances prises sur un carnet ne sont pas rendues. Les autres semaines ne changent pas.',

@@ -557,7 +557,7 @@ export default function MembersPage() {
             <h1 className="font-display text-2xl font-medium uppercase tracking-wide text-ax-text">Membres</h1>
             <HelpButton />
           </div>
-          <p className="text-sm text-ax-text-secondary mt-1">{filtered.length} / {members.length} membre(s)</p>
+          <p className="text-sm text-ax-text-secondary mt-1">{filtered.length} / {countOf(members.length, 'membre', 'membres')}</p>
         </div>
         <button onClick={() => setShowPlans(v => !v)} aria-pressed={showPlans}
           className={`flex items-center gap-2 text-sm font-bold px-4 py-2.5 rounded-ax-control border transition-colors ${showPlans ? 'border-ax-input-border text-ax-text bg-ax-surface-secondary' : 'border-ax-border text-ax-text-secondary hover:text-ax-text hover:bg-ax-hover'}`}>

@@ -9,6 +9,7 @@ import { getMyBox } from '@/lib/getMyBox';
 import MoneyBlock from '@/components/stats/MoneyBlock';
 import AttendanceBlock from '@/components/stats/AttendanceBlock';
 import GrowthBlock from '@/components/stats/GrowthBlock';
+import { countOf } from '@/lib/plural';
 
 const LEVEL_LABEL: Record<string, string> = { 'rx+': 'RX+', rx: 'RX', scaled: 'SCALED', foundations: 'FOUNDATIONS', inter: 'INTER', gx: 'GX', pro: 'PRO' };
 // Niveaux : memes jetons que le reste du Manager (whiteboard, tournois),
@@ -261,7 +262,7 @@ export default function BoxStatsPage() {
             ))}
           </div>
           <p className="text-[10px] text-ax-text-muted text-center mt-2">
-            {filteredChart.reduce((s, d) => s + d.count, 0)} inscription(s) sur {chartPeriod} jours
+            {countOf(filteredChart.reduce((s, d) => s + d.count, 0), 'inscription', 'inscriptions')} sur {chartPeriod} jours
           </p>
         </div>
 
@@ -341,7 +342,7 @@ export default function BoxStatsPage() {
             ))}
           </div>
           <p className="text-[10px] text-ax-text-muted text-center mt-2">
-            {filteredResaChart.reduce((s, d) => s + d.count, 0)} réservation(s) sur {resaChartPeriod} jours
+            {countOf(filteredResaChart.reduce((s, d) => s + d.count, 0), 'réservation', 'réservations')} sur {resaChartPeriod} jours
           </p>
         </div>
       </div>

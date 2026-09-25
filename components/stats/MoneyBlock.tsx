@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import Delta from './Delta';
+import { countOf } from '@/lib/plural';
 
 interface MoneySummary {
   mrr_stripe_cents: number;
@@ -172,7 +173,7 @@ export default function MoneyBlock({ boxId }: { boxId: string }) {
       key: 'mrr',
       label: 'MRR abonnements',
       value: EUR(mrrTotal),
-      sub: `${current.mrr_stripe_subs + current.mrr_cash_subs} abonné(s)`,
+      sub: `${countOf(current.mrr_stripe_subs + current.mrr_cash_subs, 'abonné', 'abonnés')}`,
       icon: Euro,
       delta: <Delta current={mrrTotal} previous={prevMrrTotal} suffix=" €" />,
     },
@@ -182,7 +183,7 @@ export default function MoneyBlock({ boxId }: { boxId: string }) {
       value: EUR(current.cash_collected_cents),
       // Hors comptoir de programme : celui-là est du chiffre d'affaires de
       // programme, compté dans la carte voisine. Le total additionne les deux.
-      sub: `${current.cash_collected_count} encaissement(s) d'adhésion ce mois`,
+      sub: `${countOf(current.cash_collected_count, "encaissement d'adhésion", "encaissements d'adhésion")} ce mois`,
       icon: Banknote,
       delta: <Delta current={current.cash_collected_cents} previous={previous.cash_collected_cents} suffix=" €" />,
     },
@@ -190,7 +191,7 @@ export default function MoneyBlock({ boxId }: { boxId: string }) {
       key: 'programs',
       label: 'Programmes ce mois',
       value: EUR(current.program_revenue_cents),
-      sub: `${current.program_sales_period} vente(s), Stripe et comptoir`,
+      sub: `${countOf(current.program_sales_period, 'vente', 'ventes')}, Stripe et comptoir`,
       icon: PackageOpen,
       delta: <Delta current={current.program_revenue_cents} previous={previous.program_revenue_cents} suffix=" €" />,
     },
@@ -375,7 +376,7 @@ export default function MoneyBlock({ boxId }: { boxId: string }) {
           )}
           {current.mrr_cash_subs > 0 && (
             <p className="text-[10px] text-ax-text-muted mt-4">
-              dont {current.mrr_cash_subs} abonnement(s) au comptoir : {EUR(current.mrr_cash_cents)} attendus au prix
+              dont {countOf(current.mrr_cash_subs, 'abonnement', 'abonnements')} au comptoir : {EUR(current.mrr_cash_cents)} attendus au prix
               de la formule, à rapprocher des {EUR(current.cash_collected_cents)} réellement encaissés ce mois.
             </p>
           )}

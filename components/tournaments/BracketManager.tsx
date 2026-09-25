@@ -10,6 +10,7 @@ import {
 } from '@/app/(dashboard)/tournaments/[id]/bracket/actions';
 import { formatAmrapScore, isRepsScoredType, parseMovementRow } from '@/lib/movements';
 import { useConfirmDialog } from '@/components/ui/confirm-dialog';
+import { countOf } from '@/lib/plural';
 
 /** A participant's submitted score for a match's WOD, resolved for display. */
 interface Submission { label: string; video: string | null; validated: boolean; }
@@ -260,8 +261,8 @@ export default function BracketManager({
     }
     const skipped = pending.length - decisions.length;
     ask({
-      title: `Décider ${decisions.length} match(s) d’après les scores validés ?`,
-      element: `Round ${round} · WOD « ${wod.name} »${skipped > 0 ? ` · ${skipped} match(s) resteront à décider à la main` : ''}`,
+      title: `Décider ${countOf(decisions.length, 'match', 'matchs')} d’après les scores validés ?`,
+      element: `Round ${round} · WOD « ${wod.name} »${skipped > 0 ? ` · ${countOf(skipped, 'match', 'matchs')} ${skipped > 1 ? 'resteront' : 'restera'} à décider à la main` : ''}`,
       body: 'Pour chaque match, le meilleur score validé l’emporte. L’ELO des deux athlètes est mis à jour tout de suite. Tu pourras corriger un résultat en cliquant sur un athlète.',
       confirmLabel: 'Décider les matchs',
       run: () => applyAutoResolve(round, decisions),
@@ -427,7 +428,7 @@ export default function BracketManager({
       {matches.length === 0 && (
         <div className="bg-[#111111] border border-white/8 rounded-2xl p-8 text-center">
           <p className="text-sm text-gray-400 mb-4">
-            Aucun match généré. {participantsCount} participant(s) inscrit(s).
+            Aucun match généré. {countOf(participantsCount, 'participant inscrit', 'participants inscrits')}.
           </p>
           <button onClick={askGenerateRound1} disabled={busy === 'generate' || participantsCount < 2}
             className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold bg-white hover:bg-[#e0b730] text-[#0A0A0A] disabled:opacity-50 transition-colors">

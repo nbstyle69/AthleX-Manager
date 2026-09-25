@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient, getServerUser } from '@/lib/supabase/server';
 import { isBoxOwnerAdmin } from '@/lib/isBoxOwnerAdmin';
 import { stopBoxMember } from '@/lib/members/stopMembership';
-import { countOf } from '@/lib/deleteWithSubscriptions';
+import { deCount } from '@/lib/plural';
 
 /**
  * Suppression d'une formule (S4, B5) : jamais tant que Stripe prélève.
@@ -123,7 +123,7 @@ export async function POST(req: NextRequest) {
     if (failed.length > 0) {
       return NextResponse.json(
         {
-          error: `Stripe a refusé l’arrêt de ${countOf(failed.length, 'abonnement', 'abonnements')} : ${failed.join(', ')}. La formule n’a pas été supprimée ; les autres abonnements sont bien arrêtés.`,
+          error: `Stripe a refusé l’arrêt ${deCount(failed.length, 'abonnement', 'abonnements')} : ${failed.join(', ')}. La formule n’a pas été supprimée ; les autres abonnements sont bien arrêtés.`,
           failed,
           stopped: subs.length - failed.length,
         },

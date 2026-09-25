@@ -16,6 +16,7 @@ import { assignRestrictions, libelleAssignation } from '@/lib/wodAssignment';
 import { RestDay, estJourRepos, rattacherAuProgramme } from '@/lib/programContent';
 import { softVar } from '@/lib/colorVars';
 import { programColor } from '@/components/wods/RestrictionBadges';
+import { countOf } from '@/lib/plural';
 
 /**
  * Import PDF de programmation hebdo (spec v2) : le PDF est analysé côté
@@ -206,7 +207,7 @@ export default function PdfImportModal({ file, boxId, userId, target, onClose, o
       if (v.length) errs[e.key] = v;
     }
     setFieldErrors(errs);
-    if (Object.keys(errs).length) { setError(`${Object.keys(errs).length} carte(s) à corriger avant insertion.`); return; }
+    if (Object.keys(errs).length) { setError(`${countOf(Object.keys(errs).length, 'carte', 'cartes')} à corriger avant insertion.`); return; }
 
     setInserting(true);
     setError(null);
@@ -253,9 +254,9 @@ export default function PdfImportModal({ file, boxId, userId, target, onClose, o
       if (v.length) errs[e.key] = v;
     }
     setFieldErrors(errs);
-    if (Object.keys(errs).length) { setError(`${Object.keys(errs).length} carte(s) à corriger avant insertion.`); return; }
+    if (Object.keys(errs).length) { setError(`${countOf(Object.keys(errs).length, 'carte', 'cartes')} à corriger avant insertion.`); return; }
     if (t.program.type === 'fixed' && selected.some(e => caseDepuisDate(e.date).week > t.weeksCount)) {
-      setError(`Le programme dure ${t.weeksCount} semaine(s) : une carte vise une semaine au-delà.`);
+      setError(`Le programme dure ${countOf(t.weeksCount, 'semaine', 'semaines')} : une carte vise une semaine au-delà.`);
       return;
     }
 
@@ -278,7 +279,8 @@ export default function PdfImportModal({ file, boxId, userId, target, onClose, o
       setError(`Rattachement au programme refusé (séances retirées) : ${messageErreur(e)}`);
       return;
     }
-    const notes = [`${ids.length} séance(s) rattachée(s) à « ${t.program.title} », semaine(s) ${semainesCouvertes(selected).join(', ')}.`];
+    const couvertes = semainesCouvertes(selected);
+    const notes = [`${countOf(ids.length, 'séance rattachée', 'séances rattachées')} à « ${t.program.title} », ${couvertes.length > 1 ? 'semaines' : 'semaine'} ${couvertes.join(', ')}.`];
     if (result.unresolved_movements.length) {
       notes.push(`Mouvements hors catalogue conservés tels quels : ${result.unresolved_movements.join(', ')}.`);
     }
@@ -521,7 +523,7 @@ export default function PdfImportModal({ file, boxId, userId, target, onClose, o
             disabled={inserting || analyzing || selected.length === 0}
             className="flex-1 px-4 py-2.5 rounded-ax-control text-sm font-bold bg-ax-text text-ax-background hover:brightness-110 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           >
-            {inserting ? <><Loader2 size={14} className="animate-spin" /> Insertion…</> : <>Insérer {selected.length} {isProgram ? 'séance(s)' : 'WOD(s)'}</>}
+            {inserting ? <><Loader2 size={14} className="animate-spin" /> Insertion…</> : <>Insérer {isProgram ? countOf(selected.length, 'séance', 'séances') : `${selected.length} WOD`}</>}
           </button>
         </div>
       </div>

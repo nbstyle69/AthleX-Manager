@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { AlertTriangle, ArrowRight, Loader2, TrendingUp } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import Delta from './Delta';
+import { countOf } from '@/lib/plural';
 
 interface FunnelSummary {
   prospects: number;
@@ -98,7 +99,7 @@ export default function GrowthBlock({ boxId }: { boxId: string }) {
       label: 'Prospects',
       value: current.prospects,
       prev: previous.prospects,
-      sub: `${current.prospects_converted} converti(s)`,
+      sub: `${countOf(current.prospects_converted, 'converti', 'convertis')}`,
       href: '/prospects',
     },
     {
@@ -106,7 +107,7 @@ export default function GrowthBlock({ boxId }: { boxId: string }) {
       label: 'Invitations',
       value: current.invitations_sent,
       prev: previous.invitations_sent,
-      sub: `${current.invitations_accepted} acceptée(s)`,
+      sub: `${countOf(current.invitations_accepted, 'acceptée', 'acceptées')}`,
       href: '/invitations',
     },
     {

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Loader2, Play } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { useConfirmDialog } from '@/components/ui/confirm-dialog';
+import { countOf } from '@/lib/plural';
 
 interface Props {
   tournamentId: string;
@@ -26,7 +27,7 @@ export default function StartTournamentButton({ tournamentId, status, tournament
   function askStart() {
     ask({
       title: 'Démarrer le tournoi ?',
-      element: `${tournamentName} · ${participantCount} inscrit(s)`,
+      element: `${tournamentName} · ${countOf(participantCount, 'inscrit', 'inscrits')}`,
       body: 'Les inscriptions seront fermées : plus personne ne pourra s’inscrire. Les inscrits recevront l’annonce du démarrage dès qu’un WOD sera ouvert. Tu ne pourras pas rouvrir les inscriptions depuis cet écran.',
       confirmLabel: 'Démarrer et fermer les inscriptions',
       run: start,

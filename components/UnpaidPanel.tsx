@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/client';
 import { AlertTriangle, Loader2, Mail, RefreshCw, Ban } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { countOf } from '@/lib/plural';
 
 const supabase = createClient();
 
@@ -100,7 +101,7 @@ export default function UnpaidPanel({ boxId, onChange }: { boxId: string; onChan
       <div className="flex items-center gap-2">
         <AlertTriangle size={15} className="text-ax-warning" />
         <p className="text-sm font-bold text-ax-warning">
-          Impayés ({rows.length}){suspendedCount > 0 ? ` — ${suspendedCount} accès suspendu(s)` : ''}
+          Impayés ({rows.length}){suspendedCount > 0 ? ` — ${countOf(suspendedCount, 'accès suspendu', 'accès suspendus')}` : ''}
         </p>
       </div>
 
@@ -118,8 +119,8 @@ export default function UnpaidPanel({ boxId, onChange }: { boxId: string; onChan
                 <span className="ml-2 text-xs font-semibold text-ax-warning">{fmtPrice(r.amount_cents)}</span>
               </p>
               <p className="text-xs text-ax-text-secondary mt-1">
-                Impayé depuis le {fmtDate(r.past_due_since)} · {r.dunning_attempts ?? 0} tentative(s) ·{' '}
-                {r.dunning_reminders_sent ?? 0} relance(s)
+                Impayé depuis le {fmtDate(r.past_due_since)} · {countOf(r.dunning_attempts ?? 0, 'tentative', 'tentatives')} ·{' '}
+                {countOf(r.dunning_reminders_sent ?? 0, 'relance', 'relances')}
                 {r.payment_method_type ? ` · ${METHOD_LABEL[r.payment_method_type] ?? r.payment_method_type}` : ''}
               </p>
               {r.last_payment_error && (
@@ -129,7 +130,7 @@ export default function UnpaidPanel({ boxId, onChange }: { boxId: string; onChan
                 {r.suspended
                   ? 'Réservations suspendues'
                   : left !== null
-                    ? `Suspension des réservations dans ${left} jour(s)`
+                    ? `Suspension des réservations dans ${countOf(left, 'jour', 'jours')}`
                     : 'Suspension programmée'}
               </p>
             </div>

@@ -31,7 +31,7 @@ export default function FinishTournamentButton({ tournamentId, status, openWodCo
   function askFinish() {
     ask({
       title: 'Terminer le tournoi ?',
-      element: `${tournamentName} · ${openWodCount} WOD pas encore fermé(s), ouverts ou en attente`,
+      element: `${tournamentName} · ${openWodCount} WOD pas encore ${openWodCount > 1 ? 'fermés, ouverts ou en attente' : 'fermé, ouvert ou en attente'}`,
       body: 'Les athlètes ne pourront plus envoyer de score, et les WOD pas encore ouverts ne le seront pas. Tu pourras encore valider ou rejeter les scores en attente. L’ELO n’est pas distribué à cette étape. Un WOD peut être rouvert depuis l’onglet WOD.',
       confirmLabel: 'Fermer les WOD',
       run: finish,

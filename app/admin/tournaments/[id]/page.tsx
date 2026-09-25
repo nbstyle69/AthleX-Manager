@@ -9,6 +9,7 @@ import {
   ArrowLeft, Trophy, Users, Clock, CheckCircle, XCircle, Pencil, Trash2,
   Loader2, Youtube, ExternalLink, AlertTriangle, Ban, RotateCcw, Lock
 } from 'lucide-react';
+import { countOf } from '@/lib/plural';
 
 interface Tournament {
   id: string;
@@ -116,7 +117,7 @@ export default function DailyTournamentDetailPage() {
     if (!tournament) return;
     ask({
       title: 'Supprimer ce tournoi ?',
-      element: `« ${tournament.wod_name} » · ${statusLabel(tournament.status)} · ${scores.length} score(s)`,
+      element: `« ${tournament.wod_name} » · ${statusLabel(tournament.status)} · ${countOf(scores.length, 'score', 'scores')}`,
       body: 'Les inscriptions et les scores seront supprimés. S’il est clos, les points ELO déjà attribués restent acquis. Cette action est définitive.',
       confirmLabel: 'Supprimer le tournoi',
       danger: true,

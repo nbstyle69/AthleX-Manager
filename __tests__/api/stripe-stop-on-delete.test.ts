@@ -209,7 +209,7 @@ describe('B5 — impayé dans « Arrêter puis supprimer »', () => {
     setupPlan([bm(1), bm(2)]);
     mockSubUpdate.mockImplementation(async (id: string) => { if (id === 'sub_2') throw new Error('x'); return { id }; });
     const res: any = await plansDelete(req({ plan_id: 'plan-1', action: 'stop_then_delete' }));
-    expect(res._data.error).toMatch(/^Stripe a refusé l’arrêt de 1 abonnement : membre2\./);
+    expect(res._data.error).toMatch(/^Stripe a refusé l’arrêt d’1 abonnement : membre2\./);
   });
 });
 

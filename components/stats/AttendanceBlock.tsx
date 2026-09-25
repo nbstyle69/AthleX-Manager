@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import Delta from './Delta';
+import { countOf } from '@/lib/plural';
 
 interface AttendanceSummary {
   classes_count: number;
@@ -148,7 +149,7 @@ export default function AttendanceBlock({ boxId }: { boxId: string }) {
       key: 'fill',
       label: 'Remplissage des cours',
       value: `${fill} %`,
-      sub: `${current.reservations_count} réservation(s) / ${current.capacity_total} place(s)`,
+      sub: `${countOf(current.reservations_count, 'réservation', 'réservations')} / ${countOf(current.capacity_total, 'place', 'places')}`,
       icon: CalendarCheck,
       delta: <Delta current={fill} previous={prevFill} />,
     },
@@ -158,7 +159,7 @@ export default function AttendanceBlock({ boxId }: { boxId: string }) {
       value: current.marked_count === 0 ? '—' : `${presence} %`,
       sub: current.marked_count === 0
         ? 'aucun appel fait sur la période'
-        : `${current.attended_count} présent(s) sur ${current.marked_count} pointé(s)`,
+        : `${countOf(current.attended_count, 'présent', 'présents')} sur ${countOf(current.marked_count, 'pointé', 'pointés')}`,
       icon: UserCheck,
       delta: current.marked_count === 0 || previous.marked_count === 0
         ? null
@@ -168,7 +169,7 @@ export default function AttendanceBlock({ boxId }: { boxId: string }) {
       key: 'marking',
       label: 'Taux de pointage',
       value: `${marking} %`,
-      sub: `${current.marked_count} appel(s) sur ${current.reservations_count} réservation(s)`,
+      sub: `${countOf(current.marked_count, 'appel', 'appels')} sur ${countOf(current.reservations_count, 'réservation', 'réservations')}`,
       icon: Users,
       delta: <Delta current={marking} previous={prevMarking} />,
     },
@@ -234,7 +235,7 @@ export default function AttendanceBlock({ boxId }: { boxId: string }) {
                 </p>
                 <p className={`text-xl font-black mt-1 ${rows.length > 0 ? tone : 'text-ax-text-muted'}`}>
                   {rows.length} <span className="text-xs font-bold text-ax-text-muted">
-                    / {current.members_active} adhérent(s)
+                    / {countOf(current.members_active, 'adhérent', 'adhérents')}
                   </span>
                 </p>
                 <p className="text-[10px] text-ax-text-muted mt-0.5">{hint}</p>
@@ -251,7 +252,7 @@ export default function AttendanceBlock({ boxId }: { boxId: string }) {
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-semibold text-ax-text truncate">{p.username}</p>
                       <p className="text-[11px] text-ax-text-muted truncate">
-                        {SINCE(p.last_class)} · {p.reservations_total} réservation(s) au total
+                        {SINCE(p.last_class)} · {countOf(p.reservations_total, 'réservation', 'réservations')} au total
                       </p>
                     </div>
                     <Link
@@ -307,7 +308,7 @@ export default function AttendanceBlock({ boxId }: { boxId: string }) {
                       return (
                         <td key={h}>
                           <div
-                            title={`${label} ${String(h).padStart(2, '0')}h · ${n} réservation(s)`}
+                            title={`${label} ${String(h).padStart(2, '0')}h · ${countOf(n, 'réservation', 'réservations')}`}
                             className="w-8 h-6 rounded-md flex items-center justify-center text-[10px] font-bold"
                             style={{
                               backgroundColor: n === 0 ? 'var(--ax-hover)' : `color-mix(in srgb, var(--ax-text) ${Math.round(intensite * 100)}%, transparent)`,
@@ -327,7 +328,7 @@ export default function AttendanceBlock({ boxId }: { boxId: string }) {
         )}
         {current.waiting_count > 0 && (
           <p className="text-[10px] text-ax-text-muted mt-3">
-            {current.waiting_count} réservation(s) en liste d&apos;attente sur la période : des créneaux
+            {countOf(current.waiting_count, 'réservation', 'réservations')} en liste d&apos;attente sur la période : des créneaux
             manquent de places, pas de monde.
           </p>
         )}

@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { Trophy, Dumbbell, Star, Layers, ArrowUp, ArrowDown } from 'lucide-react';
 import type { ParticipantRow, WodRanking, DivisionRanking } from './types';
+import { countOf } from '@/lib/plural';
 
 interface Props {
   general: ParticipantRow[];
@@ -156,20 +157,20 @@ export default function LeaderboardClient({ general, wodRankings, divisionRankin
                     </div>
                     <div>
                       <p className="text-sm font-black text-white">{div.name}</p>
-                      <p className="text-[10px] text-gray-500 font-semibold">{div.rows.length} athlète(s)</p>
+                      <p className="text-[10px] text-gray-500 font-semibold">{countOf(div.rows.length, 'athlète', 'athlètes')}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2 text-[10px] font-bold">
                     {!isFirst && div.promote_count > 0 && (
                       <span className="text-emerald-400 bg-emerald-500/15 px-2 py-1 rounded inline-flex items-center gap-1">
                         <ArrowUp size={10} />
-                        {div.promote_count} promu(s)
+                        {countOf(div.promote_count, 'promu', 'promus')}
                       </span>
                     )}
                     {!isLast && div.relegate_count > 0 && (
                       <span className="text-red-400 bg-red-500/15 px-2 py-1 rounded inline-flex items-center gap-1">
                         <ArrowDown size={10} />
-                        {div.relegate_count} relégué(s)
+                        {countOf(div.relegate_count, 'relégué', 'relégués')}
                       </span>
                     )}
                   </div>

@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/client';
 import { useConfirmDialog } from '@/components/ui/confirm-dialog';
 import { useRouter } from 'next/navigation';
 import { Trophy, Users, CheckCircle, Loader2, Ban, Lock, Trash2, RefreshCw } from 'lucide-react';
+import { countOf } from '@/lib/plural';
 
 interface DailyTournament {
   id: string;
@@ -76,7 +77,7 @@ export default function AdminTournamentsPage() {
     e.stopPropagation();
     const t = tournaments.find(x => x.id === tournamentId);
     const element = t
-      ? `« ${t.wod_name} » créé par ${t.creator_name} le ${new Date(t.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })} · ${t.participant_count} participant(s) · ${t.score_count} score(s)`
+      ? `« ${t.wod_name} » créé par ${t.creator_name} le ${new Date(t.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })} · ${countOf(t.participant_count, 'participant', 'participants')} · ${countOf(t.score_count, 'score', 'scores')}`
       : undefined;
     if (action === 'delete') {
       ask({

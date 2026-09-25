@@ -1,4 +1,5 @@
 import { ERROR_TITLE, fullDate, type ConfirmRequest, type InfoRequest } from '@/lib/confirmDialog';
+import { countOf } from '@/lib/plural';
 
 /**
  * Suppression d'une formule, d'un programme ou d'une offre qui peut avoir des
@@ -18,8 +19,8 @@ import { ERROR_TITLE, fullDate, type ConfirmRequest, type InfoRequest } from '@/
 
 export type DeleteKind = 'plan' | 'program' | 'offer';
 
-/** « 1 membre » / « 3 membres » (0 et 1 au singulier) : le nombre est connu, pas de « (s) ». */
-export const countOf = (n: number, one: string, many: string) => `${n} ${n <= 1 ? one : many}`;
+// `countOf` vit dans lib/plural.ts (accords partagés) ; réexporté pour les appels existants.
+export { countOf };
 
 const NOUN: Record<DeleteKind, {
   the: string; The: string; fem: boolean; newcomers: string;

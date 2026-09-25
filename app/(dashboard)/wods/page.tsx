@@ -41,6 +41,7 @@ import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { useConfirmDialog } from '@/components/ui/confirm-dialog';
 import { ERROR_TITLE, fullDate } from '@/lib/confirmDialog';
+import { countOf } from '@/lib/plural';
 
 interface BoxWOD {
   id: string; box_id: string; created_by: string;
@@ -942,7 +943,7 @@ export default function WODsPage() {
             setImportResult({
               ok: 0,
               errors: [],
-              notes: [`Semaine type « ${title} » ${updated ? 'mise à jour' : 'enregistrée'} : ${n} WOD sur ${days} jour(s). Applique-la depuis « Programmation ».`],
+              notes: [`Semaine type « ${title} » ${updated ? 'mise à jour' : 'enregistrée'} : ${n} WOD sur ${countOf(days, 'jour', 'jours')}. Applique-la depuis « Programmation ».`],
             });
           }}
         />
@@ -971,7 +972,7 @@ export default function WODsPage() {
               {importResult.ok > 0
                 ? `✅ ${importResult.ok} WOD${importResult.ok > 1 ? 's' : ''} posé${importResult.ok > 1 ? 's' : ''}`
                 : importResult.errors.length > 0 ? '⚠️ Rien n\u2019a été posé' : '✅ Fait'}
-              {importResult.errors.length > 0 && ` — ⚠️ ${importResult.errors.length} erreur(s)`}
+              {importResult.errors.length > 0 && ` — ⚠️ ${countOf(importResult.errors.length, 'erreur', 'erreurs')}`}
             </p>
             <button onClick={() => setImportResult(null)} className={cn(ICON_BTN, 'text-ax-text-muted hover:text-ax-text')}><X size={13} /></button>
           </div>

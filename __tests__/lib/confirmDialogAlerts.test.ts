@@ -260,7 +260,7 @@ const ATTENDU: { file: string; kind: 'error' | 'info'; title: string; body: stri
     "file": "app/admin/boxes/page.tsx",
     "kind": "info",
     "title": "'Géocodage terminé'",
-    "body": "`Géocodage terminé : ${json.updated}/${json.total} boxs mises à jour` + (json.failed ? `, ${json.failed} adresse(s) introuvable(s)` : '')"
+    "body": "`Géocodage terminé : ${json.updated}/${json.total} boxs mises à jour` + (json.failed ? `, ${countOf(json.failed, 'adresse introuvable', 'adresses introuvables')}` : '')"
   },
   {
     "file": "app/admin/boxes/page.tsx",
