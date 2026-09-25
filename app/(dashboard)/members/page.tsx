@@ -13,7 +13,7 @@ import { getMemberEmails } from '@/lib/memberEmails';
 import AthleteSheet from '@/components/dashboard/AthleteSheet';
 import { useConfirmDialog } from '@/components/ui/confirm-dialog';
 import { ERROR_TITLE } from '@/lib/confirmDialog';
-import { askDeleteWithSubscriptions } from '@/lib/deleteWithSubscriptions';
+import { askDeleteWithSubscriptions, countOf } from '@/lib/deleteWithSubscriptions';
 import {
   eloChoiceOf,
   sortMembers,
@@ -490,11 +490,11 @@ export default function MembersPage() {
       ask, inform, kind: 'plan',
       url: '/api/membership-plans/delete', payload: { plan_id: plan.id },
       title: `Supprimer la formule « ${plan.name} » (${plan.price_cents > 0 ? `${(plan.price_cents / 100).toFixed(2)} €/mois` : 'Gratuit'}) ?`,
-      element: `${count} membre(s) y sont rattachés.`,
+      element: count <= 1 ? `${count} membre y est rattaché.` : `${count} membres y sont rattachés.`,
       body: 'Ils n’auront plus de limite de séances. Les invitations en attente avec cette formule n’en auront plus. Pour la retirer de la vente sans toucher aux membres, désactive-la plutôt dans Formules.',
       confirmLabel: 'Supprimer la formule',
       deactivate: () => deactivatePlan(plan.id),
-      onDeleted: () => {
+      onDone: () => {
         setPlans(prev => prev.filter(p => p.id !== plan.id));
         setMembers(prev => prev.map(m => m.plan_id === plan.id ? { ...m, plan_id: null } : m));
       },

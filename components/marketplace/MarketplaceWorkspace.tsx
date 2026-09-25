@@ -22,7 +22,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { useConfirmDialog } from '@/components/ui/confirm-dialog';
 import { ERROR_TITLE } from '@/lib/confirmDialog';
-import { askDeleteWithSubscriptions } from '@/lib/deleteWithSubscriptions';
+import { askDeleteWithSubscriptions, countOf } from '@/lib/deleteWithSubscriptions';
 
 const DISCIPLINES = ['crossfit', 'hyrox', 'hybrid', 'haltero', 'endurance'];
 const LEVELS = ['all', 'beginner', 'intermediate', 'advanced'];
@@ -737,16 +737,17 @@ function MyOffers({ offers, activeBoxId, onChanged }: {
       : o.billing === 'monthly' ? `${(o.price_cents / 100).toFixed(2)} € par mois`
       : `${(o.price_cents / 100).toFixed(2)} € une fois`;
     // La route compte d'abord les abonnements Stripe actifs (S4, B11) ;
-    // « Désactiver » = dépublier, sans appel Stripe.
+    // « Désactiver » = dépublier, sans appel Stripe ; « Arrêter et désactiver »
+    // dépublie aussi, l'offre n'est pas supprimée.
     return askDeleteWithSubscriptions({
       ask, inform, kind: 'offer',
       url: '/api/marketplace/offers/delete', payload: { programming_id: o.id },
       title: `Supprimer l’offre « ${o.title} » ?`,
-      element: `${price} · ${o.weeks_count} semaine(s)`,
+      element: `${price} · ${countOf(o.weeks_count, 'semaine', 'semaines')}`,
       body: 'Les boxs abonnées perdent leur abonnement et ne recevront plus de semaines. Les séances déjà posées chez elles restent. Pour ne plus la proposer, dépublie-la plutôt.',
       confirmLabel: 'Supprimer l’offre',
       deactivate: () => togglePublish(o, false),
-      onDeleted: onChanged,
+      onDone: onChanged,
     });
   }
 

@@ -213,7 +213,7 @@ export default function MembershipPlansSection({ boxId }: { boxId: string | null
       body: 'Les membres qui y sont rattachés n’auront plus de limite de séances. Les invitations en attente avec cette formule n’en auront plus. Pour la retirer de la vente sans toucher aux membres, désactive-la plutôt.',
       confirmLabel: 'Supprimer la formule',
       deactivate: () => togglePlanActive(pl, false),
-      onDeleted: () => boxId && loadPlans(boxId),
+      onDone: () => boxId && loadPlans(boxId),
     });
   }
 

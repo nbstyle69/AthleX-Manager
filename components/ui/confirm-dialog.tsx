@@ -110,7 +110,7 @@ function ConfirmDialogView({ ctrl, returnFocus }: {
                       <span className="min-w-0">
                         <span className="block text-sm font-semibold text-ax-text break-words">{c.label}</span>
                         {c.description && (
-                          <span className="mt-0.5 block text-xs leading-relaxed text-ax-text-secondary break-words">{c.description}</span>
+                          <span className="mt-0.5 block whitespace-pre-line text-xs leading-relaxed text-ax-text-secondary break-words">{c.description}</span>
                         )}
                       </span>
                     </label>
