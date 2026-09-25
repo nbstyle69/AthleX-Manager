@@ -99,13 +99,15 @@ describe('PATCH /api/admin/boxes/[id]/archive', () => {
     mockCreateServiceClient.mockReset();
   });
 
-  it('réactive en remettant les deux colonnes à null', async () => {
+  // Suivi de #390 : une box archivée automatiquement garde sa programmation ;
+  // la réactiver doit aussi rouvrir ses entrées.
+  it('réactive en remettant à null l’archivage et sa programmation', async () => {
     role('super_admin');
     const boxes = makeChain({ data: { id: BOX, name: NOM, archived_at: null }, error: null });
     mockCreateServiceClient.mockReturnValueOnce({ from: jest.fn(() => boxes) });
 
     await PATCH(req({ archived: false }), params);
-    expect(boxes.update.mock.calls[0][0]).toEqual({ archived_at: null, archived_by: null });
+    expect(boxes.update.mock.calls[0][0]).toEqual({ archived_at: null, archived_by: null, archive_scheduled_at: null, archive_scheduled_by: null });
   });
 
   it('dit que la migration manque plutôt que de rendre une erreur de colonne', async () => {

@@ -52,7 +52,9 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   const supabase = createServiceClient();
   const { data, error } = await supabase
     .from('boxes')
-    .update({ archived_at: null, archived_by: null })
+    // Une box archivée automatiquement garde sa date de programmation : la
+    // réactiver doit aussi rouvrir ses entrées.
+    .update({ archived_at: null, archived_by: null, archive_scheduled_at: null, archive_scheduled_by: null })
     .eq('id', id)
     .select('id, name, archived_at, archived_by')
     .single();

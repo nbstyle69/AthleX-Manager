@@ -1,10 +1,10 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { readSubscriptionState, stopSubscription, type StopMode } from '@/lib/stripe/stopSubscription';
 import {
-  fullDate, memberFirstName, sendMemberEmail, stopBoxMember, stopEmailContent,
+  bonjour, fullDate, memberFirstName, sendMemberEmail, stopBoxMember, stopEmailContent,
   type StopProfile,
 } from '@/lib/members/stopMembership';
-import { offerStopEmail, programStopEmail } from '@/lib/stopProductSubscriptions';
+import { offerStopEmail } from '@/lib/stopProductSubscriptions';
 import { countOf } from '@/lib/deleteWithSubscriptions';
 import { ATHLEX_CONTACT_EMAIL } from '@/lib/site-url';
 
@@ -64,6 +64,8 @@ interface StripeSub {
   title?: string;
   planId?: string | null;
   subscriberBoxId?: string;
+  /** Offre achetée : gérant de l'éditeur, prévenu de l'arrêt. */
+  publisherOwnerId?: string | null;
 }
 
 export interface ArchiveTargets {
@@ -137,9 +139,9 @@ export async function loadArchiveTargets(supabase: Db, boxId: string): Promise<A
     const offers = new Map(((offersRaw ?? []) as { id: string; title: string; publisher_box_id: string }[]).map(o => [o.id, o]));
     const pubIds = Array.from(new Set(Array.from(offers.values()).map(o => o.publisher_box_id)));
     const { data: pubsRaw } = pubIds.length
-      ? await supabase.from('boxes').select('id, name, stripe_account_id').in('id', pubIds)
+      ? await supabase.from('boxes').select('id, name, stripe_account_id, owner_id').in('id', pubIds)
       : { data: [] };
-    const pubs = new Map(((pubsRaw ?? []) as { id: string; name: string; stripe_account_id: string | null }[]).map(p => [p.id, p]));
+    const pubs = new Map(((pubsRaw ?? []) as { id: string; name: string; stripe_account_id: string | null; owner_id: string | null }[]).map(p => [p.id, p]));
     for (const b of bought) {
       const offer = offers.get(b.programming_id);
       const pub = offer ? pubs.get(offer.publisher_box_id) : undefined;
@@ -148,6 +150,7 @@ export async function loadArchiveTargets(supabase: Db, boxId: string): Promise<A
         account: pub?.stripe_account_id ?? null,
         label: `l’offre ${offer?.title ?? 'achetée'}${pub ? ` de ${pub.name}` : ''}`,
         title: offer?.title,
+        publisherOwnerId: pub?.owner_id ?? null,
       });
     }
   }
@@ -260,6 +263,8 @@ export async function archiveCheck(supabase: Db, t: ArchiveTargets) {
     past_due: all.reduce((n, x) => n + x.past_due, 0),
     last_end: lastEnd,
     still_paying: stillPaying,
+    // Seul l'abonnement de la box à AthleX paie encore : la boîte ne parle pas des membres.
+    only_athlex: stillPaying && t.stripeMembers.length === 0 && t.subs.length > 0 && t.subs.every(s => s.kind === 'box'),
   };
 }
 
@@ -269,7 +274,9 @@ export type ArchiveCheck = Awaited<ReturnType<typeof archiveCheck>>;
 export const archiveStopKey = (s: Pick<StripeSub, 'kind' | 'rowId' | 'subscriptionId'>, mode: StopMode) =>
   `stop:archive:${s.kind}:${s.rowId}:${s.subscriptionId}:${mode}`;
 
-/** E-mail au gérant (texte du relevé ; clauses selon ce que la box paie). */
+const reply = (boxName: string) => `Pour toute question, réponds à cet e-mail : il arrive directement à ${boxName}.`;
+
+/** E-mail au gérant (texte du relevé, ajustement validé en #390). */
 export function ownerArchiveEmail(o: {
   firstName: string; boxName: string; date: string | null; boxPaysAthlex: boolean; boughtOffers: boolean;
 }) {
@@ -281,33 +288,95 @@ export function ownerArchiveEmail(o: {
   ].filter(Boolean).join(', et ');
   return {
     subject: date ? `${boxName} sera archivée le ${fullDate(date)}` : `${boxName} sera archivée à la fin du dernier abonnement`,
-    bodyText: `Bonjour ${firstName}, l'archivage de ${boxName} est programmé. Les abonnements de tes membres s'arrêtent à la fin de leur période payée${aussi ? `, et ${aussi} aussi` : ''} : aucun nouveau prélèvement, aucun remboursement. D'ici là, toi et tes membres gardez l'accès ; les nouvelles adhésions, invitations et ventes sont fermées. ${le}, ${boxName} sera archivée : rien n'est supprimé. Pour toute question, réponds à cet e-mail.`,
+    bodyText: `${bonjour(firstName)} l'archivage de ${boxName} est programmé. Les abonnements de tes membres s'arrêtent à la fin de leur période payée${aussi ? `, et ${aussi} aussi` : ''} : aucun nouveau prélèvement, aucun remboursement. D'ici là, toi et tes membres gardez l'accès ; les nouvelles adhésions, invitations et ventes sont fermées. ${le}, ${boxName} sera archivée : rien n'est supprimé. Pour toute question, réponds à cet e-mail.`,
   };
 }
 
-/** E-mail aux membres au comptoir (nouveau texte, à valider par Nabil). */
-export function counterMemberArchiveEmail(o: { firstName: string; boxName: string; date: string | null }) {
-  const { firstName, boxName, date } = o;
+/**
+ * E-mail aux membres au comptoir (texte validé en #390). `immediate` : la box
+ * est archivée tout de suite (plus rien ne paie) ; même texte, sans date future.
+ */
+export function counterMemberArchiveEmail(o: { firstName: string; boxName: string; date: string | null; immediate?: boolean }) {
+  const { firstName, boxName, date, immediate } = o;
+  if (immediate) {
+    return {
+      subject: `${boxName} ferme aujourd'hui`,
+      bodyText: `${bonjour(firstName)} ${boxName} est archivée aujourd'hui : ton accès à la box et à ses cours s'arrête dès maintenant. Les ventes au comptoir sont fermées. ${reply(boxName)}`,
+    };
+  }
   const quand = date ? `le ${fullDate(date)}` : 'à la fin du dernier abonnement en cours';
   return {
     subject: date ? `${boxName} ferme le ${fullDate(date)}` : `${boxName} va fermer`,
-    bodyText: `Bonjour ${firstName}, ${boxName} va être archivée ${quand} : ton accès à la box et à ses cours s'arrêtera à cette date. D'ici là, rien ne change pour toi. Les ventes au comptoir sont fermées. Pour toute question, réponds à cet e-mail : il arrive directement à ${boxName}.`,
+    bodyText: `${bonjour(firstName)} ${boxName} va être archivée ${quand} : ton accès à la box et à ses cours s'arrêtera à cette date. D'ici là, rien ne change pour toi. Les ventes au comptoir sont fermées. ${reply(boxName)}`,
+  };
+}
+
+/** Acheteur d'un programme dont la box ferme (au lieu de l'e-mail S4 « a retiré »). */
+export function programArchiveEmail(o: { mode: StopMode; firstName: string; boxName: string; title: string; periodEnd: string | null }) {
+  const { mode, firstName, boxName, title, periodEnd } = o;
+  if (mode === 'now') {
+    return {
+      subject: `Ton abonnement au programme ${title} est arrêté`,
+      bodyText: `${bonjour(firstName)} ${boxName} ferme : ton abonnement au programme ${title}, qui était en impayé, est arrêté aujourd'hui. Aucun prélèvement ne sera plus fait. ${reply(boxName)}`,
+    };
+  }
+  const le = periodEnd ? `le ${fullDate(periodEnd)}` : 'à la fin de ta période payée';
+  return {
+    subject: `${boxName} ferme : ton abonnement au programme ${title} prendra fin ${le}`,
+    bodyText: `${bonjour(firstName)} ${boxName} ferme : ton abonnement au programme ${title} prendra fin ${le}, sans nouveau prélèvement. Tu gardes l'accès au programme jusque-là. ${reply(boxName)}`,
+  };
+}
+
+/** Éditeur d'une offre achetée par la box qui ferme. */
+export function publisherArchiveEmail(o: { mode: StopMode; firstName: string; boxName: string; title: string; periodEnd: string | null }) {
+  const { mode, firstName, boxName, title, periodEnd } = o;
+  if (mode === 'now') {
+    return {
+      subject: `${boxName} arrête son abonnement à ${title}`,
+      bodyText: `${bonjour(firstName)} ${boxName} ferme : son abonnement à ton offre de programmation ${title}, qui était en impayé, est arrêté aujourd'hui. Rien n'est à faire de ton côté. ${reply(boxName)}`,
+    };
+  }
+  const le = periodEnd ? `le ${fullDate(periodEnd)}` : 'à la fin de sa période payée';
+  return {
+    subject: `${boxName} arrête son abonnement à ${title}`,
+    bodyText: `${bonjour(firstName)} ${boxName} ferme : son abonnement à ton offre de programmation ${title} prendra fin ${le}, sans nouveau prélèvement. Rien n'est à faire de ton côté. ${reply(boxName)}`,
   };
 }
 
 export type ScheduleResult =
   | { status: 200; body: { ok: true; archived: true; stopped: number; warning?: string } }
   | { status: 200; body: { ok: true; scheduled: true; stopped: number; last_end: string | null; warning?: string } }
-  | { status: 409 | 502; body: { error: string; failed?: string[]; stopped?: number } };
+  | { status: 409 | 502; body: { error: string; failed?: string[]; stopped?: number; scheduled?: boolean } };
 
-/** `schedule` : les arrêts, puis la programmation (ou l'archivage immédiat). */
+/**
+ * `schedule` : programmer d'abord (les entrées ferment tout de suite), puis
+ * arrêter. Un échec laisse l'archivage programmé : sans risque, la tâche
+ * `box_archive_sweep` n'archive jamais tant que quelque chose paie. Relancer
+ * `schedule` sur une box programmée reprend les arrêts manquants ; les
+ * e-mails au gérant et au comptoir partent quand tout est arrêté, une fois.
+ */
 export async function archiveSchedule(supabase: Db, t: ArchiveTargets, actorId: string): Promise<ScheduleResult> {
   if (t.box.archived_at) return { status: 409, body: { error: 'Cette box est déjà archivée.' } };
-  if (t.box.archive_scheduled_at) return { status: 409, body: { error: 'L’archivage de cette box est déjà programmé.' } };
 
   const box = t.box;
+  const resuming = !!box.archive_scheduled_at;
+
+  // 1. Programmer : les entrées ferment avant le premier appel Stripe.
+  if (!resuming) {
+    const { data: done, error } = await supabase.from('boxes')
+      .update({ archive_scheduled_at: new Date().toISOString(), archive_scheduled_by: actorId })
+      .eq('id', box.id).is('archived_at', null).is('archive_scheduled_at', null)
+      .select('id');
+    if (error) return { status: 502, body: { error: error.message } };
+    // Programmée entre-temps par un autre appel : pas de second passage en parallèle.
+    if (!(done as unknown[] | null)?.length) return { status: 409, body: { error: 'L’archivage de cette box vient d’être programmé.' } };
+  }
+
   const failed: string[] = [];
   let stopped = 0;
+  // Arrêts tentés : une relance réussie sans rien à arrêter n'envoie rien (un
+  // échec rend 502 avant, ce compte ne sert qu'en l'absence d'échec).
+  let attempted = 0;
   let notEmailed = 0;
   let lastEnd: string | null = null;
   let stillPaying = false;
@@ -331,7 +400,7 @@ export async function archiveSchedule(supabase: Db, t: ArchiveTargets, actorId: 
   const boxMemberByUser = new Map(t.stripeMembers.concat(t.counterMembers).map(m => [m.member_id, m.id]));
   const boxInfo = { name: box.name, stripe_account_id: box.stripe_account_id, contact_email: box.contact_email };
 
-  // 1. Membres par Stripe : arrêt S2 (journal, e-mail, engagement levé).
+  // 2a. Membres par Stripe : arrêt S2 (journal, e-mail, engagement levé).
   for (const m of t.stripeMembers) {
     const pastDue = m.subscription_status === 'past_due';
     // Déjà en fin programmée : la base le dit, Stripe n'est pas rappelé.
@@ -340,6 +409,7 @@ export async function archiveSchedule(supabase: Db, t: ArchiveTargets, actorId: 
     }
     const mode: StopMode = pastDue ? 'now' : 'period_end';
     const profile = profileById.get(m.member_id) ?? null;
+    attempted += 1;
     try {
       const { emailed } = await stopBoxMember(supabase, {
         member: m, box: boxInfo, profile, planName: m.plan_id ? planName.get(m.plan_id) ?? null : null, mode, actorId,
@@ -353,17 +423,20 @@ export async function archiveSchedule(supabase: Db, t: ArchiveTargets, actorId: 
     if (mode === 'period_end') { stillPaying = true; lastEnd = later(lastEnd, m.subscription_current_period_end); }
   }
 
-  // 2. Abonnements lus chez Stripe : programmes, offres, droits en attente, box.
+  // 2b. Abonnements lus chez Stripe : programmes, offres, droits en attente, box.
   const subscriberBoxIds = Array.from(new Set(t.subs.filter(s => s.subscriberBoxId).map(s => s.subscriberBoxId!)));
   const { data: subBoxesRaw } = subscriberBoxIds.length
     ? await supabase.from('boxes').select('id, name, owner_id').in('id', subscriberBoxIds)
     : { data: [] };
   const subBoxById = new Map(((subBoxesRaw ?? []) as { id: string; name: string; owner_id: string | null }[]).map(b => [b.id, b]));
-  const subOwnerIds = Array.from(subBoxById.values()).map(b => b.owner_id).filter((x): x is string => !!x);
-  const { data: subOwnersRaw } = subOwnerIds.length
-    ? await supabase.from('profiles').select('id, email, username, full_name').in('id', subOwnerIds)
+  const otherOwnerIds = Array.from(new Set([
+    ...Array.from(subBoxById.values()).map(b => b.owner_id),
+    ...t.subs.map(s => s.publisherOwnerId),
+  ].filter((x): x is string => !!x)));
+  const { data: otherOwnersRaw } = otherOwnerIds.length
+    ? await supabase.from('profiles').select('id, email, username, full_name').in('id', otherOwnerIds)
     : { data: [] };
-  const subOwnerById = new Map(((subOwnersRaw ?? []) as (StopProfile & { id: string })[]).map(p => [p.id, p]));
+  const otherOwnerById = new Map(((otherOwnersRaw ?? []) as (StopProfile & { id: string })[]).map(p => [p.id, p]));
 
   for (const s of t.subs) {
     let mode: StopMode = 'period_end';
@@ -378,6 +451,7 @@ export async function archiveSchedule(supabase: Db, t: ArchiveTargets, actorId: 
       }
       periodEnd = st.periodEnd;
       if (isPastDue(st.status)) mode = 'now';
+      attempted += 1;
       await stopSubscription({ stripeAccount: s.account ?? undefined, subscriptionId: s.subscriptionId, mode, idempotencyKey: archiveStopKey(s, mode) });
       stopped += 1;
     } catch {
@@ -386,12 +460,12 @@ export async function archiveSchedule(supabase: Db, t: ArchiveTargets, actorId: 
     }
     if (mode === 'period_end') { stillPaying = true; lastEnd = later(lastEnd, periodEnd); }
 
-    // E-mails S2 / S4 ; l'offre achetée et la box sont dites au gérant (e-mail d'archivage).
+    // E-mails ; la box (abonnement AthleX) est dite au gérant, dans l'e-mail d'archivage.
     let sent: boolean | null = null;
-    if (s.kind === 'program') {
-      const profile = profileById.get(s.userId!) ?? null;
+    if (s.kind === 'program' || (s.kind === 'pending' && s.title)) {
+      const profile = s.userId ? profileById.get(s.userId) ?? null : null;
       // Journal : seulement si l'acheteur est membre de la box (box_member_id requis).
-      const bmId = boxMemberByUser.get(s.userId!) ?? null;
+      const bmId = s.userId ? boxMemberByUser.get(s.userId) ?? null : null;
       let journalId: string | null = null;
       if (bmId) {
         const { data: j, error: je } = await supabase.from('box_member_subscription_actions').insert({
@@ -401,9 +475,10 @@ export async function archiveSchedule(supabase: Db, t: ArchiveTargets, actorId: 
         if (je) console.error('archive program journal insert failed:', je.message);
         journalId = (j as { id: string } | null)?.id ?? null;
       }
-      sent = profile?.email ? await sendMemberEmail({
-        to: profile.email,
-        ...programStopEmail({ mode, firstName: memberFirstName(profile), boxName: box.name, title: s.title ?? 'ce programme', periodEnd }),
+      const to = s.kind === 'pending' ? s.email : profile?.email;
+      sent = to ? await sendMemberEmail({
+        to,
+        ...programArchiveEmail({ mode, firstName: s.kind === 'pending' ? '' : memberFirstName(profile), boxName: box.name, title: s.title ?? 'ce programme', periodEnd }),
         boxName: box.name, replyTo: box.contact_email, tag: 'archive-program-stop',
       }) : false;
       if (sent && journalId) {
@@ -411,16 +486,22 @@ export async function archiveSchedule(supabase: Db, t: ArchiveTargets, actorId: 
       }
     } else if (s.kind === 'offer_sold') {
       const subBox = subBoxById.get(s.subscriberBoxId!) ?? null;
-      const owner = subBox?.owner_id ? subOwnerById.get(subBox.owner_id) ?? null : null;
+      const owner = subBox?.owner_id ? otherOwnerById.get(subBox.owner_id) ?? null : null;
       sent = owner?.email ? await sendMemberEmail({
         to: owner.email,
         ...offerStopEmail({ mode, firstName: memberFirstName(owner), publisherName: box.name, title: s.title ?? 'cette offre', subscriberBoxName: subBox?.name ?? 'ta box', periodEnd }),
         boxName: box.name, replyTo: box.contact_email, tag: 'archive-offer-stop',
       }) : false;
+    } else if (s.kind === 'offer_bought') {
+      const owner = s.publisherOwnerId ? otherOwnerById.get(s.publisherOwnerId) ?? null : null;
+      sent = owner?.email ? await sendMemberEmail({
+        to: owner.email,
+        ...publisherArchiveEmail({ mode, firstName: memberFirstName(owner), boxName: box.name, title: s.title ?? 'ton offre', periodEnd }),
+        boxName: box.name, replyTo: box.contact_email, tag: 'archive-publisher',
+      }) : false;
     } else if (s.kind === 'pending') {
-      const content = s.title
-        ? programStopEmail({ mode, firstName: memberFirstName(null), boxName: box.name, title: s.title, periodEnd })
-        : stopEmailContent({ mode, firstName: memberFirstName(null), boxName: box.name, planName: (s.planId && planName.get(s.planId)) || 'de salle', periodEnd });
+      // Adhésion payée avant la création du compte : e-mail S2, sans prénom.
+      const content = stopEmailContent({ mode, firstName: '', boxName: box.name, planName: (s.planId && planName.get(s.planId)) || 'de salle', periodEnd });
       sent = s.email ? await sendMemberEmail({ to: s.email, ...content, boxName: box.name, replyTo: box.contact_email, tag: 'archive-pending-stop' }) : false;
     }
     if (sent === false) notEmailed += 1;
@@ -430,30 +511,45 @@ export async function archiveSchedule(supabase: Db, t: ArchiveTargets, actorId: 
     return {
       status: 502,
       body: {
-        error: `Stripe a refusé l’arrêt de ${countOf(failed.length, 'abonnement', 'abonnements')} : ${failed.join(', ')}. L’archivage n’a pas été programmé ; les autres abonnements sont bien arrêtés. Tu peux relancer : les abonnements déjà arrêtés ne seront pas rappelés.`,
+        error: `Stripe a refusé l’arrêt de ${countOf(failed.length, 'abonnement', 'abonnements')} : ${failed.join(', ')}. L’archivage est programmé et les entrées sont fermées ; les autres abonnements sont bien arrêtés. Relance les arrêts pour terminer : les abonnements déjà arrêtés ne seront pas rappelés. L’e-mail au gérant et aux membres au comptoir partira quand tout sera arrêté.`,
         failed,
         stopped,
+        scheduled: true,
       },
     };
   }
 
-  const warn = (n: number) => (n > 0 ? { warning: n === 1 ? '1 e-mail n’est pas parti : préviens la personne directement.' : `${n} e-mails ne sont pas partis : préviens ces personnes directement.` } : {});
+  // Relance sur une box déjà programmée où il n'y avait plus rien à arrêter :
+  // la programmation est complète, les e-mails sont déjà partis.
+  if (resuming && attempted === 0) {
+    return { status: 409, body: { error: 'L’archivage de cette box est déjà programmé et tous ses abonnements sont arrêtés.' } };
+  }
 
-  // Plus rien ne paie : archivage immédiat, comme avant.
+  const warn = (n: number) => (n > 0 ? { warning: n === 1 ? '1 e-mail n’est pas parti : préviens la personne directement.' : `${n} e-mails ne sont pas partis : préviens ces personnes directement.` } : {});
+  const sendCounter = async (immediate: boolean) => {
+    for (const m of t.counterMembers) {
+      const p = profileById.get(m.member_id) ?? null;
+      const ok = p?.email ? await sendMemberEmail({
+        to: p.email, ...counterMemberArchiveEmail({ firstName: memberFirstName(p), boxName: box.name, date: lastEnd, immediate }),
+        boxName: box.name, replyTo: box.contact_email, tag: 'archive-counter',
+      }) : false;
+      if (!ok) notEmailed += 1;
+    }
+  };
+
+  // Plus rien ne paie : archivage immédiat, comme avant ; les colonnes de
+  // programmation sont effacées (sinon « Réactiver » rouvrirait une box fermée).
   if (!stillPaying) {
     const { error } = await supabase.from('boxes')
-      .update({ archived_at: new Date().toISOString(), archived_by: actorId })
+      .update({ archived_at: new Date().toISOString(), archived_by: actorId, archive_scheduled_at: null, archive_scheduled_by: null })
       .eq('id', box.id).is('archived_at', null);
     if (error) return { status: 502, body: { error: error.message, stopped } };
+    await sendCounter(true);
     return { status: 200, body: { ok: true, archived: true, stopped, ...warn(notEmailed) } };
   }
 
-  const { error } = await supabase.from('boxes')
-    .update({ archive_scheduled_at: new Date().toISOString(), archive_scheduled_by: actorId })
-    .eq('id', box.id).is('archived_at', null).is('archive_scheduled_at', null);
-  if (error) return { status: 502, body: { error: error.message, stopped } };
-
-  // E-mail au gérant (réponse vers AthleX) et aux membres au comptoir (vers la box).
+  // Tous les arrêts ont réussi : e-mail au gérant (réponse vers AthleX) et aux
+  // membres au comptoir (vers la box), une seule fois.
   const owner = box.owner_id ? profileById.get(box.owner_id) ?? null : null;
   if (owner?.email) {
     const { subject, bodyText } = ownerArchiveEmail({
@@ -465,14 +561,7 @@ export async function archiveSchedule(supabase: Db, t: ArchiveTargets, actorId: 
   } else {
     notEmailed += 1;
   }
-  for (const m of t.counterMembers) {
-    const p = profileById.get(m.member_id) ?? null;
-    const ok = p?.email ? await sendMemberEmail({
-      to: p.email, ...counterMemberArchiveEmail({ firstName: memberFirstName(p), boxName: box.name, date: lastEnd }),
-      boxName: box.name, replyTo: box.contact_email, tag: 'archive-counter',
-    }) : false;
-    if (!ok) notEmailed += 1;
-  }
+  await sendCounter(false);
 
   return { status: 200, body: { ok: true, scheduled: true, stopped, last_end: lastEnd, ...warn(notEmailed) } };
 }
