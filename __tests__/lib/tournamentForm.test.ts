@@ -2,7 +2,7 @@
 // autre champ non touché) avec une valeur par défaut du formulaire.
 import { readFileSync } from 'fs';
 import { join } from 'path';
-import { DEFAULT_RULES, initialTournamentForm, tournamentUpdatePayload } from '@/lib/tournamentForm';
+import { DEFAULT_RULES, initialTournamentForm, statusChangeAllowed, statusEditable, tournamentUpdatePayload } from '@/lib/tournamentForm';
 import { fromDateInput } from '@/lib/datetime';
 
 const read = (p: string) => readFileSync(join(process.cwd(), p), 'utf8').replace(/\r\n/g, '\n');
@@ -17,12 +17,13 @@ const row = (over: Record<string, unknown> = {}) => ({
 
 // Ce que fait la page de modification : `TournamentForm` sans `allowedFormats`.
 const EDIT_ALLOWED = ['simple'];
-function save(t: ReturnType<typeof row>, edit: (f: any) => void = () => {}, publish = false) {
+// « Enregistrer » et « Publier » envoient la même chose en modification.
+function save(t: ReturnType<typeof row>, edit: (f: any) => void = () => {}) {
   const start = initialTournamentForm(t, EDIT_ALLOWED);
   const form = { ...start };
   edit(form);
   const payload = tournamentUpdatePayload(start, form, {
-    boxId: t.box_id, publish, bannerUrl: t.banner_url as string | null, initialBannerUrl: t.banner_url as string | null,
+    boxId: t.box_id, bannerUrl: t.banner_url as string | null, initialBannerUrl: t.banner_url as string | null,
   });
   return { payload, after: { ...t, ...payload } };
 }
@@ -40,10 +41,55 @@ describe('modifier un tournoi conserve son format', () => {
     expect(payload).not.toHaveProperty('format');
   });
 
-  it('« Publier » en modification : statut ouvert, format intact', () => {
-    const { payload, after } = save(row({ format: 'swiss', status: 'active' }), () => {}, true);
-    expect(payload.status).toBe('open');
-    expect(after.format).toBe('swiss');
+});
+
+describe('statut en modification', () => {
+  const src = read('components/tournaments/TournamentForm.tsx');
+
+  it.each(['open', 'active', 'completed'])('« Publier » sur un tournoi %s : aucun statut envoyé, statut conservé', status => {
+    const { payload, after } = save(row({ status }), f => { f.name = 'Autre'; });
+    expect(payload).not.toHaveProperty('status');
+    expect(after.status).toBe(status);
+    // Côté écran, la modification ignore `publish` : même envoi pour les deux boutons.
+    expect(src).toMatch(/const update = tournamentUpdatePayload\(start, form, \{\s*boxId, bannerUrl, initialBannerUrl: initial\?\.banner_url \?\? null,\s*\}\);/);
+  });
+
+  it('passage volontaire « Inscriptions ouvertes » → « En cours » : envoyé', () => {
+    const { payload, after } = save(row({ status: 'open' }), f => { f.status = 'active'; });
+    expect(payload.status).toBe('active');
+    expect(after.status).toBe('active');
+  });
+
+  it('retour arrière impossible : « En cours » → « Inscriptions ouvertes » n’est pas envoyé', () => {
+    const { payload, after } = save(row({ status: 'active' }), f => { f.status = 'open'; });
+    expect(payload).not.toHaveProperty('status');
+    expect(after.status).toBe('active');
+    expect(save(row({ status: 'completed' }), f => { f.status = 'open'; }).payload).not.toHaveProperty('status');
+    expect(save(row({ status: 'completed' }), f => { f.status = 'active'; }).payload).not.toHaveProperty('status');
+  });
+
+  it('« Terminé » jamais envoyé par le formulaire', () => {
+    expect(save(row({ status: 'open' }), f => { f.status = 'completed'; }).payload).not.toHaveProperty('status');
+    expect(save(row({ status: 'active' }), f => { f.status = 'completed'; }).payload).not.toHaveProperty('status');
+    expect(statusChangeAllowed('open', 'completed')).toBe(false);
+    expect(statusChangeAllowed('active', 'completed')).toBe(false);
+  });
+
+  it('« Terminé » jamais proposé ; liste seulement pour un tournoi ouvert, sinon lecture seule', () => {
+    expect(statusEditable('open')).toBe(true);
+    expect(statusEditable('active')).toBe(false);
+    expect(statusEditable('completed')).toBe(false);
+    // La liste ne propose que ouvert et en cours, libellés d'avant.
+    expect(src).toMatch(/const STATUSES = \[\s*\{ value: 'open', {3}label: 'Inscriptions ouvertes' \},\s*\{ value: 'active', label: 'En cours' \},\s*\];/);
+    expect(src).toContain("{STATUSES.map(s => <option key={s.value} value={s.value} className=\"text-black\">{s.label}</option>)}");
+    expect(src).not.toMatch(/value: 'completed'/);
+    expect(src).toContain('const statusLocked = !!initial && !statusEditable(start.status);');
+    expect(src).toMatch(/\{statusLocked \? \(\s*<div className=\{inp\} aria-readonly="true" data-testid="statut-lecture-seule">\{statusLabel\}<\/div>/);
+    expect(src).toContain("const statusLabel = start.status === 'completed' ? 'Clôturé'");
+  });
+
+  it('création inchangée : « Publier » y ouvre les inscriptions', () => {
+    expect(src).toContain("status:     publish ? 'open' : form.status,");
   });
 });
 
@@ -92,7 +138,7 @@ describe('les autres champs non touchés gardent leur valeur enregistrée', () =
   it('image changée ou retirée : envoyée', () => {
     const t = row();
     const start = initialTournamentForm(t, EDIT_ALLOWED);
-    const p = tournamentUpdatePayload(start, { ...start }, { boxId: 'box-1', publish: false, bannerUrl: null, initialBannerUrl: t.banner_url });
+    const p = tournamentUpdatePayload(start, { ...start }, { boxId: 'box-1', bannerUrl: null, initialBannerUrl: t.banner_url });
     expect(p).toHaveProperty('banner_url', null);
   });
 });
