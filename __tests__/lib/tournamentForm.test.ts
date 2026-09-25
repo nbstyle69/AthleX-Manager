@@ -165,3 +165,28 @@ describe('branchement dans TournamentForm', () => {
     expect(src).toMatch(/\{initial && \(\s*<div[^>]*data-testid="format-lecture-seule"/);
   });
 });
+
+describe('bouton « Publier »', () => {
+  const src = read('components/tournaments/TournamentForm.tsx');
+  // Le bloc du bouton, depuis sa garde jusqu'à sa fermeture.
+  const guard = src.indexOf('{!initial && (\n          <button type="button" disabled={saving} onClick={(e) => handleSubmit(e as any, true)}');
+  const block = guard >= 0 ? src.slice(guard, src.indexOf(')}', src.indexOf('Publier', guard)) + 2) : '';
+
+  it.each(['open', 'active', 'completed'])('absent en modification (tournoi %s) : rendu seulement sans `initial`', status => {
+    // La page Modifier passe toujours `initial` : la garde ne dépend que de lui, pas du statut.
+    const t = row({ status });
+    expect(!!t).toBe(true);
+    expect(block).toContain('Publier');
+    expect(block.startsWith('{!initial && (')).toBe(true);
+    expect(block).not.toMatch(/status|statusLocked|statusEditable/);
+    // Un seul bouton « Publier », et il est dans ce bloc.
+    expect(src.split('Publier\n').length - 1).toBe(1);
+  });
+
+  it('présent à la création, où il ouvre les inscriptions', () => {
+    expect(block).toContain('onClick={(e) => handleSubmit(e as any, true)}');
+    expect(src).toContain("status:     publish ? 'open' : form.status,");
+    // « Enregistrer » reste pour les deux cas, hors de la garde.
+    expect(src).toMatch(/<button type="submit" disabled=\{saving\}[\s\S]{0,300}Enregistrer\s*<\/button>\s*\{\/\*/);
+  });
+});
