@@ -12,8 +12,18 @@ import BoxArchiveBlock from '@/components/admin/BoxArchiveBlock';
 import { isTrack, revealFromRow, type Track } from '@/lib/autoProgramming';
 import { formatCap } from '@/lib/wodFields';
 import { FREE_TIER, formatExpiredSince, planTierClasses } from '@/lib/boxPlanTier';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Card } from '@/components/ui/card';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
+import { ADMIN_LEVEL_COLOR, PURPLE_SOFT, SUB_ORANGE_SOFT, SUB_ORANGE_TEXT } from '@/components/admin/adminTokens';
 
 const TABS = ['Infos', 'Membres', 'Whiteboard', 'Tournois'];
+
+const FIELD_LABEL = 'block text-xs font-bold text-ax-text-secondary mb-1';
+const TEXTAREA = 'w-full min-w-0 rounded-ax-control border border-ax-input-border bg-ax-surface px-3 py-2.5 text-base text-ax-text placeholder:text-ax-text-muted sm:text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ax-focus focus-visible:ring-offset-2 focus-visible:ring-offset-ax-surface';
+const CARD_TITLE = 'text-sm font-bold text-ax-text-secondary uppercase tracking-wider';
+const levelStyle = (l: string) => ({ color: ADMIN_LEVEL_COLOR[l] ?? 'var(--ax-level-scaled)' });
 
 interface BoxData {
   box: any;
@@ -111,7 +121,7 @@ export default function BoxDetailPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-32">
-        <div className="w-8 h-8 border-2 border-emerald-500/30 border-t-emerald-500 rounded-full animate-spin" />
+        <div className="w-8 h-8 border-2 border-ax-border border-t-ax-accent-text rounded-full animate-spin" />
       </div>
     );
   }
@@ -119,8 +129,8 @@ export default function BoxDetailPage() {
   if (!data?.box) {
     return (
       <div className="text-center py-32">
-        <Building2 size={48} className="text-gray-600 mx-auto mb-4" />
-        <p className="text-gray-400">Box introuvable.</p>
+        <Building2 size={48} className="text-ax-text-muted mx-auto mb-4" />
+        <p className="text-ax-text-secondary">Box introuvable.</p>
       </div>
     );
   }
@@ -132,11 +142,6 @@ export default function BoxDetailPage() {
   const planTier: string = box.plan_tier ?? FREE_TIER;
   const planExpiredAt: string | null = box.expired_at ?? null;
   const planOffered: boolean = box.offered === true;
-
-  const levelColor = (l: string) =>
-    l === 'pro' ? 'text-red-400' : l === 'gx' ? 'text-purple-400' :
-    l === 'rx+' ? 'text-orange-400' : l === 'rx' ? 'text-emerald-400' :
-    l === 'inter' ? 'text-blue-400' : 'text-gray-400';
 
   function getWodScores(wodId: string) {
     return scores.filter((s: any) => s.wod_id === wodId);
@@ -159,14 +164,14 @@ export default function BoxDetailPage() {
       {box.archived_at && (
         <div
           data-testid="bandeau-archivee"
-          className="flex items-start gap-3 rounded-2xl border border-amber-500/40 bg-amber-500/[0.08] px-5 py-4"
+          className="flex items-start gap-3 rounded-ax-card border border-ax-warning bg-ax-warning-soft px-5 py-4"
         >
-          <Archive size={18} className="shrink-0 mt-0.5 text-amber-400" />
+          <Archive size={18} className="shrink-0 mt-0.5 text-ax-warning" />
           <div>
-            <p className="text-sm font-bold text-amber-200">
+            <p className="text-sm font-bold text-ax-warning">
               Box archivée le {new Date(box.archived_at).toLocaleDateString('fr-FR')}
             </p>
-            <p className="text-xs text-amber-200/70 mt-0.5">
+            <p className="text-xs text-ax-text mt-0.5">
               Ses membres n&apos;y ont plus accès, elle est retirée des annuaires et n&apos;est plus
               générée. Aucune donnée n&apos;a été supprimée : « Réactiver » remet tout en place.
             </p>
@@ -176,37 +181,37 @@ export default function BoxDetailPage() {
 
       {/* Back + Header */}
       <div>
-        <button onClick={() => router.push('/admin/boxes')} className="flex items-center gap-1.5 text-sm text-gray-400 hover:text-white transition-colors mb-4">
+        <button onClick={() => router.push('/admin/boxes')} className="flex items-center gap-1.5 rounded-ax-control text-sm text-ax-text-secondary hover:text-ax-text transition-colors mb-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ax-focus">
           <ArrowLeft size={14} /> Retour aux boxs
         </button>
-        <div className="flex items-start justify-between">
-          <div className="flex items-center gap-4">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="flex items-center gap-4 min-w-0">
             {box.logo_url ? (
-              <img src={box.logo_url} alt={box.name} className="w-14 h-14 rounded-2xl object-cover" />
+              <img src={box.logo_url} alt={box.name} className="w-14 h-14 shrink-0 rounded-ax-card object-cover" />
             ) : (
-              <div className="w-14 h-14 rounded-2xl bg-orange-500/15 flex items-center justify-center text-orange-400 font-black text-xl">
+              <div className={`w-14 h-14 shrink-0 rounded-ax-card ${SUB_ORANGE_SOFT} ${SUB_ORANGE_TEXT} flex items-center justify-center font-black text-xl`}>
                 {box.name?.[0]?.toUpperCase() ?? 'B'}
               </div>
             )}
-            <div>
-              <h1 className="text-2xl font-black text-white">{box.name}</h1>
-              <div className="flex items-center gap-3 mt-1">
-                {box.city && <span className="text-sm text-gray-400">{box.city}</span>}
-                <span className={`text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-lg border ${planTierClasses(planTier)}`}>
+            <div className="min-w-0">
+              <h1 className="font-display text-2xl font-medium uppercase tracking-wide text-ax-text break-words">{box.name}</h1>
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 mt-1">
+                {box.city && <span className="text-sm text-ax-text-secondary">{box.city}</span>}
+                <span className={`text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-ax-badge border ${planTierClasses(planTier)}`}>
                   {planTier}
                 </span>
                 {planOffered && (
-                  <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-lg text-emerald-400 bg-emerald-500/10">offert</span>
+                  <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-ax-badge text-ax-success bg-ax-success-soft">offert</span>
                 )}
                 {planExpiredAt && (
-                  <span className="text-[10px] text-orange-400/80">{formatExpiredSince(planExpiredAt)}</span>
+                  <span className={`text-[10px] ${SUB_ORANGE_TEXT}`}>{formatExpiredSince(planExpiredAt)}</span>
                 )}
                 {box.is_active ? (
-                  <span className="flex items-center gap-1 text-[10px] font-bold text-emerald-400 bg-emerald-500/15 px-2 py-0.5 rounded-lg">
+                  <span className="flex items-center gap-1 text-[10px] font-bold text-ax-success bg-ax-success-soft px-2 py-0.5 rounded-ax-badge">
                     <CheckCircle size={10} /> Active
                   </span>
                 ) : (
-                  <span className="flex items-center gap-1 text-[10px] font-bold text-red-400 bg-red-500/15 px-2 py-0.5 rounded-lg">
+                  <span className="flex items-center gap-1 text-[10px] font-bold text-ax-danger bg-ax-danger-soft px-2 py-0.5 rounded-ax-badge">
                     <XCircle size={10} /> Inactive
                   </span>
                 )}
@@ -214,40 +219,39 @@ export default function BoxDetailPage() {
             </div>
           </div>
           {!editing && (
-            <div className="flex flex-col items-end gap-2">
-              <div className="flex items-center gap-2">
-                <button onClick={handleResync} disabled={resyncing}
-                  className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-sm font-bold text-gray-300 hover:text-white hover:border-purple-500/30 disabled:opacity-50 transition-all">
+            <div className="flex flex-col items-start sm:items-end gap-2">
+              <div className="flex flex-wrap items-center gap-2">
+                <Button variant="ax-outline" onClick={handleResync} disabled={resyncing}>
                   <RefreshCw size={14} className={resyncing ? 'animate-spin' : ''} /> {resyncing ? 'Synchronisation...' : 'Resynchroniser avec Stripe'}
-                </button>
-                <button onClick={startEdit}
-                  className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-sm font-bold text-gray-300 hover:text-white hover:border-emerald-500/30 transition-all">
+                </Button>
+                <Button variant="ax-outline" onClick={startEdit}>
                   <Pencil size={14} /> Modifier
-                </button>
+                </Button>
               </div>
               {resyncResult && (
-                <p className="text-xs text-gray-400">{resyncResult}</p>
+                <p className="text-xs text-ax-text-secondary break-words">{resyncResult}</p>
               )}
             </div>
           )}
         </div>
       </div>
 
-      {/* Tabs */}
-      <div className="flex gap-1 bg-[#111111] border border-white/[0.06] rounded-xl p-1">
+      {/* Tabs — à 390 px, deux par ligne plutôt que des libellés écrasés. */}
+      <div className="grid grid-cols-2 sm:flex gap-1 bg-ax-surface border border-ax-border rounded-ax-control p-1">
         {TABS.map((t, i) => (
           <button
             key={t}
             onClick={() => setTab(i)}
+            aria-pressed={tab === i}
             className={cn(
-              'flex-1 py-2.5 rounded-lg text-sm font-bold transition-all',
-              tab === i ? 'bg-emerald-500 text-white' : 'text-gray-400 hover:text-white hover:bg-white/5'
+              'flex-1 py-2.5 rounded-ax-control text-sm font-bold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ax-focus motion-reduce:transition-none',
+              tab === i ? 'bg-ax-accent-soft text-ax-accent-text' : 'text-ax-text-secondary hover:text-ax-text hover:bg-ax-hover'
             )}
           >
             {t}
-            {i === 1 && <span className="ml-1.5 text-[10px] opacity-60">({members.length})</span>}
-            {i === 2 && <span className="ml-1.5 text-[10px] opacity-60">({wodCount})</span>}
-            {i === 3 && <span className="ml-1.5 text-[10px] opacity-60">({competitions.length})</span>}
+            {i === 1 && <span className="ml-1.5 text-[10px] font-semibold">({members.length})</span>}
+            {i === 2 && <span className="ml-1.5 text-[10px] font-semibold">({wodCount})</span>}
+            {i === 3 && <span className="ml-1.5 text-[10px] font-semibold">({competitions.length})</span>}
           </button>
         ))}
       </div>
@@ -255,41 +259,37 @@ export default function BoxDetailPage() {
       {/* TAB: Infos */}
       {tab === 0 && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="bg-[#111111] border border-white/[0.06] rounded-2xl p-6 space-y-4">
-            <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Informations</h3>
+          <Card className="p-6 space-y-4 md:self-start">
+            <h3 className={CARD_TITLE}>Informations</h3>
             {editing ? (
               <div className="space-y-4">
                 <div>
-                  <label className="block text-xs font-bold text-gray-500 mb-1">Nom</label>
-                  <input value={editName} onChange={e => setEditName(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-sm text-white focus:outline-none focus:border-emerald-500/50" />
+                  <label className={FIELD_LABEL}>Nom</label>
+                  <Input value={editName} onChange={e => setEditName(e.target.value)} />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-gray-500 mb-1">Ville</label>
-                  <input value={editCity} onChange={e => setEditCity(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-sm text-white focus:outline-none focus:border-emerald-500/50" />
+                  <label className={FIELD_LABEL}>Ville</label>
+                  <Input value={editCity} onChange={e => setEditCity(e.target.value)} />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-gray-500 mb-1">Description</label>
+                  <label className={FIELD_LABEL}>Description</label>
                   <textarea value={editDesc} onChange={e => setEditDesc(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-sm text-white focus:outline-none focus:border-emerald-500/50 h-20 resize-none" />
+                    className={`${TEXTAREA} h-20 resize-y`} />
                 </div>
                 <div className="flex items-center gap-3">
-                  <label className="text-xs font-bold text-gray-500">Active</label>
-                  <button onClick={() => setEditActive(!editActive)}
-                    className={cn('w-10 h-5 rounded-full transition-colors relative', editActive ? 'bg-emerald-500' : 'bg-white/10')}>
-                    <div className={cn('w-4 h-4 rounded-full bg-white absolute top-0.5 transition-all', editActive ? 'left-5' : 'left-0.5')} />
+                  <label className="text-xs font-bold text-ax-text-secondary">Active</label>
+                  <button onClick={() => setEditActive(!editActive)} role="switch" aria-checked={editActive} aria-label="Active"
+                    className={cn('w-10 h-5 rounded-full transition-colors relative border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ax-focus focus-visible:ring-offset-2 focus-visible:ring-offset-ax-surface', editActive ? 'bg-ax-accent border-ax-accent' : 'bg-ax-surface-secondary border-ax-input-border')}>
+                    <div className={cn('w-4 h-4 rounded-full absolute top-0.5 transition-all', editActive ? 'left-5 bg-ax-accent-foreground' : 'left-0.5 bg-ax-text-secondary')} />
                   </button>
                 </div>
-                <div className="flex gap-2 pt-2">
-                  <button onClick={handleSave} disabled={saving}
-                    className="flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 disabled:opacity-50 text-white text-sm font-bold transition-colors">
+                <div className="flex flex-wrap gap-2 pt-2">
+                  <Button variant="ax-mint" onClick={handleSave} disabled={saving}>
                     <Save size={14} /> {saving ? 'Sauvegarde...' : 'Sauvegarder'}
-                  </button>
-                  <button onClick={() => setEditing(false)}
-                    className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-sm font-bold text-gray-400 hover:text-white transition-colors">
+                  </Button>
+                  <Button variant="ax-outline" onClick={() => setEditing(false)}>
                     <XIcon size={14} /> Annuler
-                  </button>
+                  </Button>
                 </div>
               </div>
             ) : (
@@ -302,30 +302,30 @@ export default function BoxDetailPage() {
                 <InfoRow label="Créée le" value={new Date(box.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })} />
               </div>
             )}
-          </div>
+          </Card>
 
           {/* Logo card */}
           {box.logo_url && (
-            <div className="bg-[#111111] border border-white/[0.06] rounded-2xl p-6 md:col-span-2 lg:col-span-1">
-              <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4 flex items-center gap-2">
+            <Card className="p-6 md:col-span-2 lg:col-span-1">
+              <h3 className={`${CARD_TITLE} mb-4 flex items-center gap-2`}>
                 <ImageIcon size={14} /> Logo
               </h3>
               <div className="flex items-center justify-center">
-                <img src={box.logo_url} alt={`Logo ${box.name}`} className="max-h-48 rounded-2xl object-contain" />
+                <img src={box.logo_url} alt={`Logo ${box.name}`} className="max-h-48 rounded-ax-card object-contain" />
               </div>
-            </div>
+            </Card>
           )}
 
-          <div className="space-y-4">
+          <div className="space-y-4 min-w-0">
             {/* Owner card */}
-            <div className="bg-[#111111] border border-white/[0.06] rounded-2xl p-6">
-              <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4">Propriétaire</h3>
+            <Card className="p-6">
+              <h3 className={`${CARD_TITLE} mb-4`}>Propriétaire</h3>
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-yellow-500/20 flex items-center justify-center">
-                  <Crown size={18} className="text-yellow-400" />
+                <div className="w-10 h-10 shrink-0 rounded-full bg-ax-warning-soft flex items-center justify-center">
+                  <Crown size={18} className="text-ax-warning" />
                 </div>
-                <div>
-                  <p className="text-sm font-bold text-white">{owner?.username ?? 'Inconnu'}</p>
+                <div className="min-w-0">
+                  <p className="text-sm font-bold text-ax-text break-words">{owner?.username ?? 'Inconnu'}</p>
                   {/* L'e-mail n'est lisible que par le service client : la
                       colonne `profiles.email` est fermée à anon et
                       authenticated, et cette route revérifie le rôle admin. */}
@@ -333,27 +333,27 @@ export default function BoxDetailPage() {
                     <a
                       href={`mailto:${owner.email}`}
                       data-testid="owner-email"
-                      className="text-xs text-emerald-400 hover:text-emerald-300 hover:underline break-all"
+                      className="text-xs text-ax-accent-text hover:underline break-all rounded-ax-control focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ax-focus"
                     >
                       {owner.email}
                     </a>
                   ) : (
-                    <p className="text-xs text-gray-600">E-mail indisponible</p>
+                    <p className="text-xs text-ax-text-muted">E-mail indisponible</p>
                   )}
-                  <div className="flex items-center gap-2 mt-0.5">
-                    <span className="text-[10px] font-black uppercase text-yellow-400 bg-yellow-500/15 px-2 py-0.5 rounded">{owner?.role}</span>
-                    <span className={`text-[10px] font-black uppercase ${levelColor(owner?.level)}`}>{owner?.level}</span>
-                    <span className="text-xs font-bold text-yellow-500">ELO {owner?.elo}</span>
+                  <div className="flex flex-wrap items-center gap-2 mt-0.5">
+                    <span className="text-[10px] font-black uppercase text-ax-warning bg-ax-warning-soft px-2 py-0.5 rounded-ax-badge">{owner?.role}</span>
+                    <span className="text-[10px] font-black uppercase" style={levelStyle(owner?.level)}>{owner?.level}</span>
+                    <span className="text-xs font-bold text-ax-warning">ELO {owner?.elo}</span>
                   </div>
                 </div>
               </div>
-            </div>
+            </Card>
 
             {/* Stats */}
             <div className="grid grid-cols-3 gap-3">
-              <StatCard icon={Users} label="Membres" value={members.length} color="text-blue-400" bg="bg-blue-500/15" />
-              <StatCard icon={Dumbbell} label="WODs" value={wodCount} color="text-emerald-400" bg="bg-emerald-500/15" />
-              <StatCard icon={Trophy} label="Tournois" value={competitions.length} color="text-purple-400" bg="bg-purple-500/15" />
+              <StatCard icon={Users} label="Membres" value={members.length} color="text-ax-info" bg="bg-ax-info-soft" />
+              <StatCard icon={Dumbbell} label="WODs" value={wodCount} color="text-ax-success" bg="bg-ax-success-soft" />
+              <StatCard icon={Trophy} label="Tournois" value={competitions.length} color="text-ax-purple" bg={PURPLE_SOFT} />
             </div>
 
             {/* Formats de tournoi autorisés */}
@@ -385,115 +385,110 @@ export default function BoxDetailPage() {
 
       {/* TAB: Membres */}
       {tab === 1 && (
-        <div className="overflow-hidden rounded-2xl border border-white/[0.06]">
-          {members.length === 0 ? (
-            <div className="text-center py-16">
-              <Users size={40} className="text-gray-600 mx-auto mb-3" />
-              <p className="text-sm text-gray-400">Aucun membre.</p>
-            </div>
-          ) : (
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="bg-white/[0.03] text-left">
-                  <th className="px-5 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Membre</th>
-                  <th className="px-5 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Rôle</th>
-                  <th className="px-5 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Niveau</th>
-                  <th className="px-5 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">ELO</th>
-                  <th className="px-5 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Matchs</th>
-                  <th className="px-5 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Wins</th>
-                  <th className="px-5 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Statut</th>
-                  <th className="px-5 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Rejoint le</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-white/[0.04]">
-                {members.map((m: any) => {
-                  const p = Array.isArray(m.profile) ? m.profile[0] : m.profile;
-                  const isOwner = p?.id === owner?.id;
-                  return (
-                    <tr key={m.id} className={cn('hover:bg-white/[0.02] transition-colors', isOwner && 'bg-yellow-500/[0.03]')}>
-                      <td className="px-5 py-4">
-                        <div className="flex items-center gap-3">
-                          <div className={cn(
-                            'w-8 h-8 rounded-full flex items-center justify-center text-xs font-black',
-                            isOwner ? 'bg-yellow-500/20 text-yellow-400' : 'bg-white/5 text-gray-400'
-                          )}>
-                            {isOwner ? <Crown size={14} /> : p?.username?.[0]?.toUpperCase() ?? '?'}
-                          </div>
-                          <div>
-                            <span className="font-bold text-white">{p?.username ?? 'Inconnu'}</span>
-                            {isOwner && <span className="ml-2 text-[9px] font-black text-yellow-400 bg-yellow-500/15 px-1.5 py-0.5 rounded">OWNER</span>}
-                          </div>
+        members.length === 0 ? (
+          <Card className="text-center py-16">
+            <Users size={40} className="text-ax-text-muted mx-auto mb-3" />
+            <p className="text-sm text-ax-text-secondary">Aucun membre.</p>
+          </Card>
+        ) : (
+          // À 390 px, le défilement horizontal est limité au tableau : mêmes
+          // colonnes, même ordre, rien de masqué.
+          <Table aria-label="Membres de la box">
+            <TableHeader>
+              <TableRow className="hover:bg-transparent">
+                {['Membre', 'Rôle', 'Niveau', 'ELO', 'Matchs', 'Wins', 'Statut', 'Rejoint le'].map(h => (
+                  <TableHead key={h} className="px-5 whitespace-nowrap font-bold uppercase tracking-wider">{h}</TableHead>
+                ))}
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {members.map((m: any) => {
+                const p = Array.isArray(m.profile) ? m.profile[0] : m.profile;
+                const isOwner = p?.id === owner?.id;
+                return (
+                  <TableRow key={m.id} className={cn(isOwner && 'bg-ax-warning-soft')}>
+                    <TableCell className="px-5 py-4">
+                      <div className="flex items-center gap-3 min-w-[11rem]">
+                        <div className={cn(
+                          'w-8 h-8 shrink-0 rounded-full flex items-center justify-center text-xs font-black',
+                          isOwner ? 'bg-ax-warning-soft text-ax-warning border border-ax-warning' : 'bg-ax-neutral-soft text-ax-text-secondary'
+                        )}>
+                          {isOwner ? <Crown size={14} /> : p?.username?.[0]?.toUpperCase() ?? '?'}
                         </div>
-                      </td>
-                      <td className="px-5 py-4">
-                        <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-lg bg-white/5 text-gray-400">
-                          {p?.role}
-                        </span>
-                      </td>
-                      <td className="px-5 py-4">
-                        <span className={`text-xs font-black uppercase ${levelColor(p?.level)}`}>{p?.level}</span>
-                      </td>
-                      <td className="px-5 py-4">
-                        <span className="font-black text-yellow-500">{p?.elo ?? 0}</span>
-                      </td>
-                      <td className="px-5 py-4 text-gray-300">{p?.total_matches ?? 0}</td>
-                      <td className="px-5 py-4 text-gray-300">{p?.wins ?? 0}</td>
-                      <td className="px-5 py-4">
-                        {m.status === 'active' ? (
-                          <span className="text-[10px] font-bold text-emerald-400 bg-emerald-500/15 px-2 py-0.5 rounded-lg">Actif</span>
-                        ) : (
-                          <span className="text-[10px] font-bold text-red-400 bg-red-500/15 px-2 py-0.5 rounded-lg">Banni</span>
-                        )}
-                      </td>
-                      <td className="px-5 py-4 text-xs text-gray-500">
-                        {new Date(m.joined_at).toLocaleDateString('fr-FR')}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          )}
-        </div>
+                        <div className="min-w-0">
+                          <span className="font-bold text-ax-text break-words">{p?.username ?? 'Inconnu'}</span>
+                          {isOwner && <span className="ml-2 text-[9px] font-black text-ax-warning border border-ax-warning px-1.5 py-0.5 rounded-ax-badge">GÉRANT</span>}
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell className="px-5 py-4">
+                      <span className="whitespace-nowrap text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-ax-badge bg-ax-neutral-soft text-ax-text-secondary">
+                        {p?.role}
+                      </span>
+                    </TableCell>
+                    <TableCell className="px-5 py-4">
+                      <span className="text-xs font-black uppercase" style={levelStyle(p?.level)}>{p?.level}</span>
+                    </TableCell>
+                    <TableCell className="px-5 py-4">
+                      <span className="font-black text-ax-warning">{p?.elo ?? 0}</span>
+                    </TableCell>
+                    <TableCell className="px-5 py-4 text-ax-text">{p?.total_matches ?? 0}</TableCell>
+                    <TableCell className="px-5 py-4 text-ax-text">{p?.wins ?? 0}</TableCell>
+                    <TableCell className="px-5 py-4">
+                      {m.status === 'active' ? (
+                        <span className="text-[10px] font-bold text-ax-success bg-ax-success-soft px-2 py-0.5 rounded-ax-badge">Actif</span>
+                      ) : (
+                        <span className="text-[10px] font-bold text-ax-danger bg-ax-danger-soft px-2 py-0.5 rounded-ax-badge">Banni</span>
+                      )}
+                    </TableCell>
+                    <TableCell className="px-5 py-4 text-xs text-ax-text-secondary whitespace-nowrap">
+                      {new Date(m.joined_at).toLocaleDateString('fr-FR')}
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        )
       )}
 
       {/* TAB: Whiteboard */}
       {tab === 2 && (
         <div className="space-y-4">
           {wodCount > wods.length && (
-            <p className="text-xs text-gray-500">{wods.length} derniers WODs affichés sur {wodCount}.</p>
+            <p className="text-xs text-ax-text-secondary">{wods.length} derniers WODs affichés sur {wodCount}.</p>
           )}
           {wods.length === 0 ? (
             <div className="text-center py-16">
-              <Dumbbell size={40} className="text-gray-600 mx-auto mb-3" />
-              <p className="text-sm text-gray-400">Aucun WOD publié.</p>
+              <Dumbbell size={40} className="text-ax-text-muted mx-auto mb-3" />
+              <p className="text-sm text-ax-text-secondary">Aucun WOD publié.</p>
             </div>
           ) : (
             wods.map((wod: any) => {
               const wodScores = getWodScores(wod.id);
               return (
-                <div key={wod.id} className="bg-[#111111] border border-white/[0.06] rounded-2xl overflow-hidden">
+                <Card key={wod.id} className="overflow-hidden">
                   {/* WOD header */}
-                  <div className="p-5 border-b border-white/[0.04]">
-                    <div className="flex items-start justify-between mb-2">
-                      <div>
-                        <h3 className="text-sm font-bold text-white">{wod.title}</h3>
+                  <div className="p-5 border-b border-ax-border">
+                    <div className="flex flex-wrap items-start justify-between gap-2 mb-2">
+                      <div className="min-w-0">
+                        <h3 className="text-sm font-bold text-ax-text break-words">{wod.title}</h3>
                         {wod.description && (
-                          <p className="text-xs text-gray-400 mt-1 whitespace-pre-wrap max-h-24 overflow-y-auto">{wod.description}</p>
+                          <p className="text-xs text-ax-text-secondary mt-1 whitespace-pre-wrap break-words">{wod.description}</p>
                         )}
                       </div>
-                      <div className="flex items-center gap-2 shrink-0 ml-4">
-                        <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-lg bg-emerald-500/15 text-emerald-400">
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-ax-badge bg-ax-success-soft text-ax-success">
                           {wod.wod_type ?? 'custom'}
                         </span>
                         {wod.is_published ? (
-                          <span className="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-lg">Publié</span>
+                          <span className="text-[10px] font-bold text-ax-success bg-ax-success-soft px-2 py-0.5 rounded-ax-badge">Publié</span>
                         ) : (
-                          <span className="text-[10px] font-bold text-gray-500 bg-white/5 px-2 py-0.5 rounded-lg">Brouillon</span>
+                          <span className="text-[10px] font-bold text-ax-text-secondary bg-ax-neutral-soft px-2 py-0.5 rounded-ax-badge">Brouillon</span>
                         )}
                       </div>
                     </div>
-                    <div className="flex items-center gap-4 text-xs text-gray-500">
+                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-ax-text-secondary">
                       <div className="flex items-center gap-1">
                         <Calendar size={11} />
                         {new Date(wod.scheduled_date).toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' })}
@@ -519,32 +514,32 @@ export default function BoxDetailPage() {
 
                   {/* Scores leaderboard */}
                   {wodScores.length > 0 && (
-                    <div className="divide-y divide-white/[0.03]">
+                    <div className="divide-y divide-ax-border">
                       {wodScores.map((s: any, idx: number) => {
                         const sp = Array.isArray(s.profile) ? s.profile[0] : s.profile;
                         return (
-                          <div key={s.id} className="flex items-center justify-between px-5 py-3 hover:bg-white/[0.02]">
-                            <div className="flex items-center gap-3">
+                          <div key={s.id} className="flex items-center justify-between gap-3 px-5 py-3 hover:bg-ax-hover">
+                            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 min-w-0">
                               <span className={cn(
-                                'w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black',
-                                idx === 0 ? 'bg-yellow-500/20 text-yellow-400' :
-                                idx === 1 ? 'bg-gray-400/20 text-gray-300' :
-                                idx === 2 ? 'bg-orange-500/20 text-orange-400' :
-                                'bg-white/5 text-gray-500'
+                                'w-6 h-6 shrink-0 rounded-full flex items-center justify-center text-[10px] font-black',
+                                idx === 0 ? 'bg-ax-warning-soft text-ax-warning' :
+                                idx === 1 ? 'bg-ax-neutral-soft text-ax-text' :
+                                idx === 2 ? `${SUB_ORANGE_SOFT} ${SUB_ORANGE_TEXT}` :
+                                'bg-ax-neutral-soft text-ax-text-secondary'
                               )}>
                                 {idx + 1}
                               </span>
-                              <span className="text-sm font-semibold text-white">{sp?.username ?? 'Inconnu'}</span>
-                              <span className={`text-[10px] font-black uppercase ${levelColor(sp?.level)}`}>{sp?.level}</span>
-                              {s.rx && <span className="text-[9px] font-black text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded">RX</span>}
+                              <span className="text-sm font-semibold text-ax-text break-words">{sp?.username ?? 'Inconnu'}</span>
+                              <span className="text-[10px] font-black uppercase" style={levelStyle(sp?.level)}>{sp?.level}</span>
+                              {s.rx && <span className="text-[9px] font-black text-ax-success bg-ax-success-soft px-1.5 py-0.5 rounded-ax-badge">RX</span>}
                             </div>
-                            <span className="text-sm font-black text-white">{formatScore(s.score_value, s.score_type)}</span>
+                            <span className="text-sm font-black text-ax-text shrink-0">{formatScore(s.score_value, s.score_type)}</span>
                           </div>
                         );
                       })}
                     </div>
                   )}
-                </div>
+                </Card>
               );
             })
           )}
@@ -556,28 +551,28 @@ export default function BoxDetailPage() {
         <div className="space-y-4">
           {competitions.length === 0 ? (
             <div className="text-center py-16">
-              <Trophy size={40} className="text-gray-600 mx-auto mb-3" />
-              <p className="text-sm text-gray-400">Aucun tournoi créé pour cette box.</p>
+              <Trophy size={40} className="text-ax-text-muted mx-auto mb-3" />
+              <p className="text-sm text-ax-text-secondary">Aucun tournoi créé pour cette box.</p>
             </div>
           ) : (
             competitions.map((c: any) => (
-              <div key={c.id} className="bg-[#111111] border border-white/[0.06] rounded-2xl p-5 space-y-3">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <h3 className="text-sm font-bold text-white">{c.name}</h3>
-                    {c.description && <p className="text-xs text-gray-400 mt-1">{c.description}</p>}
+              <Card key={c.id} className="p-5 space-y-3">
+                <div className="flex flex-wrap items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <h3 className="text-sm font-bold text-ax-text break-words">{c.name}</h3>
+                    {c.description && <p className="text-xs text-ax-text-secondary mt-1 break-words">{c.description}</p>}
                   </div>
                   <span className={cn(
-                    'text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-lg',
-                    c.status === 'open' ? 'text-emerald-400 bg-emerald-500/15' :
-                    c.status === 'active' ? 'text-orange-400 bg-orange-500/15' :
-                    c.status === 'completed' ? 'text-blue-400 bg-blue-500/15' :
-                    'text-gray-400 bg-white/5'
+                    'text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-ax-badge',
+                    c.status === 'open' ? 'text-ax-success bg-ax-success-soft' :
+                    c.status === 'active' ? `${SUB_ORANGE_TEXT} ${SUB_ORANGE_SOFT}` :
+                    c.status === 'completed' ? 'text-ax-info bg-ax-info-soft' :
+                    'text-ax-text-secondary bg-ax-neutral-soft'
                   )}>
                     {c.status === 'open' ? 'Inscriptions ouvertes' : c.status === 'active' ? 'En cours' : c.status === 'completed' ? 'Terminé' : c.status}
                   </span>
                 </div>
-                <div className="flex items-center gap-4 text-xs text-gray-500">
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-ax-text-secondary">
                   <div className="flex items-center gap-1">
                     <Calendar size={11} />
                     {new Date(c.created_at).toLocaleDateString('fr-FR')}
@@ -589,7 +584,7 @@ export default function BoxDetailPage() {
                     </div>
                   )}
                 </div>
-              </div>
+              </Card>
             ))
           )}
         </div>
@@ -601,21 +596,21 @@ export default function BoxDetailPage() {
 function InfoRow({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
   return (
     <div className="flex items-start justify-between gap-4">
-      <span className="text-xs text-gray-500 font-semibold shrink-0">{label}</span>
-      <span className={cn('text-sm text-white text-right', mono && 'font-mono bg-white/5 px-2 py-0.5 rounded')}>{value}</span>
+      <span className="text-xs text-ax-text-secondary font-semibold shrink-0">{label}</span>
+      <span className={cn('min-w-0 text-sm text-ax-text text-right break-words', mono && 'font-mono bg-ax-neutral-soft px-2 py-0.5 rounded-ax-badge')}>{value}</span>
     </div>
   );
 }
 
 function StatCard({ icon: Icon, label, value, color, bg }: { icon: any; label: string; value: number; color: string; bg: string }) {
   return (
-    <div className="bg-[#111111] border border-white/[0.06] rounded-2xl p-4 text-center">
-      <div className={cn('w-8 h-8 rounded-lg mx-auto mb-2 flex items-center justify-center', bg)}>
+    <Card className="p-4 text-center min-w-0">
+      <div className={cn('w-8 h-8 rounded-ax-control mx-auto mb-2 flex items-center justify-center', bg)}>
         <Icon size={16} className={color} />
       </div>
-      <p className="text-xl font-black text-white">{value}</p>
-      <p className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">{label}</p>
-    </div>
+      <p className="text-xl font-black text-ax-text">{value}</p>
+      <p className="text-[10px] text-ax-text-secondary font-bold uppercase tracking-wider break-words">{label}</p>
+    </Card>
   );
 }
 
@@ -650,11 +645,11 @@ function FormatPermissions({ boxId, current, onSaved }: { boxId: string; current
   }
 
   return (
-    <div className="bg-[#111111] border border-white/[0.06] rounded-2xl p-6 space-y-3">
-      <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider flex items-center gap-2">
+    <Card className="p-6 space-y-3">
+      <h3 className={`${CARD_TITLE} flex items-center gap-2`}>
         <Trophy size={14} /> Formats de tournoi autorisés
       </h3>
-      <p className="text-xs text-gray-500">L'owner ne peut créer que les formats que tu coches ici.</p>
+      <p className="text-xs text-ax-text-secondary">Le gérant ne peut créer que les formats que tu coches ici.</p>
       <div className="space-y-2">
         {TOURNAMENT_FORMATS.map(f => {
           const on = selected.includes(f.key);
@@ -662,32 +657,30 @@ function FormatPermissions({ boxId, current, onSaved }: { boxId: string; current
           return (
             <label key={f.key}
               className={cn(
-                'flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-colors',
-                on ? 'border-emerald-500/40 bg-emerald-500/5' : 'border-white/10 bg-white/[0.02] hover:border-white/20',
-                isSimple && 'opacity-90'
+                'flex items-start gap-3 p-3 rounded-ax-control border cursor-pointer transition-colors',
+                on ? 'border-ax-accent-text bg-ax-accent-soft' : 'border-ax-border hover:border-ax-input-border',
               )}
             >
               <input type="checkbox" checked={on} disabled={isSimple}
                 onChange={() => !isSimple && toggle(f.key)}
-                className="mt-0.5 w-4 h-4 accent-emerald-500" />
+                className="mt-0.5 w-4 h-4 accent-[var(--ax-accent-text)]" />
               <div className="flex-1 min-w-0">
-                <div className="text-sm font-bold text-white flex items-center gap-2">
+                <div className="text-sm font-bold text-ax-text flex flex-wrap items-center gap-2">
                   {f.label}
-                  {isSimple && <span className="text-[9px] font-black text-gray-500 uppercase">par défaut</span>}
+                  {isSimple && <span className="text-[9px] font-black text-ax-text-secondary uppercase">par défaut</span>}
                 </div>
-                <div className="text-xs text-gray-500">{f.desc}</div>
+                <div className="text-xs text-ax-text-secondary">{f.desc}</div>
               </div>
             </label>
           );
         })}
       </div>
-      <div className="flex items-center justify-between pt-2">
-        {msg && <span className="text-xs text-gray-400">{msg}</span>}
-        <button onClick={save} disabled={!dirty || saving}
-          className="ml-auto flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 disabled:opacity-50 text-white text-sm font-bold transition-colors">
+      <div className="flex flex-wrap items-center justify-between gap-2 pt-2">
+        {msg && <span className="text-xs text-ax-text-secondary">{msg}</span>}
+        <Button variant="ax-mint" onClick={save} disabled={!dirty || saving} className="ml-auto">
           <Save size={14} /> {saving ? 'Sauvegarde...' : 'Enregistrer'}
-        </button>
+        </Button>
       </div>
-    </div>
+    </Card>
   );
 }

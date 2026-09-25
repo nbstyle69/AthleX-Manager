@@ -16,7 +16,9 @@ const PHYS_LIST = 'app/admin/physical-competitions/page.tsx';
 const PROGRAMS = 'app/admin/programs/page.tsx';
 const TOURN = 'app/admin/tournaments/[id]/page.tsx';
 const TOURN_LIST = 'app/admin/tournaments/page.tsx';
-const FILES = [CHANGELOG, CONTESTS, INTER, INTER_LIST, PARTNERS, PHYS, PHYS_LIST, PROGRAMS, TOURN, TOURN_LIST];
+// Lot 7a : archiver / supprimer une box, jusque-là dans des boîtes maison.
+const ARCHIVE = 'components/admin/BoxArchiveBlock.tsx';
+const FILES = [CHANGELOG, CONTESTS, INTER, INTER_LIST, PARTNERS, PHYS, PHYS_LIST, PROGRAMS, TOURN, TOURN_LIST, ARCHIVE];
 
 interface Site { id: string; file: string; opens: string; direct: string; run: RegExp }
 
@@ -34,6 +36,9 @@ const SITES: Site[] = [
   { id: 'D11 compétition sur place', file: PHYS_LIST, opens: 'onClick={() => askDelete(c)}', direct: 'onClick={() => handleDelete(', run: /function askDelete[\s\S]{0,900}run: \(\) => handleDelete\(c\.id\),/ },
   { id: 'D12 affilié', file: PROGRAMS, opens: '<button onClick={() => askDeleteAff(a)}', direct: '<button onClick={() => deleteAff(', run: /function askDeleteAff[\s\S]{0,700}run: \(\) => deleteAff\(a\.id\),/ },
   { id: 'D14 tournoi quotidien (fiche)', file: TOURN, opens: '<button onClick={askDeleteTournament}', direct: '<button onClick={handleDeleteTournament}', run: /function askDeleteTournament[\s\S]{0,800}run: handleDeleteTournament,/ },
+  // D18, D19 : textes, champ et couleurs dans lib/boxArchive.ts (boxArchive.test.ts).
+  { id: 'D18 archiver une box (lot 7a)', file: ARCHIVE, opens: 'onClick={askArchive}', direct: 'onClick={() => void setArchived(true)}', run: /function askArchive\(\) \{\s*ask\(archiveRequest\(boxName, \(\) => setArchived\(true\)\)\);/ },
+  { id: 'D19 supprimer une box (lot 7a)', file: ARCHIVE, opens: 'onClick={askDelete}', direct: 'onClick={() => void remove(', run: /function askDelete\(\) \{\s*ask\(deleteRequest\(boxName, typedName => remove\(typedName\)\)\);/ },
   { id: 'D15 score de tournoi quotidien', file: TOURN, opens: '<button onClick={() => askDeleteScore(score)}', direct: '<button onClick={() => handleDeleteScore(', run: /function askDeleteScore[\s\S]{0,900}run: \(\) => handleDeleteScore\(score\.id\),/ },
 ];
 

@@ -60,12 +60,13 @@ export function formatExpiredSince(iso: string): string {
   return `échue depuis le ${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`;
 }
 
+/** Pastille de formule (super-admin), en jetons `--ax-*` : même sens qu'avant, lisible dans les deux thèmes. */
 export function planTierClasses(tier: string): string {
   switch (tier) {
-    case 'multi': return 'text-yellow-400 bg-yellow-500/15 border-yellow-500/20';
-    case 'complete': return 'text-purple-400 bg-purple-500/15 border-purple-500/20';
-    case 'essai': return 'text-sky-400 bg-sky-500/15 border-sky-500/20';
-    case 'impayé': return 'text-red-400 bg-red-500/15 border-red-500/20';
-    default: return 'text-gray-400 bg-white/5 border-white/10';
+    case 'multi': return 'text-ax-warning bg-ax-warning-soft border-ax-warning';
+    case 'complete': return 'text-ax-purple bg-[color-mix(in_srgb,var(--ax-purple)_12%,var(--ax-surface))] border-ax-purple';
+    case 'essai': return 'text-[color:var(--ax-sub-sky-text)] bg-[color-mix(in_srgb,var(--ax-sub-sky-text)_12%,var(--ax-surface))] border-[color:var(--ax-sub-sky-text)]';
+    case 'impayé': return 'text-ax-danger bg-ax-danger-soft border-ax-danger';
+    default: return 'text-ax-text-secondary bg-ax-neutral-soft border-ax-border';
   }
 }

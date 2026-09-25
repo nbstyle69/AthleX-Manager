@@ -8,6 +8,12 @@ import { FREE_TIER, formatExpiredSince, planTierClasses } from '@/lib/boxPlanTie
 import { Sparkles, Archive } from 'lucide-react';
 import { useConfirmDialog } from '@/components/ui/confirm-dialog';
 import { ERROR_TITLE } from '@/lib/confirmDialog';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { SUB_ORANGE_SOFT, SUB_ORANGE_TEXT } from '@/components/admin/adminTokens';
+
+const FIELD_LABEL = 'block text-xs font-bold text-ax-text-secondary uppercase tracking-wider mb-1.5';
+const TEXTAREA = 'w-full min-w-0 rounded-ax-control border border-ax-input-border bg-ax-surface px-3 py-2.5 text-base text-ax-text placeholder:text-ax-text-muted sm:text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ax-focus focus-visible:ring-offset-2 focus-visible:ring-offset-ax-surface';
 
 interface BoxItem {
   id: string;
@@ -154,32 +160,30 @@ export default function AdminBoxesPage() {
   return (
     <div className="space-y-6">
       {dialog}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-orange-500/20 flex items-center justify-center">
-            <Building2 size={22} className="text-orange-400" />
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div className="flex items-center gap-3 min-w-0">
+          <div className={`w-10 h-10 shrink-0 rounded-ax-control ${SUB_ORANGE_SOFT} flex items-center justify-center`}>
+            <Building2 size={22} className={SUB_ORANGE_TEXT} />
           </div>
-          <div>
-            <h1 className="text-xl font-black text-white">Boxs</h1>
-            <p className="text-sm text-gray-400">{boxes.length} box{boxes.length !== 1 ? 's' : ''} enregistrée{boxes.length !== 1 ? 's' : ''}</p>
+          <div className="min-w-0">
+            <h1 className="font-display text-2xl font-medium uppercase tracking-wide text-ax-text">Boxs</h1>
+            <p className="text-sm text-ax-text-secondary">{boxes.length} box{boxes.length !== 1 ? 's' : ''} enregistrée{boxes.length !== 1 ? 's' : ''}</p>
           </div>
         </div>
-        <div className="flex items-center gap-3">
-          <button
+        {/* À 390 px, la barre passe à la ligne au lieu de sortir de l'écran. */}
+        <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
+          <Button
+            variant="ax-outline"
             onClick={handleGeocode}
             disabled={geocoding}
             title="Géocode les adresses des boxs sans coordonnées pour les afficher sur la carte"
-            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 disabled:opacity-50 text-white text-sm font-bold transition-colors"
           >
             <MapPin size={16} /> {geocoding ? 'Géocodage...' : 'Géocoder les adresses'}
-          </button>
-          <button
-            onClick={() => setShowCreate(true)}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-bold transition-colors"
-          >
+          </Button>
+          <Button variant="ax-mint" onClick={() => setShowCreate(true)}>
             <Plus size={16} /> Créer une box
-          </button>
-          <div className="flex items-center gap-1 p-1 rounded-xl border border-white/10" role="tablist" aria-label="Filtre">
+          </Button>
+          <div className="flex items-center gap-1 p-1 rounded-ax-control border border-ax-border" role="tablist" aria-label="Filtre">
             {([[false, 'Actives'], [true, 'Archivées']] as const).map(([v, label]) => (
               <button
                 key={label}
@@ -188,20 +192,21 @@ export default function AdminBoxesPage() {
                 aria-selected={showArchived === v}
                 data-testid={v ? 'filtre-archivees' : 'filtre-actives'}
                 onClick={() => setShowArchived(v)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${
-                  showArchived === v ? 'bg-white/10 text-white' : 'text-gray-400 hover:text-white'}`}
+                className={`px-3 py-1.5 rounded-ax-control text-xs font-bold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ax-focus motion-reduce:transition-none ${
+                  showArchived === v ? 'bg-ax-accent-soft text-ax-accent-text' : 'text-ax-text-secondary hover:text-ax-text hover:bg-ax-hover'}`}
               >
                 {label}
               </button>
             ))}
           </div>
-          <div className="relative">
-            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
-            <input
+          <div className="relative w-full sm:w-64">
+            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-ax-text-muted pointer-events-none" />
+            <Input
               value={search}
               onChange={e => setSearch(e.target.value)}
               placeholder="Rechercher..."
-              className="pl-9 pr-4 py-2 rounded-xl bg-white/5 border border-white/10 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-emerald-500/50 w-64"
+              aria-label="Rechercher une box"
+              className="pl-9"
             />
           </div>
         </div>
@@ -209,79 +214,75 @@ export default function AdminBoxesPage() {
 
       {/* Create Box Modal */}
       {showCreate && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-          <div className="bg-[#111111] border border-white/[0.08] rounded-2xl p-6 w-full max-w-md space-y-5">
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg font-black text-white">Créer une Box</h2>
-              <button onClick={() => setShowCreate(false)} className="text-gray-500 hover:text-white"><X size={20} /></button>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-ax-overlay backdrop-blur-sm p-4">
+          <div className="bg-ax-surface border border-ax-border shadow-ax-panel rounded-ax-panel p-6 w-full max-w-md max-h-[calc(100vh-2rem)] overflow-y-auto space-y-5">
+            <div className="flex items-center justify-between gap-3">
+              <h2 className="font-display text-xl font-medium tracking-wide text-ax-text">Créer une Box</h2>
+              <button onClick={() => setShowCreate(false)} aria-label="Fermer" className="rounded-ax-control p-1 text-ax-text-secondary hover:text-ax-text hover:bg-ax-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ax-focus"><X size={20} /></button>
             </div>
             <div className="space-y-4">
               <div>
-                <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">Nom *</label>
-                <input value={newName} onChange={e => setNewName(e.target.value)} placeholder="Nom de ma salle ici"
-                  className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-emerald-500/50" />
+                <label className={FIELD_LABEL}>Nom *</label>
+                <Input value={newName} onChange={e => setNewName(e.target.value)} placeholder="Nom de ma salle ici" />
               </div>
               <div>
-                <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">Description</label>
+                <label className={FIELD_LABEL}>Description</label>
                 <textarea value={newDesc} onChange={e => setNewDesc(e.target.value)} placeholder="Description de la box..."
-                  className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-emerald-500/50 h-20 resize-none" />
+                  className={`${TEXTAREA} h-20 resize-y`} />
               </div>
               <div>
-                <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">Ville</label>
-                <input value={newCity} onChange={e => setNewCity(e.target.value)} placeholder="Paris"
-                  className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-emerald-500/50" />
+                <label className={FIELD_LABEL}>Ville</label>
+                <Input value={newCity} onChange={e => setNewCity(e.target.value)} placeholder="Paris" />
               </div>
               <div>
-                <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">Username du propriétaire *</label>
-                <input value={newOwnerUsername} onChange={e => setNewOwnerUsername(e.target.value)} placeholder="nbstyle"
-                  className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-emerald-500/50" />
+                <label className={FIELD_LABEL}>Username du propriétaire *</label>
+                <Input value={newOwnerUsername} onChange={e => setNewOwnerUsername(e.target.value)} placeholder="nbstyle" />
               </div>
-              {createError && <p className="text-xs text-red-400">{createError}</p>}
+              {createError && <p className="text-xs text-ax-danger">{createError}</p>}
             </div>
-            <button onClick={handleCreate} disabled={creating}
-              className="w-full py-3 rounded-xl bg-emerald-500 hover:bg-emerald-600 disabled:opacity-50 text-white text-sm font-bold transition-colors">
+            <Button variant="ax-mint" onClick={handleCreate} disabled={creating} className="w-full">
               {creating ? 'Création...' : 'Créer la box'}
-            </button>
+            </Button>
           </div>
         </div>
       )}
 
       {loading ? (
         <div className="flex items-center justify-center py-20">
-          <div className="w-8 h-8 border-2 border-emerald-500/30 border-t-emerald-500 rounded-full animate-spin" />
+          <div className="w-8 h-8 border-2 border-ax-border border-t-ax-accent-text rounded-full animate-spin" />
         </div>
       ) : filtered.length === 0 ? (
         <div className="text-center py-20">
-          <Building2 size={48} className="text-gray-600 mx-auto mb-4" />
-          <p className="text-gray-400">
+          <Building2 size={48} className="text-ax-text-muted mx-auto mb-4" />
+          <p className="text-ax-text-secondary">
             {search ? 'Aucun résultat.' : showArchived ? 'Aucune box archivée.' : 'Aucune box enregistrée.'}
           </p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           {filtered.map(box => (
-            <Link key={box.id} href={`/admin/boxes/${box.id}`} className="block bg-[#111111] border border-white/[0.06] rounded-2xl p-5 space-y-4 hover:border-emerald-500/30 transition-all cursor-pointer group">
+            <Link key={box.id} href={`/admin/boxes/${box.id}`} className="block bg-ax-surface border border-ax-border rounded-ax-card p-5 space-y-4 hover:border-ax-accent-text transition-colors cursor-pointer group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ax-focus focus-visible:ring-offset-2 focus-visible:ring-offset-ax-background motion-reduce:transition-none">
               {/* Header */}
-              <div className="flex items-start justify-between">
-                <div className="flex items-center gap-3">
+              <div className="flex flex-wrap items-start justify-between gap-2">
+                <div className="flex items-center gap-3 min-w-0">
                   {box.logo_url ? (
-                    <img src={box.logo_url} alt={box.name} className="w-10 h-10 rounded-xl object-cover" />
+                    <img src={box.logo_url} alt={box.name} className="w-10 h-10 shrink-0 rounded-ax-control object-cover" />
                   ) : (
-                    <div className="w-10 h-10 rounded-xl bg-orange-500/15 flex items-center justify-center text-orange-400 font-black text-sm">
+                    <div className={`w-10 h-10 shrink-0 rounded-ax-control ${SUB_ORANGE_SOFT} ${SUB_ORANGE_TEXT} flex items-center justify-center font-black text-sm`}>
                       {box.name[0]?.toUpperCase() ?? 'B'}
                     </div>
                   )}
-                  <div>
-                    <p className="text-sm font-bold text-white">{box.name}</p>
-                    {box.city && <p className="text-xs text-gray-500">{box.city}</p>}
+                  <div className="min-w-0">
+                    <p className="text-sm font-bold text-ax-text break-words">{box.name}</p>
+                    {box.city && <p className="text-xs text-ax-text-secondary break-words">{box.city}</p>}
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   {box.archived_at && (
                     <span
                       data-testid={`archivee-${box.id}`}
                       title={`Archivée le ${new Date(box.archived_at).toLocaleDateString('fr-FR')}`}
-                      className="flex items-center gap-1 text-[10px] font-bold text-amber-400 bg-amber-500/15 px-2 py-0.5 rounded-lg"
+                      className="flex items-center gap-1 text-[10px] font-bold text-ax-warning bg-ax-warning-soft px-2 py-0.5 rounded-ax-badge"
                     >
                       <Archive size={10} /> {new Date(box.archived_at).toLocaleDateString('fr-FR')}
                     </span>
@@ -291,17 +292,17 @@ export default function AdminBoxesPage() {
                     <span
                       data-testid={`auto-pastille-${box.id}`}
                       title="Programmation automatique active — réglage dans la fiche de la box"
-                      className="flex items-center gap-1 text-[10px] font-bold text-emerald-400 bg-emerald-500/15 px-2 py-0.5 rounded-lg"
+                      className="flex items-center gap-1 text-[10px] font-bold text-ax-success bg-ax-success-soft px-2 py-0.5 rounded-ax-badge"
                     >
                       <Sparkles size={10} /> Auto
                     </span>
                   )}
                   {box.is_active ? (
-                    <span className="flex items-center gap-1 text-[10px] font-bold text-emerald-400 bg-emerald-500/15 px-2 py-0.5 rounded-lg">
+                    <span className="flex items-center gap-1 text-[10px] font-bold text-ax-success bg-ax-success-soft px-2 py-0.5 rounded-ax-badge">
                       <CheckCircle size={10} /> Active
                     </span>
                   ) : (
-                    <span className="flex items-center gap-1 text-[10px] font-bold text-red-400 bg-red-500/15 px-2 py-0.5 rounded-lg">
+                    <span className="flex items-center gap-1 text-[10px] font-bold text-ax-danger bg-ax-danger-soft px-2 py-0.5 rounded-ax-badge">
                       <XCircle size={10} /> Inactive
                     </span>
                   )}
@@ -309,34 +310,34 @@ export default function AdminBoxesPage() {
               </div>
 
               {/* Info */}
-              <div className="flex items-center gap-4 text-xs">
-                <div className="flex items-center gap-1.5 text-gray-400">
+              <div className="flex flex-wrap items-center gap-4 text-xs">
+                <div className="flex items-center gap-1.5 text-ax-text-secondary">
                   <Users size={12} />
                   <span className="font-semibold">{box.member_count} membre{box.member_count !== 1 ? 's' : ''}</span>
                 </div>
-                <div className="flex items-center gap-1.5 text-gray-400">
+                <div className="flex items-center gap-1.5 text-ax-text-secondary">
                   <Calendar size={12} />
                   <span className="font-semibold">{new Date(box.created_at).toLocaleDateString('fr-FR')}</span>
                 </div>
               </div>
 
               {/* Footer */}
-              <div className="flex items-center justify-between pt-3 border-t border-white/[0.04]">
-                <div>
-                  <p className="text-[10px] text-gray-500 uppercase tracking-wider font-bold">Owner</p>
-                  <p className="text-xs font-semibold text-gray-300">{box.owner_name}</p>
+              <div className="flex flex-wrap items-center justify-between gap-2 pt-3 border-t border-ax-border">
+                <div className="min-w-0">
+                  <p className="text-[10px] text-ax-text-secondary uppercase tracking-wider font-bold">Gérant</p>
+                  <p className="text-xs font-semibold text-ax-text break-words">{box.owner_name}</p>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   {box.expired_at && (
-                    <span className="text-[10px] text-orange-400/80">{formatExpiredSince(box.expired_at)}</span>
+                    <span className={`text-[10px] ${SUB_ORANGE_TEXT}`}>{formatExpiredSince(box.expired_at)}</span>
                   )}
                   {box.offered && (
-                    <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-lg text-emerald-400 bg-emerald-500/10">offert</span>
+                    <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-ax-badge text-ax-success bg-ax-success-soft">offert</span>
                   )}
-                  <span className={`text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-lg ${planTierClasses(box.plan)}`}>
+                  <span className={`text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-ax-badge ${planTierClasses(box.plan)}`}>
                     {box.plan}
                   </span>
-                  <ChevronRight size={14} className="text-gray-600 group-hover:text-emerald-400 transition-colors" />
+                  <ChevronRight size={14} className="text-ax-text-muted group-hover:text-ax-accent-text transition-colors" />
                 </div>
               </div>
             </Link>

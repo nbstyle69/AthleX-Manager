@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
   confirmAction,
+  confirmBlocked,
   createDialogController,
   dialogHandlers,
   infoButtonLabel,
@@ -44,6 +45,9 @@ export function useConfirmDialog(): {
     inform: req => { remember(); return ctrl.inform(req); },
   };
 }
+
+// Ambre plein (archivage : réversible mais lourd), texte de fond : AA dans les deux thèmes.
+const WARNING_BUTTON = 'border-ax-warning bg-ax-warning text-ax-background hover:brightness-110';
 
 function ConfirmDialogView({ ctrl, returnFocus }: {
   ctrl: ReturnType<typeof createDialogController>;
@@ -124,6 +128,7 @@ function ConfirmDialogView({ ctrl, returnFocus }: {
                     className="mt-1.5"
                     value={state.value}
                     placeholder={state.req.field.placeholder}
+                    aria-invalid={confirmBlocked(state) && state.value !== '' ? true : undefined}
                     disabled={busy}
                     onChange={e => ctrl.setValue(e.target.value)}
                   />
@@ -141,7 +146,8 @@ function ConfirmDialogView({ ctrl, returnFocus }: {
                 <Button
                   variant={confirmAction(state).danger ? 'ax-danger' : 'ax-white'}
                   onClick={h.onConfirmClick}
-                  disabled={busy}
+                  disabled={busy || confirmBlocked(state)}
+                  className={!confirmAction(state).danger && state.req.tone === 'warning' ? WARNING_BUTTON : undefined}
                   data-testid="confirm-dialog-action"
                 >
                   {busy && <Loader2 size={15} className="animate-spin" aria-hidden />}
