@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { createServiceClient, getServerUser } from '@/lib/supabase/server';
 import { isBoxOwnerAdmin } from '@/lib/isBoxOwnerAdmin';
+import { refuseClosedBox } from '@/lib/boxEntryGuard';
 
 function getStripe() {
   return new Stripe(process.env.STRIPE_SECRET_KEY!, {
@@ -61,6 +62,13 @@ export async function POST(req: NextRequest) {
     const stripeAccount = (box as { stripe_account_id: string | null } | null)?.stripe_account_id;
     if (!stripeAccount) {
       return NextResponse.json({ error: 'Compte de paiement de la box introuvable.' }, { status: 409 });
+    }
+
+    // Archivage (PR 2) : reprendre une pause relancerait les prélèvements d'une
+    // box archivée ou en archivage programmé. La mise en pause reste possible.
+    if (action === 'resume') {
+      const refus = await refuseClosedBox(supabase, member.box_id, 'achat');
+      if (refus) return refus;
     }
 
     const now = new Date().toISOString();

@@ -36,8 +36,11 @@ const SITES: Site[] = [
   { id: 'D11 compétition sur place', file: PHYS_LIST, opens: 'onClick={() => askDelete(c)}', direct: 'onClick={() => handleDelete(', run: /function askDelete[\s\S]{0,900}run: \(\) => handleDelete\(c\.id\),/ },
   { id: 'D12 affilié', file: PROGRAMS, opens: '<button onClick={() => askDeleteAff(a)}', direct: '<button onClick={() => deleteAff(', run: /function askDeleteAff[\s\S]{0,700}run: \(\) => deleteAff\(a\.id\),/ },
   { id: 'D14 tournoi quotidien (fiche)', file: TOURN, opens: '<button onClick={askDeleteTournament}', direct: '<button onClick={handleDeleteTournament}', run: /function askDeleteTournament[\s\S]{0,800}run: handleDeleteTournament,/ },
-  // D18, D19 : textes, champ et couleurs dans lib/boxArchive.ts (boxArchive.test.ts).
-  { id: 'D18 archiver une box (lot 7a)', file: ARCHIVE, opens: 'onClick={askArchive}', direct: 'onClick={() => void setArchived(true)}', run: /function askArchive\(\) \{\s*ask\(archiveRequest\(boxName, \(\) => setArchived\(true\)\)\);/ },
+  // D18, D19, D20 : textes, champ et couleurs dans lib/boxArchive.ts (boxArchive.test.ts).
+  // Archivage PR 2 : la boîte vient après la lecture de ce qui paie (`check`),
+  // et « schedule » ne part que de son bouton d'action (askArchiveBox).
+  { id: 'D18 archiver une box (lot 7a, PR 2)', file: ARCHIVE, opens: 'onClick={askArchive}', direct: "onClick={() => void postArchiveSchedule(boxId, 'schedule')", run: /function askArchive\(\) \{\s*void askArchiveBox\(\{ ask, inform, boxId, boxName, onDone: onChanged \}\);/ },
+  { id: 'D20 annuler un archivage programmé (PR 2)', file: ARCHIVE, opens: 'onClick={askUnschedule}', direct: 'onClick={() => void unschedule(', run: /function askUnschedule\(\) \{\s*ask\(unscheduleRequest\(boxName, unschedule\)\);/ },
   { id: 'D19 supprimer une box (lot 7a)', file: ARCHIVE, opens: 'onClick={askDelete}', direct: 'onClick={() => void remove(', run: /function askDelete\(\) \{\s*ask\(deleteRequest\(boxName, typedName => remove\(typedName\)\)\);/ },
   { id: 'D15 score de tournoi quotidien', file: TOURN, opens: '<button onClick={() => askDeleteScore(score)}', direct: '<button onClick={() => handleDeleteScore(', run: /function askDeleteScore[\s\S]{0,900}run: \(\) => handleDeleteScore\(score\.id\),/ },
 ];

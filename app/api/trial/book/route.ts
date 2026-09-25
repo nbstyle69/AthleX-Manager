@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { rpcEntryRefusal } from '@/lib/boxEntryGuard';
 import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 import { clientIp, takeToken } from '@/lib/trialRateLimit';
 import { MAIL_FROM, SITE_URL } from '@/lib/site-url';
@@ -83,6 +84,9 @@ export async function POST(req: NextRequest) {
   }
 
   const result = data as BookOk | BookRefused | null;
+  // Archivage (PR 1 et 2) : refus de la RPC rendu en 409, avec son code.
+  const refus = rpcEntryRefusal(result);
+  if (refus) return refus;
   if (!result?.ok) {
     return NextResponse.json(result ?? { ok: false, reason: 'reservation_impossible' });
   }

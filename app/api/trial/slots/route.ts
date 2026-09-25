@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { rpcEntryRefusal } from '@/lib/boxEntryGuard';
 import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 import { clientIp, takeToken } from '@/lib/trialRateLimit';
 
@@ -44,6 +45,10 @@ export async function POST(req: NextRequest) {
     console.error('list_public_trial_slots', error.message);
     return NextResponse.json({ ok: false, reason: 'lecture_impossible' }, { status: 502 });
   }
+
+  // Archivage (PR 1 et 2) : refus de la RPC rendu en 409, avec son code.
+  const refus = rpcEntryRefusal(data);
+  if (refus) return refus;
 
   return NextResponse.json(data);
 }

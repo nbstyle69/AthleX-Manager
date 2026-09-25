@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient, getServerUser, getActiveBox } from '@/lib/supabase/server';
 import { createServiceClient } from '@/lib/supabase/server';
 import { isBoxOwnerAdmin } from '@/lib/isBoxOwnerAdmin';
+import { refuseClosedBox } from '@/lib/boxEntryGuard';
 
 export async function POST(req: NextRequest) {
   const user = await getServerUser();
@@ -31,6 +32,10 @@ export async function POST(req: NextRequest) {
   if (!(await isBoxOwnerAdmin(service, user.id, box.id))) {
     return NextResponse.json({ error: 'Non autorisé pour cette box.' }, { status: 403 });
   }
+
+  // Archivage (PR 2) : un nouveau code ouvrirait l'entrée d'une box fermée.
+  const refus = await refuseClosedBox(service, box.id, 'adhesion');
+  if (refus) return refus;
 
   // Check uniqueness — reject if another box already uses this code
   const { data: existing } = await service

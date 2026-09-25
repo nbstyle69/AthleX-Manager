@@ -1,10 +1,13 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { Archive, ArchiveRestore, Trash2 } from 'lucide-react';
+import { Archive, ArchiveRestore, CalendarClock, Trash2, Undo2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useConfirmDialog } from '@/components/ui/confirm-dialog';
-import { archiveRequest, deleteBox, deleteRequest, patchArchive } from '@/lib/boxArchive';
+import {
+  askArchiveBox, deleteBox, deleteRequest, patchArchive, postArchiveSchedule, scheduledStateLabel, unscheduleRequest,
+} from '@/lib/boxArchive';
+import { ERROR_TITLE } from '@/lib/confirmDialog';
 
 interface Deletion {
   name: string;
@@ -22,19 +25,32 @@ interface Deletion {
  * définitive, se grise dès que la box contient quoi que ce soit, et renvoie
  * alors vers l'archivage en nommant ce qui bloque.
  *
- * Les deux confirmations passent par `ConfirmDialog` (lot 7a) : l'appel ne part
+ * Les confirmations passent par `ConfirmDialog` (lot 7a) : l'appel ne part
  * que de son bouton d'action ; Annuler, la croix et Échap n'exécutent rien.
+ *
+ * Archivage PR 2 : « Archiver » lit d'abord ce qui paie encore (`check`),
+ * puis arrête les abonnements et programme l'archivage (ou archive tout de
+ * suite si plus rien ne paie). Une box en archivage programmé affiche son
+ * état et « Annuler l'archivage programmé », avec sa propre boîte.
  */
 export default function BoxArchiveBlock({
-  boxId, boxName, archivedAt, onChanged,
+  boxId, boxName, archivedAt, archiveScheduledAt = null, onChanged,
 }: {
   boxId: string;
   boxName: string;
   archivedAt: string | null;
+  archiveScheduledAt?: string | null;
   onChanged: () => void;
 }) {
   const archived = !!archivedAt;
-  const { dialog, ask } = useConfirmDialog();
+  const scheduled = !archived && !!archiveScheduledAt;
+  const { dialog, ask, inform } = useConfirmDialog();
+  // Box programmée : la date au plus tard se lit dans les abonnements (lecture seule).
+  const [lastEnd, setLastEnd] = useState<string | null | undefined>(undefined);
+  useEffect(() => {
+    if (!scheduled) return;
+    void postArchiveSchedule(boxId, 'check').then(r => setLastEnd(r.ok ? (r.data.last_end ?? null) : null));
+  }, [boxId, scheduled]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [deletion, setDeletion] = useState<Deletion | null>(null);
@@ -72,16 +88,26 @@ export default function BoxArchiveBlock({
     }
   }
 
-  // Les deux boîtes (textes d'avant) : lib/boxArchive.ts.
+  // Les boîtes : lib/boxArchive.ts.
   function askArchive() {
-    ask(archiveRequest(boxName, () => setArchived(true)));
+    void askArchiveBox({ ask, inform, boxId, boxName, onDone: onChanged });
+  }
+
+  async function unschedule() {
+    const r = await postArchiveSchedule(boxId, 'unschedule');
+    if (!r.ok) { void inform({ kind: 'error', title: ERROR_TITLE, body: r.data.error ?? 'L’archivage programmé n’a pas été annulé.' }); return; }
+    onChanged();
+  }
+
+  function askUnschedule() {
+    ask(unscheduleRequest(boxName, unschedule));
   }
 
   function askDelete() {
     ask(deleteRequest(boxName, typedName => remove(typedName)));
   }
 
-  const canDelete = deletion?.empty === true && !archived;
+  const canDelete = deletion?.empty === true && !archived && !scheduled;
 
   return (
     <div className="bg-ax-surface border border-ax-border rounded-ax-card p-6 space-y-3" data-testid={`archive-block-${boxId}`}>
@@ -103,6 +129,25 @@ export default function BoxArchiveBlock({
             data-testid={`reactiver-${boxId}`}
           >
             <ArchiveRestore size={14} /> {busy ? 'Réactivation...' : 'Réactiver cette box'}
+          </Button>
+        </>
+      ) : scheduled ? (
+        <>
+          <p className="rounded-ax-control border border-ax-warning bg-ax-warning-soft px-3 py-2 text-sm font-semibold text-ax-warning flex items-start gap-2" data-testid={`archivage-programme-${boxId}`}>
+            <CalendarClock size={16} className="shrink-0 mt-0.5" />
+            <span className="break-words min-w-0">{lastEnd === undefined ? 'Archivage programmé' : scheduledStateLabel(lastEnd)}</span>
+          </p>
+          <p className="text-xs text-ax-text-secondary">
+            Les nouvelles adhésions, invitations et ventes sont fermées. Les membres gardent l&apos;accès
+            jusqu&apos;à la fin de leur période payée ; la box sera alors archivée automatiquement.
+          </p>
+          <Button
+            variant="ax-outline"
+            onClick={askUnschedule}
+            disabled={busy}
+            data-testid={`annuler-archivage-${boxId}`}
+          >
+            <Undo2 size={14} /> Annuler l&apos;archivage programmé
           </Button>
         </>
       ) : (

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { requireBoxOwner } from '@/lib/requireBoxOwner';
 import { SITE_URL } from '@/lib/site-url';
+import { refuseClosedBox } from '@/lib/boxEntryGuard';
 
 function getStripe() {
   return new Stripe(process.env.STRIPE_SECRET_KEY!, {
@@ -19,6 +20,10 @@ export async function POST(req: NextRequest) {
     const guard = await requireBoxOwner(box_id);
     if (!guard.ok) return guard.response;
     const supabase = guard.service;
+
+    // Archivage (PR 2) : box archivée ou en archivage programmé → refus.
+    const refus = await refuseClosedBox(supabase, box_id, 'abonnement_box');
+    if (refus) return refus;
 
     // Get box + owner info
     const { data: box, error: boxErr } = await supabase

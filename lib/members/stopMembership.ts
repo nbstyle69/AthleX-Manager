@@ -32,10 +32,12 @@ export async function sendMemberEmail(opts: {
   boxName: string;
   replyTo: string | null;
   tag: string;
+  /** Pied de l'e-mail ; par défaut « Message envoyé par {box} via AthleX. » */
+  footer?: string;
 }): Promise<boolean> {
   const apiKey = process.env.RESEND_API_KEY;
   if (!apiKey) return false;
-  const { to, subject, bodyText, boxName, replyTo, tag } = opts;
+  const { to, subject, bodyText, boxName, replyTo, tag, footer } = opts;
 
   const paragraphs = bodyText
     .split('\n\n')
@@ -46,7 +48,7 @@ export async function sendMemberEmail(opts: {
     <tr><td>
       <h1 style="font-size:22px;font-weight:800;margin:0 0 16px">${esc(subject)}</h1>
       ${paragraphs}
-      <p style="font-size:12px;color:#777;margin:28px 0 0">Message envoyé par ${esc(boxName)} via AthleX.</p>
+      <p style="font-size:12px;color:#777;margin:28px 0 0">${esc(footer ?? `Message envoyé par ${boxName} via AthleX.`)}</p>
     </td></tr>
   </table>
 </body></html>`;

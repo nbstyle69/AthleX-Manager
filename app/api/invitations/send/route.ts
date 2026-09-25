@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient, getServerUser } from '@/lib/supabase/server';
 import { isBoxOwnerAdmin } from '@/lib/isBoxOwnerAdmin';
 import { SITE_URL, MAIL_FROM } from '@/lib/site-url';
+import { refuseClosedBox } from '@/lib/boxEntryGuard';
 
 /**
  * Envoi du lien d'invitation par e-mail, au nom de la box.
@@ -51,6 +52,10 @@ export async function POST(req: NextRequest) {
       { status: 409 },
     );
   }
+
+  // Archivage (PR 2) : box archivée ou en archivage programmé → refus.
+  const refus = await refuseClosedBox(service, invitation.box_id, 'adhesion');
+  if (refus) return refus;
 
   const [{ data: box }, { data: plan }] = await Promise.all([
     service.from('boxes').select('name, contact_email').eq('id', invitation.box_id).maybeSingle(),

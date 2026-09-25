@@ -85,16 +85,18 @@ describe('PATCH /api/admin/boxes/[id]/archive', () => {
     expect(res._status).toBe(400);
   });
 
-  it('archive en posant la date et l’auteur', async () => {
+  // Archivage PR 2 : archiver passe par archive-schedule, qui arrête d'abord
+  // les abonnements Stripe. Le PATCH direct laisserait prélever une box archivée.
+  it('refuse d’archiver directement (409), sans rien écrire', async () => {
     role('super_admin');
-    const boxes = makeChain({ data: { id: BOX, name: NOM, archived_at: '2026-09-18T10:00:00Z' }, error: null });
-    mockCreateServiceClient.mockReturnValueOnce({ from: jest.fn(() => boxes) });
+    const boxes = makeChain({ data: null, error: null });
+    mockCreateServiceClient.mockReturnValue({ from: jest.fn(() => boxes) });
 
     const res: any = await PATCH(req({ archived: true }), params);
-    expect(res._status).toBe(200);
-    const written = boxes.update.mock.calls[0][0];
-    expect(written.archived_at).toEqual(expect.any(String));
-    expect(written.archived_by).toBe('admin-1');
+    expect(res._status).toBe(409);
+    expect((await res.json()).error).toContain('programmation de l’archivage');
+    expect(boxes.update).not.toHaveBeenCalled();
+    mockCreateServiceClient.mockReset();
   });
 
   it('réactive en remettant les deux colonnes à null', async () => {
@@ -111,7 +113,7 @@ describe('PATCH /api/admin/boxes/[id]/archive', () => {
     mockCreateServiceClient.mockReturnValueOnce({
       from: jest.fn(() => makeChain({ data: null, error: { code: '42703', message: 'column does not exist' } })),
     });
-    const res: any = await PATCH(req({ archived: true }), params);
+    const res: any = await PATCH(req({ archived: false }), params);
     const body = await res.json();
     expect(res._status).toBe(409);
     expect(body.error).toContain('20261224');

@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 import { createServiceClient, getAccessToken } from '@/lib/supabase/server';
 import { SITE_URL } from '@/lib/site-url';
+import { createHash } from 'crypto';
+import { boxEntryRefusal } from '@/lib/boxEntryGuard';
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
@@ -18,6 +20,9 @@ const REFUS: Record<string, string> = {
   invitation_expiree: 'Cette invitation a expiré.',
   email_non_correspondant: 'Cette invitation est nominative : elle ne peut être utilisée qu’avec l’adresse invitée.',
   membre_exclu: 'Ton accès à cette box a été suspendu. Rapproche-toi de la box.',
+  // Archivage (PR 1) : la RPC renvoie aussi son message, affiché en priorité.
+  box_archivee: "Cette box n'accepte plus de nouveaux membres.",
+  box_archivage_programme: "Cette box n'accepte plus de nouveaux membres.",
 };
 
 async function resolveUsername(service: ReturnType<typeof createServiceClient>, requested: string) {
@@ -56,6 +61,20 @@ export async function POST(request: NextRequest) {
 
   const service = createServiceClient();
 
+  // Archivage (PR 2) : la box de l'invitation (lue par l'empreinte du jeton,
+  // comme le SQL) est refusée avant la consommation, et AVANT toute création
+  // de compte. La RPC refuse aussi ; cette garde évite un compte créé pour une
+  // box fermée.
+  const closedBox = async () => {
+    const { data: invRaw } = await service
+      .from('box_invitations').select('box_id')
+      .eq('token_hash', createHash('sha256').update(token).digest('hex'))
+      .maybeSingle();
+    const invBoxId = (invRaw as { box_id: string } | null)?.box_id;
+    const refus = invBoxId ? await boxEntryRefusal(service, invBoxId, 'adhesion') : null;
+    return refus ? NextResponse.json({ ok: false, error: refus.message, code: refus.code }, { status: 409 }) : null;
+  };
+
   // ── Chemin « déjà connecté » : la consommation part de la session, la route
   // ne nomme personne. Si le compte ne porte pas l'adresse invitée, la RPC
   // refuse.
@@ -68,6 +87,8 @@ export async function POST(request: NextRequest) {
       auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
       global: { headers: { Authorization: `Bearer ${accessToken}` } },
     });
+    const closed = await closedBox();
+    if (closed) return closed;
     const { data, error } = await asUser.rpc('consume_box_invitation', { p_token: token });
     if (error) {
       return NextResponse.json({ ok: false, error: error.message }, { status: 400 });
@@ -93,6 +114,9 @@ export async function POST(request: NextRequest) {
   if (password.length < 6) {
     return NextResponse.json({ ok: false, error: 'Le mot de passe doit contenir au moins 6 caractères.' }, { status: 400 });
   }
+
+  const closed = await closedBox();
+  if (closed) return closed;
 
   // L'adresse vient de l'invitation, pas du navigateur.
   const { data: peekData, error: peekError } = await service.rpc('peek_box_invitation', { p_token: token });
