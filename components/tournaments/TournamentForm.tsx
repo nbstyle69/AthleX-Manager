@@ -4,7 +4,8 @@ import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { Loader2, Upload, ImageIcon, Trash2, Lock } from 'lucide-react';
-import { toDateInput, fromDateInput } from '@/lib/datetime';
+import { fromDateInput } from '@/lib/datetime';
+import { initialTournamentForm, tournamentUpdatePayload } from '@/lib/tournamentForm';
 import { useConfirmDialog } from '@/components/ui/confirm-dialog';
 import { ERROR_TITLE, INPUT_TITLE } from '@/lib/confirmDialog';
 
@@ -47,20 +48,10 @@ export default function TournamentForm({ boxId, initial, allowedFormats = ['simp
     setSaving(false);
     requestAnimationFrame(() => errorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }));
   }
-  const defaultFormat = (allowedFormats.includes(initial?.format) ? initial.format : allowedFormats[0]) ?? 'simple';
-  const [form, setForm] = useState({
-    name:                initial?.name                ?? '',
-    description:         initial?.description         ?? '',
-    level:               initial?.level               ?? 'rx',
-    status:              initial?.status              ?? 'open',
-    start_date:          toDateInput(initial?.start_date),
-    end_date:            toDateInput(initial?.end_date),
-    max_participants:    initial?.max_participants    ?? 32,
-    prize:               initial?.prize               ?? '',
-    format:              defaultFormat,
-    require_video_proof: initial?.require_video_proof ?? false,
-    rules:               initial?.rules               ?? `1. Les scores doivent être soumis dans les 24h suivant l'ouverture du WOD.\n2. Une vidéo YouTube publique est obligatoire pour chaque soumission.\n3. Tout score sans vidéo sera automatiquement rejeté.\n4. Les scores sont validés par l'organisateur sous 48h.\n5. Tout comportement antisportif entraîne la disqualification.`,
-  });
+  // Valeurs d'ouverture du formulaire, gardées pour comparer à l'enregistrement :
+  // une modification n'envoie que ce qui a changé (lib/tournamentForm.ts).
+  const [start] = useState(() => initialTournamentForm(initial, allowedFormats));
+  const [form, setForm] = useState(start);
 
   // Divisions config (only for league_div, only at create time)
   const [divisions, setDivisions] = useState<Array<{ name: string; max_members: number; promote_count: number; relegate_count: number }>>(
@@ -119,6 +110,18 @@ export default function TournamentForm({ boxId, initial, allowedFormats = ['simp
     setSaving(true);
     setError(null);
     const supabase = createClient();
+    if (initial?.id) {
+      // Modification : champs changés seulement, jamais le format.
+      const update = tournamentUpdatePayload(start, form, {
+        boxId, publish, bannerUrl, initialBannerUrl: initial?.banner_url ?? null,
+      });
+      const { error: err } = await supabase.from('tournaments').update(update).eq('id', initial.id);
+      setSaving(false);
+      if (err) { fail(err.message); return; }
+      router.push(`/tournaments/${initial.id}`);
+      router.refresh();
+      return;
+    }
     const payload  = {
       ...form,
       box_id:     boxId,
@@ -129,32 +132,23 @@ export default function TournamentForm({ boxId, initial, allowedFormats = ['simp
       start_date: fromDateInput(form.start_date),
       end_date:   form.end_date || null,
     };
-    if (initial?.id) {
-      const { error: err } = await supabase.from('tournaments').update(payload).eq('id', initial.id);
-      setSaving(false);
-      if (err) { fail(err.message); return; }
-      router.push(`/tournaments/${initial.id}`);
-    } else {
-      const { data, error: err } = await supabase.from('tournaments').insert(payload).select('id').single();
-      if (err) { fail(err.message); return; }
-      // Bootstrap divisions for league_div
-      if (form.format === 'league_div' && divisions.length > 0) {
-        const rows = divisions.map((d, idx) => ({
-          tournament_id:  data.id,
-          name:           d.name,
-          level:          idx + 1,
-          max_members:    d.max_members,
-          promote_count:  d.promote_count,
-          relegate_count: d.relegate_count,
-        }));
-        const { error: dErr } = await supabase.from('tournament_divisions').insert(rows);
-        if (dErr) { fail(`Tournoi créé mais divisions: ${dErr.message}`); return; }
-      }
-      setSaving(false);
-      router.push(`/tournaments/${data.id}/wods`);
-      return;
+    const { data, error: err } = await supabase.from('tournaments').insert(payload).select('id').single();
+    if (err) { fail(err.message); return; }
+    // Bootstrap divisions for league_div
+    if (form.format === 'league_div' && divisions.length > 0) {
+      const rows = divisions.map((d, idx) => ({
+        tournament_id:  data.id,
+        name:           d.name,
+        level:          idx + 1,
+        max_members:    d.max_members,
+        promote_count:  d.promote_count,
+        relegate_count: d.relegate_count,
+      }));
+      const { error: dErr } = await supabase.from('tournament_divisions').insert(rows);
+      if (dErr) { fail(`Tournoi créé mais divisions: ${dErr.message}`); return; }
     }
-    router.refresh();
+    setSaving(false);
+    router.push(`/tournaments/${data.id}/wods`);
   }
 
   const inp = 'w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-white transition-colors';
@@ -200,6 +194,21 @@ export default function TournamentForm({ boxId, initial, allowedFormats = ['simp
                 </button>
               );
             })}
+          </div>
+        </div>
+      )}
+
+      {/* Format, en modification : lecture seule. Il ne se change qu'à la création. */}
+      {initial && (
+        <div className="bg-[#111111] border border-white/8 rounded-2xl p-6 space-y-4" data-testid="format-lecture-seule">
+          <h2 className="text-sm font-bold text-white uppercase tracking-wider">Format du tournoi</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div aria-readonly="true" className="text-left rounded-xl border p-4 border-white bg-white/10">
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-bold text-white">{(FORMAT_META[initial.format] ?? { label: initial.format }).label}</span>
+              </div>
+              <div className="text-xs text-gray-400 mt-1">{FORMAT_META[initial.format]?.desc ?? ''}</div>
+            </div>
           </div>
         </div>
       )}
