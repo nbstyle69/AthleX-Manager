@@ -12,10 +12,10 @@ export default async function SupportAdminPage() {
   if (!isAdmin) {
     return (
       <div className="max-w-3xl">
-        <div className="bg-white/[0.02] border border-white/[0.06] rounded-2xl p-10 text-center">
+        <div className="bg-ax-hover border border-ax-border rounded-ax-card p-10 text-center">
           <p className="text-4xl mb-3">🔒</p>
-          <p className="text-lg font-bold text-white mb-2">Accès réservé</p>
-          <p className="text-sm text-gray-400">Cette boîte de réception est réservée au support AthleX.</p>
+          <p className="text-lg font-bold text-ax-text mb-2">Accès réservé</p>
+          <p className="text-sm text-ax-text-secondary">Cette boîte de réception est réservée au support AthleX.</p>
         </div>
       </div>
     );

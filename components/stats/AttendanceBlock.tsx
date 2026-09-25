@@ -110,20 +110,20 @@ export default function AttendanceBlock({ boxId }: { boxId: string }) {
 
   if (loading) {
     return (
-      <div className="bg-[#111111] border border-white/8 rounded-2xl p-6 flex items-center gap-3">
-        <Loader2 size={16} className="animate-spin text-white" />
-        <span className="text-sm text-gray-400">Chargement de l&apos;assiduité…</span>
+      <div className="bg-ax-surface border border-ax-border rounded-ax-card p-6 flex items-center gap-3">
+        <Loader2 size={16} className="animate-spin text-ax-text" />
+        <span className="text-sm text-ax-text-secondary">Chargement de l&apos;assiduité…</span>
       </div>
     );
   }
 
   if (error || !current || !previous) {
     return (
-      <div className="bg-red-500/10 border border-red-500/30 rounded-2xl p-5">
-        <p className="text-sm font-bold text-red-300 flex items-center gap-2">
+      <div className="bg-ax-danger-soft border border-ax-danger rounded-ax-card p-5">
+        <p className="text-sm font-bold text-ax-danger flex items-center gap-2">
           <AlertTriangle size={16} /> Assiduité indisponible
         </p>
-        <p className="text-xs text-red-200/80 mt-1">{error ?? 'Réponse vide du serveur.'}</p>
+        <p className="text-xs text-ax-danger mt-1">{error ?? 'Réponse vide du serveur.'}</p>
       </div>
     );
   }
@@ -177,25 +177,25 @@ export default function AttendanceBlock({ boxId }: { boxId: string }) {
   return (
     <div className="space-y-4">
       <div className="flex items-baseline justify-between">
-        <h2 className="text-sm font-bold text-white flex items-center gap-2">
-          <CalendarCheck size={16} className="text-white" />
+        <h2 className="text-sm font-bold text-ax-text flex items-center gap-2">
+          <CalendarCheck size={16} className="text-ax-text" />
           Assiduité
         </h2>
-        <span className="text-[11px] text-gray-500">
+        <span className="text-[11px] text-ax-text-muted">
           {WINDOW_DAYS} derniers jours · vs {WINDOW_DAYS} jours précédents
         </span>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
         {cards.map(({ key, label, value, sub, icon: Icon, delta }) => (
-          <div key={key} className="bg-[#111111] border border-white/8 rounded-2xl p-4">
+          <div key={key} className="bg-ax-surface border border-ax-border rounded-ax-card p-4">
             <div className="flex items-start justify-between">
-              <Icon size={16} className="text-gray-400" />
+              <Icon size={16} className="text-ax-text-secondary" />
               {delta}
             </div>
-            <p className="text-2xl font-black text-white mt-3">{value}</p>
-            <p className="text-[11px] text-gray-400 font-medium mt-1">{label}</p>
-            <p className="text-[10px] text-gray-600 mt-0.5">{sub}</p>
+            <p className="text-2xl font-black text-ax-text mt-3">{value}</p>
+            <p className="text-[11px] text-ax-text-secondary font-medium mt-1">{label}</p>
+            <p className="text-[10px] text-ax-text-muted mt-0.5">{sub}</p>
           </div>
         ))}
       </div>
@@ -209,7 +209,7 @@ export default function AttendanceBlock({ boxId }: { boxId: string }) {
             hint: `déjà venus, plus rien depuis ${RISK_DAYS} jours — à relancer`,
             rows: atRisk,
             icon: AlertTriangle,
-            tone: 'text-red-400',
+            tone: 'text-ax-danger',
           },
           {
             kind: 'never_booked' as const,
@@ -217,52 +217,52 @@ export default function AttendanceBlock({ boxId }: { boxId: string }) {
             hint: "aucune réservation depuis l'inscription — à embarquer",
             rows: neverBooked,
             icon: UserPlus,
-            tone: 'text-amber-400',
+            tone: 'text-ax-warning',
           },
         ]).map(({ kind, title, hint, rows, icon: Icon, tone }) => (
-          <div key={kind} className="bg-[#111111] border border-white/8 rounded-2xl overflow-hidden">
+          <div key={kind} className="bg-ax-surface border border-ax-border rounded-ax-card overflow-hidden">
             <button
               type="button"
               onClick={() => setOpenList(openList === kind ? null : kind)}
               disabled={rows.length === 0}
-              className="w-full flex items-center justify-between px-5 py-4 hover:bg-white/[0.03] disabled:hover:bg-transparent disabled:cursor-default transition-colors"
+              className="w-full flex items-center justify-between px-5 py-4 hover:bg-ax-hover disabled:hover:bg-transparent disabled:cursor-default transition-colors"
             >
               <div className="text-left">
-                <p className="text-xs font-bold text-gray-400 flex items-center gap-1.5">
-                  <Icon size={13} className={rows.length > 0 ? tone : 'text-gray-600'} />
+                <p className="text-xs font-bold text-ax-text-secondary flex items-center gap-1.5">
+                  <Icon size={13} className={rows.length > 0 ? tone : 'text-ax-text-muted'} />
                   {title}
                 </p>
-                <p className={`text-xl font-black mt-1 ${rows.length > 0 ? tone : 'text-gray-600'}`}>
-                  {rows.length} <span className="text-xs font-bold text-gray-500">
+                <p className={`text-xl font-black mt-1 ${rows.length > 0 ? tone : 'text-ax-text-muted'}`}>
+                  {rows.length} <span className="text-xs font-bold text-ax-text-muted">
                     / {current.members_active} adhérent(s)
                   </span>
                 </p>
-                <p className="text-[10px] text-gray-600 mt-0.5">{hint}</p>
+                <p className="text-[10px] text-ax-text-muted mt-0.5">{hint}</p>
               </div>
               {rows.length > 0 && (
-                <ChevronDown size={16} className={`text-gray-500 transition-transform ${openList === kind ? 'rotate-180' : ''}`} />
+                <ChevronDown size={16} className={`text-ax-text-muted transition-transform ${openList === kind ? 'rotate-180' : ''}`} />
               )}
             </button>
 
             {openList === kind && rows.length > 0 && (
-              <div className="border-t border-white/8 divide-y divide-white/5 max-h-80 overflow-y-auto">
+              <div className="border-t border-ax-border divide-y divide-ax-border max-h-80 overflow-y-auto">
                 {rows.map(p => (
                   <div key={p.member_id} className="flex items-center gap-3 px-5 py-3">
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-white truncate">{p.username}</p>
-                      <p className="text-[11px] text-gray-500 truncate">
+                      <p className="text-sm font-semibold text-ax-text truncate">{p.username}</p>
+                      <p className="text-[11px] text-ax-text-muted truncate">
                         {SINCE(p.last_class)} · {p.reservations_total} réservation(s) au total
                       </p>
                     </div>
                     <Link
                       href={`/members?q=${encodeURIComponent(p.username)}`}
-                      className="text-[11px] font-bold text-white bg-white/10 hover:bg-white/20 rounded-lg px-2.5 py-1.5 shrink-0 transition-colors"
+                      className="text-[11px] font-bold text-ax-text bg-ax-hover hover:brightness-110 rounded-ax-control px-2.5 py-1.5 shrink-0 transition-colors"
                     >
                       Voir la fiche
                     </Link>
                   </div>
                 ))}
-                <Link href="/messages/new" className="block px-5 py-3 text-xs font-bold text-white hover:bg-white/[0.03] transition-colors">
+                <Link href="/messages/new" className="block px-5 py-3 text-xs font-bold text-ax-text hover:bg-ax-hover transition-colors">
                   {kind === 'at_risk' ? 'Envoyer un message de relance' : 'Envoyer un message d\u2019accueil'} →
                 </Link>
               </div>
@@ -272,13 +272,13 @@ export default function AttendanceBlock({ boxId }: { boxId: string }) {
       </div>
 
       {/* Heatmap jour × heure */}
-      <div className="bg-[#111111] border border-white/8 rounded-2xl p-6">
-        <h3 className="text-sm font-bold text-white mb-1">Quand la salle est pleine</h3>
-        <p className="text-[11px] text-gray-500 mb-5">
+      <div className="bg-ax-surface border border-ax-border rounded-ax-card p-6">
+        <h3 className="text-sm font-bold text-ax-text mb-1">Quand la salle est pleine</h3>
+        <p className="text-[11px] text-ax-text-muted mb-5">
           Réservations confirmées par jour et par heure de cours, sur {WINDOW_DAYS} jours.
         </p>
         {hours.length === 0 ? (
-          <p className="text-xs text-gray-600 py-6 text-center">Aucune réservation sur la période.</p>
+          <p className="text-xs text-ax-text-muted py-6 text-center">Aucune réservation sur la période.</p>
         ) : (
           <div className="overflow-x-auto">
             <table className="border-separate border-spacing-1">
@@ -286,7 +286,7 @@ export default function AttendanceBlock({ boxId }: { boxId: string }) {
                 <tr>
                   <th />
                   {hours.map(h => (
-                    <th key={h} className="text-[10px] font-medium text-gray-500 px-1">
+                    <th key={h} className="text-[10px] font-medium text-ax-text-muted px-1">
                       {String(h).padStart(2, '0')}h
                     </th>
                   ))}
@@ -295,15 +295,15 @@ export default function AttendanceBlock({ boxId }: { boxId: string }) {
               <tbody>
                 {DOW.map((label, i) => (
                   <tr key={label}>
-                    <td className="text-[10px] font-medium text-gray-500 pr-2">{label}</td>
+                    <td className="text-[10px] font-medium text-ax-text-muted pr-2">{label}</td>
                     {hours.map(h => {
                       const n = cellAt(i + 1, h);
                       return (
                         <td key={h}>
                           <div
                             title={`${label} ${String(h).padStart(2, '0')}h · ${n} réservation(s)`}
-                            className="w-8 h-6 rounded-md flex items-center justify-center text-[10px] font-bold text-white"
-                            style={{ backgroundColor: n === 0 ? '#ffffff08' : `rgba(255,255,255,${0.15 + (n / maxCell) * 0.75})` }}
+                            className="w-8 h-6 rounded-md flex items-center justify-center text-[10px] font-bold text-ax-text"
+                            style={{ backgroundColor: n === 0 ? 'var(--ax-hover)' : `color-mix(in srgb, var(--ax-text) ${Math.round((0.15 + (n / maxCell) * 0.75) * 100)}%, transparent)` }}
                           >
                             {n > 0 ? n : ''}
                           </div>
@@ -317,7 +317,7 @@ export default function AttendanceBlock({ boxId }: { boxId: string }) {
           </div>
         )}
         {current.waiting_count > 0 && (
-          <p className="text-[10px] text-gray-600 mt-3">
+          <p className="text-[10px] text-ax-text-muted mt-3">
             {current.waiting_count} réservation(s) en liste d&apos;attente sur la période : des créneaux
             manquent de places, pas de monde.
           </p>

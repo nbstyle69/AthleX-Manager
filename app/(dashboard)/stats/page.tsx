@@ -11,7 +11,9 @@ import AttendanceBlock from '@/components/stats/AttendanceBlock';
 import GrowthBlock from '@/components/stats/GrowthBlock';
 
 const LEVEL_LABEL: Record<string, string> = { 'rx+': 'RX+', rx: 'RX', scaled: 'SCALED', foundations: 'FOUNDATIONS', inter: 'INTER', gx: 'GX', pro: 'PRO' };
-const LEVEL_COLOR: Record<string, string> = { 'rx+': '#FFFFFF', rx: '#3B82F6', scaled: '#10B981', foundations: '#8B5CF6', inter: '#F59E0B', gx: '#EC4899', pro: '#EF4444' };
+// Niveaux : memes jetons que le reste du Manager (whiteboard, tournois),
+// lisibles dans les deux themes.
+const LEVEL_COLOR: Record<string, string> = { 'rx+': 'var(--ax-level-rx-plus)', rx: 'var(--ax-level-rx)', scaled: 'var(--ax-level-scaled)', foundations: 'var(--ax-purple)', inter: 'var(--ax-level-inter)', gx: 'var(--ax-level-gx)', pro: 'var(--ax-level-pro)' };
 
 interface KPI { label: string; value: number | string; icon: any; color: string }
 interface MemberRow { username: string; elo: number; level: string; gender: string | null }
@@ -90,13 +92,13 @@ export default function BoxStatsPage() {
     );
 
     setKpis([
-      { label: 'Total membres', value: totalMembers ?? 0, icon: Users, color: '#22C55E' },
-      { label: 'Membres actifs', value: activeMembers ?? 0, icon: Users, color: '#3B82F6' },
-      { label: 'Coachs', value: coachCount ?? 0, icon: Users, color: '#8B5CF6' },
-      { label: 'Bannis', value: bannedMembers ?? 0, icon: Users, color: '#EF4444' },
-      { label: 'Tournois créés', value: totalTournaments ?? 0, icon: Trophy, color: '#FFFFFF' },
-      { label: 'Tournois actifs', value: activeTournaments ?? 0, icon: Trophy, color: '#D97706' },
-      { label: 'WODs publiés', value: totalWods ?? 0, icon: Dumbbell, color: '#EC4899' },
+      { label: 'Total membres', value: totalMembers ?? 0, icon: Users, color: 'var(--ax-success)' },
+      { label: 'Membres actifs', value: activeMembers ?? 0, icon: Users, color: 'var(--ax-info)' },
+      { label: 'Coachs', value: coachCount ?? 0, icon: Users, color: 'var(--ax-purple)' },
+      { label: 'Bannis', value: bannedMembers ?? 0, icon: Users, color: 'var(--ax-danger)' },
+      { label: 'Tournois créés', value: totalTournaments ?? 0, icon: Trophy, color: 'var(--ax-text)' },
+      { label: 'Tournois actifs', value: activeTournaments ?? 0, icon: Trophy, color: 'var(--ax-warning)' },
+      { label: 'WODs publiés', value: totalWods ?? 0, icon: Dumbbell, color: 'var(--ax-sub-rose-text)' },
     ]);
 
     // Level breakdown
@@ -155,7 +157,7 @@ export default function BoxStatsPage() {
 
   if (loading) return (
     <div className="flex items-center justify-center min-h-[400px]">
-      <Loader2 size={28} className="animate-spin text-white" />
+      <Loader2 size={28} className="animate-spin text-ax-text" />
     </div>
   );
 
@@ -187,10 +189,10 @@ export default function BoxStatsPage() {
     <div className="space-y-8">
       <div>
         <div className="flex items-center gap-3">
-          <h1 className="text-2xl font-black text-white">Statistiques</h1>
+          <h1 className="font-display text-2xl font-medium uppercase tracking-wide text-ax-text">Statistiques</h1>
           <HelpButton />
         </div>
-        <p className="text-sm text-gray-400 mt-1">Vue d&apos;ensemble de votre box</p>
+        <p className="text-sm text-ax-text-secondary mt-1">Vue d&apos;ensemble de votre box</p>
       </div>
 
       {boxId && isOwnerAdmin && <MoneyBlock boxId={boxId} />}
@@ -202,21 +204,21 @@ export default function BoxStatsPage() {
         {kpis.map(({ label, value, icon: Icon, color }) => {
           const isActiveCard = label === 'Membres actifs';
           return (
-            <div key={label} className="bg-[#111111] border border-white/8 rounded-2xl p-4">
-              <div className="w-9 h-9 rounded-xl flex items-center justify-center mb-3" style={{ backgroundColor: `${color}20` }}>
+            <div key={label} className="bg-ax-surface border border-ax-border rounded-ax-card p-4">
+              <div className="w-9 h-9 rounded-ax-control flex items-center justify-center mb-3" style={{ backgroundColor: `${color}20` }}>
                 <Icon size={18} style={{ color }} />
               </div>
-              <p className="text-2xl font-black text-white">{value}</p>
-              <p className="text-[11px] text-gray-400 font-medium mt-1">{label}</p>
+              <p className="text-2xl font-black text-ax-text">{value}</p>
+              <p className="text-[11px] text-ax-text-secondary font-medium mt-1">{label}</p>
               {isActiveCard && (
-                <div className="mt-3 pt-3 border-t border-white/5 space-y-1.5">
+                <div className="mt-3 pt-3 border-t border-ax-border space-y-1.5">
                   <div className="flex items-center justify-between text-[11px]">
-                    <span className="text-gray-500">7 derniers jours</span>
-                    <span className="font-bold text-emerald-400">{activeWeek}</span>
+                    <span className="text-ax-text-muted">7 derniers jours</span>
+                    <span className="font-bold text-ax-success">{activeWeek}</span>
                   </div>
                   <div className="flex items-center justify-between text-[11px]">
-                    <span className="text-gray-500">30 derniers jours</span>
-                    <span className="font-bold text-blue-400">{activeMonth}</span>
+                    <span className="text-ax-text-muted">30 derniers jours</span>
+                    <span className="font-bold text-ax-info">{activeMonth}</span>
                   </div>
                 </div>
               )}
@@ -227,16 +229,16 @@ export default function BoxStatsPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Join chart */}
-        <div className="bg-[#111111] border border-white/8 rounded-2xl p-6">
+        <div className="bg-ax-surface border border-ax-border rounded-ax-card p-6">
           <div className="flex items-center justify-between mb-5">
             <div className="flex items-center gap-2">
-              <TrendingUp size={16} className="text-white" />
-              <h2 className="text-sm font-bold text-white">Inscriptions membres</h2>
+              <TrendingUp size={16} className="text-ax-text" />
+              <h2 className="text-sm font-bold text-ax-text">Inscriptions membres</h2>
             </div>
             <div className="flex gap-1">
               {([7, 30, 90] as const).map(p => (
                 <button key={p} onClick={() => setChartPeriod(p)}
-                  className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-colors ${chartPeriod === p ? 'bg-white/20 text-white' : 'text-gray-500 hover:text-gray-300'}`}>
+                  className={`px-2.5 py-1 rounded-ax-control text-xs font-bold transition-colors ${chartPeriod === p ? 'bg-ax-hover text-ax-text' : 'text-ax-text-muted hover:text-ax-text'}`}>
                   {p}j
                 </button>
               ))}
@@ -245,57 +247,57 @@ export default function BoxStatsPage() {
           <div className="flex items-end gap-[2px] h-40">
             {filledChart.map((d) => (
               <div key={d.date} className="flex-1 h-full flex flex-col items-center justify-end group relative">
-                <div className="absolute -top-8 bg-[#1a1a1a] border border-white/10 rounded-lg px-2 py-1 text-[10px] text-white font-bold opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">
+                <div className="absolute -top-8 bg-ax-surface-secondary border border-ax-border rounded-ax-control px-2 py-1 text-[10px] text-ax-text font-bold opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">
                   {d.date.slice(5)} · {d.count}
                 </div>
                 <div
                   className="w-full rounded-t-sm transition-all"
                   style={{
                     height: `${Math.max((d.count / maxCount) * 100, 2)}%`,
-                    backgroundColor: d.count > 0 ? '#FFFFFF' : '#ffffff08',
+                    backgroundColor: d.count > 0 ? 'var(--ax-text)' : 'var(--ax-hover)',
                   }}
                 />
               </div>
             ))}
           </div>
-          <p className="text-[10px] text-gray-600 text-center mt-2">
+          <p className="text-[10px] text-ax-text-muted text-center mt-2">
             {filteredChart.reduce((s, d) => s + d.count, 0)} inscription(s) sur {chartPeriod} jours
           </p>
         </div>
 
         {/* Composition — une ligne suffit : le niveau et le rôle ne déclenchent
             aucune action du gérant, ils situent seulement la salle. */}
-        <div className="bg-[#111111] border border-white/8 rounded-2xl p-6">
-          <h2 className="text-sm font-bold text-white mb-4 flex items-center gap-2">
-            <Dumbbell size={16} className="text-white" />
+        <div className="bg-ax-surface border border-ax-border rounded-ax-card p-6">
+          <h2 className="text-sm font-bold text-ax-text mb-4 flex items-center gap-2">
+            <Dumbbell size={16} className="text-ax-text" />
             Composition
           </h2>
           {levelBreakdown.length === 0 ? (
-            <p className="text-xs text-gray-600 py-4">Aucun membre</p>
+            <p className="text-xs text-ax-text-muted py-4">Aucun membre</p>
           ) : (
             <>
-              <div className="flex h-2 rounded-full overflow-hidden bg-white/5">
+              <div className="flex h-2 rounded-full overflow-hidden bg-ax-hover">
                 {levelBreakdown.map(({ level, count }) => (
                   <div
                     key={level}
                     title={`${LEVEL_LABEL[level] ?? level.toUpperCase()} · ${count}`}
-                    style={{ width: `${(count / totalLevel) * 100}%`, backgroundColor: LEVEL_COLOR[level] ?? '#6B7280' }}
+                    style={{ width: `${(count / totalLevel) * 100}%`, backgroundColor: LEVEL_COLOR[level] ?? 'var(--ax-neutral)' }}
                   />
                 ))}
               </div>
               <div className="flex flex-wrap gap-x-4 gap-y-2 mt-4">
                 {levelBreakdown.map(({ level, count }) => (
-                  <span key={level} className="inline-flex items-center gap-1.5 text-[11px] text-gray-400">
-                    <span className="w-2 h-2 rounded-full" style={{ backgroundColor: LEVEL_COLOR[level] ?? '#6B7280' }} />
+                  <span key={level} className="inline-flex items-center gap-1.5 text-[11px] text-ax-text-secondary">
+                    <span className="w-2 h-2 rounded-full" style={{ backgroundColor: LEVEL_COLOR[level] ?? 'var(--ax-neutral)' }} />
                     {LEVEL_LABEL[level] ?? level.toUpperCase()}
-                    <span className="font-bold text-gray-300">{count}</span>
+                    <span className="font-bold text-ax-text">{count}</span>
                   </span>
                 ))}
                 {roleBreakdown.map(({ role, count }) => (
-                  <span key={role} className="inline-flex items-center gap-1.5 text-[11px] text-gray-400">
-                    <span className="w-2 h-2 rounded-full" style={{ backgroundColor: role === 'coach' ? '#8B5CF6' : '#3B82F6' }} />
+                  <span key={role} className="inline-flex items-center gap-1.5 text-[11px] text-ax-text-secondary">
+                    <span className="w-2 h-2 rounded-full" style={{ backgroundColor: role === 'coach' ? 'var(--ax-purple)' : 'var(--ax-info)' }} />
                     {role === 'coach' ? 'Coachs' : 'Membres'}
-                    <span className="font-bold text-gray-300">{count}</span>
+                    <span className="font-bold text-ax-text">{count}</span>
                   </span>
                 ))}
               </div>
@@ -307,16 +309,16 @@ export default function BoxStatsPage() {
       {/* Volume de réservations dans le temps — le « quand » est traité par la
           heatmap du bloc Assiduité, celui-ci ne montre que la tendance. */}
       <div>
-        <div className="bg-[#111111] border border-white/8 rounded-2xl p-6">
+        <div className="bg-ax-surface border border-ax-border rounded-ax-card p-6">
           <div className="flex items-center justify-between mb-5">
             <div className="flex items-center gap-2">
-              <CalendarCheck size={16} className="text-[#10B981]" />
-              <h2 className="text-sm font-bold text-white">Réservations</h2>
+              <CalendarCheck size={16} className="text-ax-success" />
+              <h2 className="text-sm font-bold text-ax-text">Réservations</h2>
             </div>
             <div className="flex gap-1">
               {([7, 30, 90] as const).map(p => (
                 <button key={p} onClick={() => setResaChartPeriod(p)}
-                  className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-colors ${resaChartPeriod === p ? 'bg-[#10B981]/20 text-[#10B981]' : 'text-gray-500 hover:text-gray-300'}`}>
+                  className={`px-2.5 py-1 rounded-ax-control text-xs font-bold transition-colors ${resaChartPeriod === p ? 'bg-ax-success-soft text-ax-success' : 'text-ax-text-muted hover:text-ax-text'}`}>
                   {p}j
                 </button>
               ))}
@@ -325,20 +327,20 @@ export default function BoxStatsPage() {
           <div className="flex items-end gap-[2px] h-40">
             {filledResaChart.map((d) => (
               <div key={d.date} className="flex-1 h-full flex flex-col items-center justify-end group relative">
-                <div className="absolute -top-8 bg-[#1a1a1a] border border-white/10 rounded-lg px-2 py-1 text-[10px] text-white font-bold opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">
+                <div className="absolute -top-8 bg-ax-surface-secondary border border-ax-border rounded-ax-control px-2 py-1 text-[10px] text-ax-text font-bold opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">
                   {d.date.slice(5)} · {d.count}
                 </div>
                 <div
                   className="w-full rounded-t-sm transition-all"
                   style={{
                     height: `${Math.max((d.count / maxResaCount) * 100, 2)}%`,
-                    backgroundColor: d.count > 0 ? '#10B981' : '#ffffff08',
+                    backgroundColor: d.count > 0 ? 'var(--ax-success)' : 'var(--ax-hover)',
                   }}
                 />
               </div>
             ))}
           </div>
-          <p className="text-[10px] text-gray-600 text-center mt-2">
+          <p className="text-[10px] text-ax-text-muted text-center mt-2">
             {filteredResaChart.reduce((s, d) => s + d.count, 0)} réservation(s) sur {resaChartPeriod} jours
           </p>
         </div>

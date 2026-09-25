@@ -25,7 +25,7 @@ export default function Delta({
 
   if (diff === 0) {
     return (
-      <span className="inline-flex items-center gap-1 text-[11px] font-bold text-gray-500">
+      <span className="inline-flex items-center gap-1 text-[11px] font-bold text-ax-text-muted">
         <ArrowRight size={12} />
         stable
       </span>
@@ -40,7 +40,7 @@ export default function Delta({
     : `${up ? '+' : ''}${Math.round((diff / Math.abs(previous)) * 100)} %`;
 
   return (
-    <span className={`inline-flex items-center gap-1 text-[11px] font-bold ${good ? 'text-emerald-400' : 'text-red-400'}`}>
+    <span className={`inline-flex items-center gap-1 text-[11px] font-bold ${good ? 'text-ax-success' : 'text-ax-danger'}`}>
       <Icon size={12} />
       {label}
     </span>

@@ -74,20 +74,20 @@ export default function GrowthBlock({ boxId }: { boxId: string }) {
 
   if (loading) {
     return (
-      <div className="bg-[#111111] border border-white/8 rounded-2xl p-6 flex items-center gap-3">
-        <Loader2 size={16} className="animate-spin text-white" />
-        <span className="text-sm text-gray-400">Chargement de la croissance…</span>
+      <div className="bg-ax-surface border border-ax-border rounded-ax-card p-6 flex items-center gap-3">
+        <Loader2 size={16} className="animate-spin text-ax-text" />
+        <span className="text-sm text-ax-text-secondary">Chargement de la croissance…</span>
       </div>
     );
   }
 
   if (error || !current || !previous) {
     return (
-      <div className="bg-red-500/10 border border-red-500/30 rounded-2xl p-5">
-        <p className="text-sm font-bold text-red-300 flex items-center gap-2">
+      <div className="bg-ax-danger-soft border border-ax-danger rounded-ax-card p-5">
+        <p className="text-sm font-bold text-ax-danger flex items-center gap-2">
           <AlertTriangle size={16} /> Croissance indisponible
         </p>
-        <p className="text-xs text-red-200/80 mt-1">{error ?? 'Réponse vide du serveur.'}</p>
+        <p className="text-xs text-ax-danger mt-1">{error ?? 'Réponse vide du serveur.'}</p>
       </div>
     );
   }
@@ -134,35 +134,35 @@ export default function GrowthBlock({ boxId }: { boxId: string }) {
   return (
     <div className="space-y-4">
       <div className="flex items-baseline justify-between">
-        <h2 className="text-sm font-bold text-white flex items-center gap-2">
-          <TrendingUp size={16} className="text-white" />
+        <h2 className="text-sm font-bold text-ax-text flex items-center gap-2">
+          <TrendingUp size={16} className="text-ax-text" />
           Croissance
         </h2>
-        <span className="text-[11px] text-gray-500">
+        <span className="text-[11px] text-ax-text-muted">
           {WINDOW_DAYS} derniers jours · vs {WINDOW_DAYS} jours précédents
         </span>
       </div>
 
-      <div className="bg-[#111111] border border-white/8 rounded-2xl p-6">
+      <div className="bg-ax-surface border border-ax-border rounded-ax-card p-6">
         <div className="flex flex-col lg:flex-row lg:items-stretch gap-2">
           {steps.map((step, i) => (
             <div key={step.key} className="flex-1 flex items-center gap-2">
               <Link
                 href={step.href}
-                className="flex-1 rounded-xl border border-white/8 bg-white/[0.02] hover:bg-white/[0.05] transition-colors p-4 block"
+                className="flex-1 rounded-ax-control border border-ax-border bg-ax-hover hover:bg-ax-hover transition-colors p-4 block"
               >
                 <div className="flex items-start justify-between">
-                  <p className="text-[11px] font-bold text-gray-400">{step.label}</p>
+                  <p className="text-[11px] font-bold text-ax-text-secondary">{step.label}</p>
                   <Delta current={step.value} previous={step.prev} />
                 </div>
-                <p className="text-2xl font-black text-white mt-2">{step.value}</p>
-                <p className="text-[10px] text-gray-600 mt-0.5">{step.sub}</p>
+                <p className="text-2xl font-black text-ax-text mt-2">{step.value}</p>
+                <p className="text-[10px] text-ax-text-muted mt-0.5">{step.sub}</p>
               </Link>
 
               {i < steps.length - 1 && (
                 <div className="hidden lg:flex flex-col items-center justify-center px-1 shrink-0">
-                  <ArrowRight size={14} className="text-gray-600" />
-                  <span className="text-[10px] font-bold text-gray-500 mt-1">
+                  <ArrowRight size={14} className="text-ax-text-muted" />
+                  <span className="text-[10px] font-bold text-ax-text-muted mt-1">
                     {passage(step.value, steps[i + 1].value)}
                   </span>
                 </div>
@@ -171,7 +171,7 @@ export default function GrowthBlock({ boxId }: { boxId: string }) {
           ))}
         </div>
 
-        <p className="text-[10px] text-gray-600 mt-4">
+        <p className="text-[10px] text-ax-text-muted mt-4">
           {current.members_joined < MIN_COHORT
             ? 'Effectifs bruts : sur de petites cohortes, un pourcentage varierait de dizaines de points pour une personne de plus.'
             : 'Les abonnés sont comptés dans la cohorte des adhésions de la période, pas sur l’ensemble de la box.'}

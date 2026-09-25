@@ -6,6 +6,8 @@ import { createClient } from '@/lib/supabase/client';
 import { ArrowLeft, Loader2, Send } from 'lucide-react';
 import Link from 'next/link';
 import { getMyBox } from '@/lib/getMyBox';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 
 const MSG_TYPES = [
   { value: 'announcement', label: 'Annonce', color: 'indigo' },
@@ -73,27 +75,28 @@ export default function NewMessagePage() {
     router.refresh();
   }
 
-  const inp = 'w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-white transition-colors';
+  // Zone de texte et liste : memes jetons que le composant Input du lot 1.
+  const inp = 'w-full rounded-ax-control border border-ax-input-border bg-ax-surface px-3 py-2.5 text-sm text-ax-text placeholder:text-ax-text-muted transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ax-focus focus-visible:ring-offset-2 focus-visible:ring-offset-ax-surface motion-reduce:transition-none';
 
   return (
     <div className="max-w-lg space-y-6">
       <div className="flex items-center gap-3">
-        <Link href="/messages" className="text-gray-400 hover:text-white transition-colors"><ArrowLeft size={18} /></Link>
-        <h1 className="text-xl font-black text-white">Envoyer un message</h1>
+        <Link href="/messages" className="text-ax-text-secondary hover:text-ax-text transition-colors"><ArrowLeft size={18} /></Link>
+        <h1 className="font-display text-xl font-medium uppercase tracking-wide text-ax-text">Envoyer un message</h1>
       </div>
 
-      <form onSubmit={handleSubmit} className="bg-[#111111] border border-white/8 rounded-2xl p-6 space-y-5">
-        {error && <div className="bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3 text-sm text-red-400">{error}</div>}
+      <form onSubmit={handleSubmit} className="bg-ax-surface border border-ax-border rounded-ax-card p-6 space-y-5">
+        {error && <div className="bg-ax-danger-soft border border-ax-danger rounded-ax-control px-4 py-3 text-sm text-ax-danger">{error}</div>}
 
         <div>
-          <label className="block text-xs font-semibold text-gray-400 mb-1.5 uppercase tracking-wider">Type</label>
+          <label className="block text-xs font-semibold text-ax-text-secondary mb-1.5 uppercase tracking-wider">Type</label>
           <div className="flex gap-2 flex-wrap">
             {MSG_TYPES.map(t => (
               <button key={t.value} type="button" onClick={() => setType(t.value)}
-                className={`text-xs font-bold px-3 py-1.5 rounded-lg border transition-colors ${
+                className={`text-xs font-bold px-3 py-1.5 rounded-ax-control border transition-colors ${
                   type === t.value
-                    ? 'border-white bg-white/20 text-white'
-                    : 'border-white/10 bg-white/5 text-gray-400 hover:border-white/20'
+                    ? 'border-ax-text bg-ax-hover text-ax-text'
+                    : 'border-ax-border bg-ax-hover text-ax-text-secondary hover:border-ax-input-border'
                 }`}>
                 {t.label}
               </button>
@@ -102,30 +105,29 @@ export default function NewMessagePage() {
         </div>
 
         <div>
-          <label className="block text-xs font-semibold text-gray-400 mb-1.5 uppercase tracking-wider">Titre (optionnel)</label>
-          <input className={inp} value={title} onChange={e => setTitle(e.target.value)} placeholder="Titre de la notification..." />
+          <label className="block text-xs font-semibold text-ax-text-secondary mb-1.5 uppercase tracking-wider">Titre (optionnel)</label>
+          <Input value={title} onChange={e => setTitle(e.target.value)} placeholder="Titre de la notification..." />
         </div>
 
         <div>
-          <label className="block text-xs font-semibold text-gray-400 mb-1.5 uppercase tracking-wider">Message *</label>
+          <label className="block text-xs font-semibold text-ax-text-secondary mb-1.5 uppercase tracking-wider">Message *</label>
           <textarea className={`${inp} min-h-[120px] resize-y`} value={body} onChange={e => setBody(e.target.value)} placeholder="Contenu du message..." required />
         </div>
 
         <div>
-          <label className="block text-xs font-semibold text-gray-400 mb-1.5 uppercase tracking-wider">Groupe cible</label>
+          <label className="block text-xs font-semibold text-ax-text-secondary mb-1.5 uppercase tracking-wider">Groupe cible</label>
           <select className={inp} value={groupId} onChange={e => setGroupId(e.target.value)}>
-            <option value="" className="text-black">Tous les membres</option>
-            {groups.map((g: any) => <option key={g.id} value={g.id} className="text-black">{g.name}</option>)}
+            <option value="" className="text-ax-background">Tous les membres</option>
+            {groups.map((g: any) => <option key={g.id} value={g.id} className="text-ax-background">{g.name}</option>)}
           </select>
         </div>
 
         <div className="flex justify-end gap-3 pt-2">
-          <Link href="/messages" className="px-4 py-2.5 text-sm text-gray-400 hover:text-white border border-white/10 rounded-xl">Annuler</Link>
-          <button type="submit" disabled={saving || !body.trim()}
-            className="flex items-center gap-2 px-5 py-2.5 text-sm font-bold bg-white hover:bg-white text-[#0A0A0A] rounded-xl disabled:opacity-60 transition-colors">
+          <Link href="/messages" className="px-4 py-2.5 text-sm text-ax-text-secondary hover:text-ax-text border border-ax-border rounded-ax-control">Annuler</Link>
+          <Button type="submit" disabled={saving || !body.trim()} variant="ax-white">
             {saving ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
             Envoyer
-          </button>
+          </Button>
         </div>
       </form>
     </div>
