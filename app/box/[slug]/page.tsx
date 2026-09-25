@@ -1,6 +1,9 @@
 import { createClient } from '@supabase/supabase-js';
 import { notFound } from 'next/navigation';
 import { rowOrNullOrThrow, rowsOrThrow } from '@/lib/publicRead';
+import { createServiceClient } from '@/lib/supabase/server';
+import { closedPublicBox } from '@/lib/publicClosedBox';
+import ClosedBoxNotice from './ClosedBoxNotice';
 import { PUBLIC_PLAN_FILTER, splitPublicPlans } from '@/lib/publicPlans';
 import {
   BoxPublicView,
@@ -58,7 +61,13 @@ export default async function BoxPublicPage({ params }: { params: Promise<{ slug
     .single();
 
   const row = rowOrNullOrThrow<BoxRow>('boxes', boxRes);
-  if (!row) notFound();
+  if (!row) {
+    // Archivage (PR 3) : une box fermée est cachée à `anon` ; on dit qu'elle
+    // n'accepte plus de membres au lieu d'un 404. Aucun formulaire ni achat.
+    const closed = await closedPublicBox(createServiceClient(), slug);
+    if (closed) return <ClosedBoxNotice name={closed.name} />;
+    notFound();
+  }
 
   const membersRes = await supabase
     .from('box_members')

@@ -8,6 +8,8 @@ import Sidebar from '@/components/layout/Sidebar';
 import { MAIN_CONTENT_ID } from '@/components/layout/mainContent';
 import SessionGate from '@/components/auth/SessionGate';
 import TrialBanner from '@/components/TrialBanner';
+import ArchiveScheduledBanner from '@/components/dashboard/ArchiveScheduledBanner';
+import { loadArchiveBanner } from '@/lib/boxArchiveBanner';
 import PaywallOverlay from '@/components/PaywallOverlay';
 import MultiBoxUpgradeOverlay from '@/components/MultiBoxUpgradeOverlay';
 import { getOwnerPricing } from '@/lib/owner-pricing';
@@ -61,6 +63,10 @@ export default async function DashboardLayout({ children }: { children: React.Re
   // de la RPC, donc « zéro box » est bien un titre, pas une erreur avalée.
   if (!box) redirect('/compte');
 
+  // Archivage programmé (PR 3) : bandeau pour le gérant et le staff, sans action.
+  // Clé serveur : la date se lit aussi dans la facturation, fermée au coach.
+  const archiveBanner = await loadArchiveBanner(createServiceClient(), { id: box.id, name: box.name });
+
   // Coach : périmètre `CoachTabs` (Whiteboard, Horaires, Messages) et rien
   // d'autre. La facturation de la box lui est refusée en lecture (RLS
   // `is_box_owner_admin`), donc on ne l'interroge pas : la lire renverrait
@@ -77,6 +83,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
           isOwnerAdmin={false}
         />
         <main id={MAIN_CONTENT_ID} tabIndex={-1} className="flex-1 lg:ml-60 min-h-screen p-4 sm:p-6 lg:p-8 overflow-y-auto outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-ax-focus">
+          {archiveBanner && <ArchiveScheduledBanner {...archiveBanner} />}
           <SessionGate>{children}</SessionGate>
         </main>
       </div>
@@ -188,6 +195,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
             boxId={box.id}
           />
         )}
+        {archiveBanner && <ArchiveScheduledBanner {...archiveBanner} />}
         <SessionGate>{children}</SessionGate>
       </main>
       {locked && <PaywallOverlay boxId={box.id} trialEndsAt={trialEndsAt} />}
