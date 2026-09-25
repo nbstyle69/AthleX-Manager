@@ -4,7 +4,7 @@ import type { ConfirmRequest } from '@/lib/confirmDialog';
  * Archiver / supprimer une box depuis sa fiche (super admin), sans DOM :
  * les deux appels et les deux boîtes `ConfirmDialog` de `BoxArchiveBlock`
  * (lot 7a). Les appels sont ceux d'avant, à l'identique ; ils renvoient le
- * message d'erreur à afficher, ou `null` en cas de succès. Aucun appel ne part sans confirmation.
+ * message d'erreur à afficher, ou `null` en cas de succès. Archiver et supprimer passent par une boîte ; réactiver part directement, comme avant.
  */
 
 export async function patchArchive(boxId: string, archived: boolean): Promise<string | null> {
