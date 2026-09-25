@@ -83,6 +83,8 @@ const CLASSIFICATION: Record<string, Classe> = {
   dunning: 'owner_admin',
   'invitations/accept': 'token',
   'invitations/send': 'owner_admin',
+  // Arret d'un abonnement de salle (S2) : argent -> gerant ou co-gerant seul.
+  'members/stop-subscription': 'owner_admin',
   'pause-membership': 'owner_admin',
   'promo-codes': 'owner_admin',
   'promo-codes/[id]': 'owner_admin',

@@ -80,7 +80,8 @@ describe('ConfirmDialog — l’action ne part qu’après clic sur le bouton d�
     c.ask({ ...base, field: { label: 'Motif', defaultValue: 'D2' }, run });
     c.setValue('Division élite');
     await dialogHandlers(c).onConfirmClick();
-    expect(run).toHaveBeenCalledWith('Division élite');
+    // Second argument : le choix exclusif (S2), absent quand la boîte n'en a pas.
+    expect(run).toHaveBeenCalledWith('Division élite', undefined);
   });
 
   it('troisième bouton : n’exécute que son action, et Annuler ne fait rien', async () => {

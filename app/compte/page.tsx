@@ -45,7 +45,7 @@ function fmtDate(iso: string | null | undefined): string {
 
 const SUB_STATUS_LABEL: Record<string, string> = {
   active: 'Actif', trialing: 'Essai', past_due: 'Paiement en retard',
-  canceled: 'Résilié', unpaid: 'Impayé', incomplete: 'Incomplet',
+  canceled: 'Arrêté', cancelled: 'Arrêté', unpaid: 'Impayé', incomplete: 'Incomplet',
 };
 
 export default async function AccountPage() {
@@ -175,6 +175,8 @@ export default async function AccountPage() {
               canManage={canManage}
               boxId={activeSub.box_id}
               commitmentEndDate={activeSub.commitment_end_date}
+              cancelAtPeriodEnd={!!activeSub.subscription_cancel_at_period_end}
+              periodEnd={activeSub.subscription_current_period_end}
               paused={!!activeSub.subscription_paused}
               pauseResumesAt={activeSub.pause_resumes_at}
               termsPdfUrl={subBox?.terms_pdf_url ?? null}

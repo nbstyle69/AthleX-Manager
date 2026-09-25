@@ -9,6 +9,7 @@ function row(p: Partial<MembershipBillingRow>): MembershipBillingRow {
     plan_id: p.plan_id ?? 'p1',
     subscription_status: p.subscription_status ?? null,
     subscription_current_period_end: p.subscription_current_period_end ?? null,
+    subscription_cancel_at_period_end: p.subscription_cancel_at_period_end ?? null,
     amount_cents: p.amount_cents ?? 5000,
     commitment_end_date: p.commitment_end_date ?? null,
     subscription_paused: p.subscription_paused ?? null,

@@ -79,9 +79,43 @@ function ConfirmDialogView({ ctrl, returnFocus }: {
               <DialogPrimitive.Description asChild>
                 <div className="mt-3 space-y-2 text-sm">
                   {state.req.element && <p className="font-semibold text-ax-text break-words">{state.req.element}</p>}
-                  {state.req.body && <p className="leading-relaxed text-ax-text-secondary break-words">{state.req.body}</p>}
+                  {state.req.warning && (
+                    <p className="rounded-ax-control border border-ax-warning bg-ax-warning-soft px-3 py-2 font-semibold leading-relaxed text-ax-warning break-words">
+                      {state.req.warning}
+                    </p>
+                  )}
+                  {state.req.body && <p className="whitespace-pre-line leading-relaxed text-ax-text-secondary break-words">{state.req.body}</p>}
                 </div>
               </DialogPrimitive.Description>
+              {state.req.choices && state.req.choices.length > 0 && (
+                <fieldset className="mt-4 space-y-2" data-testid="confirm-dialog-choices">
+                  <legend className="sr-only">{state.req.title}</legend>
+                  {state.req.choices.map(c => (
+                    <label
+                      key={c.value}
+                      className={`flex cursor-pointer items-start gap-3 rounded-ax-control border px-3 py-2.5 transition-colors ${
+                        state.choice === c.value ? 'border-ax-focus bg-ax-hover' : 'border-ax-border hover:border-ax-input-border'
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="confirm-dialog-choice"
+                        value={c.value}
+                        checked={state.choice === c.value}
+                        disabled={busy}
+                        onChange={() => ctrl.setChoice(c.value)}
+                        className="mt-0.5 h-4 w-4 shrink-0 accent-ax-accent"
+                      />
+                      <span className="min-w-0">
+                        <span className="block text-sm font-semibold text-ax-text break-words">{c.label}</span>
+                        {c.description && (
+                          <span className="mt-0.5 block text-xs leading-relaxed text-ax-text-secondary break-words">{c.description}</span>
+                        )}
+                      </span>
+                    </label>
+                  ))}
+                </fieldset>
+              )}
               {state.req.field && (
                 <label className="mt-4 block text-xs font-semibold text-ax-text-secondary">
                   {state.req.field.label}

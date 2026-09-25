@@ -11,6 +11,8 @@ interface Props {
   canManage: boolean;
   boxId: string;
   commitmentEndDate: string | null;
+  cancelAtPeriodEnd?: boolean;
+  periodEnd?: string | null;
   paused: boolean;
   pauseResumesAt: string | null;
   termsPdfUrl?: string | null;
@@ -32,7 +34,7 @@ const REASONS = [
 ] as const;
 
 export default function ManageSubscription({
-  currentPlanId, plans, canManage, boxId, commitmentEndDate, paused, pauseResumesAt, termsPdfUrl = null,
+  currentPlanId, plans, canManage, boxId, commitmentEndDate, cancelAtPeriodEnd = false, periodEnd = null, paused, pauseResumesAt, termsPdfUrl = null,
 }: Props) {
   const [mode, setMode] = useState<null | 'change' | 'cancel' | 'request'>(null);
   const [planId, setPlanId] = useState('');
@@ -132,6 +134,11 @@ export default function ManageSubscription({
         </a>
       )}
 
+      {cancelAtPeriodEnd && (
+        <p className="flex items-center gap-1.5 text-xs font-semibold text-amber-400" data-testid="resiliation-programmee">
+          <XCircle size={13} /> Résiliation programmée{periodEnd ? ` le ${fmtDate(periodEnd)}` : ''}. Tu gardes l'accès jusque-là ; aucun prélèvement ensuite.
+        </p>
+      )}
       {message ? (
         <p className="text-xs text-emerald-400 font-semibold">{message}</p>
       ) : mode === null ? (
@@ -144,12 +151,14 @@ export default function ManageSubscription({
               <Settings2 size={13} /> Changer de formule
             </button>
           )}
+          {!cancelAtPeriodEnd && (
           <button
             onClick={() => setMode(engaged ? 'request' : 'cancel')}
             className="flex items-center gap-1.5 text-xs font-bold text-red-400 bg-red-500/10 hover:bg-red-500/20 rounded-lg px-3 py-2 transition-all"
           >
             <XCircle size={13} /> {engaged ? 'Demander une résiliation' : 'Résilier'}
           </button>
+          )}
         </div>
       ) : mode === 'change' ? (
         <div className="space-y-3">

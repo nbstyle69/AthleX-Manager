@@ -14,6 +14,7 @@ export interface MembershipBillingRow {
   plan_id: string | null;
   subscription_status: string | null;
   subscription_current_period_end: string | null;
+  subscription_cancel_at_period_end: boolean | null;
   amount_cents: number | null;
   commitment_end_date: string | null;
   subscription_paused: boolean | null;
