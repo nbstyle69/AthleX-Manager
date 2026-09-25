@@ -68,6 +68,8 @@ export interface ArchiveCheckView {
   past_due: number;
   last_end: string | null;
   still_paying: boolean;
+  /** Seul l'abonnement de la box à AthleX paie encore. */
+  only_athlex: boolean;
 }
 
 const plural = (n: number, one: string, many: string) => `${n} ${n <= 1 ? one : many}`;
@@ -76,6 +78,12 @@ const whenText = (lastEnd: string | null) => (lastEnd ? `le ${fullDate(lastEnd)}
 /** « Archivage programmé, au plus tard le {date} » (fiche admin). */
 export const scheduledStateLabel = (lastEnd: string | null) =>
   lastEnd ? `Archivage programmé, au plus tard le ${fullDate(lastEnd)}` : 'Archivage programmé, à la fin du dernier abonnement';
+
+/**
+ * Ordre de `schedule` (suivi de #390) : l'archivage est programmé d'abord,
+ * les arrêts suivent. Un échec laisse la box programmée, entrées fermées.
+ */
+const SCHEDULE_FIRST = 'Les entrées ferment dès ta confirmation, avant les arrêts. Si Stripe refuse un arrêt, l’archivage reste programmé : tu pourras relancer les arrêts depuis cette fiche.';
 
 /** Avec des abonnements qui paient encore : texte du relevé, bouton ambre. */
 export function archiveScheduleRequest(boxName: string, c: ArchiveCheckView, run: () => unknown): ConfirmRequest {
@@ -106,8 +114,31 @@ export function archiveScheduleRequest(boxName: string, c: ArchiveCheckView, run
   return {
     title: `Archiver « ${boxName} » ?`,
     warning: warning.join(' ') || undefined,
-    body: `Si tu confirmes : les abonnements des membres s’arrêtent à la fin de leur période payée, ceux en impayé tout de suite, sans remboursement, et chaque membre reçoit un e-mail.${athlex} Plus aucune adhésion, invitation ni achat n’est accepté. Tout le monde garde l’accès jusqu’à la fin de sa période payée, au plus tard ${whenText(c.last_end)} : la box sera alors archivée automatiquement.`,
+    body: `Si tu confirmes : les abonnements des membres s’arrêtent à la fin de leur période payée, ceux en impayé tout de suite, sans remboursement, et chaque membre reçoit un e-mail.${athlex} Plus aucune adhésion, invitation ni achat n’est accepté. Tout le monde garde l’accès jusqu’à la fin de sa période payée, au plus tard ${whenText(c.last_end)} : la box sera alors archivée automatiquement.\n\n${SCHEDULE_FIRST}`,
     confirmLabel: 'Programmer l’archivage',
+    tone: 'warning',
+    run,
+  };
+}
+
+/** Seul l'abonnement de la box à AthleX paie encore : la variante, sans parler des membres. */
+export function archiveAthlexOnlyRequest(boxName: string, c: ArchiveCheckView, run: () => unknown): ConfirmRequest {
+  const le = c.last_end ? `le ${fullDate(c.last_end)}` : 'à la fin de sa période';
+  return {
+    title: `Archiver « ${boxName} » ?`,
+    body: `Seul l'abonnement de la box à AthleX est encore en cours : il s'arrête ${le}, puis la box sera archivée.`,
+    confirmLabel: 'Programmer l’archivage',
+    tone: 'warning',
+    run,
+  };
+}
+
+/** Relancer les arrêts d'une box programmée après un échec. */
+export function relaunchRequest(boxName: string, toStop: number, run: () => unknown): ConfirmRequest {
+  return {
+    title: `Relancer les arrêts de « ${boxName} » ?`,
+    body: `${toStop === 1 ? '1 abonnement n’est pas encore arrêté' : `${toStop} abonnements ne sont pas encore arrêtés`} chez Stripe. Les abonnements déjà arrêtés ne seront pas rappelés. Quand tout sera arrêté, le gérant et les membres au comptoir recevront l’e-mail d’archivage.`,
+    confirmLabel: 'Relancer les arrêts',
     tone: 'warning',
     run,
   };
@@ -149,6 +180,28 @@ export async function postArchiveSchedule(boxId: string, action: 'check' | 'sche
   }
 }
 
+/**
+ * Appel `schedule` et suites, communes à « Archiver » et « Relancer les
+ * arrêts ». Après un échec, la box EST programmée : la fiche doit se
+ * recharger, mais à la fermeture du message seulement (recharger démonte le
+ * bloc et sa boîte : le banc de #390 l'a montré). Pendant l'action, la boîte
+ * met l'information en attente : ne pas l'attendre ici, sous peine de blocage.
+ */
+function runSchedule(o: { inform: (req: InfoRequest) => Promise<void>; boxId: string; onDone: () => unknown }) {
+  return async () => {
+    const r = await postArchiveSchedule(o.boxId, 'schedule');
+    if (!r.ok) {
+      void o.inform({ kind: 'error', title: ERROR_TITLE, body: r.data.error ?? 'Les arrêts n’ont pas abouti.' }).then(() => o.onDone());
+      return;
+    }
+    if (r.data.warning) {
+      void o.inform({ kind: 'info', title: 'E-mail non envoyé', body: r.data.warning }).then(() => o.onDone());
+      return;
+    }
+    await o.onDone();
+  };
+}
+
 /** Le déroulé « Archiver » : `check`, la boîte qui convient, puis `schedule`. */
 export async function askArchiveBox(o: {
   ask: (req: ConfirmRequest) => Promise<boolean>;
@@ -163,20 +216,21 @@ export async function askArchiveBox(o: {
     return false;
   }
   const c = check.data as ArchiveCheckView;
-  const run = async () => {
-    const r = await postArchiveSchedule(o.boxId, 'schedule');
-    // Échec partiel : le message nomme les abonnements refusés ; rien n'est
-    // programmé, la fiche n'a donc rien à recharger. (Recharger démonte le
-    // bloc, et sa boîte d'erreur avec : le banc l'a montré.)
-    if (!r.ok) { void o.inform({ kind: 'error', title: ERROR_TITLE, body: r.data.error ?? 'L’archivage n’a pas été programmé.' }); return; }
-    // L'avertissement d'abord, le rechargement à sa fermeture, pour la même
-    // raison. (Pendant l'action, la boîte met l'information en attente : ne
-    // pas l'attendre ici, sous peine de blocage.)
-    if (r.data.warning) {
-      void o.inform({ kind: 'info', title: 'E-mail non envoyé', body: r.data.warning }).then(() => o.onDone());
-      return;
-    }
-    await o.onDone();
-  };
-  return o.ask(c.still_paying ? archiveScheduleRequest(o.boxName, c, run) : archiveNowRequest(o.boxName, c, run));
+  const run = runSchedule(o);
+  const req = !c.still_paying ? archiveNowRequest(o.boxName, c, run)
+    : c.only_athlex ? archiveAthlexOnlyRequest(o.boxName, c, run)
+    : archiveScheduleRequest(o.boxName, c, run);
+  return o.ask(req);
+}
+
+/** « Relancer les arrêts » sur une box programmée : même `schedule`, qui reprend là où il s'était arrêté. */
+export function askRelaunchStops(o: {
+  ask: (req: ConfirmRequest) => Promise<boolean>;
+  inform: (req: InfoRequest) => Promise<void>;
+  boxId: string;
+  boxName: string;
+  toStop: number;
+  onDone: () => unknown;
+}): Promise<boolean> {
+  return o.ask(relaunchRequest(o.boxName, o.toStop, runSchedule(o)));
 }

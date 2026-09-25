@@ -51,6 +51,7 @@ function world(over: Partial<Record<string, any[]>> = {}) {
       { id: 'm3', email: 'm3@exemple.fr', username: 'membre3', full_name: 'Zoé Trois' },
       { id: 'm4', email: 'm4@exemple.fr', username: 'membre4', full_name: 'Nour Quatre' },
       { id: 'buyer', email: 'acheteur@exemple.fr', username: 'acheteur', full_name: 'Lucas Acheteur' },
+      { id: 'owner-9', email: 'editeur@exemple.fr', username: 'editeur', full_name: 'Sam Éditeur' },
     ],
     boxes: [
       { id: 'b1', name: 'Box Test', stripe_account_id: 'acct_box', contact_email: 'salle@exemple.fr', owner_id: 'owner-1', archived_at: null, archive_scheduled_at: null },
@@ -168,6 +169,7 @@ describe('check : lecture seule, compte exact', () => {
       // bm3, déjà en fin programmée au 1er décembre, paie jusque-là.
       last_end: '2026-12-01T10:00:00.000Z',
       still_paying: true,
+      only_athlex: false,
     });
     // Rien n'est écrit, rien n'est arrêté.
     expect(db.writes).toEqual([]);
@@ -265,9 +267,7 @@ describe('schedule : chaque arrêt, selon l’impayé', () => {
     expect(d.box_subscription).toEqual({ source: 'manual', status: 'active', stopping: false, period_end: null, to_stop: false });
   });
 
-  it('refuse une box déjà programmée ou déjà archivée, sans rien arrêter', async () => {
-    setup({ boxes: [{ ...world().boxes[0], archive_scheduled_at: '2026-09-25T10:00:00Z' }] });
-    expect((await call('schedule'))._status).toBe(409);
+  it('refuse une box déjà archivée, sans rien arrêter', async () => {
     setup({ boxes: [{ ...world().boxes[0], archived_at: '2026-09-25T10:00:00Z' }] });
     expect((await call('schedule'))._status).toBe(409);
     expect(mockSubUpdate).not.toHaveBeenCalled();
@@ -275,47 +275,101 @@ describe('schedule : chaque arrêt, selon l’impayé', () => {
   });
 });
 
-describe('échec partiel, puis relance', () => {
-  it('un arrêt refusé : 502 qui le nomme, rien de programmé, les autres arrêts journalisés', async () => {
-    mockSubUpdate.mockImplementation(async (id: string) => {
-      if (id === 'sub_o2') throw new Error('Stripe down');
-      stripeState[id].cancel_at_period_end = true; return { id };
+describe('ordre : programmer d’abord, arrêter ensuite (suivi de #390)', () => {
+  it('les entrées sont fermées avant le premier appel d’arrêt Stripe', async () => {
+    const scheduledAtStop: (string | null)[] = [];
+    const seen = () => scheduledAtStop.push(db.tables.boxes.find(b => b.id === 'b1')!.archive_scheduled_at ?? null);
+    mockSubUpdate.mockImplementation(async (id: string) => { seen(); stripeState[id].cancel_at_period_end = true; return { id }; });
+    mockSubCancel.mockImplementation(async (id: string) => { seen(); stripeState[id].status = 'canceled'; return { id }; });
+    await call('schedule');
+    expect(scheduledAtStop.length).toBe(8);
+    expect(scheduledAtStop.every(v => typeof v === 'string')).toBe(true);
+  });
+
+  it('deux programmations en même temps : la seconde ne relance pas les arrêts', async () => {
+    // La box est lue ouverte, mais un autre appel l'a programmée entre-temps.
+    const b1 = db.tables.boxes.find(b => b.id === 'b1')!;
+    const realFrom = db.client.from.getMockImplementation();
+    let first = true;
+    db.client.from.mockImplementation((t: string) => {
+      const q = realFrom(t);
+      if (t === 'boxes' && first) { first = false; const ms = q.maybeSingle; q.maybeSingle = async () => { const r = await ms(); const copy = { ...r, data: { ...r.data } }; b1.archive_scheduled_at = '2026-09-26T08:00:00Z'; return copy; }; }
+      return q;
     });
+    const res = await call('schedule');
+    expect(res._status).toBe(409);
+    expect(mockSubUpdate).not.toHaveBeenCalled();
+    expect(mockSubCancel).not.toHaveBeenCalled();
+  });
+});
+
+describe('échec partiel, puis relance', () => {
+  const failOnce = (id: string) => mockSubUpdate.mockImplementation(async (sid: string) => {
+    if (sid === id) throw new Error('Stripe down');
+    stripeState[sid].cancel_at_period_end = true; return { id: sid };
+  });
+
+  it('un arrêt refusé : 502 qui le nomme, archivage CONSERVÉ, entrées fermées, arrêts réussis journalisés', async () => {
+    failOnce('sub_o2');
     const res = await call('schedule');
     expect(res._status).toBe(502);
     expect(res._data.failed).toEqual(['l’offre Programmation voisine de Éditeur Voisin']);
-    expect(res._data.error).toMatch(/^Stripe a refusé l’arrêt de 1 abonnement : l’offre Programmation voisine de Éditeur Voisin\. L’archivage n’a pas été programmé/);
+    expect(res._data.scheduled).toBe(true);
+    expect(res._data.error).toBe('Stripe a refusé l’arrêt d’1 abonnement : l’offre Programmation voisine de Éditeur Voisin. L’archivage est programmé et les entrées sont fermées ; les autres abonnements sont bien arrêtés. Relance les arrêts pour terminer : les abonnements déjà arrêtés ne seront pas rappelés. L’e-mail au gérant et aux membres au comptoir partira quand tout sera arrêté.');
     const b1 = db.tables.boxes.find(b => b.id === 'b1')!;
-    expect(b1.archive_scheduled_at).toBeNull();
+    expect(typeof b1.archive_scheduled_at).toBe('string');
+    expect(b1.archive_scheduled_by).toBe('sa');
     expect(b1.archived_at).toBeNull();
     expect(db.tables.box_member_subscription_actions.map(a => a.box_member_id)).toEqual(expect.arrayContaining(['bm1', 'bm2']));
-    // Ni gérant ni comptoir prévenus : l'archivage n'est pas programmé.
+    // L'e-mail d'archivage attend que tout soit arrêté.
     expect(emails().map(e => e.to)).not.toContain('gerant@exemple.fr');
     expect(emails().map(e => e.to)).not.toContain('m4@exemple.fr');
   });
 
-  it('la relance ne rappelle pas Stripe pour ce qui est déjà en voie d’arrêt, puis programme', async () => {
-    mockSubUpdate.mockImplementationOnce(async () => { throw new Error('Stripe down'); });
+  it('pluriel : le nombre est connu, pas de « (s) » — « de 3 abonnements »', async () => {
+    mockSubUpdate.mockImplementation(async (sid: string) => {
+      if (['sub_p1', 'sub_o1', 'sub_o2'].includes(sid)) throw new Error('Stripe down');
+      stripeState[sid].cancel_at_period_end = true; return { id: sid };
+    });
+    const res = await call('schedule');
+    expect(res._data.error).toMatch(/^Stripe a refusé l’arrêt de 3 abonnements : un acheteur de programme, une box abonnée, l’offre Programmation voisine de Éditeur Voisin\. /);
+    expect(res._data.error).not.toContain('(s)');
+  });
+
+  it('la relance complète sans double appel, envoie l’e-mail d’archivage une fois ; une troisième ne fait rien', async () => {
+    failOnce('sub_m1');
     expect((await call('schedule'))._status).toBe(502);
     const firstStops = mockSubUpdate.mock.calls.length + mockSubCancel.mock.calls.length;
     const journalBefore = db.tables.box_member_subscription_actions.length;
+    const mailsBefore = emails().length;
     mockSubUpdate.mockClear(); mockSubCancel.mockClear();
     mockSubUpdate.mockImplementation(async (id: string) => { stripeState[id].cancel_at_period_end = true; return { id }; });
 
     const res = await call('schedule');
     expect(res._status).toBe(200);
-    expect(res._data.scheduled).toBe(true);
-    // Seul l'arrêt refusé la première fois (sub_m1, le premier) est refait.
+    expect(res._data).toMatchObject({ scheduled: true, stopped: 1 });
+    // Seul l'arrêt refusé la première fois est refait.
     expect(mockSubUpdate.mock.calls.map(c => c[0])).toEqual(['sub_m1']);
     expect(mockSubCancel).not.toHaveBeenCalled();
     expect(firstStops).toBe(8);
-    // Pas de second journal ni de second e-mail pour les arrêts déjà faits.
     expect(db.tables.box_member_subscription_actions.length).toBe(journalBefore + 1);
+    // E-mails de la relance : m1 (son arrêt), puis gérant et comptoir, une fois chacun.
+    expect(emails().slice(mailsBefore).map(e => e.to)).toEqual(['m1@exemple.fr', 'gerant@exemple.fr', 'm4@exemple.fr']);
+    // La programmation reste celle du premier appel (une seule écriture sur boxes).
+    expect(db.writes.filter(w => w.table === 'boxes')).toHaveLength(1);
+
+    const mailsAfter = emails().length;
+    mockSubUpdate.mockClear();
+    const third = await call('schedule');
+    expect(third._status).toBe(409);
+    expect(third._data.error).toBe('L’archivage de cette box est déjà programmé et tous ses abonnements sont arrêtés.');
+    expect(mockSubUpdate).not.toHaveBeenCalled();
+    expect(emails().length).toBe(mailsAfter);
   });
 });
 
 describe('plus rien ne paie : archivage immédiat', () => {
-  it('seuls des impayés (arrêtés tout de suite) et un abonnement `manual` : archivée tout de suite', async () => {
+  it('seuls des impayés (arrêtés tout de suite) et un abonnement `manual` : archivée tout de suite, comptoir prévenu', async () => {
     setup({
       box_members: [world().box_members[1], world().box_members[3]],
       program_members: [], box_programming_subscriptions: [], pending_entitlements: [],
@@ -326,9 +380,15 @@ describe('plus rien ne paie : archivage immédiat', () => {
     const b1 = db.tables.boxes.find(b => b.id === 'b1')!;
     expect(b1.archived_by).toBe('sa');
     expect(typeof b1.archived_at).toBe('string');
+    // Programmation effacée : « Réactiver » rouvre bien les entrées.
     expect(b1.archive_scheduled_at).toBeNull();
-    // Comme avant : pas d'e-mail d'archivage (seul l'e-mail S2 de l'impayé).
-    expect(emails().map(e => e.to)).toEqual(['m2@exemple.fr']);
+    expect(b1.archive_scheduled_by).toBeNull();
+    // S2 à l'impayé, fermeture immédiate au comptoir ; rien au gérant, comme avant.
+    const byTo = Object.fromEntries(emails().map(e => [e.to, e]));
+    expect(Object.keys(byTo).sort()).toEqual(['m2@exemple.fr', 'm4@exemple.fr']);
+    expect(byTo['m4@exemple.fr'].subject).toBe("Box Test ferme aujourd'hui");
+    expect(byTo['m4@exemple.fr'].html).toContain("Bonjour Nour, Box Test est archivée aujourd'hui : ton accès à la box et à ses cours s'arrête dès maintenant.");
+    expect(byTo['m4@exemple.fr'].reply_to).toBe('salle@exemple.fr');
   });
 
   it('box sans aucun abonnement : archivée tout de suite, aucun appel Stripe', async () => {
@@ -339,18 +399,43 @@ describe('plus rien ne paie : archivage immédiat', () => {
   });
 });
 
+describe('seul l’abonnement AthleX paie encore', () => {
+  it('check le dit (only_athlex), et schedule programme jusqu’à sa fin', async () => {
+    setup({ box_members: [world().box_members[3]], program_members: [], box_programming_subscriptions: [], pending_entitlements: [] });
+    const d = (await call('check'))._data;
+    expect(d).toMatchObject({ still_paying: true, only_athlex: true, last_end: '2026-11-20T10:00:00.000Z' });
+    const res = await call('schedule');
+    expect(res._data).toMatchObject({ scheduled: true, stopped: 1, last_end: '2026-11-20T10:00:00.000Z' });
+  });
+  it('pas dès qu’un membre, un programme ou une offre paie', async () => {
+    expect((await call('check'))._data.only_athlex).toBe(false);
+    // Aucun membre par Stripe, mais un programme paie encore : pas la variante.
+    setup({ box_members: [world().box_members[3]], box_programming_subscriptions: [], pending_entitlements: [] });
+    expect((await call('check'))._data).toMatchObject({ still_paying: true, only_athlex: false });
+  });
+});
+
 describe('e-mails', () => {
-  it('S2 aux membres, S4 aux acheteurs et aux boxs abonnées, gérant et comptoir ; réponses vers la bonne adresse', async () => {
+  it('S2 aux membres, fermeture aux acheteurs et à l’éditeur, S4 aux boxs abonnées, gérant et comptoir ; réponses vers la bonne adresse', async () => {
     await call('schedule');
     const byTo = Object.fromEntries(emails().map(e => [e.to, e]));
     expect(Object.keys(byTo).sort()).toEqual([
-      'acheteur@exemple.fr', 'futur2@exemple.fr', 'futur@exemple.fr', 'gerant@exemple.fr', 'm1@exemple.fr', 'm2@exemple.fr', 'm4@exemple.fr', 'voisin@exemple.fr',
+      'acheteur@exemple.fr', 'editeur@exemple.fr', 'futur2@exemple.fr', 'futur@exemple.fr', 'gerant@exemple.fr', 'm1@exemple.fr', 'm2@exemple.fr', 'm4@exemple.fr', 'voisin@exemple.fr',
     ]);
     expect(byTo['m1@exemple.fr'].subject).toBe('Ton abonnement à Box Test prendra fin le mardi 10 novembre 2026');
     expect(byTo['m2@exemple.fr'].subject).toBe('Ton abonnement à Box Test est arrêté');
-    expect(byTo['acheteur@exemple.fr'].subject).toBe('Box Test a retiré le programme Force 12 semaines');
+    // Programme : texte de fermeture, plus « a retiré le programme ».
+    expect(byTo['acheteur@exemple.fr'].subject).toBe('Box Test ferme : ton abonnement au programme Force 12 semaines prendra fin le vendredi 20 novembre 2026');
+    expect(byTo['acheteur@exemple.fr'].html).toContain('Bonjour Lucas, Box Test ferme : ton abonnement au programme Force 12 semaines prendra fin le vendredi 20 novembre 2026, sans nouveau prélèvement.');
+    // Offre achetée : l'éditeur est prévenu.
+    expect(byTo['editeur@exemple.fr'].subject).toBe('Box Test arrête son abonnement à Programmation voisine');
+    expect(byTo['editeur@exemple.fr'].html).toContain('Bonjour Sam, Box Test ferme : son abonnement à ton offre de programmation Programmation voisine prendra fin le vendredi 20 novembre 2026, sans nouveau prélèvement.');
     expect(byTo['voisin@exemple.fr'].subject).toBe('Box Test a retiré l’offre Semaine type');
+    // Droits en attente : pas de profil, « Bonjour, ».
     expect(byTo['futur@exemple.fr'].subject).toBe('Ton abonnement à Box Test prendra fin le vendredi 20 novembre 2026');
+    expect(byTo['futur@exemple.fr'].html).toContain('Bonjour, Box Test a mis fin à ton abonnement Illimité.');
+    expect(byTo['futur2@exemple.fr'].html).toContain('Bonjour, Box Test ferme : ton abonnement au programme Force 12 semaines prendra fin');
+    for (const e of Object.values(byTo) as any[]) expect(e.html).not.toContain('Bonjour toi');
     // Gérant : réponse vers AthleX ; tous les autres : vers la box.
     expect(byTo['gerant@exemple.fr'].reply_to).toBe('contact@athlexapp.eu');
     expect(byTo['gerant@exemple.fr'].subject).toBe('Box Test sera archivée le mardi 1 décembre 2026');
@@ -360,6 +445,16 @@ describe('e-mails', () => {
     expect(byTo['m4@exemple.fr'].subject).toBe('Box Test ferme le mardi 1 décembre 2026');
     expect(byTo['m4@exemple.fr'].html).toContain("ton accès à la box et à ses cours s'arrêtera");
     for (const to of Object.keys(byTo).filter(t => t !== 'gerant@exemple.fr')) expect(byTo[to].reply_to).toBe('salle@exemple.fr');
+  });
+
+  it('impayés : programme et offre achetée arrêtés aujourd’hui, textes « arrêté »', async () => {
+    stripeState.sub_p1.status = 'past_due';
+    stripeState.sub_o2.status = 'past_due';
+    await call('schedule');
+    const byTo = Object.fromEntries(emails().map(e => [e.to, e]));
+    expect(byTo['acheteur@exemple.fr'].subject).toBe('Ton abonnement au programme Force 12 semaines est arrêté');
+    expect(byTo['acheteur@exemple.fr'].html).toContain("Box Test ferme : ton abonnement au programme Force 12 semaines, qui était en impayé, est arrêté aujourd'hui.");
+    expect(byTo['editeur@exemple.fr'].html).toContain("son abonnement à ton offre de programmation Programmation voisine, qui était en impayé, est arrêté aujourd'hui.");
   });
 
   it('un e-mail refusé : programmé quand même, avec un avertissement', async () => {

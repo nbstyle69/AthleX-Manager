@@ -1,11 +1,11 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { Archive, ArchiveRestore, CalendarClock, Trash2, Undo2 } from 'lucide-react';
+import { Archive, ArchiveRestore, CalendarClock, RotateCw, Trash2, Undo2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useConfirmDialog } from '@/components/ui/confirm-dialog';
 import {
-  askArchiveBox, deleteBox, deleteRequest, patchArchive, postArchiveSchedule, scheduledStateLabel, unscheduleRequest,
+  askArchiveBox, askRelaunchStops, deleteBox, deleteRequest, patchArchive, postArchiveSchedule, scheduledStateLabel, unscheduleRequest,
 } from '@/lib/boxArchive';
 import { ERROR_TITLE } from '@/lib/confirmDialog';
 
@@ -47,9 +47,14 @@ export default function BoxArchiveBlock({
   const { dialog, ask, inform } = useConfirmDialog();
   // Box programmée : la date au plus tard se lit dans les abonnements (lecture seule).
   const [lastEnd, setLastEnd] = useState<string | null | undefined>(undefined);
+  // Arrêts restant à faire (un échec laisse la box programmée) : relançables d'ici.
+  const [toStop, setToStop] = useState(0);
   useEffect(() => {
     if (!scheduled) return;
-    void postArchiveSchedule(boxId, 'check').then(r => setLastEnd(r.ok ? (r.data.last_end ?? null) : null));
+    void postArchiveSchedule(boxId, 'check').then(r => {
+      setLastEnd(r.ok ? (r.data.last_end ?? null) : null);
+      setToStop(r.ok ? Number(r.data.to_stop) || 0 : 0);
+    });
   }, [boxId, scheduled]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -99,6 +104,10 @@ export default function BoxArchiveBlock({
     onChanged();
   }
 
+  function askRelaunch() {
+    void askRelaunchStops({ ask, inform, boxId, boxName, toStop, onDone: onChanged });
+  }
+
   function askUnschedule() {
     ask(unscheduleRequest(boxName, unschedule));
   }
@@ -141,6 +150,23 @@ export default function BoxArchiveBlock({
             Les nouvelles adhésions, invitations et ventes sont fermées. Les membres gardent l&apos;accès
             jusqu&apos;à la fin de leur période payée ; la box sera alors archivée automatiquement.
           </p>
+          {toStop > 0 && (
+            <div className="space-y-2" data-testid={`arrets-restants-${boxId}`}>
+              <p className="text-xs font-semibold text-ax-danger break-words">
+                {toStop === 1 ? '1 abonnement n’est pas encore arrêté' : `${toStop} abonnements ne sont pas encore arrêtés`} chez Stripe :
+                l&apos;e-mail d&apos;archivage partira quand tout sera arrêté.
+              </p>
+              <Button
+                variant="ax-outline"
+                onClick={askRelaunch}
+                disabled={busy}
+                data-testid={`relancer-arrets-${boxId}`}
+                className="border-ax-warning text-ax-warning hover:bg-ax-warning-soft"
+              >
+                <RotateCw size={14} /> Relancer les arrêts
+              </Button>
+            </div>
+          )}
           <Button
             variant="ax-outline"
             onClick={askUnschedule}

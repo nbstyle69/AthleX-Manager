@@ -16,6 +16,9 @@ export const fullDate = (iso: string) =>
 
 const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
+/** « Bonjour {prénom}, », ou « Bonjour, » sans prénom (droit en attente : pas de profil). */
+export const bonjour = (firstName: string) => (firstName ? `Bonjour ${firstName},` : 'Bonjour,');
+
 /** Prénom affiché dans les e-mails : prénom du nom complet, sinon pseudo. */
 export function memberFirstName(profile: { full_name?: string | null; username?: string | null } | null): string {
   return profile?.full_name?.trim().split(/\s+/)[0] || profile?.username || 'toi';
@@ -83,8 +86,8 @@ export function stopEmailContent(opts: {
     ? `Ton abonnement à ${boxName} prendra fin le ${periodEnd ? fullDate(periodEnd) : 'la fin de la période payée'}`
     : `Ton abonnement à ${boxName} est arrêté`;
   const bodyText = mode === 'period_end'
-    ? `Bonjour ${firstName}, ${boxName} a mis fin à ton abonnement ${planName}. Tu gardes l'accès aux cours jusqu'au ${periodEnd ? fullDate(periodEnd) : 'terme de la période payée'} inclus ; aucun prélèvement ne sera fait ensuite. Pour toute question, réponds simplement à cet e-mail : il arrive directement à ${boxName}.`
-    : `Bonjour ${firstName}, ${boxName} a arrêté ton abonnement ${planName} aujourd'hui. Tes réservations à venir ont été annulées et aucun prélèvement ne sera plus fait. Pour toute question, réponds à cet e-mail : il arrive directement à ${boxName}.`;
+    ? `${bonjour(firstName)} ${boxName} a mis fin à ton abonnement ${planName}. Tu gardes l'accès aux cours jusqu'au ${periodEnd ? fullDate(periodEnd) : 'terme de la période payée'} inclus ; aucun prélèvement ne sera fait ensuite. Pour toute question, réponds simplement à cet e-mail : il arrive directement à ${boxName}.`
+    : `${bonjour(firstName)} ${boxName} a arrêté ton abonnement ${planName} aujourd'hui. Tes réservations à venir ont été annulées et aucun prélèvement ne sera plus fait. Pour toute question, réponds à cet e-mail : il arrive directement à ${boxName}.`;
   return { subject, bodyText };
 }
 
