@@ -87,10 +87,26 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
 
     if (promo.stripe_coupon_id && stripeAccount) {
       // Supprimer le coupon invalide définitivement le promotion code associé.
-      await stripe.coupons.del(promo.stripe_coupon_id, { stripeAccount }).catch(() => {});
+      // Un échec n'est plus avalé (S4, B6) : le code resterait utilisable chez
+      // Stripe alors qu'il aurait disparu de l'écran. Un coupon déjà absent
+      // (`resource_missing`, suppression rejouée) vaut succès : c'est
+      // l'idempotence d'un DELETE, où Stripe n'accepte pas de clé.
+      try {
+        await stripe.coupons.del(promo.stripe_coupon_id, { stripeAccount });
+      } catch (err: any) {
+        if (err?.code !== 'resource_missing') {
+          return NextResponse.json(
+            { error: `Stripe n’a pas pu désactiver le code : ${err?.message ?? 'erreur inconnue'}. Rien n’a été supprimé.` },
+            { status: 502 },
+          );
+        }
+      }
     }
 
-    await supabase.from('membership_promo_codes').delete().eq('id', promo.id);
+    const { error: deleteError } = await supabase.from('membership_promo_codes').delete().eq('id', promo.id);
+    if (deleteError) {
+      return NextResponse.json({ error: deleteError.message }, { status: 500 });
+    }
 
     return NextResponse.json({ ok: true });
   } catch (err: any) {
