@@ -5,7 +5,8 @@ import { ChevronLeft, ChevronRight, Loader2, Trophy } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 
 const LEVEL_LABEL: Record<string, string> = { 'rx+': 'RX+', rx: 'RX', scaled: 'SCALED', foundations: 'FOUNDATIONS', inter: 'INTER', gx: 'GX', pro: 'PRO' };
-const LEVEL_COLOR: Record<string, string> = { 'rx+': '#FFFFFF', rx: '#3B82F6', scaled: '#10B981', foundations: '#8B5CF6', inter: '#F59E0B', gx: '#EC4899', pro: '#EF4444' };
+// Niveaux : memes jetons que le reste du Manager, lisibles dans les deux themes.
+const LEVEL_COLOR: Record<string, string> = { 'rx+': 'var(--ax-level-rx-plus)', rx: 'var(--ax-level-rx)', scaled: 'var(--ax-level-scaled)', foundations: 'var(--ax-purple)', inter: 'var(--ax-level-inter)', gx: 'var(--ax-level-gx)', pro: 'var(--ax-level-pro)' };
 
 const PAGE_SIZE = 10;
 
@@ -56,37 +57,37 @@ export default function TopEloCard({ boxId }: { boxId: string }) {
 
   if (loading) {
     return (
-      <div className="bg-[#111111] border border-white/8 rounded-2xl p-6 flex items-center gap-3">
-        <Loader2 size={16} className="animate-spin text-white" />
-        <span className="text-sm text-gray-400">Chargement du classement…</span>
+      <div className="bg-ax-surface border border-ax-border rounded-ax-card p-6 flex items-center gap-3">
+        <Loader2 size={16} className="animate-spin text-ax-text" />
+        <span className="text-sm text-ax-text-secondary">Chargement du classement…</span>
       </div>
     );
   }
 
   return (
-    <div className="bg-[#111111] border border-white/8 rounded-2xl p-6">
+    <div className="bg-ax-surface border border-ax-border rounded-ax-card p-6">
       <div className="flex items-center justify-between mb-5 flex-wrap gap-3">
-        <h2 className="text-sm font-bold text-white flex items-center gap-2">
-          <Trophy size={16} className="text-white" />
+        <h2 className="text-sm font-bold text-ax-text flex items-center gap-2">
+          <Trophy size={16} className="text-ax-text" />
           Classement ELO — {page * PAGE_SIZE + 1}–{Math.min((page + 1) * PAGE_SIZE, filtered.length)} / {filtered.length}
         </h2>
         <div className="flex items-center gap-3">
           <div className="flex gap-1">
             {([['all', 'Tous'], ['male', '♂ Hommes'], ['female', '♀ Femmes']] as const).map(([key, label]) => (
               <button key={key} onClick={() => { setGenderFilter(key); setPage(0); }}
-                className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-colors ${genderFilter === key ? 'bg-white/20 text-white' : 'text-gray-500 hover:text-gray-300'}`}>
+                className={`px-2.5 py-1 rounded-ax-control text-xs font-bold transition-colors ${genderFilter === key ? 'bg-ax-hover text-ax-text' : 'text-ax-text-muted hover:text-ax-text'}`}>
                 {label}
               </button>
             ))}
           </div>
           <div className="flex items-center gap-1">
             <button onClick={() => setPage(p => Math.max(0, p - 1))} disabled={page === 0}
-              className="p-1 rounded-lg text-gray-500 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
+              className="p-1 rounded-ax-control text-ax-text-muted hover:text-ax-text disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
               <ChevronLeft size={18} />
             </button>
-            <span className="text-xs text-gray-400 font-bold min-w-[40px] text-center">{page + 1}/{totalPages}</span>
+            <span className="text-xs text-ax-text-secondary font-bold min-w-[40px] text-center">{page + 1}/{totalPages}</span>
             <button onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))} disabled={page >= totalPages - 1}
-              className="p-1 rounded-lg text-gray-500 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
+              className="p-1 rounded-ax-control text-ax-text-muted hover:text-ax-text disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
               <ChevronRight size={18} />
             </button>
           </div>
@@ -94,28 +95,28 @@ export default function TopEloCard({ boxId }: { boxId: string }) {
       </div>
 
       {shown.length === 0 ? (
-        <p className="text-xs text-gray-600 text-center py-4">Aucun membre</p>
+        <p className="text-xs text-ax-text-muted text-center py-4">Aucun membre</p>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
           {shown.map((m, i) => {
             const rank = page * PAGE_SIZE + i + 1;
-            const lvlColor = LEVEL_COLOR[m.level] ?? '#6B7280';
+            const lvlColor = LEVEL_COLOR[m.level] ?? 'var(--ax-neutral)';
             return (
-              <div key={m.username + rank} className="flex items-center gap-3 bg-[#0A0A0A] rounded-xl px-4 py-3">
-                <span className="text-sm font-black text-gray-500 w-6 text-right">{rank}</span>
-                <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center text-white text-xs font-black shrink-0">
+              <div key={m.username + rank} className="flex items-center gap-3 bg-ax-background rounded-ax-control px-4 py-3">
+                <span className="text-sm font-black text-ax-text-muted w-6 text-right">{rank}</span>
+                <div className="w-8 h-8 rounded-full bg-ax-hover flex items-center justify-center text-ax-text text-xs font-black shrink-0">
                   {m.username[0]?.toUpperCase()}
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-1.5">
-                    <p className="text-sm font-semibold text-white truncate">{m.username}</p>
+                    <p className="text-sm font-semibold text-ax-text truncate">{m.username}</p>
                     {m.gender && <span className="text-[10px]">{m.gender === 'male' ? '♂' : '♀'}</span>}
                   </div>
                   <span className="text-[10px] font-bold px-1.5 py-0.5 rounded" style={{ color: lvlColor, backgroundColor: `${lvlColor}20` }}>
                     {LEVEL_LABEL[m.level] ?? m.level.toUpperCase()}
                   </span>
                 </div>
-                <span className="text-sm font-mono font-bold text-white">{m.elo}</span>
+                <span className="text-sm font-mono font-bold text-ax-text">{m.elo}</span>
               </div>
             );
           })}

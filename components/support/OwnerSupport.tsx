@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 import {
   LifeBuoy, Plus, Loader2, Send, ArrowLeft, HelpCircle, Bug, Lightbulb, Check,
 } from 'lucide-react';
@@ -31,15 +33,15 @@ interface Message {
 }
 
 const TYPE_META: Record<TicketType, { label: string; icon: typeof HelpCircle; color: string }> = {
-  question:    { label: 'Question',            icon: HelpCircle, color: 'text-blue-400' },
-  bug:         { label: 'Bug',                 icon: Bug,        color: 'text-red-400' },
-  improvement: { label: "Idée d'amélioration", icon: Lightbulb,  color: 'text-amber-400' },
+  question:    { label: 'Question',            icon: HelpCircle, color: 'text-ax-info' },
+  bug:         { label: 'Bug',                 icon: Bug,        color: 'text-ax-danger' },
+  improvement: { label: "Idée d'amélioration", icon: Lightbulb,  color: 'text-ax-warning' },
 };
 
 const STATUS_META: Record<TicketStatus, { label: string; cls: string }> = {
-  open:     { label: 'Ouvert',  cls: 'bg-amber-500/20 text-amber-400 border-amber-500/30' },
-  answered: { label: 'Répondu', cls: 'bg-blue-500/20 text-blue-400 border-blue-500/30' },
-  resolved: { label: 'Résolu',  cls: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' },
+  open:     { label: 'Ouvert',  cls: 'bg-ax-warning-soft text-ax-warning border-ax-warning' },
+  answered: { label: 'Répondu', cls: 'bg-ax-info-soft text-ax-info border-ax-info' },
+  resolved: { label: 'Résolu',  cls: 'bg-ax-success-soft text-ax-success border-ax-success' },
 };
 
 function fmt(iso: string) {
@@ -136,18 +138,18 @@ export default function OwnerSupport({ boxId, userId }: { boxId: string; userId:
     const meta = TYPE_META[active.type];
     return (
       <div className="max-w-3xl">
-        <button onClick={() => { setActive(null); load(); }} className="flex items-center gap-2 text-sm text-gray-400 hover:text-white mb-4">
+        <button onClick={() => { setActive(null); load(); }} className="flex items-center gap-2 text-sm text-ax-text-secondary hover:text-ax-text mb-4">
           <ArrowLeft size={16} /> Retour aux demandes
         </button>
-        <div className="bg-white/[0.02] border border-white/[0.06] rounded-2xl p-5 mb-4">
+        <div className="bg-ax-hover border border-ax-border rounded-ax-card p-5 mb-4">
           <div className="flex items-center gap-3 flex-wrap">
             <meta.icon size={18} className={meta.color} />
-            <h2 className="text-lg font-black text-white">{active.subject}</h2>
-            <span className={`px-2 py-0.5 rounded-lg border text-[10px] font-bold uppercase tracking-wider ${STATUS_META[active.status].cls}`}>
+            <h2 className="text-lg font-black text-ax-text">{active.subject}</h2>
+            <span className={`px-2 py-0.5 rounded-ax-control border text-[10px] font-bold uppercase tracking-wider ${STATUS_META[active.status].cls}`}>
               {STATUS_META[active.status].label}
             </span>
             {active.status !== 'resolved' && (
-              <button onClick={markResolved} className="ml-auto flex items-center gap-1 text-xs font-bold text-emerald-400 hover:text-emerald-300">
+              <button onClick={markResolved} className="ml-auto flex items-center gap-1 text-xs font-bold text-ax-success hover:text-ax-success">
                 <Check size={13} /> Marquer résolu
               </button>
             )}
@@ -159,8 +161,8 @@ export default function OwnerSupport({ boxId, userId }: { boxId: string; userId:
             const mine = m.sender_role === 'requester';
             return (
               <div key={m.id} className={`flex ${mine ? 'justify-end' : 'justify-start'}`}>
-                <div className={`max-w-[80%] rounded-2xl px-4 py-2.5 ${mine ? 'bg-white/10 text-white' : 'bg-emerald-500/15 border border-emerald-500/20 text-white'}`}>
-                  <p className="text-[10px] font-bold uppercase tracking-wider mb-1 opacity-60">
+                <div className={`max-w-[80%] rounded-ax-card px-4 py-2.5 ${mine ? 'bg-ax-hover text-ax-text' : 'bg-ax-success-soft border border-ax-success text-ax-text'}`}>
+                  <p className="text-[10px] font-bold uppercase tracking-wider mb-1 text-ax-text-secondary">
                     {mine ? 'Vous' : 'Support AthleX'} · {fmt(m.created_at)}
                   </p>
                   <p className="text-sm whitespace-pre-wrap">{m.body}</p>
@@ -175,10 +177,10 @@ export default function OwnerSupport({ boxId, userId }: { boxId: string; userId:
             <textarea
               value={reply} onChange={e => setReply(e.target.value)} rows={2}
               placeholder="Votre message..."
-              className="flex-1 bg-white/5 border border-white/10 rounded-xl p-3 text-white text-sm resize-none focus:outline-none focus:border-white/20"
+              className="w-full rounded-ax-control border border-ax-input-border bg-ax-surface px-3 py-2.5 text-sm text-ax-text placeholder:text-ax-text-muted transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ax-focus focus-visible:ring-offset-2 focus-visible:ring-offset-ax-surface motion-reduce:transition-none flex-1 w-auto resize-none"
             />
             <button onClick={sendReply} disabled={sending || !reply.trim()}
-              className="bg-white text-[#0A0A0A] font-bold px-4 py-3 rounded-xl text-sm inline-flex items-center gap-1.5 disabled:opacity-40">
+              className="bg-ax-text text-ax-background font-bold px-4 py-3 rounded-ax-control text-sm inline-flex items-center gap-1.5 disabled:opacity-40">
               {sending ? <Loader2 size={15} className="animate-spin" /> : <Send size={15} />}
             </button>
           </div>
@@ -192,51 +194,48 @@ export default function OwnerSupport({ boxId, userId }: { boxId: string; userId:
     <div className="max-w-3xl space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-black text-white flex items-center gap-3">
+          <h1 className="font-display text-2xl font-medium uppercase tracking-wide text-ax-text flex items-center gap-3">
             <LifeBuoy size={24} /> Support
           </h1>
-          <p className="text-sm text-gray-400 mt-1">Une question, un bug ou une idée pour AthleX Manager ? Contactez l&apos;équipe AthleX.</p>
+          <p className="text-sm text-ax-text-secondary mt-1">Une question, un bug ou une idée pour AthleX Manager ? Contactez l&apos;équipe AthleX.</p>
         </div>
         {!creating && (
-          <button onClick={() => setCreating(true)}
-            className="bg-white text-[#0A0A0A] font-bold px-4 py-2.5 rounded-xl text-sm inline-flex items-center gap-1.5 hover:bg-gray-200">
+          <Button onClick={() => setCreating(true)} variant="ax-white">
             <Plus size={16} /> Nouvelle demande
-          </button>
+          </Button>
         )}
       </div>
 
       {creating && (
-        <div className="bg-white/[0.02] border border-white/[0.06] rounded-2xl p-5 space-y-4">
+        <div className="bg-ax-hover border border-ax-border rounded-ax-card p-5 space-y-4">
           <div className="flex gap-2">
             {(Object.keys(TYPE_META) as TicketType[]).map(k => {
               const m = TYPE_META[k];
               return (
                 <button key={k} onClick={() => setNewType(k)}
-                  className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl text-xs font-bold border transition-all ${
-                    newType === k ? 'bg-white/15 border-white/25 text-white' : 'bg-white/5 border-white/10 text-gray-400 hover:bg-white/10'}`}>
+                  className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-ax-control text-xs font-bold border transition-all ${
+                    newType === k ? 'bg-ax-hover border-ax-input-border text-ax-text' : 'bg-ax-hover border-ax-border text-ax-text-secondary hover:bg-ax-hover'}`}>
                   <m.icon size={14} className={m.color} /> {m.label}
                 </button>
               );
             })}
           </div>
-          <input value={newSubject} onChange={e => setNewSubject(e.target.value)} placeholder="Titre de la demande"
-            className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-white text-sm focus:outline-none focus:border-white/20" />
+          <Input value={newSubject} onChange={e => setNewSubject(e.target.value)} placeholder="Titre de la demande" />
           <textarea value={newBody} onChange={e => setNewBody(e.target.value)} rows={4} placeholder="Décrivez votre demande..."
-            className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-white text-sm resize-none focus:outline-none focus:border-white/20" />
+            className="w-full rounded-ax-control border border-ax-input-border bg-ax-surface px-3 py-2.5 text-sm text-ax-text placeholder:text-ax-text-muted transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ax-focus focus-visible:ring-offset-2 focus-visible:ring-offset-ax-surface motion-reduce:transition-none resize-none" />
           <div className="flex gap-2 justify-end">
-            <button onClick={() => setCreating(false)} className="px-4 py-2.5 rounded-xl text-sm font-bold text-gray-400 hover:text-white">Annuler</button>
-            <button onClick={createTicket} disabled={sending || !newSubject.trim() || !newBody.trim()}
-              className="bg-white text-[#0A0A0A] font-bold px-4 py-2.5 rounded-xl text-sm inline-flex items-center gap-1.5 disabled:opacity-40">
+            <button onClick={() => setCreating(false)} className="px-4 py-2.5 rounded-ax-control text-sm font-bold text-ax-text-secondary hover:text-ax-text">Annuler</button>
+            <Button onClick={createTicket} disabled={sending || !newSubject.trim() || !newBody.trim()} variant="ax-white">
               {sending ? <Loader2 size={15} className="animate-spin" /> : <Send size={15} />} Envoyer
-            </button>
+            </Button>
           </div>
         </div>
       )}
 
       {loading ? (
-        <div className="flex items-center gap-2 text-gray-400 py-8"><Loader2 size={18} className="animate-spin" /> Chargement...</div>
+        <div className="flex items-center gap-2 text-ax-text-secondary py-8"><Loader2 size={18} className="animate-spin" /> Chargement...</div>
       ) : tickets.length === 0 ? (
-        <div className="text-center py-16 text-gray-500">
+        <div className="text-center py-16 text-ax-text-muted">
           <LifeBuoy size={48} className="mx-auto mb-3 opacity-30" />
           <p>Aucune demande pour le moment</p>
         </div>
@@ -246,16 +245,16 @@ export default function OwnerSupport({ boxId, userId }: { boxId: string; userId:
             const m = TYPE_META[t.type];
             return (
               <button key={t.id} onClick={() => openTicket(t)}
-                className="w-full text-left bg-white/[0.02] border border-white/[0.06] rounded-xl p-4 hover:bg-white/[0.04] transition-all flex items-center gap-3">
+                className="w-full text-left bg-ax-hover border border-ax-border rounded-ax-control p-4 hover:bg-ax-hover transition-all flex items-center gap-3">
                 <m.icon size={18} className={`${m.color} shrink-0`} />
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
-                    <p className="text-sm font-bold text-white truncate">{t.subject}</p>
-                    {t.requester_unread && <span className="w-2 h-2 rounded-full bg-white shrink-0" />}
+                    <p className="text-sm font-bold text-ax-text truncate">{t.subject}</p>
+                    {t.requester_unread && <span className="w-2 h-2 rounded-full bg-ax-text shrink-0" />}
                   </div>
-                  <p className="text-xs text-gray-500">{m.label} · {fmt(t.last_message_at)}</p>
+                  <p className="text-xs text-ax-text-muted">{m.label} · {fmt(t.last_message_at)}</p>
                 </div>
-                <span className={`px-2 py-0.5 rounded-lg border text-[10px] font-bold uppercase tracking-wider shrink-0 ${STATUS_META[t.status].cls}`}>
+                <span className={`px-2 py-0.5 rounded-ax-control border text-[10px] font-bold uppercase tracking-wider shrink-0 ${STATUS_META[t.status].cls}`}>
                   {STATUS_META[t.status].label}
                 </span>
               </button>

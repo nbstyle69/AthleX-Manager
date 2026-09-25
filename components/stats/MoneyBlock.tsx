@@ -142,20 +142,20 @@ export default function MoneyBlock({ boxId }: { boxId: string }) {
 
   if (loading) {
     return (
-      <div className="bg-[#111111] border border-white/8 rounded-2xl p-6 flex items-center gap-3">
-        <Loader2 size={16} className="animate-spin text-white" />
-        <span className="text-sm text-gray-400">Chargement des chiffres d&apos;argent…</span>
+      <div className="bg-ax-surface border border-ax-border rounded-ax-card p-6 flex items-center gap-3">
+        <Loader2 size={16} className="animate-spin text-ax-text" />
+        <span className="text-sm text-ax-text-secondary">Chargement des chiffres d&apos;argent…</span>
       </div>
     );
   }
 
   if (error || !current || !previous) {
     return (
-      <div className="bg-red-500/10 border border-red-500/30 rounded-2xl p-5">
-        <p className="text-sm font-bold text-red-300 flex items-center gap-2">
+      <div className="bg-ax-danger-soft border border-ax-danger rounded-ax-card p-5">
+        <p className="text-sm font-bold text-ax-danger flex items-center gap-2">
           <AlertTriangle size={16} /> Chiffres d&apos;argent indisponibles
         </p>
-        <p className="text-xs text-red-200/80 mt-1">{error ?? 'Réponse vide du serveur.'}</p>
+        <p className="text-xs text-ax-danger mt-1">{error ?? 'Réponse vide du serveur.'}</p>
       </div>
     );
   }
@@ -215,23 +215,23 @@ export default function MoneyBlock({ boxId }: { boxId: string }) {
   return (
     <div className="space-y-4">
       <div className="flex items-baseline justify-between">
-        <h2 className="text-sm font-bold text-white flex items-center gap-2">
-          <Euro size={16} className="text-white" />
+        <h2 className="text-sm font-bold text-ax-text flex items-center gap-2">
+          <Euro size={16} className="text-ax-text" />
           Argent
         </h2>
-        <span className="text-[11px] text-gray-500">comparaisons vs mois précédent</span>
+        <span className="text-[11px] text-ax-text-muted">comparaisons vs mois précédent</span>
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
         {cards.map(({ key, label, value, sub, icon: Icon, delta }) => (
-          <div key={key} className="bg-[#111111] border border-white/8 rounded-2xl p-4">
+          <div key={key} className="bg-ax-surface border border-ax-border rounded-ax-card p-4">
             <div className="flex items-start justify-between">
-              <Icon size={16} className="text-gray-400" />
+              <Icon size={16} className="text-ax-text-secondary" />
               {delta}
             </div>
-            <p className="text-2xl font-black text-white mt-3">{value}</p>
-            <p className="text-[11px] text-gray-400 font-medium mt-1">{label}</p>
-            <p className="text-[10px] text-gray-600 mt-0.5">{sub}</p>
+            <p className="text-2xl font-black text-ax-text mt-3">{value}</p>
+            <p className="text-[11px] text-ax-text-secondary font-medium mt-1">{label}</p>
+            <p className="text-[10px] text-ax-text-muted mt-0.5">{sub}</p>
           </div>
         ))}
       </div>
@@ -247,7 +247,7 @@ export default function MoneyBlock({ boxId }: { boxId: string }) {
             rows: pastDuePeople,
             href: '/subscribers',
             hrefLabel: 'Relancer depuis Abonnés',
-            tone: 'text-red-400',
+            tone: 'text-ax-danger',
           },
           {
             kind: 'cash' as const,
@@ -257,43 +257,43 @@ export default function MoneyBlock({ boxId }: { boxId: string }) {
             rows: cashPeople,
             href: '/invitations',
             hrefLabel: 'Voir les invitations',
-            tone: 'text-amber-400',
+            tone: 'text-ax-warning',
           },
         ]).map(({ kind, title, count, cents, rows, href, hrefLabel, tone }) => (
-          <div key={kind} className="bg-[#111111] border border-white/8 rounded-2xl overflow-hidden">
+          <div key={kind} className="bg-ax-surface border border-ax-border rounded-ax-card overflow-hidden">
             <button
               type="button"
               onClick={() => setOpenList(openList === kind ? null : kind)}
               disabled={count === 0}
-              className="w-full flex items-center justify-between px-5 py-4 hover:bg-white/[0.03] disabled:hover:bg-transparent disabled:cursor-default transition-colors"
+              className="w-full flex items-center justify-between px-5 py-4 hover:bg-ax-hover disabled:hover:bg-transparent disabled:cursor-default transition-colors"
             >
               <div className="text-left">
-                <p className="text-xs font-bold text-gray-400">{title}</p>
-                <p className={`text-xl font-black mt-1 ${count > 0 ? tone : 'text-gray-600'}`}>
+                <p className="text-xs font-bold text-ax-text-secondary">{title}</p>
+                <p className={`text-xl font-black mt-1 ${count > 0 ? tone : 'text-ax-text-muted'}`}>
                   {count} · {EUR(cents)}
                 </p>
               </div>
               {count > 0 && (
-                <ChevronDown size={16} className={`text-gray-500 transition-transform ${openList === kind ? 'rotate-180' : ''}`} />
+                <ChevronDown size={16} className={`text-ax-text-muted transition-transform ${openList === kind ? 'rotate-180' : ''}`} />
               )}
             </button>
 
             {openList === kind && rows.length > 0 && (
-              <div className="border-t border-white/8 divide-y divide-white/5">
+              <div className="border-t border-ax-border divide-y divide-ax-border">
                 {rows.map(p => (
                   <div key={p.ref_id} className="flex items-center gap-3 px-5 py-3">
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-white truncate">
+                      <p className="text-sm font-semibold text-ax-text truncate">
                         {p.label?.trim() || p.email || '—'}
                       </p>
-                      <p className="text-[11px] text-gray-500 truncate">
+                      <p className="text-[11px] text-ax-text-muted truncate">
                         {DAYS_AGO(p.since)}{p.detail ? ` · ${p.detail}` : ''}
                       </p>
                     </div>
-                    <span className="text-sm font-bold text-white shrink-0">{EUR(p.amount_cents ?? 0)}</span>
+                    <span className="text-sm font-bold text-ax-text shrink-0">{EUR(p.amount_cents ?? 0)}</span>
                   </div>
                 ))}
-                <Link href={href} className="block px-5 py-3 text-xs font-bold text-white hover:bg-white/[0.03] transition-colors">
+                <Link href={href} className="block px-5 py-3 text-xs font-bold text-ax-text hover:bg-ax-hover transition-colors">
                   {hrefLabel} →
                 </Link>
               </div>
@@ -304,68 +304,68 @@ export default function MoneyBlock({ boxId }: { boxId: string }) {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
         {/* Historique réellement encaissé */}
-        <div className="bg-[#111111] border border-white/8 rounded-2xl p-6">
-          <h3 className="text-sm font-bold text-white mb-1">Encaissé sur 6 mois</h3>
-          <p className="text-[11px] text-gray-500 mb-5">
+        <div className="bg-ax-surface border border-ax-border rounded-ax-card p-6">
+          <h3 className="text-sm font-bold text-ax-text mb-1">Encaissé sur 6 mois</h3>
+          <p className="text-[11px] text-ax-text-muted mb-5">
             {hasStripeAccount
               ? 'Factures Stripe, achats de programmes (Stripe et comptoir) et encaissements comptoir d\'adhésion.'
               : 'Aucun compte Stripe connecté : seuls les programmes et le comptoir apparaissent.'}
           </p>
           {history.length === 0 ? (
-            <p className="text-xs text-gray-600 py-6 text-center">Aucun encaissement sur la période.</p>
+            <p className="text-xs text-ax-text-muted py-6 text-center">Aucun encaissement sur la période.</p>
           ) : (
-            <div className="flex items-end gap-2 h-36">
+            <div className="flex items-end gap-2 h-36 overflow-x-clip">
               {history.map(h => {
                 const total = monthTotal(h);
                 return (
                   <div key={h.month} className="flex-1 h-full flex flex-col items-center justify-end gap-1 group relative">
-                    <div className="absolute -top-7 bg-[#1a1a1a] border border-white/10 rounded-lg px-2 py-1 text-[10px] text-white font-bold opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">
+                    <div className="absolute -top-7 bg-ax-surface-secondary border border-ax-border rounded-ax-control px-2 py-1 text-[10px] text-ax-text font-bold opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">
                       {EUR(total)}
                     </div>
                     <div className="w-full flex flex-col justify-end" style={{ height: `${Math.max((total / maxMonth) * 100, 2)}%` }}>
                       {h.program_cents > 0 && (
-                        <div className="w-full rounded-t-sm bg-white/40" style={{ height: `${(h.program_cents / Math.max(total, 1)) * 100}%` }} />
+                        <div className="w-full rounded-t-sm bg-[color-mix(in_srgb,var(--ax-text)_40%,transparent)]" style={{ height: `${(h.program_cents / Math.max(total, 1)) * 100}%` }} />
                       )}
                       {h.cash_cents > 0 && (
-                        <div className="w-full bg-amber-400/70" style={{ height: `${(h.cash_cents / Math.max(total, 1)) * 100}%` }} />
+                        <div className="w-full bg-[color-mix(in_srgb,var(--ax-warning)_75%,transparent)]" style={{ height: `${(h.cash_cents / Math.max(total, 1)) * 100}%` }} />
                       )}
-                      <div className="w-full flex-1 bg-white" />
+                      <div className="w-full flex-1 bg-ax-text" />
                     </div>
-                    <span className="text-[10px] text-gray-600">{MONTH_LABEL(h.month)}</span>
+                    <span className="text-[10px] text-ax-text-muted">{MONTH_LABEL(h.month)}</span>
                   </div>
                 );
               })}
             </div>
           )}
-          <p className="text-[10px] text-gray-600 mt-3">
+          <p className="text-[10px] text-ax-text-muted mt-3">
             Le comptoir n&apos;y figure que depuis la pose du journal : les encaissements en espèces
             antérieurs n&apos;ont laissé ni montant ni date, ils sont perdus pour toujours.
           </p>
         </div>
 
         {/* Répartition par formule */}
-        <div className="bg-[#111111] border border-white/8 rounded-2xl p-6">
-          <h3 className="text-sm font-bold text-white mb-5 flex items-center gap-2">
-            <Banknote size={16} className="text-white" />
+        <div className="bg-ax-surface border border-ax-border rounded-ax-card p-6">
+          <h3 className="text-sm font-bold text-ax-text mb-5 flex items-center gap-2">
+            <Banknote size={16} className="text-ax-text" />
             Abonnés par formule
           </h3>
           {plans.length === 0 ? (
-            <p className="text-xs text-gray-600 py-6 text-center">Aucune formule d&apos;abonnement.</p>
+            <p className="text-xs text-ax-text-muted py-6 text-center">Aucune formule d&apos;abonnement.</p>
           ) : (
             <div className="space-y-3">
               {plans.map(p => {
                 const totalSubs = plans.reduce((s, x) => s + x.subs, 0) || 1;
                 const pct = Math.round((p.subs / totalSubs) * 100);
-                const color = p.plan_color ?? '#FFFFFF';
+                const color = p.plan_color ?? 'var(--ax-text)';
                 return (
                   <div key={p.plan_id}>
                     <div className="flex items-center justify-between mb-1">
-                      <span className="text-xs font-bold text-white">{p.plan_name}</span>
-                      <span className="text-xs text-gray-400">
+                      <span className="text-xs font-bold text-ax-text">{p.plan_name}</span>
+                      <span className="text-xs text-ax-text-secondary">
                         {p.subs} · {EUR(p.mrr_cents)}
                       </span>
                     </div>
-                    <div className="h-2 bg-white/5 rounded-full overflow-hidden">
+                    <div className="h-2 bg-ax-hover rounded-full overflow-hidden">
                       <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, backgroundColor: color }} />
                     </div>
                   </div>
@@ -374,7 +374,7 @@ export default function MoneyBlock({ boxId }: { boxId: string }) {
             </div>
           )}
           {current.mrr_cash_subs > 0 && (
-            <p className="text-[10px] text-gray-600 mt-4">
+            <p className="text-[10px] text-ax-text-muted mt-4">
               dont {current.mrr_cash_subs} abonnement(s) au comptoir : {EUR(current.mrr_cash_cents)} attendus au prix
               de la formule, à rapprocher des {EUR(current.cash_collected_cents)} réellement encaissés ce mois.
             </p>

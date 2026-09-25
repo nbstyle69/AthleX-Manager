@@ -5,7 +5,9 @@ import HelpButton from '@/components/help/HelpButton';
 import Link from 'next/link';
 import { Send, MessageSquare, Users2, Loader2, Hash, Megaphone } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
+import { softVar } from '@/lib/colorVars';
 import { getMyBox } from '@/lib/getMyBox';
+import { Input } from '@/components/ui/input';
 
 interface Group { id: string; name: string; color: string | null; }
 interface ChatMessage {
@@ -164,7 +166,7 @@ export default function MessagesPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-[calc(100vh-100px)]">
-        <Loader2 className="animate-spin text-white" size={28} />
+        <Loader2 className="animate-spin text-ax-text" size={28} />
       </div>
     );
   }
@@ -172,20 +174,20 @@ export default function MessagesPage() {
   return (
     <div className="flex h-[calc(100vh-100px)] gap-4">
       {/* Groups sidebar */}
-      <div className="w-72 shrink-0 bg-[#111111] border border-white/8 rounded-2xl flex flex-col overflow-hidden">
-        <div className="px-4 py-4 border-b border-white/8">
+      <div className="w-72 shrink-0 bg-ax-surface border border-ax-border rounded-ax-card flex flex-col overflow-hidden">
+        <div className="px-4 py-4 border-b border-ax-border">
           <div className="flex items-center justify-between gap-2">
-            <h2 className="text-sm font-black text-white">Conversations</h2>
+            <h2 className="text-sm font-black text-ax-text">Conversations</h2>
             <HelpButton />
           </div>
-          <p className="text-xs text-gray-500 mt-0.5">{groups.length} groupe(s)</p>
+          <p className="text-xs text-ax-text-muted mt-0.5">{groups.length} groupe(s)</p>
         </div>
         <div className="flex-1 overflow-y-auto">
           {groups.length === 0 ? (
             <div className="p-6 text-center">
-              <Users2 size={28} className="text-gray-600 mx-auto mb-2" />
-              <p className="text-xs text-gray-500">Aucun groupe</p>
-              <Link href="/groups/new" className="text-xs text-white hover:underline mt-1 inline-block">
+              <Users2 size={28} className="text-ax-text-muted mx-auto mb-2" />
+              <p className="text-xs text-ax-text-muted">Aucun groupe</p>
+              <Link href="/groups/new" className="text-xs text-ax-text hover:underline mt-1 inline-block">
                 Créer un groupe
               </Link>
             </div>
@@ -194,22 +196,22 @@ export default function MessagesPage() {
               <button
                 key={g.id}
                 onClick={() => setSelectedGroup(g.id)}
-                className={`w-full text-left px-4 py-3.5 border-b border-white/5 transition-colors ${
-                  selectedGroup === g.id ? 'bg-white/[0.06]' : 'hover:bg-white/[0.03]'
+                className={`w-full text-left px-4 py-3.5 border-b border-ax-border transition-colors ${
+                  selectedGroup === g.id ? 'bg-ax-hover' : 'hover:bg-ax-hover'
                 }`}
               >
                 <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
-                    style={{ backgroundColor: `${g.color ?? '#FFFFFF'}20` }}>
-                    <Hash size={14} style={{ color: g.color ?? '#FFFFFF' }} />
+                  <div className="w-9 h-9 rounded-ax-control flex items-center justify-center shrink-0"
+                    style={{ backgroundColor: softVar(g.color ?? 'var(--ax-text)', 0.13) }}>
+                    <Hash size={14} style={{ color: g.color ?? 'var(--ax-text)' }} />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className={`text-sm font-bold truncate ${selectedGroup === g.id ? 'text-white' : 'text-gray-300'}`}>
+                    <p className={`text-sm font-bold truncate ${selectedGroup === g.id ? 'text-ax-text' : 'text-ax-text'}`}>
                       {g.name}
                     </p>
                   </div>
                   {selectedGroup === g.id && (
-                    <div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: g.color ?? '#FFFFFF' }} />
+                    <div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: g.color ?? 'var(--ax-text)' }} />
                   )}
                 </div>
               </button>
@@ -218,31 +220,31 @@ export default function MessagesPage() {
         </div>
         {/* Announcement shortcut */}
         <Link href="/messages/new"
-          className="flex items-center gap-2 px-4 py-3 border-t border-white/8 text-xs font-bold text-gray-400 hover:text-white transition-colors">
+          className="flex items-center gap-2 px-4 py-3 border-t border-ax-border text-xs font-bold text-ax-text-secondary hover:text-ax-text transition-colors">
           <Megaphone size={13} /> Envoyer une annonce
         </Link>
       </div>
 
       {/* Chat area */}
-      <div className="flex-1 bg-[#111111] border border-white/8 rounded-2xl flex flex-col overflow-hidden">
+      <div className="flex-1 bg-ax-surface border border-ax-border rounded-ax-card flex flex-col overflow-hidden">
         {!selectedGroup ? (
           <div className="flex-1 flex items-center justify-center">
             <div className="text-center">
-              <MessageSquare size={40} className="text-gray-600 mx-auto mb-3" />
-              <p className="text-white font-bold">Sélectionnez un groupe</p>
-              <p className="text-sm text-gray-500 mt-1">Choisissez une conversation pour discuter</p>
+              <MessageSquare size={40} className="text-ax-text-muted mx-auto mb-3" />
+              <p className="text-ax-text font-bold">Sélectionnez un groupe</p>
+              <p className="text-sm text-ax-text-muted mt-1">Choisissez une conversation pour discuter</p>
             </div>
           </div>
         ) : (
           <>
             {/* Chat header */}
-            <div className="px-5 py-3.5 border-b border-white/8 flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg flex items-center justify-center"
-                style={{ backgroundColor: `${selectedGroupData?.color ?? '#FFFFFF'}20` }}>
-                <Hash size={14} style={{ color: selectedGroupData?.color ?? '#FFFFFF' }} />
+            <div className="px-5 py-3.5 border-b border-ax-border flex items-center gap-3">
+              <div className="w-8 h-8 rounded-ax-control flex items-center justify-center"
+                style={{ backgroundColor: softVar(selectedGroupData?.color ?? 'var(--ax-text)', 0.13) }}>
+                <Hash size={14} style={{ color: selectedGroupData?.color ?? 'var(--ax-text)' }} />
               </div>
               <div>
-                <p className="text-sm font-bold text-white">{selectedGroupData?.name}</p>
+                <p className="text-sm font-bold text-ax-text">{selectedGroupData?.name}</p>
               </div>
             </div>
 
@@ -250,14 +252,14 @@ export default function MessagesPage() {
             <div className="flex-1 overflow-y-auto px-5 py-4">
               {loadingMsgs ? (
                 <div className="flex justify-center py-12">
-                  <Loader2 className="animate-spin text-gray-500" size={20} />
+                  <Loader2 className="animate-spin text-ax-text-muted" size={20} />
                 </div>
               ) : messages.length === 0 ? (
                 <div className="flex items-center justify-center h-full">
                   <div className="text-center">
-                    <MessageSquare size={32} className="text-gray-700 mx-auto mb-2" />
-                    <p className="text-sm text-gray-500">Aucun message</p>
-                    <p className="text-xs text-gray-600 mt-0.5">Envoyez le premier message !</p>
+                    <MessageSquare size={32} className="text-ax-text-muted mx-auto mb-2" />
+                    <p className="text-sm text-ax-text-muted">Aucun message</p>
+                    <p className="text-xs text-ax-text-muted mt-0.5">Envoyez le premier message !</p>
                   </div>
                 </div>
               ) : (
@@ -266,9 +268,9 @@ export default function MessagesPage() {
                     <div key={dateGroup.date}>
                       {/* Date separator */}
                       <div className="flex items-center gap-3 my-4">
-                        <div className="flex-1 h-px bg-white/5" />
-                        <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">{dateGroup.date}</span>
-                        <div className="flex-1 h-px bg-white/5" />
+                        <div className="flex-1 h-px bg-ax-hover" />
+                        <span className="text-[10px] font-bold text-ax-text-muted uppercase tracking-wider">{dateGroup.date}</span>
+                        <div className="flex-1 h-px bg-ax-hover" />
                       </div>
                       {/* Messages */}
                       {dateGroup.messages.map((msg, idx) => {
@@ -279,17 +281,17 @@ export default function MessagesPage() {
                           <div key={msg.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'} ${showName ? 'mt-3' : 'mt-0.5'}`}>
                             <div className={`max-w-[70%]`}>
                               {showName && (
-                                <p className="text-[10px] font-bold text-gray-500 mb-1 ml-1">
+                                <p className="text-[10px] font-bold text-ax-text-muted mb-1 ml-1">
                                   {msg.sender?.username ?? 'Inconnu'}
                                 </p>
                               )}
-                              <div className={`px-3.5 py-2 rounded-2xl text-sm leading-relaxed ${
+                              <div className={`px-3.5 py-2 rounded-ax-card text-sm leading-relaxed ${
                                 isMe
-                                  ? 'bg-white text-[#0A0A0A] rounded-br-md'
-                                  : 'bg-white/[0.06] text-gray-200 rounded-bl-md'
+                                  ? 'bg-ax-text text-ax-background rounded-br-md'
+                                  : 'bg-ax-hover text-ax-text rounded-bl-md'
                               }`}>
                                 <p className="whitespace-pre-wrap break-words">{msg.content}</p>
-                                <p className={`text-[9px] mt-1 ${isMe ? 'text-white/50' : 'text-gray-600'}`}>
+                                <p className={`text-[9px] mt-1 ${isMe ? 'text-ax-text-muted' : 'text-ax-text-muted'}`}>
                                   {formatTime(msg.created_at)}
                                 </p>
                               </div>
@@ -305,20 +307,20 @@ export default function MessagesPage() {
             </div>
 
             {/* Message input */}
-            <form onSubmit={sendMessage} className="px-4 py-3 border-t border-white/8">
+            <form onSubmit={sendMessage} className="px-4 py-3 border-t border-ax-border">
               <div className="flex items-center gap-2">
-                <input
+                <Input
                   type="text"
                   value={newMessage}
                   onChange={e => setNewMessage(e.target.value)}
                   placeholder={`Message dans ${selectedGroupData?.name ?? 'le groupe'}...`}
-                  className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-white transition-colors"
+                  className="flex-1 w-auto"
                   onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(e); } }}
                 />
                 <button
                   type="submit"
                   disabled={!newMessage.trim() || sending}
-                  className="p-2.5 bg-white hover:bg-white/90 disabled:opacity-40 text-[#0A0A0A] rounded-xl transition-colors"
+                  className="p-2.5 bg-ax-text hover:brightness-110 disabled:opacity-40 text-ax-background rounded-ax-control transition-colors"
                 >
                   {sending ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
                 </button>

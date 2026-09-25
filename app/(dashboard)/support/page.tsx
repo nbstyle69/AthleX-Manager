@@ -25,9 +25,9 @@ export default async function SupportPage() {
   if (!boxId) {
     return (
       <div className="max-w-3xl">
-        <div className="bg-white/[0.02] border border-white/[0.06] rounded-2xl p-10 text-center">
-          <p className="text-lg font-bold text-white mb-2">Support indisponible</p>
-          <p className="text-sm text-gray-400">Ce compte n&apos;est rattaché à aucune box.</p>
+        <div className="bg-ax-hover border border-ax-border rounded-ax-card p-10 text-center">
+          <p className="text-lg font-bold text-ax-text mb-2">Support indisponible</p>
+          <p className="text-sm text-ax-text-secondary">Ce compte n&apos;est rattaché à aucune box.</p>
         </div>
       </div>
     );
