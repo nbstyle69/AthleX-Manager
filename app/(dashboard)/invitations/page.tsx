@@ -14,6 +14,7 @@ import CsvImport from '@/components/invitations/CsvImport';
 import { SITE_URL } from '@/lib/site-url';
 import { Badge } from '@/components/ui/badge';
 import { useConfirmDialog } from '@/components/ui/confirm-dialog';
+import { countOf } from '@/lib/plural';
 
 const supabase = createClient();
 
@@ -326,7 +327,7 @@ export default function InvitationsPage() {
           className={`flex items-center gap-1.5 px-3 py-2 rounded-ax-control text-xs font-bold border transition-colors ${onlyToCollect ? 'border-ax-input-border bg-ax-surface-secondary text-ax-text' : 'border-ax-border text-ax-text-secondary hover:text-ax-text'}`}>
           <Banknote size={13} /> À encaisser{toCollectCount > 0 ? ` (${toCollectCount})` : ''}
         </button>
-        <span className="text-xs text-ax-text-muted">{visible.length} invitation(s)</span>
+        <span className="text-xs text-ax-text-muted">{countOf(visible.length, 'invitation', 'invitations')}</span>
       </div>
 
       <div className="space-y-2">

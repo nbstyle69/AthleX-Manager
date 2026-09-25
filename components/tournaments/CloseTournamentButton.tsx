@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Loader2, Lock, AlertTriangle, Zap } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
+import { countOf } from '@/lib/plural';
 
 /** Ligne rendue par la RPC `finalize_tournament_elo` (une par participant). */
 interface FinalizedRow {
@@ -98,7 +99,7 @@ export default function CloseTournamentButton({ tournamentId, pendingCount, stat
                 </p>
                 {pendingCount > 0 && (
                   <div className="mt-3 bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3 text-xs text-red-400 font-semibold">
-                    ⚠️ {pendingCount} score(s) encore en attente — valide ou rejette-les avant de distribuer l’ELO.
+                    ⚠️ {countOf(pendingCount, 'score', 'scores')} encore en attente — valide ou rejette-les avant de distribuer l’ELO.
                   </div>
                 )}
                 {error && (

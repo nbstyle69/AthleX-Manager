@@ -7,6 +7,7 @@ import { useConfirmDialog } from '@/components/ui/confirm-dialog';
 import {
   AUDIENCES, AUDIENCE_LABEL, Audience, isAudience, mondayOfISO, subscriptionColorVar,
 } from '@/lib/audience';
+import { countOf } from '@/lib/plural';
 
 /**
  * « Programmation » : pose une semaine type ou une semaine d'une programmation
@@ -157,7 +158,7 @@ export default function ApplyProgramWeekModal({
         kind: 'template' as const,
         sourceId: t.template_id,
         title: t.title ?? 'Semaine type',
-        subtitle: `${t.wods_count ?? 0} WOD · ${t.days_count ?? 0} jour(s)`,
+        subtitle: `${t.wods_count ?? 0} WOD · ${countOf(t.days_count ?? 0, 'jour', 'jours')}`,
         weeksCount: 1,
         wodCounts: [t.wods_count ?? 0],
         color: null,

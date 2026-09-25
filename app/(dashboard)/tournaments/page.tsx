@@ -6,6 +6,7 @@ import { formatDate, tournamentStatusInfo } from '@/lib/utils';
 import { softVar } from '@/lib/colorVars';
 import TopEloCard from '@/components/stats/TopEloCard';
 import HelpDock from '@/components/help/HelpDock';
+import { countOf } from '@/lib/plural';
 
 export default async function TournamentsPage() {
   const supabase = await createClient();
@@ -99,7 +100,7 @@ export default async function TournamentsPage() {
             <h1 className="text-2xl font-black text-white">Tournois</h1>
             <HelpDock page="tournaments" />
           </div>
-          <p className="text-sm text-gray-400 mt-1">{tournaments?.length ?? 0} tournoi(s) créé(s)</p>
+          <p className="text-sm text-gray-400 mt-1">{countOf(tournaments?.length ?? 0, 'tournoi créé', 'tournois créés')}</p>
         </div>
         <Link href="/tournaments/new"
           className="flex items-center gap-2 bg-white hover:bg-white text-[#0A0A0A] text-sm font-bold px-4 py-2.5 rounded-xl transition-colors">

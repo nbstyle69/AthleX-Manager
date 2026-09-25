@@ -8,6 +8,7 @@ import {
   Globe2, Plus, Trophy, Users, Calendar, ChevronRight,
   Pencil, Trash2, Loader2, Eye, ToggleLeft, ToggleRight,
 } from 'lucide-react';
+import { countOf } from '@/lib/plural';
 
 interface InterComp {
   id: string;
@@ -71,7 +72,7 @@ export default function InterCompetitionsPage() {
   function askDelete(c: InterComp) {
     ask({
       title: 'Supprimer cette compétition ?',
-      element: `« ${c.title} » · ${STATUS_LABEL[c.status] ?? c.status} · ${c.reg_count} inscrit(s) · ${c.score_count} score(s)`,
+      element: `« ${c.title} » · ${STATUS_LABEL[c.status] ?? c.status} · ${countOf(c.reg_count, 'inscrit', 'inscrits')} · ${countOf(c.score_count, 'score', 'scores')}`,
       body: 'Ses WOD, inscriptions, équipes, scores et classements seront supprimés. Les points ELO déjà gagnés restent acquis. Cette action est définitive.',
       confirmLabel: 'Supprimer la compétition',
       danger: true,

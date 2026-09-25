@@ -2,6 +2,7 @@ import { getTournamentForActiveBox } from '@/lib/tournaments/getTournamentForAct
 import Link from 'next/link';
 import { ArrowLeft, Users, Star, Building2, ShieldAlert, Layers } from 'lucide-react';
 import KickButton from './KickButton';
+import { countOf } from '@/lib/plural';
 
 const LEVEL_COLORS: Record<string, { bg: string; text: string }> = {
   scaled: { bg: 'bg-gray-500/20',   text: 'text-gray-400'   },
@@ -71,7 +72,7 @@ export default async function TournamentParticipantsPage({ params }: { params: P
             <Users size={18} className="text-blue-400" />
             Participants — {(tournament as any).name}
           </h1>
-          <p className="text-xs text-gray-500 mt-0.5">{participants.length} inscrit(s)</p>
+          <p className="text-xs text-gray-500 mt-0.5">{countOf(participants.length, 'inscrit', 'inscrits')}</p>
         </div>
       </div>
 

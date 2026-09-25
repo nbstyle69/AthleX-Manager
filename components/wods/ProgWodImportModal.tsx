@@ -8,6 +8,7 @@ import {
   ImportedWodRow, VALID_WOD_TYPES, dateToWeekDay,
   downloadWodCsvTemplate, parseWodImportFile,
 } from '@/lib/wodImport';
+import { countOf } from '@/lib/plural';
 
 /**
  * Import en masse dans une programmation. Mêmes circuits que le Whiteboard —
@@ -222,7 +223,7 @@ export default function ProgWodImportModal({
         {warnings.length > 0 && (
           <div className="mt-3 rounded-ax-control bg-ax-warning-soft border border-ax-warning px-3 py-2">
             <p className="text-xs font-bold text-ax-warning flex items-center gap-1.5">
-              <AlertTriangle size={12} /> {warnings.length} ligne(s) ignorée(s)
+              <AlertTriangle size={12} /> {countOf(warnings.length, 'ligne ignorée', 'lignes ignorées')}
             </p>
             {warnings.map((w, i) => <p key={i} className="text-[11px] text-ax-warning mt-0.5">{w}</p>)}
           </div>

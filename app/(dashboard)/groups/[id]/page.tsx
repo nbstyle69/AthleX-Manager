@@ -20,6 +20,7 @@ const COLORS = [
   '#F97316', '#84CC16',
 ];
 import Link from 'next/link';
+import { countOf } from '@/lib/plural';
 
 interface Member {
   id: string;
@@ -165,7 +166,7 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
     if (!group) return;
     ask({
       title: `Supprimer le groupe « ${group.name} » ?`,
-      element: `${members.length} membre(s) en font partie.`,
+      element: `${countOf(members.length, 'membre en fait partie', 'membres en font partie')}.`,
       body: 'Les messages échangés dans ce groupe seront supprimés. Les formules qui y inscrivaient leurs membres ne le feront plus. Les WOD réservés à ce seul groupe deviendront visibles par tous les membres de la box.',
       confirmLabel: 'Supprimer le groupe',
       danger: true,
@@ -214,7 +215,7 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
             <div className="min-w-0">
               <h1 className="font-display text-xl font-medium uppercase tracking-wide text-ax-text break-words">{group.name}</h1>
               <div className="flex items-center gap-2">
-                <p className="text-xs text-ax-text-muted">{members.length} membre(s)</p>
+                <p className="text-xs text-ax-text-muted">{countOf(members.length, 'membre', 'membres')}</p>
                 <Badge variant={group.wod_visibility_mode === 'daily' ? 'warning' : 'success'} className="text-[10px] font-bold px-1.5 py-0.5">
                   {group.wod_visibility_mode === 'daily' ? 'Jour par jour' : 'Semaine'}
                 </Badge>

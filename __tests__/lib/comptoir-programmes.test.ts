@@ -123,8 +123,9 @@ describe('les deux surfaces d’argent comptent le même euro une seule fois', (
   });
 
   it('les cartes n’annoncent pas un périmètre qu’elles n’ont pas', () => {
-    expect(carte).toMatch(/vente\(s\), Stripe et comptoir/);
-    expect(carte).toMatch(/encaissement\(s\) d'adhésion ce mois/);
+    // Accords du nombre (plus de « (s) ») : même périmètre annoncé.
+    expect(carte).toContain("countOf(current.program_sales_period, 'vente', 'ventes')}, Stripe et comptoir");
+    expect(carte).toContain("countOf(current.cash_collected_count, \"encaissement d'adhésion\", \"encaissements d'adhésion\")} ce mois");
   });
 });
 

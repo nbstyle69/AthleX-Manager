@@ -9,6 +9,7 @@ import {
   Globe2, ChevronLeft, Pencil, Loader2, Plus, Trash2,
   CheckCircle2, XCircle, Clock, Users, Trophy, Dumbbell, Video,
 } from 'lucide-react';
+import { countOf } from '@/lib/plural';
 
 const TABS = ['WODs', 'Participants', 'Scores', 'Classement'] as const;
 type Tab = typeof TABS[number];
@@ -112,7 +113,7 @@ export default function InterCompDetailPage() {
     const n = scores.filter(s => s.wod_id === w.id).length;
     ask({
       title: 'Supprimer ce WOD ?',
-      element: `WOD ${w.order_index} · « ${w.title} » · ${n} score(s) enregistré(s)`,
+      element: `WOD ${w.order_index} · « ${w.title} » · ${countOf(n, 'score enregistré', 'scores enregistrés')}`,
       body: 'Les scores de ce WOD seront supprimés et retirés du classement. Cette action est définitive.',
       confirmLabel: 'Supprimer le WOD',
       danger: true,
@@ -145,7 +146,7 @@ export default function InterCompDetailPage() {
     const n = r.athlete_id ? scores.filter(s => s.athlete_id === r.athlete_id).length : 0;
     ask({
       title: 'Retirer ce participant ?',
-      element: `${who(r)}${r.athlete_id ? `, ${n} score(s) déposé(s)` : ''}`,
+      element: `${who(r)}${r.athlete_id ? `, ${countOf(n, 'score déposé', 'scores déposés')}` : ''}`,
       body: 'Son inscription sera supprimée. Ses scores déjà déposés restent dans le classement. Il pourra se réinscrire.',
       confirmLabel: 'Retirer le participant',
       danger: true,

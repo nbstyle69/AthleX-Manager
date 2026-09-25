@@ -9,6 +9,7 @@ import { useConfirmDialog } from '@/components/ui/confirm-dialog';
 import { ERROR_TITLE, fullDate } from '@/lib/confirmDialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { countOf } from '@/lib/plural';
 
 interface Article {
   id: string;
@@ -116,7 +117,7 @@ export default function ArticlesPage() {
   function askDeleteArticle(article: Article) {
     ask({
       title: 'Supprimer cet article ?',
-      element: `${article.title} — publié le ${fullDate(article.created_at)} · ${article.likes_count} j’aime · ${article.comments_count} commentaire(s)`,
+      element: `${article.title} — publié le ${fullDate(article.created_at)} · ${article.likes_count} j’aime · ${countOf(article.comments_count, 'commentaire', 'commentaires')}`,
       body: 'L’article disparaît du fil de la box avec ses commentaires et ses j’aime. Cette action est définitive.',
       confirmLabel: 'Supprimer l’article',
       danger: true,
@@ -145,7 +146,7 @@ export default function ArticlesPage() {
             <h1 className="font-display text-2xl font-medium uppercase tracking-wide text-ax-text">Actualités</h1>
             <HelpButton />
           </div>
-          <p className="text-sm text-ax-text-secondary mt-1">{articles.length} article(s)</p>
+          <p className="text-sm text-ax-text-secondary mt-1">{countOf(articles.length, 'article', 'articles')}</p>
         </div>
         <Button onClick={openCreate} variant="ax-white">
           <Plus size={16} /> Nouvel article

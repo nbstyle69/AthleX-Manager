@@ -3,8 +3,8 @@ import { createServiceClient, getServerUser } from '@/lib/supabase/server';
 import { isBoxOwnerAdmin } from '@/lib/isBoxOwnerAdmin';
 import { readSubscriptionState, stopSubscription } from '@/lib/stripe/stopSubscription';
 import { memberFirstName, sendMemberEmail } from '@/lib/members/stopMembership';
-import { countOf } from '@/lib/deleteWithSubscriptions';
 import { offerStopEmail, subscriptionsOverview } from '@/lib/stopProductSubscriptions';
+import { deCount } from '@/lib/plural';
 
 /**
  * Suppression d'une offre Marketplace (S4, B11). Supprimer l'offre efface en
@@ -142,7 +142,7 @@ export async function POST(req: NextRequest) {
     if (failed.length > 0) {
       return NextResponse.json(
         {
-          error: `Stripe a refusé l’arrêt de ${countOf(failed.length, 'abonnement', 'abonnements')} : ${failed.join(', ')}. L’offre n’a pas été désactivée ; les autres abonnements sont bien arrêtés.`,
+          error: `Stripe a refusé l’arrêt ${deCount(failed.length, 'abonnement', 'abonnements')} : ${failed.join(', ')}. L’offre n’a pas été désactivée ; les autres abonnements sont bien arrêtés.`,
           failed,
           stopped,
         },

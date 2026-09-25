@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { useConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Loader2, UserPlus, ArrowUp, ArrowDown, X, AlertTriangle, Trophy, Plus, Crown, History, RefreshCw } from 'lucide-react';
+import { countOf } from '@/lib/plural';
 
 interface Division {
   id: string;
@@ -139,7 +140,7 @@ export default function DivisionsManager({
   function askEndSeason() {
     ask({
       title: `Clôturer la saison ${currentSeason} ?`,
-      element: `${divisions.length} division(s) · ${members.length} athlète(s) · la saison ${currentSeason + 1} commence ensuite`,
+      element: `${countOf(divisions.length, 'division', 'divisions')} · ${countOf(members.length, 'athlète', 'athlètes')} · la saison ${currentSeason + 1} commence ensuite`,
       body: `Le classement final est archivé, les promus et relégués changent de division et tous les points repartent de 0. Les scores de la saison ${currentSeason} ne compteront plus. C’est définitif.`,
       confirmLabel: 'Clôturer la saison',
       danger: true,
@@ -229,7 +230,7 @@ export default function DivisionsManager({
       </div>
 
       <div className="text-xs text-gray-500">
-        {divisions.length} division(s) · {members.length} athlète(s) répartis · {unassigned.length} non assigné(s)
+        {countOf(divisions.length, 'division', 'divisions')} · {countOf(members.length, 'athlète réparti', 'athlètes répartis')} · {countOf(unassigned.length, 'non assigné', 'non assignés')}
       </div>
 
       {/* Unassigned pool */}

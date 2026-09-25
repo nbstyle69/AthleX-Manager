@@ -10,6 +10,7 @@ import { isRepsScoredType, formatAmrapScore } from '@/lib/movements';
 import { rankClassique, parseScoreVal, type RawScore } from '@/lib/tournamentScoring';
 import { useConfirmDialog } from '@/components/ui/confirm-dialog';
 import { INPUT_TITLE } from '@/lib/confirmDialog';
+import { countOf } from '@/lib/plural';
 
 export interface ScoreRow {
   id: string;
@@ -145,7 +146,7 @@ export default function ScoresClient({ tournamentId, initialScores, requireVideo
   return (
     <>
       {dialog}
-      <p className="text-xs text-gray-500 -mt-4 mb-2">{pendingCount} score(s) en attente de validation</p>
+      <p className="text-xs text-gray-500 -mt-4 mb-2">{countOf(pendingCount, 'score', 'scores')} en attente de validation</p>
 
       {/* Filter tabs */}
       <div className="flex gap-2 flex-wrap">

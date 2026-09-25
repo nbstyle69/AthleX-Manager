@@ -11,6 +11,7 @@ import { ERROR_TITLE } from '@/lib/confirmDialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { SUB_ORANGE_SOFT, SUB_ORANGE_TEXT } from '@/components/admin/adminTokens';
+import { countOf } from '@/lib/plural';
 
 const FIELD_LABEL = 'block text-xs font-bold text-ax-text-secondary uppercase tracking-wider mb-1.5';
 const TEXTAREA = 'w-full min-w-0 rounded-ax-control border border-ax-input-border bg-ax-surface px-3 py-2.5 text-base text-ax-text placeholder:text-ax-text-muted sm:text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ax-focus focus-visible:ring-offset-2 focus-visible:ring-offset-ax-surface';
@@ -147,7 +148,7 @@ export default function AdminBoxesPage() {
       if (!res.ok) {
         inform({ kind: 'error', title: ERROR_TITLE, body: `Erreur: ${json.error ?? 'géocodage échoué'}` });
       } else {
-        inform({ kind: 'info', title: 'Géocodage terminé', body: `Géocodage terminé : ${json.updated}/${json.total} boxs mises à jour` + (json.failed ? `, ${json.failed} adresse(s) introuvable(s)` : '') });
+        inform({ kind: 'info', title: 'Géocodage terminé', body: `Géocodage terminé : ${json.updated}/${json.total} boxs mises à jour` + (json.failed ? `, ${countOf(json.failed, 'adresse introuvable', 'adresses introuvables')}` : '') });
         load();
       }
     } catch (e: any) {

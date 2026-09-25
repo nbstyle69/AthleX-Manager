@@ -7,6 +7,7 @@ import HelpDock from '@/components/help/HelpDock';
 import { softVar, textTint } from '@/lib/colorVars';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { countOf } from '@/lib/plural';
 
 export default async function GroupsPage() {
   const supabase = await createClient();
@@ -27,7 +28,7 @@ export default async function GroupsPage() {
             <h1 className="font-display text-2xl font-medium uppercase tracking-wide text-ax-text">Groupes</h1>
             <HelpDock page="groups" />
           </div>
-          <p className="text-sm text-ax-text-secondary mt-1">{groups?.length ?? 0} groupe(s)</p>
+          <p className="text-sm text-ax-text-secondary mt-1">{countOf(groups?.length ?? 0, 'groupe', 'groupes')}</p>
         </div>
         <Button asChild variant="ax-white">
           <Link href="/groups/new">
@@ -52,7 +53,7 @@ export default async function GroupsPage() {
                   <Users2 size={18} style={{ color: textTint(g.color ?? '#FFFFFF') }} />
                 </div>
                 <span className="text-xs text-ax-text-muted bg-ax-surface-secondary px-2.5 py-1 rounded-ax-control">
-                  {g.members?.length ?? 0} membre(s)
+                  {countOf(g.members?.length ?? 0, 'membre', 'membres')}
                 </span>
               </div>
               <p className="text-sm font-bold text-ax-text break-words">{g.name}</p>

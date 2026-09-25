@@ -8,6 +8,7 @@ import {
   INVITATION_CSV_TEMPLATE, IMPORT_MAX_ROWS,
   type ParsedInvitationFile,
 } from '@/lib/invitationsCsv';
+import { countOf } from '@/lib/plural';
 
 const supabase = createClient();
 
@@ -130,8 +131,8 @@ export default function CsvImport({
         <div className="space-y-3">
           <div className="flex items-start justify-between gap-3">
             <p className="text-sm text-ax-text font-bold">
-              {fileName} — {parsed.rows.length} ligne(s) lue(s) :{' '}
-              <span className="text-ax-success">{parsed.ready} prête(s)</span>
+              {fileName} — {countOf(parsed.rows.length, 'ligne lue', 'lignes lues')} :{' '}
+              <span className="text-ax-success">{countOf(parsed.ready, 'prête', 'prêtes')}</span>
               {parsed.invalid > 0 && <> · <span className="text-ax-danger">{parsed.invalid} en erreur</span></>}
             </p>
             <button type="button" onClick={reset} aria-label="Fermer" className="shrink-0 p-1 rounded-ax-control text-ax-text-muted hover:text-ax-text hover:bg-ax-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ax-focus focus-visible:ring-offset-2 focus-visible:ring-offset-ax-surface"><X size={16} /></button>
@@ -171,7 +172,7 @@ export default function CsvImport({
               <button type="button" onClick={confirm} disabled={running || parsed.ready === 0}
                 className="flex items-center gap-2 px-4 py-2.5 rounded-ax-control bg-ax-text text-ax-background text-sm font-bold disabled:opacity-40">
                 {running ? <Loader2 size={15} className="animate-spin" /> : <Upload size={15} />}
-                Créer {parsed.ready} invitation(s)
+                Créer {countOf(parsed.ready, 'invitation', 'invitations')}
               </button>
               <p className="text-xs text-ax-text-muted">
                 Les lignes en erreur sont envoyées telles quelles : le serveur les refuse une par une, elles ne bloquent pas les autres.
@@ -185,9 +186,9 @@ export default function CsvImport({
         <div className="space-y-3">
           <div className="flex items-start justify-between gap-3">
             <p className="text-sm text-ax-text font-bold">
-              {report.total} ligne(s) traitée(s) : <span className="text-ax-success">{report.created} créée(s)</span> ·{' '}
-              <span className="text-ax-text-secondary">{report.ignored} ignorée(s)</span> ·{' '}
-              <span className="text-ax-danger">{report.refused} refusée(s)</span>
+              {countOf(report.total, 'ligne traitée', 'lignes traitées')} : <span className="text-ax-success">{countOf(report.created, 'créée', 'créées')}</span> ·{' '}
+              <span className="text-ax-text-secondary">{countOf(report.ignored, 'ignorée', 'ignorées')}</span> ·{' '}
+              <span className="text-ax-danger">{countOf(report.refused, 'refusée', 'refusées')}</span>
             </p>
             <button type="button" onClick={reset} aria-label="Fermer" className="shrink-0 p-1 rounded-ax-control text-ax-text-muted hover:text-ax-text hover:bg-ax-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ax-focus focus-visible:ring-offset-2 focus-visible:ring-offset-ax-surface"><X size={16} /></button>
           </div>
