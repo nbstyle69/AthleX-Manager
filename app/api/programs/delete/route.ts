@@ -2,20 +2,26 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient, getServerUser } from '@/lib/supabase/server';
 import { isBoxOwnerAdmin } from '@/lib/isBoxOwnerAdmin';
 import { readSubscriptionState, stopSubscription } from '@/lib/stripe/stopSubscription';
-import { fullDate, memberFirstName, sendMemberEmail } from '@/lib/members/stopMembership';
+import { memberFirstName, sendMemberEmail } from '@/lib/members/stopMembership';
+import { countOf } from '@/lib/deleteWithSubscriptions';
+import { programStopEmail, subscriptionsOverview } from '@/lib/stopProductSubscriptions';
 
 /**
  * Suppression d'un programme athlète (S4, B10). Supprimer un programme efface
  * en cascade `program_members` — et donc l'identifiant de l'abonnement
  * Stripe, qui aurait continué de prélever sans trace. D'où le refus.
  *
- * Body: { program_id: string, action: 'check' | 'delete' | 'stop_then_delete' }
- * - `check` : nombre d'abonnements Stripe actifs rattachés (lecture seule).
- * - `delete` : refusée (409 + nombre) s'il en reste.
- * - `stop_then_delete` : chaque abonnement arrêté à la fin de sa période
- *   (e-mail à l'acheteur ; ligne de journal quand l'acheteur est membre de
- *   la box — le journal S1 exige un `box_member_id`) ; suppression seulement
- *   si tous les arrêts Stripe ont réussi.
+ * Body: { program_id: string, action: 'check' | 'delete' | 'stop_then_deactivate' }
+ * - `check` : lecture seule — abonnements Stripe actifs rattachés, dont ceux
+ *   qu'il reste à arrêter et les impayés (l'état vient de Stripe : le webhook
+ *   enregistre un impayé comme `active`).
+ * - `delete` : refusée (409 + nombre) tant qu'il en reste ; redevient possible
+ *   d'elle-même quand le dernier abonnement est terminé (webhook → cancelled).
+ * - `stop_then_deactivate` : chaque abonnement est arrêté à la fin de sa
+ *   période (un impayé tout de suite), e-mail à l'acheteur, ligne de journal
+ *   quand l'acheteur est membre de la box (le journal S1 exige un
+ *   `box_member_id`) ; puis le programme est DÉSACTIVÉ, pas supprimé : les
+ *   acheteurs gardent la période payée. Échec partiel : rien n'est désactivé.
  *
  * « Désactiver » reste la bascule `is_active` existante, sans appel Stripe.
  */
@@ -28,7 +34,7 @@ export async function POST(req: NextRequest) {
     if (!user?.id) return NextResponse.json({ error: 'Non authentifié.' }, { status: 401 });
 
     const { program_id, action } = await req.json();
-    if (!program_id || !['check', 'delete', 'stop_then_delete'].includes(action)) {
+    if (!program_id || !['check', 'delete', 'stop_then_deactivate'].includes(action)) {
       return NextResponse.json({ error: 'Paramètres invalides.' }, { status: 400 });
     }
 
@@ -48,13 +54,22 @@ export async function POST(req: NextRequest) {
       .eq('status', 'active');
     const subs = ((buyersRaw ?? []) as BuyerRow[]).filter(b => !!b.stripe_subscription_id);
 
-    if (action === 'check') return NextResponse.json({ ok: true, active_subscriptions: subs.length });
+    const { data: boxRaw } = await supabase
+      .from('boxes').select('name, stripe_account_id, contact_email').eq('id', program.box_id).single();
+    const box = boxRaw as { name: string; stripe_account_id: string | null; contact_email: string | null } | null;
+
+    if (action === 'check') {
+      return NextResponse.json({
+        ok: true,
+        ...(await subscriptionsOverview(box?.stripe_account_id ?? null, subs.map(s => s.stripe_subscription_id!))),
+      });
+    }
 
     if (action === 'delete') {
       if (subs.length > 0) {
         return NextResponse.json(
           {
-            error: `${subs.length} abonnement(s) Stripe sont encore actifs sur ce programme : il ne peut pas être supprimé.`,
+            error: `${subs.length === 1 ? '1 abonnement Stripe est encore actif' : `${subs.length} abonnements Stripe sont encore actifs`} sur ce programme : il ne peut pas être supprimé.`,
             active_subscriptions: subs.length,
           },
           { status: 409 },
@@ -65,10 +80,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true, deleted: true });
     }
 
-    // stop_then_delete
-    const { data: boxRaw } = await supabase
-      .from('boxes').select('name, stripe_account_id, contact_email').eq('id', program.box_id).single();
-    const box = boxRaw as { name: string; stripe_account_id: string | null; contact_email: string | null } | null;
+    // stop_then_deactivate
     if (subs.length > 0 && !box?.stripe_account_id) {
       return NextResponse.json({ error: 'Compte de paiement de la box introuvable.' }, { status: 409 });
     }
@@ -84,10 +96,12 @@ export async function POST(req: NextRequest) {
     const boxMemberByUser = new Map(((bmRaw ?? []) as { id: string; member_id: string }[]).map(b => [b.member_id, b.id]));
 
     const failed: string[] = [];
+    let stopped = 0;
     let notEmailed = 0;
     for (const s of subs) {
       const profile = profileById.get(s.user_id) ?? null;
       let periodEnd: string | null = null;
+      let mode: 'period_end' | 'now' = 'period_end';
       try {
         const state = await readSubscriptionState({
           stripeAccount: box!.stripe_account_id!, subscriptionId: s.stripe_subscription_id!,
@@ -95,12 +109,15 @@ export async function POST(req: NextRequest) {
         // Déjà en voie d'arrêt (relance après un échec partiel) : rien n'est refait.
         if (state.stopping) continue;
         periodEnd = state.periodEnd;
+        // Impayé : arrêt immédiat, comme la règle S2.
+        if (state.status === 'past_due' || state.status === 'unpaid') mode = 'now';
         await stopSubscription({
           stripeAccount: box!.stripe_account_id!,
           subscriptionId: s.stripe_subscription_id!,
-          mode: 'period_end',
-          idempotencyKey: `stop:program:${s.id}:${s.stripe_subscription_id}:period_end`,
+          mode,
+          idempotencyKey: `stop:program:${s.id}:${s.stripe_subscription_id}:${mode}`,
         });
+        stopped += 1;
       } catch {
         failed.push(profile?.username ?? 'un acheteur');
         continue;
@@ -114,11 +131,11 @@ export async function POST(req: NextRequest) {
           .from('box_member_subscription_actions')
           .insert({
             box_id: program.box_id, box_member_id: boxMemberId, member_id: s.user_id,
-            action: 'stop', mode: 'period_end', stripe_subscription_id: s.stripe_subscription_id,
+            action: 'stop', mode, stripe_subscription_id: s.stripe_subscription_id,
             refund_cents: 0, actor_id: user.id,
           })
           .select('id').maybeSingle();
-        if (je) console.error('programs delete journal insert failed:', je.message);
+        if (je) console.error('programs stop journal insert failed:', je.message);
         journalId = (j as { id: string } | null)?.id ?? null;
       }
 
@@ -126,11 +143,10 @@ export async function POST(req: NextRequest) {
       const boxName = box?.name ?? 'ta box';
       const sent = email ? await sendMemberEmail({
         to: email,
-        subject: `${boxName} a retiré le programme ${program.title}`,
-        bodyText: `Bonjour ${memberFirstName(profile)}, ${boxName} a retiré le programme ${program.title} : ton accès s'arrête aujourd'hui. Ton abonnement prendra fin ${periodEnd ? `le ${fullDate(periodEnd)}` : 'à la fin de la période payée'}, sans nouveau prélèvement. Pour toute question, réponds à cet e-mail : il arrive directement à ${boxName}.`,
+        ...programStopEmail({ mode, firstName: memberFirstName(profile), boxName, title: program.title, periodEnd }),
         boxName,
         replyTo: box?.contact_email ?? null,
-        tag: 'programs-delete',
+        tag: 'programs-stop',
       }) : false;
       if (sent && journalId) {
         await supabase.from('box_member_subscription_actions')
@@ -142,19 +158,20 @@ export async function POST(req: NextRequest) {
     if (failed.length > 0) {
       return NextResponse.json(
         {
-          error: `Stripe a refusé l’arrêt de ${failed.length} abonnement(s) : ${failed.join(', ')}. Le programme n’a pas été supprimé ; les autres abonnements sont bien programmés pour s’arrêter à la fin de leur période.`,
+          error: `Stripe a refusé l’arrêt de ${countOf(failed.length, 'abonnement', 'abonnements')} : ${failed.join(', ')}. Le programme n’a pas été désactivé ; les autres abonnements sont bien arrêtés.`,
           failed,
-          stopped: subs.length - failed.length,
+          stopped,
         },
         { status: 502 },
       );
     }
 
-    const { error } = await supabase.from('programs').delete().eq('id', program.id);
+    const { error } = await supabase.from('programs')
+      .update({ is_active: false, updated_at: new Date().toISOString() }).eq('id', program.id);
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
     return NextResponse.json({
-      ok: true, deleted: true, stopped: subs.length,
-      ...(notEmailed > 0 ? { warning: `${notEmailed} acheteur(s) n’ont pas reçu l’e-mail : préviens-les directement.` } : {}),
+      ok: true, deactivated: true, stopped,
+      ...(notEmailed > 0 ? { warning: notEmailed === 1 ? '1 acheteur n’a pas reçu l’e-mail : préviens-le directement.' : `${notEmailed} acheteurs n’ont pas reçu l’e-mail : préviens-les directement.` } : {}),
     });
   } catch (err: any) {
     console.error('programs delete error:', err?.message ?? err);

@@ -35,12 +35,13 @@ function getStripe() {
 export async function readSubscriptionState({
   stripeAccount,
   subscriptionId,
-}: { stripeAccount: string; subscriptionId: string }): Promise<{ stopping: boolean; periodEnd: string | null }> {
+}: { stripeAccount: string; subscriptionId: string }): Promise<{ stopping: boolean; status: string | null; periodEnd: string | null }> {
   const stripe = getStripe();
   const sub: any = await stripe.subscriptions.retrieve(subscriptionId, {}, { stripeAccount });
   const epoch = sub?.current_period_end ?? sub?.items?.data?.[0]?.current_period_end ?? null;
   return {
     stopping: !!sub?.cancel_at_period_end || sub?.status === 'canceled',
+    status: sub?.status ?? null,
     periodEnd: epoch ? new Date(epoch * 1000).toISOString() : null,
   };
 }
