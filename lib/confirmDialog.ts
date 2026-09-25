@@ -21,6 +21,10 @@ export interface ConfirmChoice {
   label: string;
   /** Conséquence du choix, affichée sous son libellé. */
   description?: string;
+  /** Bouton d'action quand ce choix est retenu (sinon celui de la boîte). */
+  confirmLabel?: string;
+  /** Idem pour la couleur destructive. */
+  danger?: boolean;
 }
 
 export interface ConfirmRequest {
@@ -75,6 +79,12 @@ export interface DialogController {
   confirm(): Promise<void>;
   confirmSecondary(): Promise<void>;
   close(): void;
+}
+
+/** Bouton d'action affiché : celui du choix retenu, sinon celui de la boîte. */
+export function confirmAction(state: { req: ConfirmRequest; choice: string }): { label: string; danger: boolean } {
+  const c = state.req.choices?.find(x => x.value === state.choice);
+  return { label: c?.confirmLabel ?? state.req.confirmLabel, danger: c?.danger ?? !!state.req.danger };
 }
 
 export const ERROR_TITLE = 'L’action n’a pas abouti';

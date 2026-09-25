@@ -13,6 +13,7 @@ import { getMemberEmails } from '@/lib/memberEmails';
 import AthleteSheet from '@/components/dashboard/AthleteSheet';
 import { useConfirmDialog } from '@/components/ui/confirm-dialog';
 import { ERROR_TITLE } from '@/lib/confirmDialog';
+import { askDeleteWithSubscriptions } from '@/lib/deleteWithSubscriptions';
 import {
   eloChoiceOf,
   sortMembers,
@@ -424,11 +425,42 @@ export default function MembersPage() {
 
   async function toggleBan(member: Member) {
     if (!boxId) return;
+    if (!member.is_banned) { askBan(member); return; }
     setBanning(member.id);
-    const newStatus = member.is_banned ? 'active' : 'banned';
-    await supabase.from('box_members').update({ status: newStatus }).eq('member_id', member.id).eq('box_id', boxId);
-    setMembers(prev => prev.map(m => m.id === member.id ? { ...m, is_banned: !m.is_banned } : m));
+    await supabase.from('box_members').update({ status: 'active' }).eq('member_id', member.id).eq('box_id', boxId);
+    setMembers(prev => prev.map(m => m.id === member.id ? { ...m, is_banned: false } : m));
     setBanning(null);
+  }
+
+  // Bannir arrête aussi l'abonnement en cours (S4) : la route le fait avant de
+  // bannir ; si Stripe refuse, rien n'est écrit.
+  function askBan(member: Member) {
+    ask({
+      title: `Bannir ${member.username} ?`,
+      element: member.email || undefined,
+      body: 'Si ce membre a un abonnement en cours (Stripe ou au comptoir), l’abonnement est arrêté aujourd’hui, sans remboursement, et le membre reçoit un e-mail. Ses réservations à venir sont annulées. Débannir ne relancera pas l’abonnement.',
+      confirmLabel: 'Bannir le membre',
+      danger: true,
+      run: () => banMember(member),
+    });
+  }
+
+  async function banMember(member: Member) {
+    let data: { error?: string; warning?: string } = {};
+    let ok = false;
+    try {
+      const res = await fetch('/api/members/ban', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ box_id: boxId, member_id: member.id }),
+      });
+      ok = res.ok;
+      data = await res.json().catch(() => ({}));
+    } catch (e: any) {
+      data = { error: e?.message };
+    }
+    if (!ok) { inform({ kind: 'error', title: ERROR_TITLE, body: data.error ?? 'Le bannissement n’a pas été enregistré.' }); return; }
+    setMembers(prev => prev.map(m => m.id === member.id ? { ...m, is_banned: true } : m));
+    if (data.warning) inform({ kind: 'info', title: 'Membre banni', body: data.warning });
   }
 
   async function assignPlan(memberId: string, planId: string | null) {
@@ -451,24 +483,31 @@ export default function MembersPage() {
     setPlanGroupSaving(null);
   }
 
+  // La route compte d'abord les abonnements Stripe actifs (S4, B5).
   function askDeletePlan(plan: MembershipPlan) {
     const count = members.filter(m => m.plan_id === plan.id).length;
-    ask({
+    return askDeleteWithSubscriptions({
+      ask, inform, kind: 'plan',
+      url: '/api/membership-plans/delete', payload: { plan_id: plan.id },
       title: `Supprimer la formule « ${plan.name} » (${plan.price_cents > 0 ? `${(plan.price_cents / 100).toFixed(2)} €/mois` : 'Gratuit'}) ?`,
       element: `${count} membre(s) y sont rattachés.`,
-      body: 'Ils n’auront plus de limite de séances. Leurs prélèvements Stripe continueront au même montant : pour les arrêter, résilie chaque abonnement. Les invitations en attente avec cette formule n’en auront plus. Pour la retirer de la vente sans toucher aux membres, désactive-la plutôt dans Formules.',
+      body: 'Ils n’auront plus de limite de séances. Les invitations en attente avec cette formule n’en auront plus. Pour la retirer de la vente sans toucher aux membres, désactive-la plutôt dans Formules.',
       confirmLabel: 'Supprimer la formule',
-      danger: true,
-      run: () => deletePlan(plan.id),
+      deactivate: () => deactivatePlan(plan.id),
+      onDeleted: () => {
+        setPlans(prev => prev.filter(p => p.id !== plan.id));
+        setMembers(prev => prev.map(m => m.plan_id === plan.id ? { ...m, plan_id: null } : m));
+      },
     });
   }
 
-  async function deletePlan(planId: string) {
-    const { error } = await supabase.from('membership_plans').delete().eq('id', planId);
-    // Jusqu'ici, un refus retirait quand même le contrat de l'écran.
-    if (error) { inform({ kind: 'error', title: ERROR_TITLE, body: error.message }); return; }
-    setPlans(prev => prev.filter(p => p.id !== planId));
-    setMembers(prev => prev.map(m => m.plan_id === planId ? { ...m, plan_id: null } : m));
+  // « Désactiver » (sans appel Stripe) : comme la bascule de Formules.
+  async function deactivatePlan(planId: string) {
+    const { data, error } = await supabase
+      .from('membership_plans').update({ is_active: false }).eq('id', planId).select('id');
+    if (error || !data?.length) {
+      inform({ kind: 'error', title: ERROR_TITLE, body: error?.message ?? 'La formule n’a pas été modifiée.' });
+    }
   }
 
   async function toggleGroup(memberId: string, groupId: string, inGroup: boolean) {

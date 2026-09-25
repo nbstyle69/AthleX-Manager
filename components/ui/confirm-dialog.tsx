@@ -6,6 +6,7 @@ import { useMemo, useReducer, useEffect, useRef, type MutableRefObject, type Rea
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
+  confirmAction,
   createDialogController,
   dialogHandlers,
   infoButtonLabel,
@@ -138,13 +139,13 @@ function ConfirmDialogView({ ctrl, returnFocus }: {
                   </Button>
                 )}
                 <Button
-                  variant={state.req.danger ? 'ax-danger' : 'ax-white'}
+                  variant={confirmAction(state).danger ? 'ax-danger' : 'ax-white'}
                   onClick={h.onConfirmClick}
                   disabled={busy}
                   data-testid="confirm-dialog-action"
                 >
                   {busy && <Loader2 size={15} className="animate-spin" aria-hidden />}
-                  {state.req.confirmLabel}
+                  {confirmAction(state).label}
                 </Button>
               </div>
             </>
