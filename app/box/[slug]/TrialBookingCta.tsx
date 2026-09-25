@@ -3,6 +3,8 @@
 import { useMemo, useState } from 'react';
 import { X, Loader2, CalendarCheck, Users } from 'lucide-react';
 import { useLanguage } from '@/components/language-provider';
+import { entryRefusalFrom, entryRefusalInfo } from '@/lib/entryRefusalView';
+import { useConfirmDialog } from '@/components/ui/confirm-dialog';
 
 interface Slot {
   schedule_id: string;
@@ -38,6 +40,8 @@ export default function TrialBookingCta({
 
   const [open, setOpen] = useState(false);
   const [step, setStep] = useState<Step>('form');
+  // Archivage (PR 3) : un refus de box fermée s'affiche dans une boîte d'information.
+  const { dialog, inform } = useConfirmDialog();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [slots, setSlots] = useState<Slot[]>([]);
@@ -116,6 +120,8 @@ export default function TrialBookingCta({
         body: JSON.stringify({ box_id: boxId }),
       });
       const data = await res.json();
+      const closed = entryRefusalFrom(data);
+      if (closed) { void inform(entryRefusalInfo(closed)); return; }
       if (!data?.ok) {
         setError(refusal(data?.reason));
         return;
@@ -147,6 +153,8 @@ export default function TrialBookingCta({
         }),
       });
       const data = await res.json();
+      const closed = entryRefusalFrom(data);
+      if (closed) { void inform(entryRefusalInfo(closed)); return; }
       if (!data?.ok) {
         setError(refusal(data?.reason));
         // Un créneau qui vient de se remplir n'est plus proposable : la liste
@@ -172,6 +180,7 @@ export default function TrialBookingCta({
 
   return (
     <>
+      {dialog}
       <button
         onClick={() => setOpen(true)}
         className="inline-flex items-center gap-2 rounded-ax-control bg-ax-text px-4 py-2 text-xs font-bold text-ax-background transition-opacity hover:opacity-90"

@@ -4,6 +4,8 @@ import { useState } from 'react';
 import { Copy, RefreshCw, Pencil, Check, X, Loader2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { entryRefusalFrom, entryRefusalInfo } from '@/lib/entryRefusalView';
+import { useConfirmDialog } from '@/components/ui/confirm-dialog';
 
 function generateCode(boxName: string): string {
   const prefix = boxName.replace(/\s+/g, '').substring(0, 3).toUpperCase();
@@ -25,6 +27,8 @@ export default function InviteCodeWidget({ initialCode, boxName }: Props) {
   const [saving, setSaving] = useState(false);
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState('');
+  // Archivage (PR 3) : un refus de box fermée s'affiche dans une boîte d'information.
+  const { dialog, inform } = useConfirmDialog();
 
   async function saveCode(newCode: string) {
     setSaving(true);
@@ -36,6 +40,8 @@ export default function InviteCodeWidget({ initialCode, boxName }: Props) {
         body: JSON.stringify({ invite_code: newCode }),
       });
       const json = await res.json();
+      const refusal = entryRefusalFrom(json);
+      if (refusal) { void inform(entryRefusalInfo(refusal)); return false; }
       if (!res.ok) {
         setError(json.error ?? 'Erreur');
         setSaving(false);
@@ -71,6 +77,7 @@ export default function InviteCodeWidget({ initialCode, boxName }: Props) {
 
   return (
     <div className="bg-ax-surface border border-ax-border rounded-ax-card p-5 space-y-3">
+      {dialog}
       <div className="flex items-center justify-between gap-4">
         <div className="flex-1">
           <p className="text-xs font-bold text-ax-text-secondary uppercase tracking-wider mb-1">

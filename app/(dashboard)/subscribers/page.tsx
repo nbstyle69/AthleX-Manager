@@ -12,6 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { useConfirmDialog } from '@/components/ui/confirm-dialog';
 import { fullDate, type ConfirmChoice } from '@/lib/confirmDialog';
 import { paymentMethodLabel } from '@/lib/paymentMethodLabel';
+import { entryRefusalFrom, entryRefusalInfo } from '@/lib/entryRefusalView';
 
 const INPUT_CLS = 'w-full min-h-11 px-3 py-2.5 rounded-ax-control bg-ax-surface border border-ax-input-border text-base sm:text-sm text-ax-text placeholder:text-ax-text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ax-focus focus-visible:ring-offset-2 focus-visible:ring-offset-ax-surface transition-colors';
 
@@ -304,6 +305,8 @@ export default function SubscribersPage() {
         body: JSON.stringify({ box_member_id: r.boxMemberId, action: r.paused ? 'resume' : 'pause' }),
       });
       const data = await res.json();
+      const refusal = entryRefusalFrom(data);
+      if (refusal) { void inform(entryRefusalInfo(refusal)); return; }
       if (!res.ok) throw new Error(data.error ?? 'Erreur');
       await load();
     } catch (e) {
