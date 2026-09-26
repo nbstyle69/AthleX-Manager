@@ -4,7 +4,7 @@ import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Loader2, Play, Crown, ArrowRight, Trophy, AlertTriangle, RotateCcw, Pencil, Trash2, X, Save, Calendar, Zap, Youtube, FileText, Clock, CheckCircle2, MessageSquare, Dumbbell } from 'lucide-react';
 import {
-  generateRound1Action, advanceRoundAction, setMatchWinnerAction, applyDecisionsAction,
+  generateRound1Action, advanceRoundAction, setMatchWinnerAction, decideRoundAction,
   setMatchWodAction, resetMatchAction, regenerateBracketAction, saveMatchEditAction,
   createGrandFinalAction,
 } from '@/app/(dashboard)/tournaments/[id]/bracket/actions';
@@ -13,6 +13,7 @@ import { useConfirmDialog } from '@/components/ui/confirm-dialog';
 import { countOf } from '@/lib/plural';
 import { REGENERATE_BODY } from '@/lib/tournaments/refusals';
 import { ERROR_TITLE } from '@/lib/confirmDialog';
+import { MOTIF_TEXT, applyDecidedRows, decidedMessage, manualMotifs, type DecideMotif } from '@/lib/tournaments/bracketDecision';
 
 /** A participant's submitted score for a match's WOD, resolved for display. */
 interface Submission { label: string; video: string | null; validated: boolean; }
@@ -108,6 +109,8 @@ export default function BracketManager({
   const [editing, setEditing] = useState<Match | null>(null);
   const [sheet, setSheet] = useState<SheetData | null>(null);
   const [info, setInfo] = useState<string | null>(null);
+  // Dernier « Décider selon les scores » : message de la base et matchs laissés à la main.
+  const [decision, setDecision] = useState<{ message: string; motifs: Record<string, DecideMotif> } | null>(null);
   const bracketScrollRef = useRef<HTMLDivElement>(null);
 
   // Re-sync local state whenever the server sends fresh matches (after
@@ -169,34 +172,6 @@ export default function BracketManager({
     return wods.find(w => w.bracket_stage === stage);
   }
 
-  // "Temps" (For Time) → le plus petit score gagne ; sinon (AMRAP/reps/…) le plus grand.
-  function parseScoreVal(v: string | undefined | null): number | null {
-    if (v == null) return null;
-    const s = String(v).trim();
-    if (!s) return null;
-    if (s.includes(':')) {
-      const parts = s.split(':').map(x => parseFloat(x.replace(',', '.')));
-      if (parts.some(p => Number.isNaN(p))) return null;
-      return parts.reduce((acc, p) => acc * 60 + p, 0);
-    }
-    const num = parseFloat(s.replace(',', '.').replace(/[^0-9.]/g, ''));
-    return Number.isNaN(num) ? null : num;
-  }
-
-  // Retourne l'athlète gagnant d'après les scores validés du WOD, ou null si indécidable
-  // (score manquant/non validé d'un côté, ou égalité → l'owner tranche manuellement).
-  function winnerFromScores(wod: Wod, aId: string, bId: string): string | null {
-    const map = scoresByWod[wod.id] ?? {};
-    const sa = map[aId];
-    const sb = map[bId];
-    const pa = sa && sa.status === 'validated' ? parseScoreVal(sa.value) : null;
-    const pb = sb && sb.status === 'validated' ? parseScoreVal(sb.value) : null;
-    if (pa == null || pb == null || pa === pb) return null;
-    const higherWins = (wod.type ?? '') !== 'For Time';
-    if (higherWins) return pa > pb ? aId : bId;
-    return pa < pb ? aId : bId;
-  }
-
   // WOD assigné à un match (colonne explicite sinon la manche).
   function wodForMatch(match: Match): Wod | undefined {
     if (match.wod_id) return wods.find(w => w.id === match.wod_id);
@@ -243,48 +218,27 @@ export default function BracketManager({
     if (s) setSheet(s);
   }
 
-  // Option : décide automatiquement les gagnants d'une manche selon les meilleurs
-  // scores validés. L'owner peut ensuite corriger en cliquant sur un athlète (anti-triche).
-  async function autoResolveRound(round: number) {
+  // « Décider selon les scores » : la base décide (decide_bracket_round, #354),
+  // avec la même règle que le classement. Le Manager ne calcule aucun vainqueur :
+  // il reporte ceux que la base rend et affiche la raison des matchs restés à la main.
+  function autoResolveRound(round: number) {
     const wod = wodForRound(round);
-    if (!wod) {
-      setError("Aucun WOD assigné à cette manche — impossible de décider selon les scores.");
-      return;
-    }
-    const pending = (grouped.winnerByRound[round] ?? []).filter(
-      m => m.status !== 'bye' && m.status !== 'completed' && m.winner_id == null && m.participant1_id && m.participant2_id,
-    );
-    const decisions = pending
-      .map(m => ({ m, w: winnerFromScores(wod, m.participant1_id!, m.participant2_id!) }))
-      .filter((d): d is { m: Match; w: string } => d.w != null);
-    if (decisions.length === 0) {
-      setError("Aucun match décidable : scores validés manquants ou à égalité. Valide d'abord les scores (onglet Scores).");
-      return;
-    }
-    const skipped = pending.length - decisions.length;
     ask({
-      title: `Décider ${countOf(decisions.length, 'match', 'matchs')} d’après les scores validés ?`,
-      element: `Round ${round} · WOD « ${wod.name} »${skipped > 0 ? ` · ${countOf(skipped, 'match', 'matchs')} ${skipped > 1 ? 'resteront' : 'restera'} à décider à la main` : ''}`,
-      body: 'Pour chaque match, le meilleur score validé l’emporte. L’ELO des deux athlètes est mis à jour tout de suite. Tu pourras corriger un résultat en cliquant sur un athlète.',
+      title: 'Décider les matchs d’après les scores validés ?',
+      element: `Round ${round}${wod ? ` · WOD « ${wod.name} »` : ' · aucun WOD assigné à la manche'}`,
+      body: 'La base décide chaque match avec la même règle que le classement : un For Time terminé bat un CAP, entre deux CAP le plus de reps gagne, puis le tie-break. L’ELO des deux athlètes est mis à jour tout de suite. Tu pourras corriger un résultat en cliquant sur un athlète.',
       confirmLabel: 'Décider les matchs',
-      run: () => applyAutoResolve(round, decisions),
+      run: () => decideRound(round, wod?.id ?? null),
     });
   }
 
-  async function applyAutoResolve(round: number, decisions: { m: Match; w: string }[]) {
-    setBusy(`auto-${round}`); setError(null);
-    const nowIso = new Date().toISOString();
-    const res = await applyDecisionsAction(tournamentId, decisions.map(({ m, w }) => ({
-      matchId: m.id, winnerId: w, loserId: w === m.participant1_id ? m.participant2_id : m.participant1_id,
-    })));
-    if (!res.ok) { setBusy(null); setError(res.error); return; }
-    setMatches(arr => arr.map(m => {
-      const d = decisions.find(x => x.m.id === m.id);
-      if (!d) return m;
-      const loserId = d.w === m.participant1_id ? m.participant2_id : m.participant1_id;
-      return { ...m, winner_id: d.w, loser_id: loserId, status: 'completed' as const, completed_at: nowIso };
-    }));
+  async function decideRound(round: number, wodId: string | null) {
+    setBusy(`auto-${round}`); setError(null); setDecision(null);
+    const res = await decideRoundAction(tournamentId, round, wodId);
     setBusy(null);
+    if (!res.ok) { void inform({ kind: 'error', title: ERROR_TITLE, body: res.error }); return; }
+    setMatches(arr => applyDecidedRows(arr, res.rows, new Date().toISOString()));
+    setDecision({ message: decidedMessage(res.rows), motifs: manualMotifs(res.rows) });
   }
 
   // Latest WB round status
@@ -494,8 +448,23 @@ export default function BracketManager({
             </div>
           </div>
 
+          {decision && (
+            <div role="status" data-testid="decision-tableau" className="rounded-ax-control border border-ax-border bg-ax-surface px-4 py-3 space-y-2">
+              <p className="text-sm font-semibold text-ax-text">{decision.message}</p>
+              {Object.keys(decision.motifs).length > 0 && (
+                <ul className="space-y-1">
+                  {matches.filter(m => decision.motifs[m.id]).map(m => (
+                    <li key={m.id} data-testid={`motif-${decision.motifs[m.id]}`} className="text-xs text-ax-warning bg-ax-warning-soft rounded-ax-control px-2 py-1 break-words">
+                      Match #{m.match_number} · {MOTIF_TEXT[decision.motifs[m.id]]}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          )}
+
           <p className="text-[11px] text-gray-500">
-            Clique sur le <span className="text-gray-300 font-semibold">nom d'un athlète</span> pour ouvrir sa <span className="text-gray-300 font-semibold">fiche de soumission</span> (score détaillé, mouvements du WOD, vidéo, statut). Pour désigner le vainqueur, clique sur la <span className="text-yellow-300 font-semibold">couronne</span> de son côté, ou utilise <span className="text-purple-300 font-semibold">« Décider selon les scores »</span> pour trancher automatiquement d'après les scores validés (le plus grand gagne, ou le plus petit temps pour un WOD « For Time »). Un <span className="text-gray-400 font-semibold">*</span> signale un score non encore validé. Tu peux toujours corriger un résultat à la main. Survole une carte pour éditer (joueurs / date / notes) ou annuler.
+            Clique sur le <span className="text-gray-300 font-semibold">nom d'un athlète</span> pour ouvrir sa <span className="text-gray-300 font-semibold">fiche de soumission</span> (score détaillé, mouvements du WOD, vidéo, statut). Pour désigner le vainqueur, clique sur la <span className="text-yellow-300 font-semibold">couronne</span> de son côté, ou utilise <span className="text-purple-300 font-semibold">« Décider selon les scores »</span> pour que la base tranche d'après les scores validés, avec la même règle que le classement. Un <span className="text-gray-400 font-semibold">*</span> signale un score non encore validé. Tu peux toujours corriger un résultat à la main. Survole une carte pour éditer (joueurs / date / notes) ou annuler.
           </p>
 
           <div ref={bracketScrollRef} className="overflow-x-auto pb-2">

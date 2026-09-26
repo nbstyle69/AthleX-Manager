@@ -80,8 +80,8 @@ describe('countOf et deCount', () => {
 
 describe('verbes et participes accordés au nombre', () => {
   const read = (f: string) => fs.readFileSync(f, 'utf8');
-  it('« 1 match restera » / « 3 matchs resteront »', () => {
-    expect(read('components/tournaments/BracketManager.tsx')).toContain("${countOf(skipped, 'match', 'matchs')} ${skipped > 1 ? 'resteront' : 'restera'} à décider à la main");
+  it('« 1 match décidé » / « 3 matchs décidés » (nombre rendu par la base, PR 2 tournois)', () => {
+    expect(read('lib/tournaments/bracketDecision.ts')).toContain("countOf(n, 'match décidé', 'matchs décidés')");
   });
   it('« 1 WOD pas encore fermé, ouvert ou en attente »', () => {
     expect(read('components/tournaments/FinishTournamentButton.tsx')).toContain("${openWodCount > 1 ? 'fermés, ouverts ou en attente' : 'fermé, ouvert ou en attente'}");
