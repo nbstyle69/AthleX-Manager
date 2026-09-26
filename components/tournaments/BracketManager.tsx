@@ -553,7 +553,7 @@ function RoundColumn({
   return (
     <div className="w-64 shrink-0 space-y-3">
       <div className="space-y-1">
-        <div className="text-xs font-bold text-gray-500 uppercase tracking-wider">{title}</div>
+        <div className="text-xs font-bold text-ax-text-secondary uppercase tracking-wider">{title}</div>
         {wodName ? (
           <div className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-purple-500/15 text-purple-300 inline-flex items-center gap-1">
             🏋️ {wodName}
@@ -699,11 +699,11 @@ function GrandFinalSection({
   const done = grandFinal.status === 'completed';
   return (
     <div className="space-y-3" data-testid="grande-finale">
-      <h2 className="text-sm font-bold text-yellow-400 uppercase tracking-wider flex items-center gap-2">
+      <h2 className="text-sm font-bold text-ax-warning uppercase tracking-wider flex items-center gap-2">
         <Trophy size={14} /> {title}
       </h2>
       <div className="bg-white/[0.02] border border-yellow-500/20 rounded-xl p-3 space-y-2">
-        {done && <div className="text-[10px] text-yellow-400 font-bold uppercase text-right">✓ Terminée</div>}
+        {done && <div className="text-[10px] text-ax-warning font-bold uppercase text-right">✓ Terminée</div>}
 
         <div className="text-xs text-gray-400">
           WOD choisi par <span className="font-bold text-yellow-300">{pName(grandFinal.participant1_id)}</span> :
