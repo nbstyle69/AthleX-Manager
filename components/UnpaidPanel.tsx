@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { countOf } from '@/lib/plural';
 import { parisDate } from '@/lib/datetime';
+import { dunningLoad } from '@/lib/dunningLoad';
 
 const supabase = createClient();
 
@@ -54,11 +55,14 @@ export default function UnpaidPanel({ boxId, onChange }: { boxId: string; onChan
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  // Refus (42501) ou échec du chargement : dit tel quel, jamais « aucun impayé ».
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
-    const { data } = await supabase.rpc('get_box_dunning', { p_box_id: boxId });
-    setRows((data ?? []) as UnpaidRow[]);
+    const { rows: loaded, message } = dunningLoad<UnpaidRow>(await supabase.rpc('get_box_dunning', { p_box_id: boxId }));
+    setRows(loaded);
+    setLoadError(message);
     setLoading(false);
   }, [boxId]);
 
@@ -89,6 +93,14 @@ export default function UnpaidPanel({ boxId, onChange }: { boxId: string; onChan
     return (
       <Card className="p-4 flex items-center gap-2 text-sm text-ax-text-muted">
         <Loader2 size={15} className="animate-spin" /> Chargement des impayés…
+      </Card>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <Card role="alert" data-testid="impayes-erreur" className="p-4 flex items-center gap-2 text-sm text-ax-danger">
+        <AlertTriangle size={15} className="shrink-0" /> {loadError}
       </Card>
     );
   }

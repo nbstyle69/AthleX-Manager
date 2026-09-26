@@ -92,6 +92,8 @@ const CLASSIFICATION: Record<string, Classe> = {
   // S4 : bannissement et suppressions qui arretent des abonnements Stripe.
   'marketplace/offers/delete': 'owner_admin',
   'members/ban': 'owner_admin',
+  // Formule d'un membre (`plan_id`, facturation) : gérant ou co-gérant, clé serveur.
+  'members/assign-plan': 'owner_admin',
   'membership-plans/delete': 'owner_admin',
   'programs/delete': 'owner_admin',
   'pause-membership': 'owner_admin',

@@ -466,9 +466,23 @@ export default function MembersPage() {
   async function assignPlan(memberId: string, planId: string | null) {
     if (!boxId) return;
     setPlanSaving(memberId);
-    await supabase.from('box_members').update({ plan_id: planId }).eq('member_id', memberId).eq('box_id', boxId);
-    setMembers(prev => prev.map(m => m.id === memberId ? { ...m, plan_id: planId } : m));
+    // `plan_id` est une colonne de facturation : écrite par la route serveur.
+    let data: { error?: string } = {};
+    let ok = false;
+    try {
+      const res = await fetch('/api/members/assign-plan', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ box_id: boxId, member_id: memberId, plan_id: planId }),
+      });
+      ok = res.ok;
+      data = await res.json().catch(() => ({}));
+    } catch (e: any) {
+      data = { error: e?.message };
+    }
     setPlanSaving(null);
+    // Jusqu'ici, un refus affichait quand même la nouvelle formule.
+    if (!ok) { inform({ kind: 'error', title: ERROR_TITLE, body: data.error ?? 'La formule n’a pas été modifiée.' }); return; }
+    setMembers(prev => prev.map(m => m.id === memberId ? { ...m, plan_id: planId } : m));
   }
 
   async function togglePlanGroup(planId: string, groupId: string, inGroup: boolean) {
