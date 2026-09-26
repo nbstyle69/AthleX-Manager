@@ -2,7 +2,7 @@
 slug: programmes-athletes-seances
 title: Remplir un programme athlète
 summary: Écrire les séances d'un programme de coaching, semaine par semaine.
-role: coach
+role: owner
 pages: [programs]
 tags: [programme, seances, coaching, carnet, pdf]
 order: 40
@@ -14,17 +14,17 @@ Un **programme athlète** est un suivi vendu ou assigné à un membre : il conti
 
 ## Étapes
 
-1. Ouvre **Marketplace → Programmes athlètes** et sélectionne le programme à remplir (ou crée-le d'abord, voir le tutoriel sur la vente). <Screenshot src="/tutorials/programmes-athletes-seances/1.png" alt="Onglet Programmes athlètes du Marketplace" />
-2. Ouvre son éditeur de séances : les semaines sont numérotées selon la **Durée (semaines)** du programme.
-3. Ajoute une séance dans la semaine voulue, puis saisis son contenu comme un WOD : mouvements du catalogue, bloc Musculation, bloc Cardio, notes coach.
-4. Tu peux partir d'un PDF : l'import propose les séances détectées et tu relis la preview avant insertion.
-5. Enregistre. L'athlète qui a accès au programme voit les séances dans son carnet, semaine par semaine.
+1. Ouvre **Marketplace → Programmes athlètes** et repère la carte du programme à remplir (ou crée-le d'abord, voir le tutoriel sur la vente). <Screenshot src="/tutorials/programmes-athletes-seances/1.png" alt="Éditeur de séances d'un programme : semaine 1 / 6, colonnes des jours, un jour en repos" />
+2. Clique **Séances** sur sa carte : l'éditeur affiche « Semaine 1 / X », X étant la **Durée (semaines)** d'un programme fixe ; un programme Ongoing n'a pas de dernière semaine.
+3. Choisis la semaine avec les flèches, puis clique **Ajouter** dans la colonne du jour (ou **Nouvelle séance**) et saisis le contenu comme un WOD : **Programme / Mouvements** (catalogue), **Musculation**, **Cardio**, **Notes Coach**. Un jour marqué **Repos** (icône lune) n'accepte pas de séance.
+4. Tu peux partir d'un fichier : **Importer** accepte un PDF (l'import propose les séances détectées et tu relis la preview avant insertion), un CSV ou un JSON (gabarit : **Modèle CSV**).
+5. Chaque séance s'enregistre avec **Créer la séance**. L'athlète qui a accès au programme la reçoit à partir de sa propre date de début : la semaine 1 est sa première semaine. Une séance dépubliée (œil barré) lui reste invisible.
 
 ## Erreurs fréquentes
 
-- **L'athlète ne voit aucune séance.** Le programme n'a pas de séances enregistrées, ou l'accès ne lui a pas été donné → vérifie les deux, l'accès se donne depuis **Marketplace → Programmes athlètes**.
+- **L'athlète ne voit aucune séance.** Le programme n'a pas de séance publiée, ou l'accès ne lui a pas été donné → vérifie les deux ; l'accès se donne avec le bouton **Accès** de la carte du programme.
 - **Les mouvements ne créditent pas de badge.** Ils ont été tapés à la main au lieu d'être choisis dans la liste officielle → réédite les lignes concernées.
-- **Une semaine est inaccessible.** La durée du programme est plus courte que le nombre de semaines que tu veux écrire → augmente la **Durée (semaines)**.
+- **Une semaine est inaccessible.** La durée du programme est plus courte que le nombre de semaines que tu veux écrire → augmente la **Durée (semaines)** avec **Modifier** sur la carte du programme.
 - **Les séances d'un programme se retrouvent sur le Whiteboard.** Ce sont deux espaces différents : un programme athlète ne se pose pas sur le Whiteboard de la box → passe par une semaine type si tu veux la programmer pour tous.
 
 ## Y aller
