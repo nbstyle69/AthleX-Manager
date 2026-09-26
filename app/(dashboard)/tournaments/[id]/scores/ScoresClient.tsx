@@ -1,13 +1,14 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import {
   CheckCircle, XCircle, ExternalLink, Loader2, Clock,
   Youtube, FileText, Pencil, Send, MessageSquare, RotateCcw,
 } from 'lucide-react';
 import { isRepsScoredType, formatAmrapScore } from '@/lib/movements';
-import { rankClassique, parseScoreVal, type RawScore } from '@/lib/tournamentScoring';
+import { parseScoreVal } from '@/lib/tournamentScoring';
 import { useConfirmDialog } from '@/components/ui/confirm-dialog';
 import { INPUT_TITLE } from '@/lib/confirmDialog';
 import { countOf } from '@/lib/plural';
@@ -48,6 +49,7 @@ interface Props {
 export default function ScoresClient({ tournamentId, initialScores, requireVideoProof = false }: Props) {
   const { dialog, inform } = useConfirmDialog();
   const supabase = createClient();
+  const router = useRouter();
   const [scores,      setScores]      = useState<ScoreRow[]>(initialScores);
   const [processing,  setProcessing]  = useState<string | null>(null);
   const [filter,      setFilter]      = useState<'pending' | 'validated' | 'rejected' | 'all'>('pending');
@@ -56,25 +58,11 @@ export default function ScoresClient({ tournamentId, initialScores, requireVideo
   const [savingScore,   setSavingScore]   = useState<string | null>(null);
   const [savingMsg,     setSavingMsg]     = useState<string | null>(null);
 
-  async function recalcLeaderboard() {
-    const { data: allValidated } = await supabase
-      .from('tournament_scores')
-      .select('athlete_id, score_value, capped, tiebreak_value, tournament_wod_id, tw:tournament_wods(type)')
-      .eq('tournament_id', tournamentId).eq('status', 'validated');
-    if (!allValidated) return;
-    const rawScores: RawScore[] = allValidated.map((s: any) => ({
-      athlete_id: s.athlete_id,
-      score_value: s.score_value,
-      capped: s.capped ?? null,
-      tiebreak_value: s.tiebreak_value ?? null,
-      tournament_wod_id: s.tournament_wod_id,
-      wod_type: (Array.isArray(s.tw) ? s.tw[0] : s.tw)?.type ?? null,
-    }));
-    const pointsMap = rankClassique(rawScores);
-    for (const [athleteId, pts] of Object.entries(pointsMap)) {
-      await supabase.from('tournament_participants')
-        .update({ score: pts }).eq('tournament_id', tournamentId).eq('athlete_id', athleteId);
-    }
+  // Le classement est calculé par la base (athlex-app #361) : plus rien à
+  // recalculer ni à écrire ici. Un score validé, rejeté ou corrigé change le
+  // classement de la base ; on rafraîchit pour relire ses chiffres.
+  function reloadStandings() {
+    router.refresh();
   }
 
   async function updateStatus(scoreId: string, newStatus: 'validated' | 'rejected') {
@@ -89,9 +77,10 @@ export default function ScoresClient({ tournamentId, initialScores, requireVideo
     const payload: any = { status: newStatus };
     if (newStatus === 'validated') payload.validated_at = new Date().toISOString();
     await supabase.from('tournament_scores').update(payload).eq('id', scoreId);
-    if (newStatus === 'validated') await recalcLeaderboard();
     setScores(prev => prev.map(s => s.id === scoreId ? { ...s, status: newStatus } : s));
     setProcessing(null);
+    // Validé comme rejeté : le classement de la base change.
+    reloadStandings();
   }
 
   async function saveScoreValue(scoreId: string) {
@@ -113,7 +102,7 @@ export default function ScoresClient({ tournamentId, initialScores, requireVideo
     setScores(prev => prev.map(s => s.id === scoreId ? { ...s, score_value: newVal } : s));
     setEditingScore(prev => { const n = { ...prev }; delete n[scoreId]; return n; });
     setSavingScore(null);
-    await recalcLeaderboard();
+    reloadStandings();
   }
 
   async function saveAdminMessage(scoreId: string) {
