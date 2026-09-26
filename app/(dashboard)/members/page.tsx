@@ -13,6 +13,7 @@ import { getMemberEmails } from '@/lib/memberEmails';
 import AthleteSheet from '@/components/dashboard/AthleteSheet';
 import { useConfirmDialog } from '@/components/ui/confirm-dialog';
 import { ERROR_TITLE } from '@/lib/confirmDialog';
+import { reactivationErrorBox } from '@/lib/memberReactivation';
 import { askDeleteWithSubscriptions, countOf } from '@/lib/deleteWithSubscriptions';
 import {
   eloChoiceOf,
@@ -427,9 +428,13 @@ export default function MembersPage() {
     if (!boxId) return;
     if (!member.is_banned) { askBan(member); return; }
     setBanning(member.id);
-    await supabase.from('box_members').update({ status: 'active' }).eq('member_id', member.id).eq('box_id', boxId);
-    setMembers(prev => prev.map(m => m.id === member.id ? { ...m, is_banned: false } : m));
+    // Débannir = réactiver par la fonction gardée gérant, qui remet la
+    // facturation à zéro (comme l'app) ; jamais d'écriture directe de `status`.
+    const { error } = await supabase.rpc('reactivate_box_member', { p_box_id: boxId, p_member_id: member.id });
     setBanning(null);
+    const box = reactivationErrorBox(error);
+    if (box) { inform(box); return; }
+    setMembers(prev => prev.map(m => m.id === member.id ? { ...m, is_banned: false, plan_id: null } : m));
   }
 
   // Bannir arrête aussi l'abonnement en cours (S4) : la route le fait avant de
@@ -466,9 +471,23 @@ export default function MembersPage() {
   async function assignPlan(memberId: string, planId: string | null) {
     if (!boxId) return;
     setPlanSaving(memberId);
-    await supabase.from('box_members').update({ plan_id: planId }).eq('member_id', memberId).eq('box_id', boxId);
-    setMembers(prev => prev.map(m => m.id === memberId ? { ...m, plan_id: planId } : m));
+    // `plan_id` est une colonne de facturation : écrite par la route serveur.
+    let data: { error?: string } = {};
+    let ok = false;
+    try {
+      const res = await fetch('/api/members/assign-plan', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ box_id: boxId, member_id: memberId, plan_id: planId }),
+      });
+      ok = res.ok;
+      data = await res.json().catch(() => ({}));
+    } catch (e: any) {
+      data = { error: e?.message };
+    }
     setPlanSaving(null);
+    // Jusqu'ici, un refus affichait quand même la nouvelle formule.
+    if (!ok) { inform({ kind: 'error', title: ERROR_TITLE, body: data.error ?? 'La formule n’a pas été modifiée.' }); return; }
+    setMembers(prev => prev.map(m => m.id === memberId ? { ...m, plan_id: planId } : m));
   }
 
   async function togglePlanGroup(planId: string, groupId: string, inGroup: boolean) {
