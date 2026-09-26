@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { SUB_ORANGE_SOFT, SUB_ORANGE_TEXT } from '@/components/admin/adminTokens';
 import { countOf } from '@/lib/plural';
+import { parisDate } from '@/lib/datetime';
 
 const FIELD_LABEL = 'block text-xs font-bold text-ax-text-secondary uppercase tracking-wider mb-1.5';
 const TEXTAREA = 'w-full min-w-0 rounded-ax-control border border-ax-input-border bg-ax-surface px-3 py-2.5 text-base text-ax-text placeholder:text-ax-text-muted sm:text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ax-focus focus-visible:ring-offset-2 focus-visible:ring-offset-ax-surface';
@@ -284,17 +285,17 @@ export default function AdminBoxesPage() {
                   {box.archived_at && (
                     <span
                       data-testid={`archivee-${box.id}`}
-                      title={`Archivée le ${new Date(box.archived_at).toLocaleDateString('fr-FR')}`}
+                      title={`Archivée le ${parisDate(box.archived_at, { day: '2-digit', month: '2-digit', year: 'numeric' })}`}
                       className="flex items-center gap-1 text-[10px] font-bold text-ax-warning bg-ax-warning-soft px-2 py-0.5 rounded-ax-badge"
                     >
-                      <Archive size={10} /> {new Date(box.archived_at).toLocaleDateString('fr-FR')}
+                      <Archive size={10} /> {parisDate(box.archived_at, { day: '2-digit', month: '2-digit', year: 'numeric' })}
                     </span>
                   )}
                   {/* Archivage (PR 3) : la liste signale, l'annulation se fait dans la fiche. */}
                   {box.archive_scheduled_at && !box.archived_at && (
                     <span
                       data-testid={`archivage-programme-${box.id}`}
-                      title={`Archivage programmé le ${new Date(box.archive_scheduled_at).toLocaleDateString('fr-FR')}`}
+                      title={`Archivage programmé le ${parisDate(box.archive_scheduled_at, { day: '2-digit', month: '2-digit', year: 'numeric' })}`}
                       className="flex items-center gap-1 text-[10px] font-bold text-ax-warning bg-ax-warning-soft px-2 py-0.5 rounded-ax-badge"
                     >
                       <CalendarClock size={10} /> Archivage programmé

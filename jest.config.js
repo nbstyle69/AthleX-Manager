@@ -1,3 +1,8 @@
+// Les tests tournent en UTC, comme les fonctions Vercel, quel que soit le fuseau
+// du poste : un affichage qui oublierait l'heure de Paris échoue ici aussi.
+// (Réglé avant le lancement des workers, qui en héritent.)
+process.env.TZ = 'UTC';
+
 /** @type {import('ts-jest').JestConfigWithTsJest} */
 module.exports = {
   preset: 'ts-jest',

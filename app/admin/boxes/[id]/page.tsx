@@ -17,6 +17,7 @@ import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
 import { ADMIN_LEVEL_COLOR, PURPLE_SOFT, SUB_ORANGE_SOFT, SUB_ORANGE_TEXT } from '@/components/admin/adminTokens';
+import { parisDate } from '@/lib/datetime';
 
 const TABS = ['Infos', 'Membres', 'Whiteboard', 'Tournois'];
 
@@ -106,7 +107,7 @@ export default function BoxDetailPage() {
         setResyncResult(`${json.status} · offert (aucun abonnement Stripe)`);
       } else {
         const period = json.current_period_end
-          ? ` · période jusqu'au ${new Date(json.current_period_end).toLocaleDateString('fr-FR')}`
+          ? ` · période jusqu'au ${parisDate(json.current_period_end, { day: '2-digit', month: '2-digit', year: 'numeric' })}`
           : '';
         setResyncResult(`${json.status}${period}${json.updated ? '' : ' · inchangé'}`);
         if (json.updated) loadData();
@@ -169,7 +170,7 @@ export default function BoxDetailPage() {
           <Archive size={18} className="shrink-0 mt-0.5 text-ax-warning" />
           <div>
             <p className="text-sm font-bold text-ax-warning">
-              Box archivée le {new Date(box.archived_at).toLocaleDateString('fr-FR')}
+              Box archivée le {parisDate(box.archived_at, { day: '2-digit', month: '2-digit', year: 'numeric' })}
             </p>
             <p className="text-xs text-ax-text mt-0.5">
               Ses membres n&apos;y ont plus accès, elle est retirée des annuaires et n&apos;est plus

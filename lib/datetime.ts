@@ -41,6 +41,19 @@ export function fromDateInput(value: string | null | undefined): string | null {
   return d.toISOString();
 }
 
+/**
+ * Date affichée d'un horodatage, lue en heure de Paris quel que soit le fuseau
+ * du serveur (UTC sur Vercel) ou du navigateur : une fin de période à 23 h 30
+ * ou à 0 h 30 (heure de Paris) tombe le bon jour. Une date seule
+ * (`YYYY-MM-DD`, colonne `date`) est un jour du calendrier : lue à midi UTC,
+ * elle reste ce jour à Paris.
+ */
+export const PARIS_TZ = 'Europe/Paris';
+export function parisDate(iso: string, opts: Intl.DateTimeFormatOptions): string {
+  const dateOnly = /^\d{4}-\d{2}-\d{2}$/.test(iso);
+  return new Date(dateOnly ? `${iso}T12:00:00Z` : iso).toLocaleDateString('fr-FR', { ...opts, timeZone: PARIS_TZ });
+}
+
 export function isScheduledAhead(value: string | null | undefined, now: number = Date.now()): boolean {
   if (!value) return false;
   const t = new Date(value).getTime();

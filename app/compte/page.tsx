@@ -5,6 +5,7 @@ import { CreditCard, Ticket, Dumbbell, CalendarClock, Search, Building2 } from '
 import AccountProfileForm from './AccountProfileForm';
 import ManageSubscription from './ManageSubscription';
 import { selectMembership, type MembershipBillingRow } from '@/lib/compte/membership';
+import { parisDate } from '@/lib/datetime';
 
 export const dynamic = 'force-dynamic';
 
@@ -40,7 +41,7 @@ function fmtPrice(cents: number | null | undefined): string {
 
 function fmtDate(iso: string | null | undefined): string {
   if (!iso) return '—';
-  return new Date(iso).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' });
+  return parisDate(iso, { day: '2-digit', month: 'short', year: 'numeric' });
 }
 
 const SUB_STATUS_LABEL: Record<string, string> = {

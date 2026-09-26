@@ -7,6 +7,7 @@ import { Lock, CreditCard, RefreshCw } from 'lucide-react';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
+import { parisDate } from '@/lib/datetime';
 
 interface Props {
   boxId: string;
@@ -19,7 +20,7 @@ export default function PaywallOverlay({ boxId, trialEndsAt }: Props) {
   const [notFound, setNotFound] = useState(false);
 
   const endedLabel = trialEndsAt
-    ? new Date(trialEndsAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })
+    ? parisDate(trialEndsAt, { day: 'numeric', month: 'long', year: 'numeric' })
     : null;
 
   async function handleRefresh() {

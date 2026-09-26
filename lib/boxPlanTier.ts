@@ -1,3 +1,5 @@
+import { parisDate } from '@/lib/datetime';
+
 export interface BoxSubscriptionTier {
   box_id: string;
   status: string;
@@ -56,8 +58,7 @@ function isPast(iso: string | null | undefined, now: Date): boolean {
 }
 
 export function formatExpiredSince(iso: string): string {
-  const d = new Date(iso);
-  return `échue depuis le ${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`;
+  return `échue depuis le ${parisDate(iso, { day: '2-digit', month: '2-digit' })}`;
 }
 
 /** Pastille de formule (super-admin), en jetons `--ax-*` : même sens qu'avant, lisible dans les deux thèmes. */
