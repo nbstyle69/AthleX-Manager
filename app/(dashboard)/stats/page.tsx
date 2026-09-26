@@ -69,7 +69,8 @@ export default function BoxStatsPage() {
       supabase.from('box_members').select('id', { count: 'exact', head: true }).eq('box_id', box.id).eq('status', 'banned'),
       supabase.from('box_members').select('id', { count: 'exact', head: true }).eq('box_id', box.id).eq('role', 'coach'),
       supabase.from('tournaments').select('*', { count: 'exact', head: true }).eq('box_id', box.id),
-      supabase.from('tournaments').select('*', { count: 'exact', head: true }).eq('box_id', box.id).in('status', ['open', 'active']),
+      // « En cours » : sans les archivés (#371) ; le total, lui, ne change pas.
+      supabase.from('tournaments').select('*', { count: 'exact', head: true }).eq('box_id', box.id).in('status', ['open', 'active']).is('archived_at', null),
       supabase.from('box_wods').select('*', { count: 'exact', head: true }).eq('box_id', box.id),
       supabase.from('box_members')
         .select('member_id, status, role, joined_at, profile:profiles!box_members_member_id_fkey(username, level, elo)')

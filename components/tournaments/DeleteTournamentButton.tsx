@@ -1,30 +1,82 @@
 'use client';
 
 import { useState } from 'react';
-import { Trash2, Loader2, AlertTriangle } from 'lucide-react';
+import { Trash2, Loader2, AlertTriangle, Archive, ArchiveRestore } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
-import { deleteTournamentAndLeave } from '@/lib/tournaments/deleteTournament';
+import { ARCHIVE_INSTEAD, deleteTournamentAndLeave } from '@/lib/tournaments/deleteTournament';
+import { archiveRequest, setTournamentArchived, unarchiveRequest } from '@/lib/tournaments/archive';
+import { useConfirmDialog } from '@/components/ui/confirm-dialog';
+import { ERROR_TITLE } from '@/lib/confirmDialog';
 
-interface Props { tournamentId: string }
+interface Props {
+  tournamentId: string;
+  /** Pour les fenêtres d'archivage. */
+  name: string;
+  /** Tournoi archivé : « Désarchiver ». */
+  archivedAt: string | null;
+  /** Résultat validé vu par le Manager : « Archiver » au lieu de « Supprimer ». */
+  hasResults: boolean;
+}
 
-export default function DeleteTournamentButton({ tournamentId }: Props) {
+/**
+ * Supprimer, archiver ou désarchiver un tournoi (athlex-app #371). Un tournoi
+ * qui a un résultat validé s'archive ; si la base refuse une suppression que
+ * le Manager croyait possible (`TOURNOI_AVEC_RESULTATS`), l'archivage est
+ * proposé à la place.
+ */
+export default function DeleteTournamentButton({ tournamentId, name, archivedAt, hasResults }: Props) {
   const router = useRouter();
+  const { dialog, ask, inform } = useConfirmDialog();
   const [open,     setOpen]     = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [error,    setError]    = useState<string | null>(null);
+
+  async function setArchived(archived: boolean) {
+    const err = await setTournamentArchived(createClient(), tournamentId, archived);
+    if (err) { void inform({ kind: 'error', title: ERROR_TITLE, body: err }); return; }
+    router.refresh();
+  }
+  const askArchive = () => ask(archiveRequest(name, () => setArchived(true)));
+  const askUnarchive = () => ask(unarchiveRequest(name, () => setArchived(false)));
 
   async function handleDelete() {
     setDeleting(true);
     setError(null);
     const err = await deleteTournamentAndLeave(createClient(), tournamentId, router);
     setDeleting(false);
+    if (err === ARCHIVE_INSTEAD) { setOpen(false); askArchive(); return; }
     if (err) { setError(err); return; }
     setOpen(false);
   }
 
+  if (archivedAt) {
+    return (
+      <>
+        {dialog}
+        <button onClick={askUnarchive} data-testid="desarchiver-tournoi"
+          className="flex items-center gap-1.5 px-3 py-2 rounded-ax-control text-xs font-semibold text-ax-text-secondary hover:text-ax-text border border-ax-border hover:bg-ax-hover transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ax-focus motion-reduce:transition-none">
+          <ArchiveRestore size={13} /> Désarchiver
+        </button>
+      </>
+    );
+  }
+
+  if (hasResults) {
+    return (
+      <>
+        {dialog}
+        <button onClick={askArchive} data-testid="archiver-tournoi"
+          className="flex items-center gap-1.5 px-3 py-2 rounded-ax-control text-xs font-semibold text-ax-text-secondary hover:text-ax-text border border-ax-border hover:bg-ax-hover transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ax-focus motion-reduce:transition-none">
+          <Archive size={13} /> Archiver
+        </button>
+      </>
+    );
+  }
+
   return (
     <>
+      {dialog}
       <button
         onClick={() => setOpen(true)}
         className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold text-red-400 hover:text-white hover:bg-red-500/20 border border-red-500/20 hover:border-red-500/40 transition-colors">

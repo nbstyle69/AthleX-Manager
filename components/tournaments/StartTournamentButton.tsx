@@ -6,15 +6,19 @@ import { Loader2, Play } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { useConfirmDialog } from '@/components/ui/confirm-dialog';
 import { countOf } from '@/lib/plural';
+import { startDialogTexts } from '@/lib/tournaments/registrations';
+import { tournamentRefusal } from '@/lib/tournaments/refusals';
 
 interface Props {
   tournamentId: string;
   status: string;
   tournamentName: string;
   participantCount: number;
+  /** Case « Inscriptions ouvertes pendant le tournoi » (athlex-app PR 10). */
+  registrationsOpen?: boolean;
 }
 
-export default function StartTournamentButton({ tournamentId, status, tournamentName, participantCount }: Props) {
+export default function StartTournamentButton({ tournamentId, status, tournamentName, participantCount, registrationsOpen = false }: Props) {
   const router = useRouter();
   const [busy, setBusy]   = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -22,14 +26,13 @@ export default function StartTournamentButton({ tournamentId, status, tournament
 
   if (status !== 'open') return null;
 
-  // Le texte d'origine laissait croire que les inscriptions restaient ouvertes :
-  // `can_join_tournament` exige le statut « open », elles se ferment.
+  // Les inscriptions se ferment au démarrage, sauf si la case « Inscriptions
+  // ouvertes pendant le tournoi » est cochée (textes : lib/tournaments/registrations.ts).
   function askStart() {
     ask({
       title: 'Démarrer le tournoi ?',
       element: `${tournamentName} · ${countOf(participantCount, 'inscrit', 'inscrits')}`,
-      body: 'Les inscriptions seront fermées : plus personne ne pourra s’inscrire. Les inscrits recevront l’annonce du démarrage dès qu’un WOD sera ouvert. Tu ne pourras pas rouvrir les inscriptions depuis cet écran.',
-      confirmLabel: 'Démarrer et fermer les inscriptions',
+      ...startDialogTexts(registrationsOpen),
       run: start,
     });
   }
@@ -40,7 +43,7 @@ export default function StartTournamentButton({ tournamentId, status, tournament
     const supabase = createClient();
     const { error: err } = await supabase.from('tournaments').update({ status: 'active' }).eq('id', tournamentId);
     setBusy(false);
-    if (err) { setError(err.message); return; }
+    if (err) { setError(tournamentRefusal(err.message, err.code)); return; }
     router.refresh();
   }
 

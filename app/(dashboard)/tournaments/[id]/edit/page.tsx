@@ -7,7 +7,10 @@ import { ChevronLeft, Trash2, Trophy, Loader2, AlertTriangle } from 'lucide-reac
 import { createClient } from '@/lib/supabase/client';
 import { getMyBox } from '@/lib/getMyBox';
 import TournamentForm from '@/components/tournaments/TournamentForm';
-import { deleteTournamentAndLeave } from '@/lib/tournaments/deleteTournament';
+import { ARCHIVE_INSTEAD, deleteTournamentAndLeave } from '@/lib/tournaments/deleteTournament';
+import { archiveRequest, setTournamentArchived } from '@/lib/tournaments/archive';
+import { useConfirmDialog } from '@/components/ui/confirm-dialog';
+import { ERROR_TITLE } from '@/lib/confirmDialog';
 
 export default function EditTournamentPage() {
   const router = useRouter();
@@ -20,6 +23,8 @@ export default function EditTournamentPage() {
   const [deleting,   setDeleting]   = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [error,      setError]      = useState<string | null>(null);
+  // Archivage (#371) : proposé quand la base refuse la suppression d'un tournoi qui a des résultats.
+  const { dialog, ask, inform } = useConfirmDialog();
 
   useEffect(() => {
     async function load() {
@@ -52,6 +57,15 @@ export default function EditTournamentPage() {
     setError(null);
     const err = await deleteTournamentAndLeave(createClient(), id, router);
     setDeleting(false);
+    if (err === ARCHIVE_INSTEAD) {
+      setShowConfirm(false);
+      ask(archiveRequest(tournament.name, async () => {
+        const archiveErr = await setTournamentArchived(createClient(), id, true);
+        if (archiveErr) { void inform({ kind: 'error', title: ERROR_TITLE, body: archiveErr }); return; }
+        router.push(`/tournaments/${id}`);
+      }));
+      return;
+    }
     if (err) { setError(err); return; }
     setShowConfirm(false);
   }
@@ -92,6 +106,7 @@ export default function EditTournamentPage() {
         <div className="bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3 text-sm text-red-400">{error}</div>
       )}
 
+      {dialog}
       {/* Delete confirmation */}
       {showConfirm && (
         <div className="bg-red-500/10 border border-red-500/30 rounded-2xl p-5 flex items-start gap-4">

@@ -156,7 +156,8 @@ export default function AnalyticsPage() {
       supabase.from('profiles').select('id', { count: 'exact', head: true }).gte('created_at', d30),
       supabase.from('profiles').select('role'),
       supabase.from('tournaments').select('*', { count: 'exact', head: true }),
-      supabase.from('tournaments').select('*', { count: 'exact', head: true }).neq('status', 'closed'),
+      // « Actifs » : sans les archivés (#371) ; le total ne change pas.
+      supabase.from('tournaments').select('*', { count: 'exact', head: true }).neq('status', 'closed').is('archived_at', null),
       supabase.from('physical_competitions').select('*', { count: 'exact', head: true }),
       supabase.from('physical_competitions').select('*', { count: 'exact', head: true }).neq('status', 'closed'),
       supabase.from('inter_competitions').select('*', { count: 'exact', head: true }),

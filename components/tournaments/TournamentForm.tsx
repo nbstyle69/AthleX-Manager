@@ -8,6 +8,8 @@ import { fromDateInput } from '@/lib/datetime';
 import { initialTournamentForm, statusEditable, tournamentUpdatePayload } from '@/lib/tournamentForm';
 import { useConfirmDialog } from '@/components/ui/confirm-dialog';
 import { ERROR_TITLE, INPUT_TITLE } from '@/lib/confirmDialog';
+import { REGISTRATIONS_LABEL, START_DATE_HINT, registrationsHint } from '@/lib/tournaments/registrations';
+import { tournamentRefusal } from '@/lib/tournaments/refusals';
 
 const LEVELS = ['scaled','inter','rx','rx+','gx','pro'];
 // Must stay aligned with tournaments_status_check (open | active | completed).
@@ -119,7 +121,7 @@ export default function TournamentForm({ boxId, initial, allowedFormats = ['simp
       });
       const { error: err } = await supabase.from('tournaments').update(update).eq('id', initial.id);
       setSaving(false);
-      if (err) { fail(err.message); return; }
+      if (err) { fail(tournamentRefusal(err.message, err.code)); return; }
       router.push(`/tournaments/${initial.id}`);
       router.refresh();
       return;
@@ -135,7 +137,7 @@ export default function TournamentForm({ boxId, initial, allowedFormats = ['simp
       end_date:   form.end_date || null,
     };
     const { data, error: err } = await supabase.from('tournaments').insert(payload).select('id').single();
-    if (err) { fail(err.message); return; }
+    if (err) { fail(tournamentRefusal(err.message, err.code)); return; }
     // Bootstrap divisions for league_div
     if (form.format === 'league_div' && divisions.length > 0) {
       const rows = divisions.map((d, idx) => ({
@@ -281,7 +283,8 @@ export default function TournamentForm({ boxId, initial, allowedFormats = ['simp
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className={lbl}>Date de début</label>
-            <input type="date" className={inp} value={form.start_date} onChange={e => set('start_date', e.target.value)} />
+            <input type="date" className={inp} value={form.start_date} onChange={e => set('start_date', e.target.value)} aria-describedby="aide-date-debut" />
+            <p id="aide-date-debut" className="text-xs text-ax-text-secondary mt-1.5">{START_DATE_HINT}</p>
           </div>
           <div>
             <label className={lbl}>Date de fin</label>
@@ -304,6 +307,17 @@ export default function TournamentForm({ boxId, initial, allowedFormats = ['simp
             className="w-4 h-4 accent-white" />
           <span className="text-sm text-gray-300">Exiger une preuve vidéo pour valider les scores</span>
         </label>
+        {/* Inscriptions pendant le tournoi (athlex-app PR 10) : modifiable après le démarrage. */}
+        <div>
+          <label className="flex items-center gap-3 cursor-pointer">
+            <input type="checkbox" checked={form.registrations_open_during_tournament}
+              onChange={e => set('registrations_open_during_tournament', e.target.checked)}
+              aria-describedby="aide-inscriptions" data-testid="case-inscriptions-ouvertes"
+              className="w-4 h-4 accent-white" />
+            <span className="text-sm text-ax-text">{REGISTRATIONS_LABEL}</span>
+          </label>
+          <p id="aide-inscriptions" className="text-xs text-ax-text-secondary mt-1.5 ml-7">{registrationsHint(initial?.format ?? form.format)}</p>
+        </div>
       </div>
 
       {/* Divisions (league_div uniquement) */}

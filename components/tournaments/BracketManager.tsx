@@ -11,6 +11,8 @@ import {
 import { formatAmrapScore, isRepsScoredType, parseMovementRow } from '@/lib/movements';
 import { useConfirmDialog } from '@/components/ui/confirm-dialog';
 import { countOf } from '@/lib/plural';
+import { REGENERATE_BODY } from '@/lib/tournaments/refusals';
+import { ERROR_TITLE } from '@/lib/confirmDialog';
 
 /** A participant's submitted score for a match's WOD, resolved for display. */
 interface Submission { label: string; video: string | null; validated: boolean; }
@@ -99,7 +101,7 @@ export default function BracketManager({
   initialMatches, profilesById, participantsCount, wods, scoresByWod = {},
 }: Props) {
   const router = useRouter();
-  const { dialog, ask } = useConfirmDialog();
+  const { dialog, ask, inform } = useConfirmDialog();
   const [matches, setMatches] = useState<Match[]>(initialMatches);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -361,12 +363,13 @@ export default function BracketManager({
       : m));
   }
 
-  // Supprime tous les matchs et régénère le round 1 (tirage aléatoire).
+  // Régénère le round 1 (tirage aléatoire) par la base, qui vide le tableau et
+  // refuse un tableau déjà joué (athlex-app #371).
   function askRegenerateBracket() {
     ask({
       title: 'Refaire tout le tableau ?',
       element: `${matches.length} matchs, dont ${matches.filter(m => m.status === 'completed').length} avec un résultat · ${participantsCount} participants`,
-      body: 'Tous les matchs et leurs résultats seront supprimés, l’ELO gagné ou perdu sur ces matchs sera rendu aux athlètes, puis un nouveau premier tour sera tiré au sort. Les scores envoyés sur les WOD sont conservés. C’est définitif.',
+      body: REGENERATE_BODY,
       confirmLabel: 'Refaire le tableau',
       danger: true,
       run: regenerateBracket,
@@ -377,7 +380,8 @@ export default function BracketManager({
     setBusy('regenerate'); setError(null);
     const res = await regenerateBracketAction(tournamentId);
     setBusy(null);
-    if (!res.ok) { setError(res.error); return; }
+    // Refus de la base (tableau déjà joué…) : dans la boîte d'erreur, en français.
+    if (!res.ok) { void inform({ kind: 'error', title: ERROR_TITLE, body: res.error }); return; }
     router.refresh();
   }
 
