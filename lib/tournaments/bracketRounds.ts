@@ -86,3 +86,13 @@ export function matchPlace<M extends RoundMatch & { id: string }>(match: M, matc
   }
   return null;
 }
+
+/**
+ * WOD d'une colonne du tableau des perdants : celui des matchs pas encore joués
+ * (ce que la liste « WOD de ce tour » vient d'écrire), sinon celui d'un match
+ * déjà joué ; aucun si aucun match n'en a. Une exemption ne compte pas.
+ */
+export function loserColumnWodId(matches: { wod_id: string | null; winner_id: string | null; status: string }[]): string | null {
+  const real = matches.filter(m => m.status !== 'bye');
+  return real.find(m => !m.winner_id && m.wod_id)?.wod_id ?? real.find(m => m.wod_id)?.wod_id ?? null;
+}
