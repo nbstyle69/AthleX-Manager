@@ -6,6 +6,7 @@ import { Loader2, Play, Crown, ArrowRight, Trophy, AlertTriangle, RotateCcw, Pen
 import {
   generateRound1Action, advanceRoundAction, setMatchWinnerAction, decideRoundAction,
   setMatchWodAction, resetMatchAction, regenerateBracketAction, saveMatchEditAction, assignStageWodAction,
+  setLoserRoundWodAction,
 } from '@/app/(dashboard)/tournaments/[id]/bracket/actions';
 import { formatAmrapScore, isRepsScoredType, parseMovementRow } from '@/lib/movements';
 import { useConfirmDialog } from '@/components/ui/confirm-dialog';
@@ -13,7 +14,7 @@ import { countOf } from '@/lib/plural';
 import { REGENERATE_BODY } from '@/lib/tournaments/refusals';
 import { ERROR_TITLE } from '@/lib/confirmDialog';
 import { MOTIF_TEXT, applyDecidedRows, decidedMessage, manualMotifs, type DecideMotif } from '@/lib/tournaments/bracketDecision';
-import { canAdvance, decideRoundWodId, grandFinals, lastRound, loserRoundTitle, matchPlace, matchWodId } from '@/lib/tournaments/bracketRounds';
+import { canAdvance, decideRoundWodId, grandFinals, lastRound, loserColumnWodId, loserRoundTitle, matchPlace, matchWodId } from '@/lib/tournaments/bracketRounds';
 
 /** A participant's submitted score for a match's WOD, resolved for display. */
 interface Submission { label: string; video: string | null; validated: boolean; }
@@ -292,6 +293,16 @@ export default function BracketManager({
     router.refresh();
   }
 
+  // Liste « WOD de ce tour » d'une colonne des perdants : le WOD part sur les
+  // matchs non joués de ce tour, par l'action serveur (jamais depuis le navigateur).
+  async function setLoserRoundWod(round: number, wodId: string) {
+    setBusy(`lbwod-${round}`); setError(null);
+    const res = await setLoserRoundWodAction(tournamentId, round, wodId || null);
+    setBusy(null);
+    if (!res.ok) { void inform({ kind: 'error', title: ERROR_TITLE, body: res.error }); return; }
+    setMatches(arr => arr.map(m => (m.side === 'loser' && m.round === round && !m.winner_id ? { ...m, wod_id: wodId || null } : m)));
+  }
+
   async function setMatchWod(matchId: string, wodId: string) {
     setBusy(matchId); setError(null);
     const res = await setMatchWodAction(tournamentId, matchId, wodId || null);
@@ -494,6 +505,14 @@ export default function BracketManager({
             <div className="flex gap-6 min-w-max">
               {loserRounds.map((r, i) => (
                 <RoundColumn key={`l-${r}`} title={loserRoundTitle(i)}
+                  wodName={wods.find(w => w.id === loserColumnWodId(grouped.loserByRound[r]))?.name}
+                  wodPicker={{
+                    options: wods,
+                    value: loserColumnWodId(grouped.loserByRound[r]) ?? '',
+                    busy: busy === `lbwod-${r}`,
+                    onChange: (wodId: string) => setLoserRoundWod(r, wodId),
+                    round: r,
+                  }}
                   matches={grouped.loserByRound[r]}
                   onSelectWinner={setMatchWinner}
                   busyId={busy}
@@ -548,10 +567,12 @@ export default function BracketManager({
 /* ─────────────────────────────────────────────────────────── */
 
 function RoundColumn({
-  title, wodName, matches, onSelectWinner, busyId, pName, submissionFor, onOpenSheet,
+  title, wodName, wodPicker, matches, onSelectWinner, busyId, pName, submissionFor, onOpenSheet,
 }: {
   title: string;
   wodName?: string;
+  /** Liste « WOD de ce tour » (colonnes du tableau des perdants). */
+  wodPicker?: { options: Wod[]; value: string; busy: boolean; onChange: (wodId: string) => void; round: number };
   matches: Match[];
   onSelectWinner: (m: Match, winnerId: string) => void;
   busyId: string | null;
@@ -564,11 +585,25 @@ function RoundColumn({
       <div className="space-y-1">
         <div className="text-xs font-bold text-ax-text-secondary uppercase tracking-wider">{title}</div>
         {wodName ? (
-          <div className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-purple-500/15 text-purple-300 inline-flex items-center gap-1">
-            🏋️ {wodName}
-          </div>
+          <div data-testid="wod-colonne" className="text-[11px] font-bold text-ax-text break-words">🏋️ {wodName}</div>
         ) : (
-          <div className="text-[10px] text-gray-600 italic">WOD non assigné</div>
+          <div data-testid="wod-colonne" className="text-[11px] italic text-ax-text-secondary">WOD non assigné</div>
+        )}
+        {wodPicker && (
+          <div className="pt-1 space-y-1">
+            <label htmlFor={`wod-perdants-${wodPicker.round}`} className="block text-[11px] font-semibold text-ax-text-secondary">WOD de ce tour</label>
+            <select id={`wod-perdants-${wodPicker.round}`} data-testid={`wod-perdants-${wodPicker.round}`}
+              aria-describedby={`aide-wod-perdants-${wodPicker.round}`}
+              value={wodPicker.value} disabled={wodPicker.busy}
+              onChange={e => wodPicker.onChange(e.target.value)}
+              className="w-full rounded-ax-control border border-ax-border bg-ax-surface px-2 py-1.5 text-xs text-ax-text disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ax-focus">
+              <option value="">— Choisir un WOD —</option>
+              {wodPicker.options.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
+            </select>
+            <p id={`aide-wod-perdants-${wodPicker.round}`} className="text-[11px] text-ax-text-secondary">
+              Ce WOD s’applique aux matchs de ce tour des perdants qui ne sont pas encore joués.
+            </p>
+          </div>
         )}
       </div>
       {matches.map(m => (

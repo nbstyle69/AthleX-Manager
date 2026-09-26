@@ -112,6 +112,23 @@ export async function assignStageWodAction(tournamentId: string, round: number, 
   return err ? { ok: false, error: tournamentRefusal(err.message, err.code) } : { ok: true };
 }
 
+/**
+ * Liste « WOD de ce tour » d'une colonne du tableau des perdants : écrit le WOD
+ * choisi (ou le retire) sur les matchs non joués de ce tour des perdants. Les
+ * matchs joués et les exemptions gardent le leur. `decide_bracket_round`
+ * utilise ensuite le WOD propre de chaque match.
+ */
+export async function setLoserRoundWodAction(tournamentId: string, round: number, wodId: string | null): Promise<Result> {
+  const { supabase, error } = await authorize(tournamentId);
+  if (error) return { ok: false, error };
+  const { error: err } = await supabase
+    .from('tournament_bracket_matches')
+    .update({ wod_id: wodId || null })
+    .eq('tournament_id', tournamentId).eq('round', round).eq('side', 'loser')
+    .is('winner_id', null);
+  return err ? { ok: false, error: tournamentRefusal(err.message, err.code) } : { ok: true };
+}
+
 export async function resetMatchAction(tournamentId: string, matchId: string): Promise<Result> {
   const { supabase, error } = await authorize(tournamentId);
   if (error) return { ok: false, error };
