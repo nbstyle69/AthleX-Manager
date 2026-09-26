@@ -13,6 +13,7 @@ import { getMemberEmails } from '@/lib/memberEmails';
 import AthleteSheet from '@/components/dashboard/AthleteSheet';
 import { useConfirmDialog } from '@/components/ui/confirm-dialog';
 import { ERROR_TITLE } from '@/lib/confirmDialog';
+import { reactivationErrorBox } from '@/lib/memberReactivation';
 import { askDeleteWithSubscriptions, countOf } from '@/lib/deleteWithSubscriptions';
 import {
   eloChoiceOf,
@@ -427,9 +428,13 @@ export default function MembersPage() {
     if (!boxId) return;
     if (!member.is_banned) { askBan(member); return; }
     setBanning(member.id);
-    await supabase.from('box_members').update({ status: 'active' }).eq('member_id', member.id).eq('box_id', boxId);
-    setMembers(prev => prev.map(m => m.id === member.id ? { ...m, is_banned: false } : m));
+    // Débannir = réactiver par la fonction gardée gérant, qui remet la
+    // facturation à zéro (comme l'app) ; jamais d'écriture directe de `status`.
+    const { error } = await supabase.rpc('reactivate_box_member', { p_box_id: boxId, p_member_id: member.id });
     setBanning(null);
+    const box = reactivationErrorBox(error);
+    if (box) { inform(box); return; }
+    setMembers(prev => prev.map(m => m.id === member.id ? { ...m, is_banned: false, plan_id: null } : m));
   }
 
   // Bannir arrête aussi l'abonnement en cours (S4) : la route le fait avant de
