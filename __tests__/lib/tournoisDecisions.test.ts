@@ -99,12 +99,13 @@ describe('plus aucune règle sportive dans le Manager', () => {
 
   it('« Décider » passe par la base, avec le WOD de la manche, et affiche son retour', () => {
     expect(bm).toMatch(/run: \(\) => decideRound\(round, wod\?\.id \?\? null\),/);
-    expect(bm).toContain('const res = await decideRoundAction(tournamentId, round, wodId);');
+    // PR 3 : WOD de tour selon le format (aucun en double élimination).
+    expect(bm).toContain('const res = await decideRoundAction(tournamentId, round, decideRoundWodId(format, stageWodId));');
     expect(bm).toContain('setMatches(arr => applyDecidedRows(arr, res.rows, new Date().toISOString()));');
     expect(bm).toContain('setDecision({ message: decidedMessage(res.rows), motifs: manualMotifs(res.rows) });');
     expect(bm).toMatch(/Match #\{m\.match_number\} · \{MOTIF_TEXT\[decision\.motifs\[m\.id\]\]\}/);
     // Refus de la base : dans la boîte d'erreur (lisible dans les deux thèmes), pas dans le bandeau rouge.
-    const decide = bm.slice(bm.indexOf('async function decideRound('), bm.indexOf('// Latest WB round status'));
+    const decide = bm.slice(bm.indexOf('async function decideRound('), bm.indexOf('function askGenerateRound1()'));
     expect(decide).toContain("if (!res.ok) { void inform({ kind: 'error', title: ERROR_TITLE, body: res.error }); return; }");
     expect(decide).not.toContain('setError(res.error)');
   });

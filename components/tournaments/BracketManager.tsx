@@ -5,8 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Loader2, Play, Crown, ArrowRight, Trophy, AlertTriangle, RotateCcw, Pencil, Trash2, X, Save, Calendar, Zap, Youtube, FileText, Clock, CheckCircle2, MessageSquare, Dumbbell } from 'lucide-react';
 import {
   generateRound1Action, advanceRoundAction, setMatchWinnerAction, decideRoundAction,
-  setMatchWodAction, resetMatchAction, regenerateBracketAction, saveMatchEditAction,
-  createGrandFinalAction,
+  setMatchWodAction, resetMatchAction, regenerateBracketAction, saveMatchEditAction, assignStageWodAction,
 } from '@/app/(dashboard)/tournaments/[id]/bracket/actions';
 import { formatAmrapScore, isRepsScoredType, parseMovementRow } from '@/lib/movements';
 import { useConfirmDialog } from '@/components/ui/confirm-dialog';
@@ -14,6 +13,7 @@ import { countOf } from '@/lib/plural';
 import { REGENERATE_BODY } from '@/lib/tournaments/refusals';
 import { ERROR_TITLE } from '@/lib/confirmDialog';
 import { MOTIF_TEXT, applyDecidedRows, decidedMessage, manualMotifs, type DecideMotif } from '@/lib/tournaments/bracketDecision';
+import { canAdvance, decideRoundWodId, grandFinals, lastRound, loserRoundTitle, matchPlace, matchWodId } from '@/lib/tournaments/bracketRounds';
 
 /** A participant's submitted score for a match's WOD, resolved for display. */
 interface Submission { label: string; video: string | null; validated: boolean; }
@@ -172,10 +172,11 @@ export default function BracketManager({
     return wods.find(w => w.bracket_stage === stage);
   }
 
-  // WOD assigné à un match (colonne explicite sinon la manche).
+  // WOD d'un match : le sien, sinon l'étape de son tour — jamais celle des
+  // gagnants pour un match des perdants ou une grande finale (lib/tournaments/bracketRounds.ts).
   function wodForMatch(match: Match): Wod | undefined {
-    if (match.wod_id) return wods.find(w => w.id === match.wod_id);
-    return wodForRound(match.round);
+    const id = matchWodId(match, format, r => wodForRound(r)?.id);
+    return id ? wods.find(w => w.id === id) : undefined;
   }
 
   // Score soumis d'un athlète pour le WOD du match, formaté pour l'affichage.
@@ -232,20 +233,22 @@ export default function BracketManager({
     });
   }
 
-  async function decideRound(round: number, wodId: string | null) {
+  async function decideRound(round: number, stageWodId: string | null) {
     setBusy(`auto-${round}`); setError(null); setDecision(null);
-    const res = await decideRoundAction(tournamentId, round, wodId);
+    // Double élimination : le WOD de l'étape est écrit sur les matchs des gagnants
+    // de ce tour, et aucun WOD de tour n'est envoyé (il s'appliquerait aussi aux
+    // perdants) : la base décide chaque match sur son propre WOD.
+    if (format === 'swiss' && stageWodId) {
+      const assigned = await assignStageWodAction(tournamentId, round, stageWodId);
+      if (!assigned.ok) { setBusy(null); void inform({ kind: 'error', title: ERROR_TITLE, body: assigned.error }); return; }
+      setMatches(arr => arr.map(m => (m.round === round && m.side === 'winner' && !m.wod_id && !m.winner_id ? { ...m, wod_id: stageWodId } : m)));
+    }
+    const res = await decideRoundAction(tournamentId, round, decideRoundWodId(format, stageWodId));
     setBusy(null);
     if (!res.ok) { void inform({ kind: 'error', title: ERROR_TITLE, body: res.error }); return; }
     setMatches(arr => applyDecidedRows(arr, res.rows, new Date().toISOString()));
     setDecision({ message: decidedMessage(res.rows), motifs: manualMotifs(res.rows) });
   }
-
-  // Latest WB round status
-  const lastWBRound = winnerRounds[winnerRounds.length - 1];
-  const lastWBMatches = lastWBRound ? grouped.winnerByRound[lastWBRound] : [];
-  const lastWBComplete = lastWBMatches.length > 0 && lastWBMatches.every(m => m.winner_id !== null);
-  const lastWBHasOneWinner = lastWBMatches.length === 1 && lastWBComplete;
 
   function askGenerateRound1() {
     ask({
@@ -283,7 +286,9 @@ export default function BracketManager({
     if (!res.ok) { setError(res.error); return; }
     setInfo(res.created > 0
       ? `Round suivant généré (${res.created} match${res.created > 1 ? 's' : ''}). Décide ses vainqueurs pour continuer.`
-      : `Le round suivant existe déjà — affichage mis à jour. Décide ses vainqueurs pour continuer.`);
+      : format === 'swiss'
+        ? 'Aucun nouveau match : le tour suivant existe déjà, ou le tableau est terminé.'
+        : `Le round suivant existe déjà — affichage mis à jour. Décide ses vainqueurs pour continuer.`);
     router.refresh();
   }
 
@@ -357,10 +362,6 @@ export default function BracketManager({
     return profilesById[id]?.username ?? id.slice(0, 8);
   }
 
-  const allWBComplete = winnerRounds.length > 0 && winnerRounds.every(r =>
-    grouped.winnerByRound[r].every(m => m.winner_id !== null)
-  );
-
   return (
     <div className="space-y-6">
       {dialog}
@@ -410,32 +411,33 @@ export default function BracketManager({
             <div className="flex items-center gap-2">
               {/* Auto-decide winners from validated scores (opt-in, overridable) */}
               {(() => {
-                const lastRound = winnerRounds[winnerRounds.length - 1];
-                const lastMatches = grouped.winnerByRound[lastRound] ?? [];
+                // Double élimination : le dernier tour, tous tableaux confondus (#352).
+                const lastR = lastRound(matches, format);
+                if (lastR == null) return null;
+                const lastMatches = matches.filter(m => m.round === lastR && (format === 'swiss' || m.side === 'winner'));
                 const decidable = lastMatches.some(
                   m => m.status !== 'bye' && m.winner_id == null && m.participant1_id && m.participant2_id,
                 );
                 if (!decidable) return null;
                 return (
-                  <button onClick={() => autoResolveRound(lastRound)} disabled={busy === `auto-${lastRound}`}
+                  <button onClick={() => autoResolveRound(lastR)} disabled={busy === `auto-${lastR}`}
                     title="Décide les gagnants selon les meilleurs scores validés du WOD de la manche. Corrigeable ensuite à la main."
                     className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold bg-purple-500/20 hover:bg-purple-500/30 text-purple-200 border border-purple-500/30 disabled:opacity-50 transition-colors">
-                    {busy === `auto-${lastRound}` ? <Loader2 size={12} className="animate-spin" /> : <Zap size={12} />}
+                    {busy === `auto-${lastR}` ? <Loader2 size={12} className="animate-spin" /> : <Zap size={12} />}
                     Décider selon les scores
                   </button>
                 );
               })()}
               {/* Advance round button */}
               {(() => {
-                const lastRound = winnerRounds[winnerRounds.length - 1];
-                const lastMatches = grouped.winnerByRound[lastRound];
-                const allDone = lastMatches.every(m => m.winner_id !== null);
-                const lastHasOnlyOne = lastMatches.length === 1;
-                if (!allDone || lastHasOnlyOne) return null;
+                // La base crée le tour suivant, la grande finale et le match décisif (#353) :
+                // le bouton reste après la grande finale, jusqu'au match décisif.
+                const lastR = lastRound(matches, format);
+                if (lastR == null || !canAdvance(matches, format)) return null;
                 return (
-                  <button onClick={() => advanceRound(lastRound)} disabled={busy === `advance-${lastRound}`}
+                  <button onClick={() => advanceRound(lastR)} disabled={busy === `advance-${lastR}`}
                     className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold bg-emerald-500 hover:bg-emerald-600 text-white disabled:opacity-50 transition-colors">
-                    {busy === `advance-${lastRound}` ? <Loader2 size={12} className="animate-spin" /> : <ArrowRight size={12} />}
+                    {busy === `advance-${lastR}` ? <Loader2 size={12} className="animate-spin" /> : <ArrowRight size={12} />}
                     Round suivant
                   </button>
                 );
@@ -455,7 +457,7 @@ export default function BracketManager({
                 <ul className="space-y-1">
                   {matches.filter(m => decision.motifs[m.id]).map(m => (
                     <li key={m.id} data-testid={`motif-${decision.motifs[m.id]}`} className="text-xs text-ax-warning bg-ax-warning-soft rounded-ax-control px-2 py-1 break-words">
-                      Match #{m.match_number} · {MOTIF_TEXT[decision.motifs[m.id]]}
+                      {matchPlace(m, matches, format) ? `${matchPlace(m, matches, format)} · ` : ''}Match #{m.match_number} · {MOTIF_TEXT[decision.motifs[m.id]]}
                     </li>
                   ))}
                 </ul>
@@ -490,8 +492,8 @@ export default function BracketManager({
           <h2 className="text-sm font-bold text-white uppercase tracking-wider">Loser Bracket</h2>
           <div className="overflow-x-auto pb-2">
             <div className="flex gap-6 min-w-max">
-              {loserRounds.map(r => (
-                <RoundColumn key={`l-${r}`} title={`LB Round ${r}`}
+              {loserRounds.map((r, i) => (
+                <RoundColumn key={`l-${r}`} title={loserRoundTitle(i)}
                   matches={grouped.loserByRound[r]}
                   onSelectWinner={setMatchWinner}
                   busyId={busy}
@@ -505,33 +507,24 @@ export default function BracketManager({
         </div>
       )}
 
-      {/* Grand final (swiss) */}
-      {format === 'swiss' && lastWBHasOneWinner && allWBComplete && (
+      {/* Grande finale (swiss) : toutes les lignes créées par la base (#353), par tour croissant. */}
+      {format === 'swiss' && grandFinals(matches).length > 0 && (
         <div className="bg-[#111111] border border-yellow-500/20 rounded-2xl p-6 space-y-4">
-          <h2 className="text-sm font-bold text-yellow-400 uppercase tracking-wider flex items-center gap-2">
-            <Trophy size={14} /> Grande finale
-          </h2>
           <p className="text-xs text-gray-400">
             Le champion du Winner Bracket choisit le WOD de la grande finale parmi le pool configuré.
           </p>
-          <GrandFinalSection
-            tournamentId={tournamentId}
-            wbChampionId={lastWBMatches[0].winner_id!}
-            lbChampionId={(() => {
-              const lastLB = loserRounds[loserRounds.length - 1];
-              if (!lastLB) return null;
-              const lbMatches = grouped.loserByRound[lastLB];
-              if (lbMatches.length === 1 && lbMatches[0].winner_id) return lbMatches[0].winner_id;
-              return null;
-            })()}
-            grandFinal={grouped.grandFinal}
-            wodOptions={wods.filter(w => finalWodPool.length === 0 || finalWodPool.includes(w.id))}
-            pName={pName}
-            onChange={() => router.refresh()}
-            onSetWodForFinal={setMatchWod}
-            onSelectWinner={setMatchWinner}
-            busyId={busy}
-          />
+          {grandFinals(matches).map(({ match, title }) => (
+            <GrandFinalSection
+              key={match.id}
+              title={title}
+              grandFinal={match}
+              wodOptions={wods.filter(w => finalWodPool.length === 0 || finalWodPool.includes(w.id))}
+              pName={pName}
+              onSetWodForFinal={setMatchWod}
+              onSelectWinner={setMatchWinner}
+              busyId={busy}
+            />
+          ))}
         </div>
       )}
 
@@ -569,7 +562,7 @@ function RoundColumn({
   return (
     <div className="w-64 shrink-0 space-y-3">
       <div className="space-y-1">
-        <div className="text-xs font-bold text-gray-500 uppercase tracking-wider">{title}</div>
+        <div className="text-xs font-bold text-ax-text-secondary uppercase tracking-wider">{title}</div>
         {wodName ? (
           <div className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-purple-500/15 text-purple-300 inline-flex items-center gap-1">
             🏋️ {wodName}
@@ -667,7 +660,7 @@ function MatchCard({
           )}
         </span>
         <span className="flex items-center gap-1.5">
-          {isBye && <span className="text-yellow-400 font-bold">BYE</span>}
+          {isBye && <span className="text-ax-warning font-bold">Exempté</span>}
           {completed && !isBye && <span className="text-emerald-400 font-bold">✓</span>}
           {/* Actions (hover) */}
           <span className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -700,71 +693,33 @@ function MatchCard({
 }
 
 function GrandFinalSection({
-  tournamentId, wbChampionId, lbChampionId, grandFinal, wodOptions, pName,
-  onChange, onSetWodForFinal, onSelectWinner, busyId,
+  title, grandFinal, wodOptions, pName, onSetWodForFinal, onSelectWinner, busyId,
 }: {
-  tournamentId: string;
-  wbChampionId: string;
-  lbChampionId: string | null;
-  grandFinal: Match | null;
+  title: string;
+  grandFinal: Match;
   wodOptions: Wod[];
   pName: (id: string | null) => string;
-  onChange: () => void;
   onSetWodForFinal: (matchId: string, wodId: string) => void;
   onSelectWinner: (m: Match, winnerId: string) => void;
   busyId: string | null;
 }) {
-  const [creating, setCreating] = useState(false);
-  const [err, setErr] = useState<string | null>(null);
-
-  async function createGrandFinal() {
-    if (!lbChampionId) return;
-    setCreating(true); setErr(null);
-    const res = await createGrandFinalAction(tournamentId, wbChampionId, lbChampionId);
-    setCreating(false);
-    if (!res.ok) { setErr(res.error); return; }
-    onChange();
-  }
-
-  if (!lbChampionId) {
-    return (
-      <p className="text-xs text-gray-500 italic">
-        En attente du champion du Loser Bracket. Termine le LB pour activer la grande finale.
-      </p>
-    );
-  }
-
-  if (!grandFinal) {
-    return (
-      <div className="space-y-2">
-        {err && <div className="text-xs text-red-400">{err}</div>}
-        <p className="text-xs text-gray-300">
-          <span className="font-bold text-yellow-300">{pName(wbChampionId)}</span> (WB) vs{' '}
-          <span className="font-bold">{pName(lbChampionId)}</span> (LB)
-        </p>
-        <button onClick={createGrandFinal} disabled={creating}
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold bg-yellow-500 hover:bg-yellow-600 text-black disabled:opacity-50 transition-colors">
-          {creating && <Loader2 size={12} className="animate-spin" />}
-          Créer la grande finale
-        </button>
-      </div>
-    );
-  }
-
+  // La base place l'invaincu en premier ; au match décisif aussi, c'est lui qui choisit le WOD.
+  const players = [grandFinal.participant1_id, grandFinal.participant2_id].filter((p): p is string => !!p);
+  const done = grandFinal.status === 'completed';
   return (
-    <div className="space-y-3">
+    <div className="space-y-3" data-testid="grande-finale">
+      <h2 className="text-sm font-bold text-ax-warning uppercase tracking-wider flex items-center gap-2">
+        <Trophy size={14} /> {title}
+      </h2>
       <div className="bg-white/[0.02] border border-yellow-500/20 rounded-xl p-3 space-y-2">
-        <div className="flex items-center justify-between text-[10px] text-yellow-400 font-bold uppercase">
-          <span>Grande finale</span>
-          {grandFinal.status === 'completed' && <span>✓ Terminée</span>}
-        </div>
+        {done && <div className="text-[10px] text-ax-warning font-bold uppercase text-right">✓ Terminée</div>}
 
         <div className="text-xs text-gray-400">
-          WOD choisi par <span className="font-bold text-yellow-300">{pName(wbChampionId)}</span> :
+          WOD choisi par <span className="font-bold text-yellow-300">{pName(grandFinal.participant1_id)}</span> :
         </div>
         <select value={grandFinal.wod_id ?? ''}
           onChange={e => onSetWodForFinal(grandFinal.id, e.target.value)}
-          disabled={grandFinal.status === 'completed' || busyId === grandFinal.id}
+          disabled={done || busyId === grandFinal.id}
           className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-white">
           <option value="" className="text-black">— Sélectionner un WOD —</option>
           {wodOptions.map(w => (
@@ -774,26 +729,18 @@ function GrandFinalSection({
 
         {/* Pick winner */}
         <div className="grid grid-cols-2 gap-2 mt-2">
-          <button
-            disabled={grandFinal.status === 'completed' || !grandFinal.wod_id || busyId === grandFinal.id}
-            onClick={() => onSelectWinner(grandFinal, wbChampionId)}
-            className={`rounded-lg px-3 py-2 text-xs font-bold transition-colors
-              ${grandFinal.winner_id === wbChampionId
-                ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
-                : 'bg-white/[0.04] text-white hover:bg-white/[0.08] border border-white/5 disabled:opacity-50'}`}
-          >
-            {pName(wbChampionId)} (WB)
-          </button>
-          <button
-            disabled={grandFinal.status === 'completed' || !grandFinal.wod_id || busyId === grandFinal.id}
-            onClick={() => onSelectWinner(grandFinal, lbChampionId!)}
-            className={`rounded-lg px-3 py-2 text-xs font-bold transition-colors
-              ${grandFinal.winner_id === lbChampionId
-                ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
-                : 'bg-white/[0.04] text-white hover:bg-white/[0.08] border border-white/5 disabled:opacity-50'}`}
-          >
-            {pName(lbChampionId)} (LB)
-          </button>
+          {players.map(pid => (
+            <button key={pid}
+              disabled={done || !grandFinal.wod_id || busyId === grandFinal.id}
+              onClick={() => onSelectWinner(grandFinal, pid)}
+              className={`rounded-lg px-3 py-2 text-xs font-bold transition-colors break-words
+                ${grandFinal.winner_id === pid
+                  ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                  : 'bg-white/[0.04] text-white hover:bg-white/[0.08] border border-white/5 disabled:opacity-50'}`}
+            >
+              {pName(pid)}
+            </button>
+          ))}
         </div>
       </div>
     </div>
