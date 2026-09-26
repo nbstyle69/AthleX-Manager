@@ -12,8 +12,8 @@ jest.mock('@/lib/supabase/server', () => ({
   getActiveBox: (c: unknown) => mockGetActiveBox(c),
 }));
 
-import { advanceRoundAction } from '../../app/(dashboard)/tournaments/[id]/bracket/actions';
-import { canAdvance, grandFinals, lastRound, loserRoundTitle, type RoundMatch } from '@/lib/tournaments/bracketRounds';
+import { advanceRoundAction, assignStageWodAction } from '../../app/(dashboard)/tournaments/[id]/bracket/actions';
+import { canAdvance, decideRoundWodId, grandFinals, lastRound, loserRoundTitle, matchPlace, matchWodId, type RoundMatch } from '@/lib/tournaments/bracketRounds';
 import { tournamentRefusal } from '@/lib/tournaments/refusals';
 
 const read = (p: string) => readFileSync(join(process.cwd(), p), 'utf8').replace(/\r\n/g, '\n');
@@ -103,6 +103,79 @@ describe('affichage', () => {
     expect(bm).toContain('{isBye && <span className="text-ax-warning font-bold">Exempté</span>}');
     expect(bm).toMatch(/\{format === 'swiss' && grandFinals\(matches\)\.length > 0 && \([\s\S]*?\{grandFinals\(matches\)\.map\(\(\{ match, title \}\) => \(/);
     expect(bm).toContain("? 'Aucun nouveau match : le tour suivant existe déjà, ou le tableau est terminé.'");
+  });
+});
+
+describe('WOD des matchs (correction du repli des perdants)', () => {
+  // Étapes : tour 1 → WOD « w-quart », tour 2 → « w-demi ».
+  const stage = (r: number) => ({ 1: 'w-quart', 2: 'w-demi' } as Record<number, string>)[r];
+  const mk = (side: string, round: number, wod_id: string | null = null) => ({ side, round, wod_id });
+
+  it('un match des perdants n’utilise jamais le WOD des gagnants du même tour', () => {
+    expect(matchWodId(mk('loser', 2), 'swiss', stage)).toBeUndefined();
+    expect(matchWodId(mk('loser', 2, 'w-perdants'), 'swiss', stage)).toBe('w-perdants');
+  });
+
+  it('un match des gagnants garde le WOD de son étape (ou le sien)', () => {
+    expect(matchWodId(mk('winner', 2), 'swiss', stage)).toBe('w-demi');
+    expect(matchWodId(mk('winner', 1, 'w-propre'), 'swiss', stage)).toBe('w-propre');
+  });
+
+  it('grande finale et match décisif inchangés : leur WOD choisi, sinon aucun', () => {
+    expect(matchWodId(mk('grand_final', 2, 'w-finale'), 'swiss', stage)).toBe('w-finale');
+    expect(matchWodId(mk('grand_final', 2), 'swiss', stage)).toBeUndefined();
+  });
+
+  it('bracket simple inchangé : repli sur l’étape du tour, WOD de tour envoyé à la base', () => {
+    expect(matchWodId(mk('winner', 1), 'bracket', stage)).toBe('w-quart');
+    expect(matchWodId(mk('third_place', 2), 'bracket', stage)).toBe('w-demi');
+    expect(decideRoundWodId('bracket', 'w-demi')).toBe('w-demi');
+  });
+
+  it('double élimination : aucun WOD de tour envoyé à la base', () => {
+    expect(decideRoundWodId('swiss', 'w-demi')).toBeNull();
+  });
+
+  it('écriture du WOD de l’étape sur les matchs des gagnants non joués et sans WOD du tour, côté serveur', async () => {
+    const calls: Array<[string, ...unknown[]]> = [];
+    const upd: any = {};
+    ['eq', 'is'].forEach(k => (upd[k] = jest.fn((...a: unknown[]) => { calls.push([k, ...a]); return upd; })));
+    upd.then = (r: Function) => Promise.resolve({ error: null }).then(r as any);
+    const chain: any = { select: jest.fn(() => chain), eq: jest.fn(() => chain), maybeSingle: jest.fn(async () => ({ data: { box_id: BOX.id } })) };
+    const update = jest.fn(() => upd);
+    const c = {
+      from: jest.fn((t: string) => (t === 'tournaments' ? chain : { update })),
+      rpc: jest.fn(async () => ({ data: true })),
+    };
+    mockCreateClient.mockResolvedValue(c);
+    await expect(assignStageWodAction('t-1', 2, 'w-demi')).resolves.toEqual({ ok: true });
+    expect(update).toHaveBeenCalledWith({ wod_id: 'w-demi' });
+    expect(calls).toEqual([
+      ['eq', 'tournament_id', 't-1'], ['eq', 'round', 2], ['eq', 'side', 'winner'], ['is', 'wod_id', null], ['is', 'winner_id', null],
+    ]);
+  });
+
+  it('motif sans ambiguïté : la colonne d’un match des perdants ou d’une grande finale, rien pour les gagnants ni en élimination simple', () => {
+    const rows = [
+      { id: 'w', round: 3, side: 'winner', winner_id: null }, { id: 'l2', round: 2, side: 'loser', winner_id: 'x' },
+      { id: 'l3', round: 3, side: 'loser', winner_id: null }, { id: 'gf', round: 5, side: 'grand_final', winner_id: 'x' },
+      { id: 'gf2', round: 6, side: 'grand_final', winner_id: null },
+    ];
+    expect(matchPlace(rows[0], rows, 'swiss')).toBeNull();
+    expect(matchPlace(rows[2], rows, 'swiss')).toBe('Tour 2 des perdants');
+    expect(matchPlace(rows[4], rows, 'swiss')).toBe('Grande finale — match décisif');
+    expect(matchPlace(rows[2], rows, 'bracket')).toBeNull();
+    expect(read('components/tournaments/BracketManager.tsx'))
+      .toContain("{matchPlace(m, matches, format) ? `${matchPlace(m, matches, format)} · ` : ''}Match #{m.match_number} · {MOTIF_TEXT[decision.motifs[m.id]]}");
+  });
+
+  it('branchements : repli par matchWodId ; en double élimination, écriture puis décision sans WOD de tour', () => {
+    const bm = read('components/tournaments/BracketManager.tsx');
+    expect(bm).toContain('const id = matchWodId(match, format, r => wodForRound(r)?.id);');
+    const decide = bm.slice(bm.indexOf('async function decideRound('), bm.indexOf('function askGenerateRound1()'));
+    expect(decide).toMatch(/if \(format === 'swiss' && stageWodId\) \{\s*const assigned = await assignStageWodAction\(tournamentId, round, stageWodId\);/);
+    expect(decide.indexOf('assignStageWodAction(')).toBeLessThan(decide.indexOf('decideRoundAction('));
+    expect(decide).toContain('decideRoundAction(tournamentId, round, decideRoundWodId(format, stageWodId))');
   });
 });
 

@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Loader2, Play, Crown, ArrowRight, Trophy, AlertTriangle, RotateCcw, Pencil, Trash2, X, Save, Calendar, Zap, Youtube, FileText, Clock, CheckCircle2, MessageSquare, Dumbbell } from 'lucide-react';
 import {
   generateRound1Action, advanceRoundAction, setMatchWinnerAction, decideRoundAction,
-  setMatchWodAction, resetMatchAction, regenerateBracketAction, saveMatchEditAction,
+  setMatchWodAction, resetMatchAction, regenerateBracketAction, saveMatchEditAction, assignStageWodAction,
 } from '@/app/(dashboard)/tournaments/[id]/bracket/actions';
 import { formatAmrapScore, isRepsScoredType, parseMovementRow } from '@/lib/movements';
 import { useConfirmDialog } from '@/components/ui/confirm-dialog';
@@ -13,7 +13,7 @@ import { countOf } from '@/lib/plural';
 import { REGENERATE_BODY } from '@/lib/tournaments/refusals';
 import { ERROR_TITLE } from '@/lib/confirmDialog';
 import { MOTIF_TEXT, applyDecidedRows, decidedMessage, manualMotifs, type DecideMotif } from '@/lib/tournaments/bracketDecision';
-import { canAdvance, grandFinals, lastRound, loserRoundTitle } from '@/lib/tournaments/bracketRounds';
+import { canAdvance, decideRoundWodId, grandFinals, lastRound, loserRoundTitle, matchPlace, matchWodId } from '@/lib/tournaments/bracketRounds';
 
 /** A participant's submitted score for a match's WOD, resolved for display. */
 interface Submission { label: string; video: string | null; validated: boolean; }
@@ -172,10 +172,11 @@ export default function BracketManager({
     return wods.find(w => w.bracket_stage === stage);
   }
 
-  // WOD assigné à un match (colonne explicite sinon la manche).
+  // WOD d'un match : le sien, sinon l'étape de son tour — jamais celle des
+  // gagnants pour un match des perdants ou une grande finale (lib/tournaments/bracketRounds.ts).
   function wodForMatch(match: Match): Wod | undefined {
-    if (match.wod_id) return wods.find(w => w.id === match.wod_id);
-    return wodForRound(match.round);
+    const id = matchWodId(match, format, r => wodForRound(r)?.id);
+    return id ? wods.find(w => w.id === id) : undefined;
   }
 
   // Score soumis d'un athlète pour le WOD du match, formaté pour l'affichage.
@@ -232,9 +233,17 @@ export default function BracketManager({
     });
   }
 
-  async function decideRound(round: number, wodId: string | null) {
+  async function decideRound(round: number, stageWodId: string | null) {
     setBusy(`auto-${round}`); setError(null); setDecision(null);
-    const res = await decideRoundAction(tournamentId, round, wodId);
+    // Double élimination : le WOD de l'étape est écrit sur les matchs des gagnants
+    // de ce tour, et aucun WOD de tour n'est envoyé (il s'appliquerait aussi aux
+    // perdants) : la base décide chaque match sur son propre WOD.
+    if (format === 'swiss' && stageWodId) {
+      const assigned = await assignStageWodAction(tournamentId, round, stageWodId);
+      if (!assigned.ok) { setBusy(null); void inform({ kind: 'error', title: ERROR_TITLE, body: assigned.error }); return; }
+      setMatches(arr => arr.map(m => (m.round === round && m.side === 'winner' && !m.wod_id && !m.winner_id ? { ...m, wod_id: stageWodId } : m)));
+    }
+    const res = await decideRoundAction(tournamentId, round, decideRoundWodId(format, stageWodId));
     setBusy(null);
     if (!res.ok) { void inform({ kind: 'error', title: ERROR_TITLE, body: res.error }); return; }
     setMatches(arr => applyDecidedRows(arr, res.rows, new Date().toISOString()));
@@ -448,7 +457,7 @@ export default function BracketManager({
                 <ul className="space-y-1">
                   {matches.filter(m => decision.motifs[m.id]).map(m => (
                     <li key={m.id} data-testid={`motif-${decision.motifs[m.id]}`} className="text-xs text-ax-warning bg-ax-warning-soft rounded-ax-control px-2 py-1 break-words">
-                      Match #{m.match_number} · {MOTIF_TEXT[decision.motifs[m.id]]}
+                      {matchPlace(m, matches, format) ? `${matchPlace(m, matches, format)} · ` : ''}Match #{m.match_number} · {MOTIF_TEXT[decision.motifs[m.id]]}
                     </li>
                   ))}
                 </ul>

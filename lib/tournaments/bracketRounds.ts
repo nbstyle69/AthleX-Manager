@@ -46,3 +46,43 @@ export function grandFinals<M extends RoundMatch>(matches: M[]): { match: M; tit
 export function loserRoundTitle(index: number): string {
   return `Tour ${index + 1} des perdants`;
 }
+
+/**
+ * WOD d'un match : le sien (`wod_id`) ; sinon celui de l'étape de son tour,
+ * mais seulement pour un match du tableau des gagnants, ou en élimination
+ * simple (inchangé). En double élimination, les deux tableaux partagent les
+ * numéros de tour : un match des perdants ou une grande finale n'emprunte
+ * jamais le WOD des gagnants du même tour.
+ */
+export function matchWodId(
+  match: { wod_id: string | null; side: string; round: number },
+  format: string,
+  stageWodId: (round: number) => string | undefined,
+): string | undefined {
+  if (match.wod_id) return match.wod_id;
+  return format !== 'swiss' || match.side === 'winner' ? stageWodId(match.round) : undefined;
+}
+
+/**
+ * WOD de tour passé à `decide_bracket_round` : aucun en double élimination (il
+ * s'appliquerait aussi aux perdants du même tour) — chaque match y est décidé
+ * sur son propre WOD ; en élimination simple, celui de l'étape, comme avant.
+ */
+export function decideRoundWodId(format: string, stageWodId: string | null): string | null {
+  return format === 'swiss' ? null : stageWodId;
+}
+
+/**
+ * Où se trouve un match, pour le dire sans ambiguïté en double élimination
+ * (les deux tableaux ont chacun un « Match #1 » au même tour) : le titre de
+ * sa colonne pour un match des perdants ou une grande finale, rien sinon.
+ */
+export function matchPlace<M extends RoundMatch & { id: string }>(match: M, matches: M[], format: string): string | null {
+  if (format !== 'swiss' || match.side === 'winner') return null;
+  if (match.side === 'grand_final') return grandFinals(matches).find(g => g.match.id === match.id)?.title ?? null;
+  if (match.side === 'loser') {
+    const rounds = [...new Set(matches.filter(m => m.side === 'loser').map(m => m.round))].sort((a, b) => a - b);
+    return loserRoundTitle(rounds.indexOf(match.round));
+  }
+  return null;
+}

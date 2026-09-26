@@ -99,7 +99,8 @@ describe('plus aucune règle sportive dans le Manager', () => {
 
   it('« Décider » passe par la base, avec le WOD de la manche, et affiche son retour', () => {
     expect(bm).toMatch(/run: \(\) => decideRound\(round, wod\?\.id \?\? null\),/);
-    expect(bm).toContain('const res = await decideRoundAction(tournamentId, round, wodId);');
+    // PR 3 : WOD de tour selon le format (aucun en double élimination).
+    expect(bm).toContain('const res = await decideRoundAction(tournamentId, round, decideRoundWodId(format, stageWodId));');
     expect(bm).toContain('setMatches(arr => applyDecidedRows(arr, res.rows, new Date().toISOString()));');
     expect(bm).toContain('setDecision({ message: decidedMessage(res.rows), motifs: manualMotifs(res.rows) });');
     expect(bm).toMatch(/Match #\{m\.match_number\} · \{MOTIF_TEXT\[decision\.motifs\[m\.id\]\]\}/);

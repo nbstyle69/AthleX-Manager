@@ -95,6 +95,23 @@ export async function setMatchWodAction(
   return err ? { ok: false, error: err.message } : { ok: true };
 }
 
+/**
+ * Double élimination : écrit le WOD de l'étape sur les matchs du tableau des
+ * gagnants de ce tour qui n'en ont pas encore et ne sont pas joués, avant
+ * « Décider ». La base décide alors chaque match sur son propre WOD, sans WOD
+ * de tour qui s'appliquerait aussi aux perdants.
+ */
+export async function assignStageWodAction(tournamentId: string, round: number, wodId: string): Promise<Result> {
+  const { supabase, error } = await authorize(tournamentId);
+  if (error) return { ok: false, error };
+  const { error: err } = await supabase
+    .from('tournament_bracket_matches')
+    .update({ wod_id: wodId })
+    .eq('tournament_id', tournamentId).eq('round', round).eq('side', 'winner')
+    .is('wod_id', null).is('winner_id', null);
+  return err ? { ok: false, error: tournamentRefusal(err.message, err.code) } : { ok: true };
+}
+
 export async function resetMatchAction(tournamentId: string, matchId: string): Promise<Result> {
   const { supabase, error } = await authorize(tournamentId);
   if (error) return { ok: false, error };
