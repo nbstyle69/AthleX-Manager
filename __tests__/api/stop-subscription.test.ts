@@ -23,6 +23,7 @@ jest.mock('@/lib/isBoxOwnerAdmin', () => ({ isBoxOwnerAdmin: jest.fn() }));
 import { POST } from '../../app/api/members/stop-subscription/route';
 import { getServerUser, createServiceClient } from '@/lib/supabase/server';
 import { isBoxOwnerAdmin } from '@/lib/isBoxOwnerAdmin';
+import { withPushEnv, pushesOf, failPush } from '../__fixtures__/pushEnv';
 
 const mockGetServerUser = getServerUser as jest.Mock;
 const mockCreateService = createServiceClient as jest.Mock;
@@ -243,5 +244,55 @@ describe('e-mail au membre (Resend)', () => {
     expect(res._data.ok).toBe(true);
     expect(res._data.warning).toBeTruthy();
     expect(fetchSpy).not.toHaveBeenCalled();
+  });
+});
+
+describe('push au membre (membership_stopped)', () => {
+  withPushEnv();
+
+  it('fin de période : un push, chemin serveur, texte « fin programmée » FR / EN avec la date', async () => {
+    await POST(makeReq({ box_member_id: 'bm-1', mode: 'period_end' }));
+    expect(pushesOf(fetchSpy)).toEqual([{
+      secret: 'cron_test', user_id: 'ath-1',
+      title: "Fin d'abonnement programmée",
+      body: 'AthleX Fitness a programmé la fin de ton abonnement le lundi 12 octobre 2026.',
+      en: { title: 'Membership ending', body: 'AthleX Fitness has scheduled your membership to end on Monday, 12 October 2026.' },
+      data: { type: 'membership_stopped', box_id: 'box-1' },
+    }]);
+  });
+
+  it('immédiat : un push « arrêté aujourd’hui »', async () => {
+    await POST(makeReq({ box_member_id: 'bm-1', mode: 'now' }));
+    const p = pushesOf(fetchSpy);
+    expect(p).toHaveLength(1);
+    expect(p[0]).toMatchObject({ title: 'Abonnement arrêté', en: { title: 'Membership stopped' } });
+  });
+
+  it('push parti après le journal et l’e-mail', async () => {
+    await POST(makeReq({ box_member_id: 'bm-1', mode: 'now' }));
+    const urls = fetchSpy.mock.calls.map(c => String(c[0]));
+    expect(urls.findIndex(u => u.includes('resend'))).toBeLessThan(urls.findIndex(u => u.endsWith('/send-push')));
+    expect(journalInsert().mock.invocationCallOrder[0]).toBeLessThan(fetchSpy.mock.invocationCallOrder[urls.findIndex(u => u.endsWith('/send-push'))]);
+  });
+
+  it('push en échec : l’arrêt, le journal et l’e-mail tiennent', async () => {
+    failPush(fetchSpy);
+    const res: any = await POST(makeReq({ box_member_id: 'bm-1', mode: 'now' }));
+    expect(res._data).toEqual({ ok: true, mode: 'now' });
+    expect(mockSubCancel).toHaveBeenCalledTimes(1);
+    expect(journalInsert()).toHaveBeenCalled();
+    expect(chains.box_member_subscription_actions.update).toHaveBeenCalledWith({ notified_at: expect.any(String) });
+  });
+
+  it('membre sans e-mail : le push part quand même', async () => {
+    chains.profiles = makeChain({ maybeSingle: { data: { email: null, username: 'cam', full_name: null } } });
+    await POST(makeReq({ box_member_id: 'bm-1', mode: 'now' }));
+    expect(pushesOf(fetchSpy)).toHaveLength(1);
+  });
+
+  it('état déjà atteint (relance du bouton) : aucun second push', async () => {
+    setup({ ...MEMBER, subscription_cancel_at_period_end: true });
+    await POST(makeReq({ box_member_id: 'bm-1', mode: 'period_end' }));
+    expect(pushesOf(fetchSpy)).toEqual([]);
   });
 });

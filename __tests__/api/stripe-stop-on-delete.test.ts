@@ -32,6 +32,7 @@ import { POST as review } from '../../app/api/cancellation-request/review/route'
 import { DELETE as promoDelete } from '../../app/api/promo-codes/[id]/route';
 import { getServerUser, createServiceClient } from '@/lib/supabase/server';
 import { isBoxOwnerAdmin } from '@/lib/isBoxOwnerAdmin';
+import { withPushEnv, pushesOf, failPush } from '../__fixtures__/pushEnv';
 
 const mockGetServerUser = getServerUser as jest.Mock;
 const mockCreateService = createServiceClient as jest.Mock;
@@ -521,5 +522,119 @@ describe('réponse à une demande de résiliation', () => {
     expect(res._status).toBe(403);
     expect(mockSubUpdate).not.toHaveBeenCalled();
     expect(emails()).toHaveLength(0);
+  });
+});
+
+/* ───────────── Push au membre (membership_stopped), par chemin ────────────── */
+
+describe('push membership_stopped', () => {
+  withPushEnv();
+  const BAN_MEMBER = {
+    id: 'bm-1', box_id: 'box-1', member_id: 'ath-1', plan_id: 'plan-1', status: 'active',
+    stripe_subscription_id: 'sub_1', subscription_status: 'active', subscription_current_period_end: '2026-10-12T10:00:00Z',
+  };
+  const setupBan = (member: any) => {
+    chains.box_members = makeChain({ maybeSingle: { data: member } });
+    chains.membership_plans = makeChain({ maybeSingle: { data: { name: 'Illimité' } } });
+    chains.profiles = makeChain({ maybeSingle: { data: { email: 'membre@exemple.fr', username: 'cam', full_name: 'Camille Dupont' } } });
+  };
+  const setupReview = (member: any = {}) => {
+    chains.membership_cancellation_requests = makeChain({ maybeSingle: { data: { id: 'req-1', box_id: 'box-1', member_id: 'ath-1', status: 'pending' } } });
+    chains.box_members = makeChain({
+      maybeSingle: { data: { id: 'bm-1', plan_id: 'plan-1', stripe_subscription_id: 'sub_1', subscription_status: 'active', subscription_current_period_end: '2026-10-12T10:00:00Z', subscription_cancel_at_period_end: false, ...member } },
+    });
+    chains.profiles = makeChain({ maybeSingle: { data: { email: 'membre@exemple.fr', username: 'cam', full_name: 'Camille Dupont' } } });
+    chains.membership_plans = makeChain({ maybeSingle: { data: { name: 'Illimité' } } });
+  };
+
+  it('suppression d’une formule : un push par membre arrêté, selon son mode', async () => {
+    setupPlan([bm(1), bm(2, { subscription_status: 'past_due' })]);
+    await plansDelete(req({ plan_id: 'plan-1', action: 'stop_then_delete' }));
+    const p = pushesOf(fetchSpy);
+    expect(p.map(x => [x.user_id, x.title, x.secret])).toEqual([
+      ['ath-1', "Fin d'abonnement programmée", 'cron_test'],
+      ['ath-2', 'Abonnement arrêté', 'cron_test'],
+    ]);
+    expect(p[0].body).toBe('AthleX Fitness a programmé la fin de ton abonnement le lundi 12 octobre 2026.');
+  });
+
+  it('suppression d’une formule, relance : un membre déjà programmé ne reçoit pas un second push', async () => {
+    setupPlan([bm(1, { subscription_cancel_at_period_end: true }), bm(2)]);
+    await plansDelete(req({ plan_id: 'plan-1', action: 'stop_then_delete' }));
+    expect(pushesOf(fetchSpy).map(x => x.user_id)).toEqual(['ath-2']);
+  });
+
+  it('suppression d’une formule, échec partiel : pas de push pour l’arrêt refusé par Stripe', async () => {
+    setupPlan([bm(1), bm(2)]);
+    mockSubUpdate.mockImplementation(async (id: string) => { if (id === 'sub_2') throw new Error('Stripe down'); return { id }; });
+    await plansDelete(req({ plan_id: 'plan-1', action: 'stop_then_delete' }));
+    expect(pushesOf(fetchSpy).map(x => x.user_id)).toEqual(['ath-1']);
+  });
+
+  it('suppression d’une formule, push en panne : arrêts, journal, e-mails et suppression tiennent', async () => {
+    setupPlan([bm(1), bm(2)]);
+    failPush(fetchSpy);
+    const res: any = await plansDelete(req({ plan_id: 'plan-1', action: 'stop_then_delete' }));
+    expect(res._data).toMatchObject({ ok: true, deleted: true, stopped: 2 });
+    expect(chains.box_member_subscription_actions.insert).toHaveBeenCalledTimes(2);
+    expect(emails()).toHaveLength(2);
+  });
+
+  it('bannissement : un push « arrêté aujourd’hui »', async () => {
+    setupBan(BAN_MEMBER);
+    await ban(req({ box_id: 'box-1', member_id: 'ath-1' }));
+    const p = pushesOf(fetchSpy);
+    expect(p).toHaveLength(1);
+    expect(p[0]).toMatchObject({ user_id: 'ath-1', title: 'Abonnement arrêté', body: "AthleX Fitness a arrêté ton abonnement aujourd'hui.", data: { type: 'membership_stopped', box_id: 'box-1' } });
+  });
+
+  it('bannissement sans abonnement en cours : aucun push', async () => {
+    setupBan({ ...BAN_MEMBER, stripe_subscription_id: null, subscription_status: null });
+    await ban(req({ box_id: 'box-1', member_id: 'ath-1' }));
+    expect(pushesOf(fetchSpy)).toEqual([]);
+  });
+
+  it('demande de résiliation acceptée : un push « fin programmée », après l’e-mail', async () => {
+    setupReview();
+    const res: any = await review(req({ request_id: 'req-1', action: 'approve' }));
+    expect(res._data).toEqual({ ok: true });
+    expect(pushesOf(fetchSpy)).toEqual([{
+      secret: 'cron_test', user_id: 'ath-1',
+      title: "Fin d'abonnement programmée",
+      body: 'AthleX Fitness a programmé la fin de ton abonnement le lundi 12 octobre 2026.',
+      en: { title: 'Membership ending', body: 'AthleX Fitness has scheduled your membership to end on Monday, 12 October 2026.' },
+      data: { type: 'membership_stopped', box_id: 'box-1' },
+    }]);
+    const urls = fetchSpy.mock.calls.map(c => String(c[0]));
+    expect(urls.findIndex(u => u.includes('resend'))).toBeLessThan(urls.findIndex(u => u.endsWith('/send-push')));
+  });
+
+  it('demande de résiliation : refus, ou abonnement déjà en fin programmée → aucun push', async () => {
+    setupReview();
+    await review(req({ request_id: 'req-1', action: 'reject', note: 'Non' }));
+    setupReview({ subscription_cancel_at_period_end: true });
+    await review(req({ request_id: 'req-1', action: 'approve' }));
+    setupReview({ stripe_subscription_id: null });
+    await review(req({ request_id: 'req-1', action: 'approve' }));
+    expect(pushesOf(fetchSpy)).toEqual([]);
+  });
+
+  it('demande de résiliation, push en panne : réponse, arrêt et e-mail tiennent', async () => {
+    setupReview();
+    failPush(fetchSpy);
+    const res: any = await review(req({ request_id: 'req-1', action: 'approve' }));
+    expect(res._data).toEqual({ ok: true });
+    expect(mockSubUpdate).toHaveBeenCalledTimes(1);
+    expect(emails()).toHaveLength(1);
+  });
+
+  it('programme et offre arrêtés : e-mail seulement, aucun push', async () => {
+    setupProgram([buyer(1), buyer(2)], [{ id: 'bm-u1', member_id: 'u-1' }]);
+    stripeState({});
+    await programsDelete(req({ program_id: 'prog-1', action: 'stop_then_deactivate' }));
+    setupOffer([osub(1)]);
+    await offersDelete(req({ programming_id: 'off-1', action: 'stop_then_deactivate' }));
+    expect(emails().length).toBeGreaterThan(0);
+    expect(pushesOf(fetchSpy)).toEqual([]);
   });
 });
