@@ -284,7 +284,7 @@ export default function TournamentForm({ boxId, initial, allowedFormats = ['simp
           <div>
             <label className={lbl}>Date de début</label>
             <input type="date" className={inp} value={form.start_date} onChange={e => set('start_date', e.target.value)} aria-describedby="aide-date-debut" />
-            <p id="aide-date-debut" className="text-xs text-gray-400 mt-1.5">{START_DATE_HINT}</p>
+            <p id="aide-date-debut" className="text-xs text-ax-text-secondary mt-1.5">{START_DATE_HINT}</p>
           </div>
           <div>
             <label className={lbl}>Date de fin</label>
@@ -314,9 +314,9 @@ export default function TournamentForm({ boxId, initial, allowedFormats = ['simp
               onChange={e => set('registrations_open_during_tournament', e.target.checked)}
               aria-describedby="aide-inscriptions" data-testid="case-inscriptions-ouvertes"
               className="w-4 h-4 accent-white" />
-            <span className="text-sm text-gray-300">{REGISTRATIONS_LABEL}</span>
+            <span className="text-sm text-ax-text">{REGISTRATIONS_LABEL}</span>
           </label>
-          <p id="aide-inscriptions" className="text-xs text-gray-400 mt-1.5 ml-7">{registrationsHint(initial?.format ?? form.format)}</p>
+          <p id="aide-inscriptions" className="text-xs text-ax-text-secondary mt-1.5 ml-7">{registrationsHint(initial?.format ?? form.format)}</p>
         </div>
       </div>
 

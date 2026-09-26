@@ -156,8 +156,17 @@ describe('branchements', () => {
     expect(regen).toContain("error: tournamentRefusal(genErr.message, genErr.code)");
     const gen = s.slice(s.indexOf('export async function generateRound1Action'), s.indexOf('export async function advanceRoundAction'));
     expect(gen).toContain('error: tournamentRefusal(err.message, err.code)');
-    expect(read('components/tournaments/BracketManager.tsx')).toContain('body: REGENERATE_BODY,');
+    const bm = read('components/tournaments/BracketManager.tsx');
+    expect(bm).toContain('body: REGENERATE_BODY,');
     expect(REGENERATE_BODY).not.toMatch(/ELO/);
+    // Le refus s'affiche dans la boîte d'erreur (lisible dans les deux thèmes), pas dans le bandeau rouge.
+    expect(bm).toContain("if (!res.ok) { void inform({ kind: 'error', title: ERROR_TITLE, body: res.error }); return; }");
+  });
+
+  it('fiche du tournoi : les actions passent à la ligne (Archiver / Désarchiver accessibles à 390)', () => {
+    const s = read('app/(dashboard)/tournaments/[id]/page.tsx');
+    expect(s).toContain('<div className="flex flex-wrap items-start justify-between gap-4">');
+    expect(s).toContain('<div className="flex flex-wrap items-center gap-2">');
   });
 
   it('formulaire : case, texte par format, texte de la date, refus traduits', () => {

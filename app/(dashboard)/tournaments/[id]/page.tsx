@@ -44,7 +44,8 @@ export default async function TournamentDetailPage({ params }: { params: Promise
 
       {/* Header */}
       <div className="bg-[#111111] border border-white/8 rounded-2xl p-6">
-        <div className="flex items-start justify-between gap-4">
+        {/* Les actions passent à la ligne à 390 : Archiver / Désarchiver restent accessibles. */}
+        <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <div className="flex items-center gap-2 mb-2">
               <span className="text-xs font-bold px-2 py-1 rounded-lg"
@@ -62,7 +63,7 @@ export default async function TournamentDetailPage({ params }: { params: Promise
               {t.prize && <span>🏆 {t.prize}</span>}
             </div>
           </div>
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex flex-wrap items-center gap-2">
             <StartTournamentButton tournamentId={id} status={t.status} tournamentName={t.name} participantCount={participantCount ?? 0} registrationsOpen={t.registrations_open_during_tournament === true} />
             <FinishTournamentButton
               tournamentId={id}

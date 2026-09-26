@@ -55,7 +55,7 @@ export default function DeleteTournamentButton({ tournamentId, name, archivedAt,
       <>
         {dialog}
         <button onClick={askUnarchive} data-testid="desarchiver-tournoi"
-          className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold text-gray-400 hover:text-white border border-white/10 hover:border-white/20 transition-colors">
+          className="flex items-center gap-1.5 px-3 py-2 rounded-ax-control text-xs font-semibold text-ax-text-secondary hover:text-ax-text border border-ax-border hover:bg-ax-hover transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ax-focus motion-reduce:transition-none">
           <ArchiveRestore size={13} /> Désarchiver
         </button>
       </>
@@ -67,7 +67,7 @@ export default function DeleteTournamentButton({ tournamentId, name, archivedAt,
       <>
         {dialog}
         <button onClick={askArchive} data-testid="archiver-tournoi"
-          className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold text-gray-400 hover:text-white border border-white/10 hover:border-white/20 transition-colors">
+          className="flex items-center gap-1.5 px-3 py-2 rounded-ax-control text-xs font-semibold text-ax-text-secondary hover:text-ax-text border border-ax-border hover:bg-ax-hover transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ax-focus motion-reduce:transition-none">
           <Archive size={13} /> Archiver
         </button>
       </>

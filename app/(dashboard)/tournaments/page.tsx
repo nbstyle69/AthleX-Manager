@@ -112,10 +112,10 @@ export default async function TournamentsPage({ searchParams }: { searchParams: 
         </Link>
       </div>
 
-      <nav aria-label="Tournois actifs ou archivés" className="flex gap-1 bg-white/5 border border-white/10 rounded-xl p-1 w-fit">
+      <nav aria-label="Tournois actifs ou archivés" className="flex gap-1 p-1 rounded-ax-control border border-ax-border w-fit">
         {([[false, 'Actifs', '/tournaments'], [true, 'Archivés', '/tournaments?vue=archives']] as const).map(([v, label, href]) => (
           <Link key={label} href={href} aria-current={showArchived === v ? 'page' : undefined} data-testid={v ? 'filtre-archives' : 'filtre-actifs'}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${showArchived === v ? 'bg-white text-[#0A0A0A]' : 'text-gray-400 hover:text-white'}`}>
+            className={`px-3 py-1.5 rounded-ax-control text-xs font-bold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ax-focus motion-reduce:transition-none ${showArchived === v ? 'bg-ax-accent-soft text-ax-accent-text' : 'text-ax-text-secondary hover:text-ax-text hover:bg-ax-hover'}`}>
             {label}
           </Link>
         ))}
@@ -124,7 +124,7 @@ export default async function TournamentsPage({ searchParams }: { searchParams: 
       {showArchived ? (
         tournaments?.length ? renderTable(tournaments) : (
           <div className="bg-[#111111] border border-white/8 rounded-2xl p-8 text-center">
-            <p className="text-sm text-gray-400">Aucun tournoi archivé.</p>
+            <p className="text-sm text-ax-text-secondary">Aucun tournoi archivé.</p>
           </div>
         )
       ) : !tournaments?.length ? (

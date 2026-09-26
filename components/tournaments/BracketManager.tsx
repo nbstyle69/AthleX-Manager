@@ -12,6 +12,7 @@ import { formatAmrapScore, isRepsScoredType, parseMovementRow } from '@/lib/move
 import { useConfirmDialog } from '@/components/ui/confirm-dialog';
 import { countOf } from '@/lib/plural';
 import { REGENERATE_BODY } from '@/lib/tournaments/refusals';
+import { ERROR_TITLE } from '@/lib/confirmDialog';
 
 /** A participant's submitted score for a match's WOD, resolved for display. */
 interface Submission { label: string; video: string | null; validated: boolean; }
@@ -100,7 +101,7 @@ export default function BracketManager({
   initialMatches, profilesById, participantsCount, wods, scoresByWod = {},
 }: Props) {
   const router = useRouter();
-  const { dialog, ask } = useConfirmDialog();
+  const { dialog, ask, inform } = useConfirmDialog();
   const [matches, setMatches] = useState<Match[]>(initialMatches);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -379,7 +380,8 @@ export default function BracketManager({
     setBusy('regenerate'); setError(null);
     const res = await regenerateBracketAction(tournamentId);
     setBusy(null);
-    if (!res.ok) { setError(res.error); return; }
+    // Refus de la base (tableau déjà joué…) : dans la boîte d'erreur, en français.
+    if (!res.ok) { void inform({ kind: 'error', title: ERROR_TITLE, body: res.error }); return; }
     router.refresh();
   }
 
