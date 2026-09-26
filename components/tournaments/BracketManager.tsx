@@ -14,7 +14,7 @@ import { countOf } from '@/lib/plural';
 import { REGENERATE_BODY } from '@/lib/tournaments/refusals';
 import { ERROR_TITLE } from '@/lib/confirmDialog';
 import { MOTIF_TEXT, applyDecidedRows, decidedMessage, manualMotifs, type DecideMotif } from '@/lib/tournaments/bracketDecision';
-import { canAdvance, decideRoundWodId, grandFinals, lastRound, loserColumnWodId, loserRoundTitle, matchPlace, matchWodId } from '@/lib/tournaments/bracketRounds';
+import { canAdvance, columnWod, decideRoundWodId, grandFinals, lastRound, loserColumnWodId, loserRoundTitle, matchPlace, matchWodId, stageWod } from '@/lib/tournaments/bracketRounds';
 
 /** A participant's submitted score for a match's WOD, resolved for display. */
 interface Submission { label: string; video: string | null; validated: boolean; }
@@ -59,7 +59,7 @@ interface Match {
 interface Profile { id: string; username: string; level: string; elo: number; }
 interface Wod {
   id: string; name: string; type: string | null; position: number | null;
-  bracket_stage: number | null; reps_per_round: number | null;
+  bracket_board: string | null; bracket_stage: number | null; reps_per_round: number | null;
   movements: string[] | null; description: string | null; scoring: string | null;
 }
 
@@ -167,10 +167,16 @@ export default function BracketManager({
     return Math.max(1, Math.ceil(Math.log2(n)));
   }, [grouped, winnerRounds]);
 
-  // Map each WB round to its assigned WOD via bracket_stage (distance to final).
+  // Ancien calcul par étape (distance à la finale, WOD des gagnants seulement) :
+  // secours des anciens matchs créés sans WOD. La base pose désormais le WOD de
+  // chaque match à sa création (athlex-app #386).
   function wodForRound(r: number): Wod | undefined {
-    const stage = totalRounds - r;
-    return wods.find(w => w.bracket_stage === stage);
+    return stageWod(wods, totalRounds, r);
+  }
+
+  // WOD d'une colonne des gagnants : celui posé sur ses matchs, sinon l'ancien calcul.
+  function wodForColumn(r: number): Wod | undefined {
+    return columnWod(grouped.winnerByRound[r] ?? [], wods, wodForRound(r));
   }
 
   // WOD d'un match : le sien, sinon l'étape de son tour — jamais celle des
@@ -224,7 +230,7 @@ export default function BracketManager({
   // avec la même règle que le classement. Le Manager ne calcule aucun vainqueur :
   // il reporte ceux que la base rend et affiche la raison des matchs restés à la main.
   function autoResolveRound(round: number) {
-    const wod = wodForRound(round);
+    const wod = wodForColumn(round);
     ask({
       title: 'Décider les matchs d’après les scores validés ?',
       element: `Round ${round}${wod ? ` · WOD « ${wod.name} »` : ' · aucun WOD assigné à la manche'}`,
@@ -484,7 +490,7 @@ export default function BracketManager({
             <VisualBracket
               rounds={winnerRounds}
               matchesByRound={grouped.winnerByRound}
-              wodForRound={wodForRound}
+              wodForRound={wodForColumn}
               onSelectWinner={setMatchWinner}
               onReset={askResetMatch}
               onEdit={setEditing}

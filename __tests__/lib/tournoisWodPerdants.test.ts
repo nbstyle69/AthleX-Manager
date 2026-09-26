@@ -86,8 +86,8 @@ describe('branchements', () => {
     expect(bm).not.toMatch(/createClient\(\)[\s\S]{0,80}tournament_bracket_matches/);
   });
 
-  it('le tableau des gagnants garde son WOD d’étape, sans liste', () => {
+  it('le tableau des gagnants garde son WOD (posé, sinon d’étape), sans liste', () => {
     expect(bm.match(/wodPicker=\{\{/g)).toHaveLength(1);
-    expect(bm).toContain('wodForRound={wodForRound}');
+    expect(bm).toContain('wodForRound={wodForColumn}');
   });
 });

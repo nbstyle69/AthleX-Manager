@@ -96,3 +96,22 @@ export function loserColumnWodId(matches: { wod_id: string | null; winner_id: st
   const real = matches.filter(m => m.status !== 'bye');
   return real.find(m => !m.winner_id && m.wod_id)?.wod_id ?? real.find(m => m.wod_id)?.wod_id ?? null;
 }
+
+/**
+ * Ancien calcul, secours des matchs créés sans WOD (avant athlex-app #386) : le
+ * WOD prévu pour l'étape des gagnants de ce tour (distance à la finale). Les WOD
+ * des perdants ont aussi des numéros d'étape (1, 2…) : jamais eux.
+ */
+export function stageWod<W extends { bracket_board: string | null; bracket_stage: number | null }>(wods: W[], totalRounds: number, round: number): W | undefined {
+  return wods.find(w => w.bracket_board === 'winner' && w.bracket_stage === totalRounds - round);
+}
+
+/** WOD d'une colonne des gagnants : celui posé sur ses matchs, sinon l'ancien calcul. */
+export function columnWod<W extends { id: string }>(
+  matches: { wod_id: string | null; winner_id: string | null; status: string }[],
+  wods: W[],
+  fallback: W | undefined,
+): W | undefined {
+  const id = loserColumnWodId(matches);
+  return id ? wods.find(w => w.id === id) : fallback;
+}
