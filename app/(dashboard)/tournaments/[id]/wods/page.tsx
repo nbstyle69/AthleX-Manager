@@ -6,7 +6,7 @@ import { ChevronLeft, Trophy } from 'lucide-react';
 export default async function TournamentWODsPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const { tournament, userClient: supabase } = await getTournamentForActiveBox<Record<string, any>>(
-    id, 'id, name, level, status, format, current_season, max_participants',
+    id, 'id, name, level, status, format, current_season, max_participants, registrations_open_during_tournament',
   );
 
   const isBracket = tournament.format === 'bracket' || tournament.format === 'swiss';
@@ -64,6 +64,7 @@ export default async function TournamentWODsPage({ params }: { params: Promise<{
         isBracket={isBracket}
         bracketStages={bracketStages}
         currentSeason={tournament.current_season ?? 1}
+        registrationsOpen={tournament.registrations_open_during_tournament === true}
       />
     </div>
   );

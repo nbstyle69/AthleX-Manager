@@ -1,6 +1,6 @@
 ﻿import { getTournamentForActiveBox } from '@/lib/tournaments/getTournamentForActiveBox';
 import Link from 'next/link';
-import { ChevronLeft, Dumbbell, Users, BarChart2, Trophy, Pencil, ClipboardCheck, GitBranch, Layers } from 'lucide-react';
+import { ChevronLeft, Dumbbell, Users, BarChart2, Trophy, Pencil, ClipboardCheck, GitBranch, Layers, Archive } from 'lucide-react';
 import CloseTournamentButton from '@/components/tournaments/CloseTournamentButton';
 import StartTournamentButton from '@/components/tournaments/StartTournamentButton';
 import FinishTournamentButton from '@/components/tournaments/FinishTournamentButton';
@@ -8,18 +8,23 @@ import DeleteTournamentButton from '@/components/tournaments/DeleteTournamentBut
 import { tournamentStatusInfo } from '@/lib/utils';
 import { softVar } from '@/lib/colorVars';
 import { countOf } from '@/lib/plural';
+import { archivedBanner, hasValidatedResult } from '@/lib/tournaments/archive';
 
 export default async function TournamentDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const { tournament: t, svc, userClient: supabase } = await getTournamentForActiveBox<Record<string, any>>(id);
 
-  const [{ count: wodCount }, { count: closedWodCount }, { count: participantCount }, { count: pendingCount }, { count: totalScores }] = await Promise.all([
+  const [{ count: wodCount }, { count: closedWodCount }, { count: participantCount }, { count: pendingCount }, { count: totalScores }, { count: finishedMatches }, { count: validatedScores }] = await Promise.all([
     supabase.from('tournament_wods').select('*', { count: 'exact', head: true }).eq('tournament_id', id),
     supabase.from('tournament_wods').select('*', { count: 'exact', head: true }).eq('tournament_id', id).eq('status', 'closed'),
     supabase.from('tournament_participants').select('*', { count: 'exact', head: true }).eq('tournament_id', id),
     svc.from('tournament_scores').select('*', { count: 'exact', head: true }).eq('tournament_id', id).eq('status', 'pending'),
     svc.from('tournament_scores').select('*', { count: 'exact', head: true }).eq('tournament_id', id),
+    // Archivage (#371) : un résultat validé fait proposer « Archiver » au lieu de « Supprimer ».
+    supabase.from('tournament_bracket_matches').select('*', { count: 'exact', head: true }).eq('tournament_id', id).in('status', ['completed', 'forfeit']),
+    svc.from('tournament_scores').select('*', { count: 'exact', head: true }).eq('tournament_id', id).eq('status', 'validated'),
   ]);
+  const hasResults = hasValidatedResult({ status: t.status, finishedMatches: finishedMatches ?? 0, validatedScores: validatedScores ?? 0 });
 
   const wods = { total: wodCount ?? 0, closed: closedWodCount ?? 0 };
   const st = tournamentStatusInfo(t.status, t.end_date, wods);
@@ -58,7 +63,7 @@ export default async function TournamentDetailPage({ params }: { params: Promise
             </div>
           </div>
           <div className="flex items-center gap-2 shrink-0">
-            <StartTournamentButton tournamentId={id} status={t.status} tournamentName={t.name} participantCount={participantCount ?? 0} />
+            <StartTournamentButton tournamentId={id} status={t.status} tournamentName={t.name} participantCount={participantCount ?? 0} registrationsOpen={t.registrations_open_during_tournament === true} />
             <FinishTournamentButton
               tournamentId={id}
               status={t.status}
@@ -76,10 +81,17 @@ export default async function TournamentDetailPage({ params }: { params: Promise
               className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold text-gray-400 hover:text-white border border-white/10 hover:border-white/20 transition-colors">
               <Pencil size={12} /> Modifier
             </Link>
-            <DeleteTournamentButton tournamentId={id} />
+            <DeleteTournamentButton tournamentId={id} name={t.name} archivedAt={t.archived_at ?? null} hasResults={hasResults} />
           </div>
         </div>
       </div>
+
+      {t.archived_at && (
+        <div role="status" data-testid="bandeau-tournoi-archive" className="flex items-start gap-3 rounded-2xl px-5 py-4 border border-ax-warning bg-ax-warning-soft text-sm text-ax-warning">
+          <Archive size={16} className="mt-0.5 shrink-0" aria-hidden="true" />
+          <p className="min-w-0 break-words">{archivedBanner(t.archived_at)}</p>
+        </div>
+      )}
 
       {/* Lifecycle guidance */}
       <div className="flex items-start gap-3 rounded-2xl px-5 py-4 border"

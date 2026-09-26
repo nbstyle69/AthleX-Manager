@@ -7,6 +7,7 @@ import WODForm from './WODForm';
 import { isScheduledAhead } from '@/lib/datetime';
 import { useConfirmDialog } from '@/components/ui/confirm-dialog';
 import { ERROR_TITLE } from '@/lib/confirmDialog';
+import { openNowBody } from '@/lib/tournaments/registrations';
 
 function formatSchedule(value: string) {
   return new Date(value).toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' });
@@ -44,9 +45,11 @@ interface Props {
   isBracket?: boolean;
   bracketStages?: BracketStage[];
   currentSeason?: number;
+  /** Case « Inscriptions ouvertes pendant le tournoi » : change le texte de « Ouvrir maintenant ». */
+  registrationsOpen?: boolean;
 }
 
-export default function TournamentWODManager({ tournamentId, initialWODs, divisions = [], isLeague = false, isBracket = false, bracketStages = [], currentSeason = 1 }: Props) {
+export default function TournamentWODManager({ tournamentId, initialWODs, divisions = [], isLeague = false, isBracket = false, bracketStages = [], currentSeason = 1, registrationsOpen = false }: Props) {
   const divisionMap = Object.fromEntries(divisions.map(d => [d.id, d]));
   const stageMap = Object.fromEntries(bracketStages.map(s => [s.value, s.label]));
   const [wods,     setWods]     = useState<any[]>(initialWODs);
@@ -150,7 +153,7 @@ export default function TournamentWODManager({ tournamentId, initialWODs, divisi
       ask({
         title: `Ouvrir « ${wod.title} » maintenant ?`,
         element: `Programmé pour le ${formatSchedule(wod.opens_at)}`,
-        body: `Ouvrir maintenant : le WOD devient visible tout de suite et les scores sont acceptés. Si le tournoi n’a pas encore démarré, il démarre et les inscriptions se ferment. Garder la date : il s’ouvrira le ${formatSchedule(wod.opens_at)}, et les inscrits sont prévenus de cette date.`,
+        body: openNowBody(registrationsOpen, formatSchedule(wod.opens_at)),
         confirmLabel: 'Ouvrir maintenant',
         secondary: { label: 'Garder la date', run: () => applyStatus(wod, { status: next }) },
         run: () => applyStatus(wod, { status: next, opens_at: null }),

@@ -1,6 +1,7 @@
 'use server';
 
 import { createClient, getActiveBox } from '@/lib/supabase/server';
+import { tournamentRefusal } from '@/lib/tournaments/refusals';
 
 type Result = { ok: true } | { ok: false; error: string };
 type AdvanceResult = { ok: true; created: number } | { ok: false; error: string };
@@ -38,7 +39,7 @@ export async function generateRound1Action(tournamentId: string): Promise<Result
   const { supabase, error } = await authorize(tournamentId);
   if (error) return { ok: false, error };
   const { error: err } = await supabase.rpc('generate_bracket_round_1', { p_tournament_id: tournamentId });
-  return err ? { ok: false, error: err.message } : { ok: true };
+  return err ? { ok: false, error: tournamentRefusal(err.message, err.code) } : { ok: true };
 }
 
 export async function advanceRoundAction(tournamentId: string, completedRound: number): Promise<AdvanceResult> {
@@ -105,11 +106,10 @@ export async function resetMatchAction(tournamentId: string, matchId: string): P
 export async function regenerateBracketAction(tournamentId: string): Promise<Result> {
   const { supabase, error } = await authorize(tournamentId);
   if (error) return { ok: false, error };
-  const { error: delErr } = await supabase
-    .from('tournament_bracket_matches').delete().eq('tournament_id', tournamentId);
-  if (delErr) return { ok: false, error: delErr.message };
+  // La base vide et retire le tableau elle-même, et refuse un tableau déjà
+  // joué (athlex-app #371) : le Manager ne supprime plus aucun match.
   const { error: genErr } = await supabase.rpc('generate_bracket_round_1', { p_tournament_id: tournamentId });
-  return genErr ? { ok: false, error: genErr.message } : { ok: true };
+  return genErr ? { ok: false, error: tournamentRefusal(genErr.message, genErr.code) } : { ok: true };
 }
 
 export async function createGrandFinalAction(

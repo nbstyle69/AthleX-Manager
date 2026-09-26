@@ -30,6 +30,8 @@ export interface TournamentFormState {
   format: string;
   require_video_proof: boolean;
   rules: string;
+  /** Inscriptions ouvertes pendant le tournoi (athlex-app PR 10) : décochée par défaut. */
+  registrations_open_during_tournament: boolean;
 }
 
 /** Valeurs de départ du formulaire (inchangées : création comme modification). */
@@ -47,6 +49,7 @@ export function initialTournamentForm(initial: any, allowedFormats: string[]): T
     format:              defaultFormat,
     require_video_proof: initial?.require_video_proof ?? false,
     rules:               initial?.rules               ?? DEFAULT_RULES,
+    registrations_open_during_tournament: initial?.registrations_open_during_tournament === true,
   };
 }
 
@@ -54,6 +57,7 @@ export function initialTournamentForm(initial: any, allowedFormats: string[]): T
 const EDITABLE: Array<Exclude<keyof TournamentFormState, 'format' | 'status'>> = [
   'name', 'description', 'level', 'start_date', 'end_date',
   'max_participants', 'prize', 'require_video_proof', 'rules',
+  'registrations_open_during_tournament',
 ];
 
 /** Seul changement de statut permis par le formulaire en modification : le démarrage. */

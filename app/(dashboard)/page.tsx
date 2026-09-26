@@ -18,7 +18,8 @@ export default async function DashboardPage() {
   if (box.my_role !== 'owner') redirect('/wods');
 
   const [{ data: boxTournaments }, { data: boxGroups }, { data: { user: authUser } }] = await Promise.all([
-    supabase.from('tournaments').select('id').eq('box_id', box.id),
+    // Archivage (#371) : un tournoi archivé sort du tableau de bord.
+    supabase.from('tournaments').select('id').eq('box_id', box.id).is('archived_at', null),
     supabase.from('message_groups').select('id').eq('box_id', box.id),
     supabase.auth.getUser(),
   ]);
@@ -44,7 +45,7 @@ export default async function DashboardPage() {
     { data: pendingScoresList },
   ] = await Promise.all([
     supabase.from('tournaments').select('*', { count: 'exact', head: true })
-      .eq('box_id', box.id).in('status', ['open', 'active']),
+      .eq('box_id', box.id).in('status', ['open', 'active']).is('archived_at', null),
     // Colonne autorisée obligatoire : `authenticated` n'a pas de SELECT table sur
     // box_members (colonnes de facturation exclues), donc `*` renvoie 42501.
     supabase.from('box_members').select('id', { count: 'exact', head: true }).eq('box_id', box.id).eq('status', 'active'),
@@ -61,7 +62,7 @@ export default async function DashboardPage() {
         })()
       : Promise.resolve({ count: 0, data: null, error: null }),
     supabase.from('tournaments').select('id, name, status, created_at, max_participants, tournament_participants(count)')
-      .eq('box_id', box.id).order('created_at', { ascending: false }).limit(3),
+      .eq('box_id', box.id).is('archived_at', null).order('created_at', { ascending: false }).limit(3),
     tournamentIds.length
       ? supabase.from('tournament_scores')
           .select('id, score_value, submitted_at, status, athlete_id, tournament_wod_id, tournament_id, profile:profiles!athlete_id(username, level), tw:tournament_wods(title)')

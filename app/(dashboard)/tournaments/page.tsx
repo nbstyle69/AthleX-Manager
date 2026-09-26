@@ -8,15 +8,19 @@ import TopEloCard from '@/components/stats/TopEloCard';
 import HelpDock from '@/components/help/HelpDock';
 import { countOf } from '@/lib/plural';
 
-export default async function TournamentsPage() {
+export default async function TournamentsPage({ searchParams }: { searchParams: Promise<{ vue?: string }> }) {
   const supabase = await createClient();
   const box = await getActiveBox(supabase);
   if (!box) redirect('/login');
 
-  const { data: tournaments } = await supabase
+  // Archivage (athlex-app #371) : un tournoi archivé sort de la liste ; le
+  // filtre « Archivés » les montre, et sa fiche permet de le désarchiver.
+  const showArchived = (await searchParams).vue === 'archives';
+  const base = supabase
     .from('tournaments')
     .select('id, name, status, level, max_participants, created_at, start_date, end_date, format')
-    .eq('box_id', box.id)
+    .eq('box_id', box.id);
+  const { data: tournaments } = await (showArchived ? base.not('archived_at', 'is', null) : base.is('archived_at', null))
     .order('created_at', { ascending: false });
 
   // Fetch participant counts for all tournaments in one query
@@ -108,7 +112,22 @@ export default async function TournamentsPage() {
         </Link>
       </div>
 
-      {!tournaments?.length ? (
+      <nav aria-label="Tournois actifs ou archivés" className="flex gap-1 bg-white/5 border border-white/10 rounded-xl p-1 w-fit">
+        {([[false, 'Actifs', '/tournaments'], [true, 'Archivés', '/tournaments?vue=archives']] as const).map(([v, label, href]) => (
+          <Link key={label} href={href} aria-current={showArchived === v ? 'page' : undefined} data-testid={v ? 'filtre-archives' : 'filtre-actifs'}
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${showArchived === v ? 'bg-white text-[#0A0A0A]' : 'text-gray-400 hover:text-white'}`}>
+            {label}
+          </Link>
+        ))}
+      </nav>
+
+      {showArchived ? (
+        tournaments?.length ? renderTable(tournaments) : (
+          <div className="bg-[#111111] border border-white/8 rounded-2xl p-8 text-center">
+            <p className="text-sm text-gray-400">Aucun tournoi archivé.</p>
+          </div>
+        )
+      ) : !tournaments?.length ? (
         <div className="bg-[#111111] border border-white/8 rounded-2xl p-12 text-center">
           <Trophy size={40} className="text-gray-600 mx-auto mb-4" />
           <h3 className="text-white font-bold mb-2">Aucun tournoi</h3>

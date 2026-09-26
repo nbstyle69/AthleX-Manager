@@ -11,6 +11,7 @@ import {
 import { formatAmrapScore, isRepsScoredType, parseMovementRow } from '@/lib/movements';
 import { useConfirmDialog } from '@/components/ui/confirm-dialog';
 import { countOf } from '@/lib/plural';
+import { REGENERATE_BODY } from '@/lib/tournaments/refusals';
 
 /** A participant's submitted score for a match's WOD, resolved for display. */
 interface Submission { label: string; video: string | null; validated: boolean; }
@@ -361,12 +362,13 @@ export default function BracketManager({
       : m));
   }
 
-  // Supprime tous les matchs et régénère le round 1 (tirage aléatoire).
+  // Régénère le round 1 (tirage aléatoire) par la base, qui vide le tableau et
+  // refuse un tableau déjà joué (athlex-app #371).
   function askRegenerateBracket() {
     ask({
       title: 'Refaire tout le tableau ?',
       element: `${matches.length} matchs, dont ${matches.filter(m => m.status === 'completed').length} avec un résultat · ${participantsCount} participants`,
-      body: 'Tous les matchs et leurs résultats seront supprimés, l’ELO gagné ou perdu sur ces matchs sera rendu aux athlètes, puis un nouveau premier tour sera tiré au sort. Les scores envoyés sur les WOD sont conservés. C’est définitif.',
+      body: REGENERATE_BODY,
       confirmLabel: 'Refaire le tableau',
       danger: true,
       run: regenerateBracket,

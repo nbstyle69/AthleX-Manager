@@ -4,7 +4,8 @@
 // rechargeait la route du tournoi supprimé (404), et un refus silencieux de la
 // RLS faisait quitter la page comme si le tournoi avait disparu.
 
-import { deleteTournamentAndLeave, NOT_DELETED } from '@/lib/tournaments/deleteTournament';
+import { ARCHIVE_INSTEAD, deleteTournamentAndLeave, NOT_DELETED } from '@/lib/tournaments/deleteTournament';
+import { GENERIC_REFUSAL } from '@/lib/tournaments/refusals';
 
 function client(result: { data: { id: string }[] | null; error: { message: string } | null }) {
   const calls: { table?: string; eq?: [string, string]; select?: string } = {};
@@ -44,11 +45,19 @@ describe('deleteTournamentAndLeave', () => {
     expect(r.push).not.toHaveBeenCalled();
   });
 
-  it('erreur de la base : rend le message, ne quitte pas la page', async () => {
+  it('erreur de la base sans code : message générique en français (jamais le texte brut), ne quitte pas la page', async () => {
     const { c } = client({ data: null, error: { message: 'violates foreign key constraint' } });
     const r = router();
 
-    await expect(deleteTournamentAndLeave(c, 't-1', r)).resolves.toBe('violates foreign key constraint');
+    await expect(deleteTournamentAndLeave(c, 't-1', r)).resolves.toBe(GENERIC_REFUSAL);
+    expect(r.replace).not.toHaveBeenCalled();
+  });
+
+  it('résultats validés (TOURNOI_AVEC_RESULTATS) : propose l’archivage, ne quitte pas la page', async () => {
+    const { c } = client({ data: null, error: { message: 'TOURNOI_AVEC_RESULTATS: ce tournoi a des résultats validés (score validé) et ne peut pas être supprimé. Archive-le à la place : son ELO et ses résultats sont conservés.' } });
+    const r = router();
+
+    await expect(deleteTournamentAndLeave(c, 't-1', r)).resolves.toBe(ARCHIVE_INSTEAD);
     expect(r.replace).not.toHaveBeenCalled();
   });
 

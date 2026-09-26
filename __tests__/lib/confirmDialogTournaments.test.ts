@@ -49,10 +49,13 @@ describe('Section C : le bouton ouvre la boîte, l’action part de son bouton d
     expect(src).toMatch(/async function applyStatus[\s\S]{0,300}from\('tournament_wods'\)\.update\(patch\)/);
   });
 
-  it('C11 : le texte dit que les inscriptions seront fermées', () => {
-    const src = lire(START);
-    expect(src).toMatch(/Les inscriptions seront fermées/);
-    expect(src).not.toMatch(/Les inscriptions restent visibles/);
+  it('C11 : le texte dit que les inscriptions seront fermées (case décochée)', () => {
+    // Les textes vivent dans lib/tournaments/registrations.ts depuis la case
+    // « Inscriptions ouvertes pendant le tournoi » ; le bouton les demande.
+    expect(lire(START)).toMatch(/\.\.\.startDialogTexts\(registrationsOpen\),/);
+    const { startDialogTexts } = require('@/lib/tournaments/registrations');
+    expect(startDialogTexts(false).body).toMatch(/Les inscriptions seront fermées/);
+    expect(startDialogTexts(false).body).not.toMatch(/Les inscriptions restent visibles/);
   });
 
   it('C12 : une erreur de suppression s’affiche au lieu de passer sans message', () => {
