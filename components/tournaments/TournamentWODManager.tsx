@@ -8,13 +8,13 @@ import { isScheduledAhead } from '@/lib/datetime';
 import { useConfirmDialog } from '@/components/ui/confirm-dialog';
 import { ERROR_TITLE } from '@/lib/confirmDialog';
 import { openNowBody } from '@/lib/tournaments/registrations';
+import { wodStageLabel, type StageOption } from '@/lib/tournaments/wodStages';
 
 function formatSchedule(value: string) {
   return new Date(value).toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' });
 }
 
 interface Division { id: string; name: string; level: number; }
-interface BracketStage { value: number; label: string; }
 
 const TYPE_COLORS: Record<string, string> = {
   'For Time': '#EF4444',
@@ -43,13 +43,15 @@ interface Props {
   divisions?: Division[];
   isLeague?: boolean;
   isBracket?: boolean;
-  bracketStages?: BracketStage[];
+  bracketStages?: StageOption[];
+  /** Liste des étapes illisible : le formulaire n'a pas le champ « Étape du tournoi ». */
+  stagesUnavailable?: boolean;
   currentSeason?: number;
   /** Case « Inscriptions ouvertes pendant le tournoi » : change le texte de « Ouvrir maintenant ». */
   registrationsOpen?: boolean;
 }
 
-export default function TournamentWODManager({ tournamentId, initialWODs, divisions = [], isLeague = false, isBracket = false, bracketStages = [], currentSeason = 1, registrationsOpen = false }: Props) {
+export default function TournamentWODManager({ tournamentId, initialWODs, divisions = [], isLeague = false, isBracket = false, bracketStages = [], stagesUnavailable = false, currentSeason = 1, registrationsOpen = false }: Props) {
   const divisionMap = Object.fromEntries(divisions.map(d => [d.id, d]));
   const stageMap = Object.fromEntries(bracketStages.map(s => [s.value, s.label]));
   const [wods,     setWods]     = useState<any[]>(initialWODs);
@@ -122,7 +124,7 @@ export default function TournamentWODManager({ tournamentId, initialWODs, divisi
   function askDeleteWOD(wod: any) {
     const where = wod.division_id && divisionMap[wod.division_id]
       ? divisionMap[wod.division_id].name
-      : wod.bracket_stage ? (stageMap[wod.bracket_stage] ?? `Étape ${wod.bracket_stage}`) : null;
+      : wodStageLabel(wod, stageMap);
     ask({
       title: `Supprimer le WOD « ${wod.title} » ?`,
       element: where ? `${wod.title} · ${where}` : wod.title,
@@ -253,10 +255,10 @@ export default function TournamentWODManager({ tournamentId, initialWODs, divisi
                     </span>
                     <h3 className="text-white font-bold">{wod.title}</h3>
                     {isBracket && (
-                      wod.bracket_stage !== null && wod.bracket_stage !== undefined ? (
+                      wodStageLabel(wod, stageMap) ? (
                         <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-purple-500/15 text-purple-300 inline-flex items-center gap-1">
                           <Layers size={9} />
-                          {stageMap[wod.bracket_stage] ?? `Étape ${wod.bracket_stage}`}
+                          {wodStageLabel(wod, stageMap)}
                         </span>
                       ) : (
                         <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-blue-500/15 text-blue-300 inline-flex items-center gap-1">
@@ -387,6 +389,7 @@ export default function TournamentWODManager({ tournamentId, initialWODs, divisi
                 isLeague={isLeague}
                 isBracket={isBracket}
                 bracketStages={bracketStages}
+                stagesUnavailable={stagesUnavailable}
                 initial={editWOD}
                 onSaved={onSaved}
                 onCancel={onCancel}

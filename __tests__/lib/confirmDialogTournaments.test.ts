@@ -18,7 +18,7 @@ interface Site { id: string; file: string; opens: string; direct: string; run: R
 const SITES: Site[] = [
   { id: 'C1 exclure', file: KICK, opens: 'onClick={askKick}', direct: 'onClick={handleKick}', run: /function askKick[\s\S]{0,900}run: handleKick,/ },
   // PR 2 tournois : la base décide (decide_bracket_round) ; la boîte reste le seul départ de l'action.
-  { id: 'C2 décider les matchs', file: BRACKET, opens: 'onClick={() => autoResolveRound(lastR)}', direct: 'decideRound(lastR)', run: /function autoResolveRound\(round: number\) \{\s*const wod = wodForRound\(round\);\s*ask\(\{[\s\S]{0,900}run: \(\) => decideRound\(round, wod\?\.id \?\? null\),\s*\}\);\s*\}/ },
+  { id: 'C2 décider les matchs', file: BRACKET, opens: 'onClick={() => autoResolveRound(lastR)}', direct: 'decideRound(lastR)', run: /function autoResolveRound\(round: number\) \{\s*const wod = wodForColumn\(round\);\s*ask\(\{[\s\S]{0,900}run: \(\) => decideRound\(round, wod\?\.id \?\? null\),\s*\}\);\s*\}/ },
   { id: 'C3 premier tour', file: BRACKET, opens: 'onClick={askGenerateRound1}', direct: 'onClick={generateRound1}', run: /function askGenerateRound1[\s\S]{0,700}run: generateRound1,/ },
   { id: 'C4 effacer un résultat', file: BRACKET, opens: 'onReset={askResetMatch}', direct: 'onReset={resetMatch}', run: /function askResetMatch[\s\S]{0,900}run: \(\) => resetMatch\(match\),/ },
   { id: 'C5 refaire le tableau', file: BRACKET, opens: 'onClick={askRegenerateBracket}', direct: 'onClick={regenerateBracket}', run: /function askRegenerateBracket[\s\S]{0,900}run: regenerateBracket,/ },

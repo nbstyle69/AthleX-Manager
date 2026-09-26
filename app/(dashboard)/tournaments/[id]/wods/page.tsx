@@ -2,6 +2,7 @@
 import Link from 'next/link';
 import TournamentWODManager from '@/components/tournaments/TournamentWODManager';
 import { ChevronLeft, Trophy } from 'lucide-react';
+import { stageOptions, type StageRow } from '@/lib/tournaments/wodStages';
 
 export default async function TournamentWODsPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -10,19 +11,15 @@ export default async function TournamentWODsPage({ params }: { params: Promise<{
   );
 
   const isBracket = tournament.format === 'bracket' || tournament.format === 'swiss';
-  // Bracket stages encoded as distance-to-final (0 = Finale). Options derived
-  // from max_participants; displayed earliest stage first (e.g. 16e -> Finale).
-  const STAGE_LABELS = ['Finale', 'Demi-finale', 'Quart de finale', '8e de finale', '16e de finale', '32e de finale'];
-  const totalStages = Math.max(1, Math.ceil(Math.log2(Math.max(2, tournament.max_participants ?? 2))));
-  const bracketStages = isBracket
-    ? Array.from({ length: totalStages }, (_, i) => ({ value: i, label: STAGE_LABELS[i] ?? `${i} tours avant la finale` }))
-        .sort((a, b) => b.value - a.value)
-    : [];
-
-  const [{ data: wods }, { data: divisions }] = await Promise.all([
+  // Étapes à proposer, dans l'ordre et avec leurs libellés : la base les rend
+  // (tableau, étape, petite finale si le tournoi l'a), lib/tournaments/wodStages.ts.
+  const [{ data: wods }, { data: divisions }, stages] = await Promise.all([
     supabase.from('tournament_wods').select('*').eq('tournament_id', id).order('created_at'),
     supabase.from('tournament_divisions').select('id, name, level').eq('tournament_id', id).order('level'),
+    isBracket ? supabase.rpc('tournament_bracket_stages', { p_tournament_id: id }) : Promise.resolve({ data: [], error: null }),
   ]);
+  const bracketStages = stageOptions((stages.data ?? []) as StageRow[]);
+  const stagesUnavailable = isBracket && !!stages.error;
 
   const isLeague = tournament.format === 'league_div';
 
@@ -63,6 +60,7 @@ export default async function TournamentWODsPage({ params }: { params: Promise<{
         isLeague={isLeague}
         isBracket={isBracket}
         bracketStages={bracketStages}
+        stagesUnavailable={stagesUnavailable}
         currentSeason={tournament.current_season ?? 1}
         registrationsOpen={tournament.registrations_open_during_tournament === true}
       />

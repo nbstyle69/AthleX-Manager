@@ -15,7 +15,7 @@ export default async function BracketPage({ params }: { params: Promise<{ id: st
     svc.from('tournament_participants')
        .select('athlete_id')
        .eq('tournament_id', id),
-    svc.from('tournament_wods').select('id, title, type, order_index, bracket_stage, reps_per_round, movements, description, scoring').eq('tournament_id', id).order('order_index'),
+    svc.from('tournament_wods').select('id, title, type, order_index, bracket_board, bracket_stage, reps_per_round, movements, description, scoring').eq('tournament_id', id).order('order_index'),
     svc.from('tournament_scores')
        .select('athlete_id, tournament_wod_id, score_value, tiebreak_value, video_url, notes, status, submitted_at')
        .eq('tournament_id', id)
@@ -36,7 +36,7 @@ export default async function BracketPage({ params }: { params: Promise<{ id: st
   // Normalize WODs to the shape expected by BracketManager (name/position/type).
   const wodList = (wods ?? []).map((w: any) => ({
     id: w.id, name: w.title, type: w.type ?? null,
-    position: w.order_index ?? null, bracket_stage: w.bracket_stage ?? null,
+    position: w.order_index ?? null, bracket_board: w.bracket_board ?? null, bracket_stage: w.bracket_stage ?? null,
     reps_per_round: w.reps_per_round ?? null,
     movements: Array.isArray(w.movements) ? w.movements : null,
     description: w.description ?? null,

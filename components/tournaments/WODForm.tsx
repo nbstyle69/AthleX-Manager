@@ -11,6 +11,7 @@ import { buildMovementLines, generatedForTimeRounds, parseForTimeRounds } from '
 import { toDatetimeLocal, fromDatetimeLocal, isScheduledAhead } from '@/lib/datetime';
 import { formatCap, parseCap } from '@/lib/wodFields';
 import { scoringLabel, TOURNAMENT_WOD_TYPES } from '@/lib/tournaments/scoring';
+import { STAGES_UNAVAILABLE, parseStageKey, stageKey, wodSaveError, type StageOption } from '@/lib/tournaments/wodStages';
 
 const WOD_TYPES = TOURNAMENT_WOD_TYPES;
 const LEVELS    = ['scaled', 'inter', 'rx', 'rx+', 'gx', 'pro'];
@@ -55,20 +56,19 @@ function localGenerate(type: string, level: string, duration: number, eqList: st
 
 interface Division { id: string; name: string; level: number; }
 
-interface BracketStage { value: number; label: string; }
-
 interface Props {
   tournamentId: string;
   divisions?: Division[];
   isLeague?: boolean;
   isBracket?: boolean;
-  bracketStages?: BracketStage[];
+  bracketStages?: StageOption[];
+  stagesUnavailable?: boolean;
   initial?: any;
   onSaved: () => void;
   onCancel: () => void;
 }
 
-export default function WODForm({ tournamentId, divisions = [], isLeague = false, isBracket = false, bracketStages = [], initial, onSaved, onCancel }: Props) {
+export default function WODForm({ tournamentId, divisions = [], isLeague = false, isBracket = false, bracketStages = [], stagesUnavailable = false, initial, onSaved, onCancel }: Props) {
   const { catalog: movementCatalog } = useMovementCatalog();
   const [saving, setSaving] = useState(false);
   const [error, setError]   = useState<string | null>(null);
@@ -93,7 +93,8 @@ export default function WODForm({ tournamentId, divisions = [], isLeague = false
     work_seconds:     initial?.work_seconds     ?? 20,
     rest_seconds:     initial?.rest_seconds     ?? 10,
     division_id:      initial?.division_id      ?? '',
-    bracket_stage:    (initial?.bracket_stage === null || initial?.bracket_stage === undefined) ? '' : String(initial.bracket_stage),
+    // Étape = tableau + numéro, en une clé (`loser:2`, `grand_final:`) ; '' = toutes les étapes.
+    bracket_stage:    stageKey(initial?.bracket_board, initial?.bracket_stage),
     reps_per_round:   (initial?.reps_per_round === null || initial?.reps_per_round === undefined) ? '' : String(initial.reps_per_round),
   });
 
@@ -234,7 +235,8 @@ export default function WODForm({ tournamentId, divisions = [], isLeague = false
       work_seconds:     form.type === 'Tabata' ? form.work_seconds : null,
       rest_seconds:     form.type === 'Tabata' ? form.rest_seconds : null,
       division_id:      isLeague ? (form.division_id || null) : null,
-      bracket_stage:    isBracket ? (form.bracket_stage === '' ? null : Number(form.bracket_stage)) : null,
+      // Les deux colonnes ensemble ; liste des étapes illisible : l'étape du WOD n'est pas touchée.
+      ...(!isBracket ? { bracket_board: null, bracket_stage: null } : stagesUnavailable ? {} : parseStageKey(form.bracket_stage)),
       reps_per_round:   isRepsScoredType(form.type)
         ? (form.reps_per_round === '' ? (repsPerRoundFromMovements(movements.filter(Boolean)) || null) : Number(form.reps_per_round))
         : null,
@@ -247,7 +249,7 @@ export default function WODForm({ tournamentId, divisions = [], isLeague = false
       ({ error: err } = await supabase.from('tournament_wods').insert(payload));
     }
     setSaving(false);
-    if (err) { setError(err.message); return; }
+    if (err) { setError(wodSaveError(err)); return; }
     onSaved();
   }
 
@@ -435,13 +437,16 @@ export default function WODForm({ tournamentId, divisions = [], isLeague = false
       </div>
 
       {/* ── Étape du bracket (bracket / swiss only) ── */}
+      {isBracket && stagesUnavailable && (
+        <p role="status" data-testid="etapes-indisponibles" className="text-xs text-ax-text-secondary">{STAGES_UNAVAILABLE}</p>
+      )}
       {isBracket && bracketStages.length > 0 && (
         <div>
           <label className={lbl}>Étape du tournoi</label>
           <select className={inp} value={form.bracket_stage} onChange={e => set('bracket_stage', e.target.value)}>
             <option value="" className="text-black">🌐 Toutes les étapes (non assigné)</option>
             {bracketStages.map(s => (
-              <option key={s.value} value={String(s.value)} className="text-black">{s.label}</option>
+              <option key={s.value} value={s.value} className="text-black">{s.label}</option>
             ))}
           </select>
           <p className="text-[11px] text-gray-500 mt-1.5">
