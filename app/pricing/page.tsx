@@ -11,6 +11,7 @@ import { LandingHeader } from '@/components/landing/header';
 import { useLanguage } from '@/components/language-provider';
 import { useConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Button } from '@/components/ui/button';
+import { entryRefusalFrom, entryRefusalInfo } from '@/lib/entryRefusalView';
 
 // Ordre aligné sur t.funnel.pricing.features : l'icône suit la position, le
 // libellé vient de la traduction.
@@ -59,6 +60,8 @@ function PricingContent() {
         return;
       }
       const data = await res.json();
+      const refusal = entryRefusalFrom(data);
+      if (refusal) { inform(entryRefusalInfo(refusal)); setLoading(false); return; }
       if (data.url) {
         window.location.href = data.url;
       } else {

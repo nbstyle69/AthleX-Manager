@@ -23,6 +23,7 @@ import { Badge } from '@/components/ui/badge';
 import { useConfirmDialog } from '@/components/ui/confirm-dialog';
 import { ERROR_TITLE } from '@/lib/confirmDialog';
 import { askDeleteWithSubscriptions, countOf } from '@/lib/deleteWithSubscriptions';
+import { entryRefusalFrom, entryRefusalInfo } from '@/lib/entryRefusalView';
 
 const DISCIPLINES = ['crossfit', 'hyrox', 'hybrid', 'haltero', 'endurance'];
 const LEVELS = ['all', 'beginner', 'intermediate', 'advanced'];
@@ -611,6 +612,8 @@ function SubscribeModal({
   );
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Archivage (PR 3) : un refus de box fermée s'affiche dans une boîte d'information.
+  const { dialog, inform } = useConfirmDialog();
 
   function toggle(id: string) {
     setSelected((prev) => {
@@ -640,6 +643,8 @@ function SubscribeModal({
           body: JSON.stringify({ programming_id: programming.id, subscriber_box_id: targets[0] }),
         });
         const json = await res.json();
+        const refusal = entryRefusalFrom(json);
+        if (refusal) { setSaving(false); void inform(entryRefusalInfo(refusal)); return; }
         if (!res.ok || !json.url) {
           setError(json.error ?? 'Impossible de démarrer le paiement.');
           setSaving(false);
@@ -669,6 +674,7 @@ function SubscribeModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-ax-overlay backdrop-blur-ax-glass p-4" onClick={onClose}>
       <Card className="w-full max-w-md rounded-ax-panel shadow-ax-panel p-6" onClick={(e) => e.stopPropagation()}>
+        {dialog}
         <div className="flex items-center justify-between mb-1">
           <h3 className="text-lg font-black text-ax-text">S&apos;abonner</h3>
           <button onClick={onClose} className="text-ax-text-muted hover:text-ax-text"><X size={18} /></button>

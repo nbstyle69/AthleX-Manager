@@ -2,6 +2,8 @@
 
 import { useState } from 'react';
 import { Loader2, Settings2, XCircle, FileUp, PauseCircle, FileText } from 'lucide-react';
+import { entryRefusalFrom, entryRefusalInfo } from '@/lib/entryRefusalView';
+import { useConfirmDialog } from '@/components/ui/confirm-dialog';
 
 interface Plan { id: string; name: string; price_cents: number }
 
@@ -41,6 +43,8 @@ export default function ManageSubscription({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  // Archivage (PR 3) : un refus de box fermée s'affiche dans une boîte d'information.
+  const { dialog, inform } = useConfirmDialog();
 
   // Demande de résiliation anticipée
   const [reasonType, setReasonType] = useState<string>('moving');
@@ -60,6 +64,8 @@ export default function ManageSubscription({
         body: JSON.stringify({ new_plan_id: planId }),
       });
       const data = await res.json();
+      const refusal = entryRefusalFrom(data);
+      if (refusal) { setLoading(false); void inform(entryRefusalInfo(refusal)); return; }
       if (!res.ok) throw new Error(data.error ?? 'Erreur');
       setMessage(`Formule changée pour « ${data.plan_name} ». La page se recharge…`);
       setTimeout(() => window.location.reload(), 1500);
@@ -113,6 +119,7 @@ export default function ManageSubscription({
 
   return (
     <div className="pt-3 border-t border-white/[0.06] space-y-3">
+      {dialog}
       {paused && (
         <div className="flex items-center gap-1.5 text-xs font-semibold text-sky-400">
           <PauseCircle size={13} /> Abonnement en pause{pauseResumesAt ? ` — reprise le ${fmtDate(pauseResumesAt)}` : ''}. Contacte ta box pour le réactiver.

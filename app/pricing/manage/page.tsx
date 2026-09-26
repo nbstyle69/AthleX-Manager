@@ -5,6 +5,8 @@ import { useSearchParams } from 'next/navigation';
 import { Zap } from 'lucide-react';
 import { LandingHeader } from '@/components/landing/header';
 import { useLanguage } from '@/components/language-provider';
+import { entryRefusalFrom, entryRefusalInfo } from '@/lib/entryRefusalView';
+import { useConfirmDialog } from '@/components/ui/confirm-dialog';
 
 export default function ManageSubscriptionPage() {
   return (
@@ -24,6 +26,8 @@ function ManageContent() {
   const params = useSearchParams();
   const boxId = params.get('box_id');
   const [error, setError] = useState<string | null>(null);
+  // Archivage (PR 3) : un refus de box fermée s'affiche dans une boîte d'information.
+  const { dialog, inform } = useConfirmDialog();
 
   useEffect(() => {
     if (!boxId) {
@@ -44,6 +48,8 @@ function ManageContent() {
           return;
         }
         const data = await res.json();
+        const refusal = entryRefusalFrom(data);
+        if (refusal) { void inform(entryRefusalInfo(refusal)); return; }
         if (data.url) {
           window.location.href = data.url;
         } else {
@@ -58,6 +64,7 @@ function ManageContent() {
 
   return (
     <div className="min-h-screen bg-ax-background text-ax-text font-sans antialiased">
+      {dialog}
       <LandingHeader variant="funnel" />
       <div className="flex items-center justify-center p-6 text-center">
       <div>

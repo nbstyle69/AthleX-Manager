@@ -3,6 +3,8 @@
 import { useState } from 'react';
 import { CreditCard, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { entryRefusalFrom, entryRefusalInfo } from '@/lib/entryRefusalView';
+import { useConfirmDialog } from '@/components/ui/confirm-dialog';
 
 interface Props {
   boxId: string;
@@ -15,6 +17,8 @@ interface Props {
 export default function PaymentFailedBanner({ boxId }: Props) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Archivage (PR 3) : un refus de box fermée s'affiche dans une boîte d'information.
+  const { dialog, inform } = useConfirmDialog();
 
   async function openPortal() {
     setLoading(true);
@@ -26,6 +30,8 @@ export default function PaymentFailedBanner({ boxId }: Props) {
         body: JSON.stringify({ box_id: boxId }),
       });
       const json = await res.json();
+      const refusal = entryRefusalFrom(json);
+      if (refusal) { void inform(entryRefusalInfo(refusal)); return; }
       if (!res.ok || !json.url) {
         setError(json.error ?? 'Portail indisponible');
         return;
@@ -43,6 +49,7 @@ export default function PaymentFailedBanner({ boxId }: Props) {
       data-testid="payment-failed-banner"
       className="flex flex-wrap items-center gap-3 bg-ax-danger-soft border border-ax-danger rounded-ax-card px-4 py-3 mb-6"
     >
+      {dialog}
       <CreditCard size={18} className="text-ax-danger shrink-0" />
       <div className="flex-1">
         <p className="text-sm font-bold text-ax-danger">Paiement en échec — mettre à jour la carte</p>

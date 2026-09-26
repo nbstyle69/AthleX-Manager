@@ -15,6 +15,7 @@ import { SITE_URL } from '@/lib/site-url';
 import { Badge } from '@/components/ui/badge';
 import { useConfirmDialog } from '@/components/ui/confirm-dialog';
 import { countOf } from '@/lib/plural';
+import { entryRefusalFrom, entryRefusalInfo } from '@/lib/entryRefusalView';
 
 const supabase = createClient();
 
@@ -74,7 +75,7 @@ function rpcMessage(error: { message: string } | null): string | null {
 
 export default function InvitationsPage() {
   const router = useRouter();
-  const { dialog, ask } = useConfirmDialog();
+  const { dialog, ask, inform } = useConfirmDialog();
   const [boxId, setBoxId] = useState<string | null>(null);
   const [plans, setPlans] = useState<Plan[]>([]);
   const [invitations, setInvitations] = useState<Invitation[]>([]);
@@ -215,6 +216,8 @@ export default function InvitationsPage() {
         body: JSON.stringify({ invitation_id: link.invitationId, token }),
       });
       const payload = await res.json().catch(() => ({}));
+      const refusal = entryRefusalFrom(payload);
+      if (refusal) void inform(entryRefusalInfo(refusal));
       sent = res.ok && payload?.sent === true;
       failure = sent ? null : (payload?.error ?? `Erreur ${res.status}`);
     } catch (err) {

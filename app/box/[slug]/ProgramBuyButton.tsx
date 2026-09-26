@@ -3,6 +3,8 @@
 import { useState } from 'react';
 import { X, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { entryRefusalFrom, entryRefusalInfo } from '@/lib/entryRefusalView';
+import { useConfirmDialog } from '@/components/ui/confirm-dialog';
 
 interface Props {
   programId: string;
@@ -14,6 +16,8 @@ export default function ProgramBuyButton({ programId, priceLabel, recurring }: P
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Archivage (PR 3) : un refus de box fermée s'affiche dans une boîte d'information.
+  const { dialog, inform } = useConfirmDialog();
 
   async function handleCheckout() {
     setLoading(true);
@@ -27,6 +31,8 @@ export default function ProgramBuyButton({ programId, priceLabel, recurring }: P
         body: JSON.stringify({ program_id: programId }),
       });
       const data = await res.json();
+      const refusal = entryRefusalFrom(data);
+      if (refusal) { setLoading(false); setOpen(false); void inform(entryRefusalInfo(refusal)); return; }
       if (!res.ok) throw new Error(data.error ?? 'Erreur de paiement');
       window.location.href = data.url;
     } catch (e: any) {
@@ -37,6 +43,7 @@ export default function ProgramBuyButton({ programId, priceLabel, recurring }: P
 
   return (
     <>
+      {dialog}
       <Button onClick={() => setOpen(true)} variant="ax-white" size="ax-compact">
         Acheter — {priceLabel}
       </Button>

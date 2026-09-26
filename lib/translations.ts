@@ -505,6 +505,9 @@ export const translations = {
           invitation_revoquee: 'Cette invitation a été annulée par la box.',
           invitation_deja_utilisee: 'Cette invitation a déjà été utilisée.',
           invitation_expiree: 'Cette invitation a expiré.',
+          // Archivage (PR 1 et 3) : même texte que la base et que l'app.
+          box_archivee: "Cette box n'accepte plus de nouveaux membres.",
+          box_archivage_programme: "Cette box n'accepte plus de nouveaux membres.",
         },
       },
       pricing: {
@@ -1152,6 +1155,8 @@ export const translations = {
           invitation_revoquee: 'This invitation was cancelled by the gym.',
           invitation_deja_utilisee: 'This invitation has already been used.',
           invitation_expiree: 'This invitation has expired.',
+          box_archivee: 'This gym no longer accepts new members.',
+          box_archivage_programme: 'This gym no longer accepts new members.',
         },
       },
       pricing: {

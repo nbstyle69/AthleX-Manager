@@ -8,6 +8,8 @@ import { StoreBadges } from '@/components/store-badges';
 import { ConfirmationNotice } from './ConfirmationNotice';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { entryRefusalFrom, entryRefusalInfo } from '@/lib/entryRefusalView';
+import { useConfirmDialog } from '@/components/ui/confirm-dialog';
 
 export type InvitationPeek = {
   ok: true;
@@ -53,6 +55,8 @@ export default function JoinInvitationClient({
   const suggested = (invitation.first_name ?? '').replace(/[^A-Za-z0-9_-]/g, '');
   const [username, setUsername] = useState(suggested);
   const [password, setPassword] = useState('');
+  // Archivage (PR 3) : un refus de box fermée s'affiche dans une boîte d'information.
+  const { dialog, inform } = useConfirmDialog();
   const [gender, setGender] = useState<Gender>('male');
   const [cgu, setCgu] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -77,6 +81,8 @@ export default function JoinInvitationClient({
         body: JSON.stringify({ token, ...body }),
       });
       const json = await res.json();
+      const refusal = entryRefusalFrom(json);
+      if (refusal) { setLoading(false); void inform(entryRefusalInfo(refusal)); return; }
       if (!json.ok) {
         setError(json.error ?? j.failed);
         setLoading(false);
@@ -103,6 +109,8 @@ export default function JoinInvitationClient({
         body: JSON.stringify({ invitation_token: token }),
       });
       const json = await res.json();
+      const refusal = entryRefusalFrom(json);
+      if (refusal) { setPayLoading(false); void inform(entryRefusalInfo(refusal)); return; }
       if (!res.ok || !json.url) {
         setPayError(json.error ?? j.payUnavailable);
         setPayLoading(false);
@@ -154,6 +162,7 @@ export default function JoinInvitationClient({
 
   return (
     <Shell box={box}>
+      {dialog}
       <h2 className="text-lg font-bold text-ax-text">
         {invitation.first_name
           ? `${invitation.first_name}${j.titleWithName}${box.name}`

@@ -3,6 +3,8 @@
 import { useState } from 'react';
 import { X, Loader2, CheckCircle2, Settings2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { entryRefusalFrom, entryRefusalInfo } from '@/lib/entryRefusalView';
+import { useConfirmDialog } from '@/components/ui/confirm-dialog';
 
 interface Plan {
   id: string;
@@ -20,6 +22,8 @@ export default function MembershipManageButton({ plans }: Props) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState<string | null>(null);
+  // Archivage (PR 3) : un refus de box fermée s'affiche dans une boîte d'information.
+  const { dialog, inform } = useConfirmDialog();
 
   async function handleSubmit() {
     if (!planId) {
@@ -35,6 +39,8 @@ export default function MembershipManageButton({ plans }: Props) {
         body: JSON.stringify({ new_plan_id: planId }),
       });
       const data = await res.json();
+      const refusal = entryRefusalFrom(data);
+      if (refusal) { setLoading(false); setOpen(false); void inform(entryRefusalInfo(refusal)); return; }
       if (res.status === 401) {
         throw new Error('Connecte-toi à ton compte AthleX pour changer de formule.');
       }
@@ -56,6 +62,7 @@ export default function MembershipManageButton({ plans }: Props) {
 
   return (
     <>
+      {dialog}
       <button
         onClick={() => setOpen(true)}
         className="inline-flex items-center gap-2 text-xs font-semibold text-ax-text border border-ax-border hover:bg-ax-hover transition-colors px-4 py-2 rounded-ax-control"
