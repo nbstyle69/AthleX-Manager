@@ -2,6 +2,7 @@
 
 import { createClient, getActiveBox } from '@/lib/supabase/server';
 import { tournamentRefusal } from '@/lib/tournaments/refusals';
+import type { DecideRow } from '@/lib/tournaments/bracketDecision';
 
 type Result = { ok: true } | { ok: false; error: string };
 type AdvanceResult = { ok: true; created: number } | { ok: false; error: string };
@@ -64,21 +65,22 @@ export async function setMatchWinnerAction(
   return err ? { ok: false, error: err.message } : { ok: true };
 }
 
-export async function applyDecisionsAction(
-  tournamentId: string,
-  decisions: { matchId: string; winnerId: string; loserId: string | null }[],
-): Promise<Result> {
+/**
+ * « Décider selon les scores » : la base décide les matchs en attente du tour
+ * (`decide_bracket_round`, athlex-app #354) et rend une ligne par match, avec
+ * son vainqueur ou la raison de le laisser à la main. Le WOD du match, s'il en
+ * a un, prime sur celui de la manche, côté base.
+ */
+export async function decideRoundAction(
+  tournamentId: string, round: number, wodId: string | null,
+): Promise<{ ok: true; rows: DecideRow[] } | { ok: false; error: string }> {
   const { supabase, error } = await authorize(tournamentId);
   if (error) return { ok: false, error };
-  const nowIso = new Date().toISOString();
-  for (const d of decisions) {
-    const { error: err } = await supabase
-      .from('tournament_bracket_matches')
-      .update({ winner_id: d.winnerId, loser_id: d.loserId, status: 'completed', completed_at: nowIso })
-      .eq('id', d.matchId).eq('tournament_id', tournamentId);
-    if (err) return { ok: false, error: err.message };
-  }
-  return { ok: true };
+  const { data, error: err } = await supabase.rpc('decide_bracket_round', {
+    p_tournament_id: tournamentId, p_round: round, p_wod_id: wodId,
+  });
+  if (err) return { ok: false, error: tournamentRefusal(err.message, err.code) };
+  return { ok: true, rows: (data ?? []) as DecideRow[] };
 }
 
 export async function setMatchWodAction(
