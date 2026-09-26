@@ -3,11 +3,16 @@ import Link from 'next/link';
 import { ArrowLeft, Trophy } from 'lucide-react';
 import LeaderboardClient from './LeaderboardClient';
 import { computeBracketStandings, type BracketMatchRow } from '@/lib/bracket';
-import { rankWodScores, formatWodScore } from '@/lib/tournamentScoring';
+import { SCALE_NOTE, generalFromBase, requestedSeason, seasonOptions, wodRankingsFromBase, type StandingRow, type WodRankRow } from '@/lib/tournaments/standings';
+import { GENERIC_REFUSAL } from '@/lib/tournaments/refusals';
 import type { ParticipantRow, WodRanking, DivisionRanking } from './types';
 
-export default async function LeaderboardPage({ params }: { params: Promise<{ id: string }> }) {
+// Toujours relu : un score validé ou rejeté change le classement de la base.
+export const dynamic = 'force-dynamic';
+
+export default async function LeaderboardPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ saison?: string }> }) {
   const { id: tournamentId } = await params;
+  const { saison } = await searchParams;
 
   // Appartenance à la box active vérifiée AVANT toute lecture privilégiée :
   // les huit requêtes ci-dessous ignorent la RLS, et elles s'exécutaient
@@ -20,7 +25,7 @@ export default async function LeaderboardPage({ params }: { params: Promise<{ id
   const divisionIds = await divisionIdsOf(svc, tournamentId);
 
   const [{ data: rawParticipants }, { data: wods }, { data: validatedScores }, { data: divisionsRaw }, { data: divMembersRaw }, { data: bracketMatches }, { data: eloHistory }] = await Promise.all([
-    svc.from('tournament_participants').select('athlete_id, score').eq('tournament_id', tournamentId).order('score', { ascending: false }),
+    svc.from('tournament_participants').select('athlete_id').eq('tournament_id', tournamentId),
     svc.from('tournament_wods').select('id, title, order_index, type').eq('tournament_id', tournamentId).order('order_index'),
     svc.from('tournament_scores').select('athlete_id, tournament_wod_id, score_value, capped, tiebreak_value').eq('tournament_id', tournamentId).eq('status', 'validated'),
     svc.from('tournament_divisions').select('*').eq('tournament_id', tournamentId).order('level'),
@@ -33,6 +38,22 @@ export default async function LeaderboardPage({ params }: { params: Promise<{ id
 
   const format = (tournament as any).format;
   const isBracket = format === 'bracket' || format === 'swiss';
+  const isLeague = format === 'league_div';
+  const currentSeason = (tournament as any).current_season ?? 1;
+  // Ligue : saison en cours, ou une saison terminée choisie (`?saison=n`).
+  const season = isLeague ? requestedSeason(saison, currentSeason) : null;
+
+  // Classement calculé par la base (barème 100, 97, 95…, rang de compétition) :
+  // le Manager n'a plus de barème (athlex-app #359 à #365).
+  const [{ data: standingsRaw, error: standingsError }, { data: wodRanksRaw, error: wodRanksError }] = await Promise.all([
+    isBracket
+      ? Promise.resolve({ data: [] as StandingRow[], error: null })
+      : isLeague
+        ? svc.rpc('tournament_ligue_standings', { p_tournament_id: tournamentId, p_season: season })
+        : svc.rpc('tournament_classique_standings', { p_tournament_id: tournamentId }),
+    svc.rpc('tournament_classique_wod_ranks', { p_tournament_id: tournamentId }),
+  ]);
+  const loadError = standingsError || wodRanksError ? GENERIC_REFUSAL : null;
   const eloChangeById: Record<string, number> = {};
   (eloHistory ?? []).forEach((h: any) => { eloChangeById[h.athlete_id] = h.elo_change; });
 
@@ -60,36 +81,14 @@ export default async function LeaderboardPage({ params }: { params: Promise<{ id
         placement:   s.placement,
         elo_change:  eloChangeById[s.athlete_id] ?? null,
       }))
-    : (rawParticipants ?? []).map((p: any, i: number) => ({
-        rank:        i + 1,
-        athlete_id:  p.athlete_id,
-        total_score: p.score ?? 0,
-        username:    profileMap[p.athlete_id]?.username ?? null,
-        level:       profileMap[p.athlete_id]?.level    ?? null,
-        elo:         profileMap[p.athlete_id]?.elo       ?? null,
-        elo_change:  eloChangeById[p.athlete_id] ?? null,
-      }));
+    : generalFromBase((standingsRaw ?? []) as StandingRow[], profileMap, eloChangeById);
 
-  const wodRankings: WodRanking[] = (wods ?? []).map((wod: any) => {
-    const rows = (validatedScores ?? [])
-      .filter((s: any) => s.tournament_wod_id === wod.id)
-      .map((s: any) => ({
-        athlete_id:     s.athlete_id as string,
-        score_value:    s.score_value as string,
-        capped:         (s.capped ?? null) as boolean | null,
-        tiebreak_value: (s.tiebreak_value ?? null) as number | null,
-      }));
-    const wodScores = rankWodScores(rows, wod.type).map((r) => ({
-      rank:          r.rank,
-      athlete_id:    r.score.athlete_id,
-      score_value:   r.score.score_value,
-      score_display: formatWodScore(r.score.score_value, r.score.capped, wod.type),
-      is_ex_aequo:   r.isExAequo,
-      username:      profileMap[r.score.athlete_id]?.username ?? null,
-      level:         profileMap[r.score.athlete_id]?.level    ?? null,
-    }));
-    return { wod_id: wod.id, wod_title: wod.title, order_index: wod.order_index, scores: wodScores };
-  });
+  const wodRankings: WodRanking[] = wodRankingsFromBase(
+    (wods ?? []) as { id: string; title: string; order_index: number; type: string | null }[],
+    (wodRanksRaw ?? []) as WodRankRow[],
+    (validatedScores ?? []) as { athlete_id: string; tournament_wod_id: string; score_value: string; capped: boolean | null }[],
+    profileMap,
+  );
 
   // Build per-division rankings if league_div
   const divisionRankings: DivisionRanking[] = (divisionsRaw ?? []).map((d: any) => {
@@ -114,8 +113,6 @@ export default async function LeaderboardPage({ params }: { params: Promise<{ id
     };
   });
 
-  const isLeague = (tournament as any).format === 'league_div';
-  const currentSeason = (tournament as any).current_season ?? 1;
 
   return (
     <div className="max-w-3xl space-y-6">
@@ -132,6 +129,26 @@ export default async function LeaderboardPage({ params }: { params: Promise<{ id
           </span>
         )}
       </div>
+
+      {isLeague && currentSeason > 1 && (
+        <nav aria-label="Saison du classement général" className="flex flex-wrap gap-1 p-1 rounded-ax-control border border-ax-border w-fit">
+          {seasonOptions(currentSeason).map(o => (
+            <Link key={o.label} data-testid={o.season == null ? 'saison-en-cours' : `saison-${o.season}`}
+              href={o.season == null ? `/tournaments/${tournamentId}/leaderboard` : `/tournaments/${tournamentId}/leaderboard?saison=${o.season}`}
+              aria-current={season === o.season ? 'page' : undefined}
+              className={`px-3 py-1.5 rounded-ax-control text-xs font-bold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ax-focus ${season === o.season ? 'bg-ax-accent-soft text-ax-accent-text' : 'text-ax-text-secondary hover:text-ax-text hover:bg-ax-hover'}`}>
+              {o.label}
+            </Link>
+          ))}
+        </nav>
+      )}
+
+      {!isBracket && (
+        <p data-testid="bareme-classement" className="text-xs text-ax-text-secondary">Rang · Points · {SCALE_NOTE}</p>
+      )}
+      {loadError && (
+        <p role="alert" className="rounded-ax-control border border-ax-danger bg-ax-danger-soft px-4 py-3 text-sm text-ax-danger">{loadError}</p>
+      )}
 
       <LeaderboardClient
         general={general}

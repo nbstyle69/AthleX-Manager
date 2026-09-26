@@ -1,8 +1,8 @@
 /**
- * Une seule règle de classement « Classique » : lib/tournamentScoring (TS) et
- * tournament_classique_standings (SQL, migration athlex-app
- * 20261128_finalize_tournament_elo.sql) doivent rendre les mêmes points pour les
- * mêmes scores. Si l'une des deux bouge sans l'autre, ce test le dit.
+ * Lecture d'un score : parseScoreVal (TS, conversion d'un temps saisi dans
+ * l'onglet Scores) et parse_score_val (SQL) doivent lire la même valeur. Le
+ * classement lui-même est calculé par la base seule (athlex-app #359 à #361) :
+ * le Manager n'a plus de barème à comparer.
  *
  * Il tourne contre la pile Supabase jetable d'athlex-app :
  *   (athlex-app) ./scripts/test-stack.sh up
@@ -12,7 +12,7 @@
  * jamais joué contre la production.
  */
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
-import { parseScoreVal, rankClassique, type RawScore } from '@/lib/tournamentScoring';
+import { parseScoreVal } from '@/lib/tournamentScoring';
 
 const URL = process.env.TEST_SUPABASE_URL;
 const KEY = process.env.TEST_SUPABASE_SERVICE_ROLE_KEY;
@@ -42,7 +42,7 @@ function randomScore(r: () => number, isTime: boolean): { score_value: string; c
   return { score_value: String(Math.floor(r() * 300)), capped: null };
 }
 
-d('rankClassique (TS) = tournament_classique_standings (SQL)', () => {
+d('parse_score_val (SQL) = parseScoreVal (TS)', () => {
   jest.setTimeout(120_000);
   const db: SupabaseClient = createClient(URL ?? 'http://x', KEY ?? 'x', { auth: { persistSession: false } });
   const TAG = `parity_${Date.now()}`;
@@ -94,52 +94,4 @@ d('rankClassique (TS) = tournament_classique_standings (SQL)', () => {
   });
 
   // Tournois fuzzés : mêmes scores → mêmes points, même classement.
-  it.each([1, 2, 3, 4, 5])('graine %i : points SQL = points TS, rangs identiques', async (seed) => {
-    const r = rng(seed * 7919);
-    const nAth = 4 + Math.floor(r() * 6);
-    const nWod = 1 + Math.floor(r() * 3);
-    const athletes: string[] = [];
-    for (let i = 0; i < nAth; i++) athletes.push(await mkUser(`a${seed}_${i}`));
-
-    const today = new Date().toISOString().slice(0, 10);
-    const { data: t, error: tErr } = await db.from('tournaments').insert({
-      box_id: boxId, created_by: ownerId, name: `[TEST] parity ${seed} ${TAG}`, status: 'open',
-      level: 'rx', format: 'simple', start_date: today, end_date: today, max_participants: 16,
-    }).select('id').single();
-    if (tErr) throw new Error(tErr.message);
-    for (const a of athletes) await db.from('tournament_participants').insert({ tournament_id: t.id, athlete_id: a, score: 0 });
-
-    const raw: RawScore[] = [];
-    for (let w = 0; w < nWod; w++) {
-      const wodType = pick(r, ['For Time', 'AMRAP', 'Max Reps', 'Strength']);
-      const { data: wod, error: wErr } = await db.from('tournament_wods').insert({
-        tournament_id: t.id, order_index: w + 1, title: `[TEST] W${w}`, type: wodType,
-        duration_minutes: 12, movements: '[]', scoring: wodType === 'For Time' ? 'Temps' : 'Reps', status: 'active',
-      }).select('id').single();
-      if (wErr) throw new Error(wErr.message);
-      for (const a of athletes) {
-        if (r() < 0.1) continue; // sans score sur ce WOD
-        const sc = randomScore(r, wodType === 'For Time');
-        const { error: sErr } = await db.from('tournament_scores').insert({
-          tournament_id: t.id, tournament_wod_id: wod.id, athlete_id: a,
-          score_value: sc.score_value, capped: sc.capped ?? false, status: 'validated',
-        });
-        if (sErr) throw new Error(sErr.message);
-        raw.push({ athlete_id: a, tournament_wod_id: wod.id, wod_type: wodType, score_value: sc.score_value, capped: sc.capped });
-      }
-    }
-
-    const ts = rankClassique(raw);
-    const { data: sql, error } = await db.rpc('tournament_classique_standings', { p_tournament_id: t.id });
-    expect(error).toBeNull();
-    const sqlPoints = Object.fromEntries((sql as { athlete_id: string; points: number; final_rank: number }[]).map(x => [x.athlete_id, x.points]));
-    const tsPoints = Object.fromEntries(athletes.map(a => [a, ts[a] ?? 0]));
-    expect(sqlPoints).toEqual(tsPoints);
-
-    // Rang : compétition (1, 2, 2, 4) sur les points décroissants, les deux côtés.
-    const sorted = [...athletes].sort((a, b) => tsPoints[b] - tsPoints[a]);
-    const tsRank = Object.fromEntries(sorted.map(a => [a, sorted.findIndex(x => tsPoints[x] === tsPoints[a]) + 1]));
-    const sqlRank = Object.fromEntries((sql as { athlete_id: string; final_rank: number }[]).map(x => [x.athlete_id, x.final_rank]));
-    expect(sqlRank).toEqual(tsRank);
-  });
 });
