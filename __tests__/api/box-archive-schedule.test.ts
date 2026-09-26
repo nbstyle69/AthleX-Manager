@@ -23,6 +23,7 @@ jest.mock('@/lib/supabase/server', () => ({
 import { POST } from '../../app/api/admin/boxes/[id]/archive-schedule/route';
 import { getServerUser, createServiceClient } from '@/lib/supabase/server';
 import { fakeSupabase } from '../__fixtures__/fakeSupabase';
+import { withPushEnv, pushesOf, failPush } from '../__fixtures__/pushEnv';
 
 const mockUser = getServerUser as jest.Mock;
 const mockService = createServiceClient as jest.Mock;
@@ -552,5 +553,45 @@ describe('unschedule', () => {
     const res = await call('unschedule');
     expect(res._status).toBe(409);
     expect(res._data.error).toBe(msg);
+  });
+});
+
+describe('push membership_stopped à l’archivage', () => {
+  withPushEnv();
+  const failOnce = (id: string) => mockSubUpdate.mockImplementation(async (sid: string) => {
+    if (sid === id) throw new Error('Stripe down');
+    stripeState[sid].cancel_at_period_end = true; return { id: sid };
+  });
+
+  it('un push par membre arrêté (Stripe), selon son mode ; rien pour le comptoir, les programmes, les offres', async () => {
+    const res = await call('schedule');
+    expect(res._status).toBe(200);
+    const p = pushesOf(fetchSpy);
+    expect(p.map(x => [x.user_id, x.title, x.secret, x.data.box_id])).toEqual([
+      ['m1', "Fin d'abonnement programmée", 'cron_test', 'b1'],
+      ['m2', 'Abonnement arrêté', 'cron_test', 'b1'],
+    ]);
+    expect(p[0].body).toBe('Box Test a programmé la fin de ton abonnement le mardi 10 novembre 2026.');
+    expect(p[0].en.body).toBe('Box Test has scheduled your membership to end on Tuesday, 10 November 2026.');
+  });
+
+  it('relance après échec : seul le membre arrêté par la relance reçoit son push ; une troisième relance n’envoie rien', async () => {
+    failOnce('sub_m1');
+    await call('schedule');
+    expect(pushesOf(fetchSpy).map(x => x.user_id)).toEqual(['m2']);
+    mockSubUpdate.mockImplementation(async (id: string) => { stripeState[id].cancel_at_period_end = true; return { id }; });
+    await call('schedule');
+    expect(pushesOf(fetchSpy).map(x => x.user_id)).toEqual(['m2', 'm1']);
+    await call('schedule');
+    expect(pushesOf(fetchSpy).map(x => x.user_id)).toEqual(['m2', 'm1']);
+  });
+
+  it('push en panne : programmation, arrêts, journal et e-mails tiennent', async () => {
+    failPush(fetchSpy);
+    const res = await call('schedule');
+    expect(res._status).toBe(200);
+    expect(res._data).toMatchObject({ scheduled: true });
+    expect(db.tables.box_member_subscription_actions.length).toBeGreaterThanOrEqual(2);
+    expect(emails().map(e => e.to)).toEqual(expect.arrayContaining(['m1@exemple.fr', 'm2@exemple.fr', 'gerant@exemple.fr']));
   });
 });

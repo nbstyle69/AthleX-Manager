@@ -1,6 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { stopSubscription, type StopMode } from '@/lib/stripe/stopSubscription';
 import { MAIL_FROM } from '@/lib/site-url';
+import { sendMembershipStoppedPush } from '@/lib/members/membershipPush';
 
 /**
  * Cœur serveur de l'arrêt d'un abonnement de salle (S2), partagé par S4
@@ -211,21 +212,31 @@ export async function stopBoxMember(
 
   // E-mail au membre : son échec n'annule pas l'arrêt.
   const email = profile?.email ?? null;
-  if (!email) return { emailed: false };
-  const content = stopEmailContent({
-    mode,
-    firstName: memberFirstName(profile),
-    boxName: box?.name ?? 'ta box',
-    planName: planName ?? 'de salle',
-    periodEnd: member.subscription_current_period_end,
-  });
-  const sent = await sendMemberEmail({
-    to: email, ...content, boxName: box?.name ?? 'ta box', replyTo: box?.contact_email ?? null, tag: 'stop-subscription',
-  });
-  if (sent && journalId) {
-    await supabase.from('box_member_subscription_actions')
-      .update({ notified_at: new Date().toISOString() })
-      .eq('id', journalId);
+  let sent = false;
+  if (email) {
+    const content = stopEmailContent({
+      mode,
+      firstName: memberFirstName(profile),
+      boxName: box?.name ?? 'ta box',
+      planName: planName ?? 'de salle',
+      periodEnd: member.subscription_current_period_end,
+    });
+    sent = await sendMemberEmail({
+      to: email, ...content, boxName: box?.name ?? 'ta box', replyTo: box?.contact_email ?? null, tag: 'stop-subscription',
+    });
+    if (sent && journalId) {
+      await supabase.from('box_member_subscription_actions')
+        .update({ notified_at: new Date().toISOString() })
+        .eq('id', journalId);
+    }
   }
+
+  // Push au membre, après le journal et l'e-mail : une fois par arrêt effectif
+  // (les relances ne rappellent pas cette fonction pour un arrêt déjà fait).
+  // `notified_at` reste le fait « e-mail parti ». Ne lève jamais.
+  await sendMembershipStoppedPush({
+    userId: member.member_id, boxId: member.box_id, mode,
+    boxName: box?.name ?? 'Ta box', periodEnd: member.subscription_current_period_end,
+  });
   return { emailed: sent };
 }

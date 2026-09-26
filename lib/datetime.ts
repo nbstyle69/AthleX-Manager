@@ -49,9 +49,9 @@ export function fromDateInput(value: string | null | undefined): string | null {
  * elle reste ce jour à Paris.
  */
 export const PARIS_TZ = 'Europe/Paris';
-export function parisDate(iso: string, opts: Intl.DateTimeFormatOptions): string {
+export function parisDate(iso: string, opts: Intl.DateTimeFormatOptions, locale = 'fr-FR'): string {
   const dateOnly = /^\d{4}-\d{2}-\d{2}$/.test(iso);
-  return new Date(dateOnly ? `${iso}T12:00:00Z` : iso).toLocaleDateString('fr-FR', { ...opts, timeZone: PARIS_TZ });
+  return new Date(dateOnly ? `${iso}T12:00:00Z` : iso).toLocaleDateString(locale, { ...opts, timeZone: PARIS_TZ });
 }
 
 export function isScheduledAhead(value: string | null | undefined, now: number = Date.now()): boolean {

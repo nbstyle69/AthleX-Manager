@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient, getServerUser } from '@/lib/supabase/server';
 import { isBoxOwnerAdmin } from '@/lib/isBoxOwnerAdmin';
 import { stopSubscription } from '@/lib/stripe/stopSubscription';
+import { sendMembershipStoppedPush } from '@/lib/members/membershipPush';
 import {
   REVIEW_EMAIL_WARNING, memberFirstName, reviewEmailContent, sendMemberEmail, stopKey,
 } from '@/lib/members/stopMembership';
@@ -51,7 +52,7 @@ export async function POST(req: NextRequest) {
     const [{ data: memberRaw }, { data: boxRaw }, { data: profileRaw }] = await Promise.all([
       supabase
         .from('box_members')
-        .select('id, plan_id, stripe_subscription_id, subscription_status, subscription_current_period_end')
+        .select('id, plan_id, stripe_subscription_id, subscription_status, subscription_current_period_end, subscription_cancel_at_period_end')
         .eq('box_id', request.box_id)
         .eq('member_id', request.member_id)
         .maybeSingle(),
@@ -61,13 +62,18 @@ export async function POST(req: NextRequest) {
     const member = memberRaw as {
       id: string; plan_id: string | null; stripe_subscription_id: string | null;
       subscription_status: string | null; subscription_current_period_end: string | null;
+      subscription_cancel_at_period_end: boolean | null;
     } | null;
     const box = boxRaw as { name: string; stripe_account_id: string | null; contact_email: string | null } | null;
     const profile = profileRaw as { email: string | null; username: string | null; full_name: string | null } | null;
 
+    // Arrêt effectif de cette approbation : un abonnement Stripe en cours, pas
+    // déjà en fin programmée (sinon le membre a déjà eu son push).
+    let stopped = false;
     if (action === 'approve') {
       if (member?.stripe_subscription_id && ACTIVE_STATUSES.includes(member.subscription_status ?? '')) {
         if (box?.stripe_account_id) {
+          stopped = !member.subscription_cancel_at_period_end;
           // Même clé que l'arrêt S2 en fin de période : rejouer ne crée rien de plus.
           await stopSubscription({
             stripeAccount: box.stripe_account_id,
@@ -115,6 +121,15 @@ export async function POST(req: NextRequest) {
         boxName,
         replyTo: box?.contact_email ?? null,
         tag: 'cancellation-review',
+      });
+    }
+
+    // Push « fin programmée » (même envoi que stopBoxMember), après l'e-mail.
+    // La demande n'est approuvable qu'une fois (statut `pending`) : pas de double envoi.
+    if (stopped && member) {
+      await sendMembershipStoppedPush({
+        userId: request.member_id, boxId: request.box_id, mode: 'period_end',
+        boxName: box?.name ?? 'Ta box', periodEnd: member.subscription_current_period_end,
       });
     }
 
