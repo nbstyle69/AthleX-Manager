@@ -6,6 +6,7 @@ import { Zap, AlertTriangle, Crown, Clock, CreditCard, RefreshCw } from 'lucide-
 import Link from 'next/link';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { parisDate } from '@/lib/datetime';
 
 interface Props {
   status: string;
@@ -142,7 +143,7 @@ export default function TrialBanner({ status: initialStatus, daysLeft, trialEnds
   const Icon = isUrgent ? AlertTriangle : isWarning ? Clock : Zap;
 
   const endsLabel = trialEndsAt
-    ? new Date(trialEndsAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })
+    ? parisDate(trialEndsAt, { day: 'numeric', month: 'long', year: 'numeric' })
     : null;
 
   return (

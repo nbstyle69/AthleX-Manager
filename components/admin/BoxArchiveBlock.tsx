@@ -8,6 +8,7 @@ import {
   askArchiveBox, askRelaunchStops, deleteBox, deleteRequest, patchArchive, postArchiveSchedule, scheduledStateLabel, unscheduleRequest,
 } from '@/lib/boxArchive';
 import { ERROR_TITLE } from '@/lib/confirmDialog';
+import { parisDate } from '@/lib/datetime';
 
 interface Deletion {
   name: string;
@@ -128,7 +129,7 @@ export default function BoxArchiveBlock({
       {archived ? (
         <>
           <p className="text-xs text-ax-text-secondary">
-            Cette box est archivée depuis le {new Date(archivedAt).toLocaleDateString('fr-FR')}.
+            Cette box est archivée depuis le {parisDate(archivedAt, { day: '2-digit', month: '2-digit', year: 'numeric' })}.
             Ses membres n&apos;y ont plus accès et elle n&apos;est plus générée. Rien n&apos;a été supprimé.
           </p>
           <Button

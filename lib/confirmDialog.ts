@@ -8,6 +8,7 @@
  *   ni un second clic ne peuvent l'interrompre ou la relancer ;
  * - une information demandée pendant l'action (erreur) s'affiche à sa fin.
  */
+import { parisDate } from '@/lib/datetime';
 
 export interface ConfirmField {
   label: string;
@@ -203,10 +204,12 @@ export function infoButtonLabel(req: InfoRequest): string {
   return req.closeLabel ?? (req.kind === 'error' ? 'Fermer' : 'OK');
 }
 
-/** Date complète affichée dans les confirmations : « mardi 29 septembre 2026 ». */
+/**
+ * Date complète affichée dans les confirmations, bandeaux et e-mails : « mardi
+ * 29 septembre 2026 », en heure de Paris (voir `parisDate`).
+ */
 export function fullDate(iso: string): string {
-  const d = /^\d{4}-\d{2}-\d{2}$/.test(iso) ? new Date(`${iso}T12:00:00`) : new Date(iso);
-  return d.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+  return parisDate(iso, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
 }
 
 /** « 18:30:00 » → « 18:30 ». */

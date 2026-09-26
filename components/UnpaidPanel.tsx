@@ -6,6 +6,7 @@ import { AlertTriangle, Loader2, Mail, RefreshCw, Ban } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { countOf } from '@/lib/plural';
+import { parisDate } from '@/lib/datetime';
 
 const supabase = createClient();
 
@@ -37,7 +38,7 @@ function fmtPrice(cents: number | null) {
 
 function fmtDate(iso: string | null) {
   if (!iso) return '—';
-  return new Date(iso).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' });
+  return parisDate(iso, { day: '2-digit', month: 'short', year: 'numeric' });
 }
 
 /** Jours restants avant suspension des réservations (0 = déjà suspendu). */

@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Loader2, Settings2, XCircle, FileUp, PauseCircle, FileText } from 'lucide-react';
 import { entryRefusalFrom, entryRefusalInfo } from '@/lib/entryRefusalView';
 import { useConfirmDialog } from '@/components/ui/confirm-dialog';
+import { parisDate } from '@/lib/datetime';
 
 interface Plan { id: string; name: string; price_cents: number }
 
@@ -26,7 +27,7 @@ function fmt(cents: number) {
 
 function fmtDate(iso: string | null) {
   if (!iso) return '';
-  return new Date(iso).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' });
+  return parisDate(iso, { day: '2-digit', month: 'long', year: 'numeric' });
 }
 
 const REASONS = [

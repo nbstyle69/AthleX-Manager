@@ -24,6 +24,7 @@ import { useConfirmDialog } from '@/components/ui/confirm-dialog';
 import { ERROR_TITLE } from '@/lib/confirmDialog';
 import { askDeleteWithSubscriptions, countOf } from '@/lib/deleteWithSubscriptions';
 import { entryRefusalFrom, entryRefusalInfo } from '@/lib/entryRefusalView';
+import { parisDate } from '@/lib/datetime';
 
 const DISCIPLINES = ['crossfit', 'hyrox', 'hybrid', 'haltero', 'endurance'];
 const LEVELS = ['all', 'beginner', 'intermediate', 'advanced'];
@@ -528,7 +529,7 @@ function UnsubscribeLink({
     const end = pending[0]?.current_period_end;
     return (
       <p className="text-[10px] text-ax-warning text-center">
-        Résiliation demandée{end ? ` — effective le ${new Date(end).toLocaleDateString('fr-FR')}` : ' — effective à la fin de la période'}
+        Résiliation demandée{end ? ` — effective le ${parisDate(end, { day: '2-digit', month: '2-digit', year: 'numeric' })}` : ' — effective à la fin de la période'}
       </p>
     );
   }

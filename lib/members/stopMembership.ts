@@ -11,8 +11,9 @@ import { MAIL_FROM } from '@/lib/site-url';
  * Aucune donnée personnelle ni secret dans les journaux serveur.
  */
 
-export const fullDate = (iso: string) =>
-  new Date(iso).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+// Les e-mails S2 et S4 datent comme les écrans : même fonction, en heure de Paris.
+export { fullDate } from '@/lib/confirmDialog';
+import { fullDate } from '@/lib/confirmDialog';
 
 const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 

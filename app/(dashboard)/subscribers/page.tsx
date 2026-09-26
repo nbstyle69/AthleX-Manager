@@ -13,6 +13,7 @@ import { useConfirmDialog } from '@/components/ui/confirm-dialog';
 import { fullDate, type ConfirmChoice } from '@/lib/confirmDialog';
 import { paymentMethodLabel } from '@/lib/paymentMethodLabel';
 import { entryRefusalFrom, entryRefusalInfo } from '@/lib/entryRefusalView';
+import { parisDate } from '@/lib/datetime';
 
 const INPUT_CLS = 'w-full min-h-11 px-3 py-2.5 rounded-ax-control bg-ax-surface border border-ax-input-border text-base sm:text-sm text-ax-text placeholder:text-ax-text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ax-focus focus-visible:ring-offset-2 focus-visible:ring-offset-ax-surface transition-colors';
 
@@ -75,7 +76,7 @@ function fmtPrice(cents: number | null) {
 
 function fmtDate(iso: string | null) {
   if (!iso) return '—';
-  return new Date(iso).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' });
+  return parisDate(iso, { day: '2-digit', month: 'short', year: 'numeric' });
 }
 
 /** Une ligne de `get_box_billing` : l'abonnement nominatif, servi au gérant. */
