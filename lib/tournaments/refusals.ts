@@ -1,3 +1,5 @@
+import { countOf } from '@/lib/plural';
+
 /**
  * Refus de la base sur les tournois, dits en français clair : jamais un code
  * brut à l'écran. La base répond « CODE: texte » ; `generate_bracket_round_1`
@@ -34,6 +36,9 @@ export function tournamentRefusal(message: string | null | undefined, code?: str
     return 'Le tableau ne peut plus être régénéré : un match est déjà joué. Pour corriger un résultat, remets le match à jouer ou choisis le vainqueur.';
   }
   if (m.startsWith('Need at least 2 participants')) return 'Il faut au moins 2 participants pour tirer le tableau.';
+  // advance_bracket_round : « Round 3 has 2 unfinished matches ».
+  const unfinished = /^Round (\d+) has (\d+) unfinished match/.exec(m);
+  if (unfinished) return `Le tour ${unfinished[1]} a encore ${countOf(Number(unfinished[2]), 'match', 'matchs')} à décider.`;
   if (m.startsWith('Not authorized') || m.startsWith('Accès refusé') || code === '42501') return NOT_ALLOWED;
 
   const coded = /^([A-Z][A-Z_]{3,})\s*:\s*([\s\S]*)$/.exec(m);

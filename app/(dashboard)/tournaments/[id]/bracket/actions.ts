@@ -49,7 +49,7 @@ export async function advanceRoundAction(tournamentId: string, completedRound: n
   const { data, error: err } = await supabase.rpc('advance_bracket_round', {
     p_tournament_id: tournamentId, p_completed_round: completedRound,
   });
-  if (err) return { ok: false, error: err.message };
+  if (err) return { ok: false, error: tournamentRefusal(err.message, err.code) };
   return { ok: true, created: typeof data === 'number' ? data : 0 };
 }
 
@@ -114,17 +114,8 @@ export async function regenerateBracketAction(tournamentId: string): Promise<Res
   return genErr ? { ok: false, error: tournamentRefusal(genErr.message, genErr.code) } : { ok: true };
 }
 
-export async function createGrandFinalAction(
-  tournamentId: string, wbChampionId: string, lbChampionId: string,
-): Promise<Result> {
-  const { supabase, error } = await authorize(tournamentId);
-  if (error) return { ok: false, error };
-  const { error: err } = await supabase.from('tournament_bracket_matches').insert({
-    tournament_id: tournamentId, round: 99, match_number: 1, side: 'grand_final',
-    participant1_id: wbChampionId, participant2_id: lbChampionId, status: 'pending',
-  });
-  return err ? { ok: false, error: err.message } : { ok: true };
-}
+// La grande finale et son match décisif sont créés par la base
+// (`advance_bracket_round`, athlex-app #353), jamais à la main.
 
 export async function saveMatchEditAction(
   tournamentId: string,

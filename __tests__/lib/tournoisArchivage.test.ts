@@ -151,7 +151,7 @@ describe('branchements', () => {
 
   it('régénérer : la base seule, aucune suppression de match par le Manager, refus traduits', () => {
     const s = read('app/(dashboard)/tournaments/[id]/bracket/actions.ts');
-    const regen = s.slice(s.indexOf('export async function regenerateBracketAction'), s.indexOf('export async function createGrandFinalAction'));
+    const regen = s.slice(s.indexOf('export async function regenerateBracketAction'), s.indexOf('export async function saveMatchEditAction'));
     expect(regen).not.toMatch(/\.delete\(/);
     expect(regen).toContain("error: tournamentRefusal(genErr.message, genErr.code)");
     const gen = s.slice(s.indexOf('export async function generateRound1Action'), s.indexOf('export async function advanceRoundAction'));

@@ -104,7 +104,7 @@ describe('plus aucune règle sportive dans le Manager', () => {
     expect(bm).toContain('setDecision({ message: decidedMessage(res.rows), motifs: manualMotifs(res.rows) });');
     expect(bm).toMatch(/Match #\{m\.match_number\} · \{MOTIF_TEXT\[decision\.motifs\[m\.id\]\]\}/);
     // Refus de la base : dans la boîte d'erreur (lisible dans les deux thèmes), pas dans le bandeau rouge.
-    const decide = bm.slice(bm.indexOf('async function decideRound('), bm.indexOf('// Latest WB round status'));
+    const decide = bm.slice(bm.indexOf('async function decideRound('), bm.indexOf('function askGenerateRound1()'));
     expect(decide).toContain("if (!res.ok) { void inform({ kind: 'error', title: ERROR_TITLE, body: res.error }); return; }");
     expect(decide).not.toContain('setError(res.error)');
   });
