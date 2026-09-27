@@ -270,6 +270,13 @@ export async function POST(req: NextRequest) {
       paymentMethodType = typeof pm === 'string' ? null : pm?.type ?? null;
       if (!pmId) throw new Error(`SetupIntent ${setupIntentId} sans moyen de paiement`);
 
+      // Sans client passé au Checkout, la doc Stripe demande d'associer le
+      // moyen de paiement au client ; on ne le fait que s'il ne l'est pas déjà.
+      const pmCustomer = typeof pm === 'string' ? null : (typeof pm?.customer === 'string' ? pm.customer : pm?.customer?.id ?? null);
+      if (pmCustomer !== customerId) {
+        await stripe.paymentMethods.attach(pmId, { customer: customerId }, opts);
+      }
+
       // Moyen de paiement enregistré par défaut, sur le client et sur l'abonnement.
       await stripe.customers.update(customerId, { invoice_settings: { default_payment_method: pmId } }, opts);
 

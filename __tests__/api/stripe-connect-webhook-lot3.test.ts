@@ -12,6 +12,7 @@ const mockSetupRetrieve = jest.fn();
 const mockCustomersUpdate = jest.fn();
 const mockItemsList = jest.fn();
 const mockItemsCreate = jest.fn();
+const mockPmAttach = jest.fn();
 
 jest.mock('stripe', () => ({
   __esModule: true,
@@ -21,6 +22,7 @@ jest.mock('stripe', () => ({
     setupIntents: { retrieve: mockSetupRetrieve },
     customers: { update: mockCustomersUpdate },
     invoiceItems: { list: mockItemsList, create: mockItemsCreate },
+    paymentMethods: { attach: mockPmAttach },
   })),
 }));
 
@@ -99,6 +101,7 @@ beforeEach(() => {
   mockSubsRetrieve.mockResolvedValue({ default_payment_method: { type: 'card' }, items: { data: [{ current_period_end: s('2026-10-05T04:00:00Z') }] } });
   mockSetupRetrieve.mockResolvedValue({ payment_method: { id: 'pm_1', type: 'sepa_debit' } });
   mockCustomersUpdate.mockResolvedValue({});
+  mockPmAttach.mockResolvedValue({});
   mockSubsList.mockImplementation(async () => ({ data: [...createdSubs] }));
   mockSubsCreate.mockImplementation(async (params: any) => {
     const sub = { id: `sub_${createdSubs.length + 1}`, status: 'trialing', metadata: params.metadata, items: { data: [{ current_period_end: params.trial_end }] } };
@@ -157,6 +160,8 @@ describe('échéance future : abonnement créé par le webhook', () => {
     expect(params.metadata).toEqual(expect.objectContaining({ checkout_session_id: 'cs_setup_1', plan_id: 'plan-1', box_id: 'box-1' }));
     expect(opts).toEqual({ stripeAccount: 'acct_1', idempotencyKey: 'membership-deferred-sub-cs_setup_1' });
     expect(mockItemsCreate).not.toHaveBeenCalled();
+    // Moyen de paiement pas encore associé au client créé par Checkout : on l'associe.
+    expect(mockPmAttach).toHaveBeenCalledWith('pm_1', { customer: 'cus_1' }, { stripeAccount: 'acct_1' });
 
     const patch = chains.box_members.update.mock.calls[0][0];
     expect(patch).toEqual(expect.objectContaining({
@@ -167,6 +172,15 @@ describe('échéance future : abonnement créé par le webhook', () => {
     // Engagement de 12 mois compté depuis l'échéance.
     expect(patch.commitment_end_date).toBe('2027-10-14T22:00:00.000Z');
     expect(mockRpc).toHaveBeenCalledWith('accept_box_invitation_after_payment', { p_invitation_id: 'inv-1', p_user_id: 'user-1' });
+  });
+
+  it('moyen de paiement déjà associé au client : pas de nouvelle association', async () => {
+    mockSetupRetrieve.mockResolvedValue({ payment_method: { id: 'pm_1', type: 'card', customer: 'cus_1' } });
+    mockConstructEvent.mockReturnValue(deferredEvent());
+    const res = (await POST(req())) as any;
+    expect(res._status).toBe(200);
+    expect(mockPmAttach).not.toHaveBeenCalled();
+    expect(mockCustomersUpdate).toHaveBeenCalledTimes(1);
   });
 
   it('même événement reçu deux fois : un seul abonnement', async () => {
