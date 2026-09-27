@@ -145,7 +145,9 @@ describe('Refus dans une boîte d’information (point 3)', () => {
   ];
   const EXPECTED_CHECKS: Record<string, number> = {
     'app/box/[slug]/TrialBookingCta.tsx': 2,
-    'app/rejoindre/[token]/JoinInvitationClient.tsx': 2,
+    // Lot 3 : l'aperçu des montants peut aussi renvoyer le refus.
+    'app/box/[slug]/MembershipSubscribeButton.tsx': 2,
+    'app/rejoindre/[token]/JoinInvitationClient.tsx': 3,
   };
 
   it.each(SCREENS)('%s ouvre la boîte sur un refus et la rend', (p) => {

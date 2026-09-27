@@ -58,8 +58,10 @@ function plan(overrides: Record<string, any> = {}) {
   };
 }
 
+// Lot 3 : un abonnement exige le jour de prélèvement (tests dédiés dans
+// membership-billing-routes.test.ts) ; ici on pose le 5 par défaut.
 function makeReq(body: any): any {
-  return { json: jest.fn().mockResolvedValue(body) };
+  return { json: jest.fn().mockResolvedValue({ billing_day: 5, ...body }) };
 }
 
 beforeEach(() => {

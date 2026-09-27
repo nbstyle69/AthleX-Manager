@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { createServiceClient } from '@/lib/supabase/server';
+import { isBillingDay, commitmentEndIso, type BillingPlanDeferred } from '@/lib/membershipBilling';
 
 function getStripe() {
   return new Stripe(process.env.STRIPE_SECRET_KEY!, {
@@ -22,6 +23,14 @@ function subscriptionPeriodEnd(sub: any): string | null {
 function invoiceSubscriptionId(inv: any): string | null {
   return inv?.parent?.subscription_details?.subscription ?? inv?.subscription ?? null;
 }
+
+// Jour de prélèvement (lot 3) posé par le checkout ; hors de 1 à 10 : ignoré.
+function metadataBillingDay(metadata: Record<string, string> | null | undefined): number | null {
+  const day = Number(metadata?.billing_day);
+  return isBillingDay(day) ? day : null;
+}
+
+const MEMBERSHIP_FEE_PERCENT = Number(process.env.MEMBERSHIP_FEE_PERCENT ?? '0');
 
 /**
  * Webhook dédié aux comptes connectés (Stripe Connect).
@@ -127,6 +136,8 @@ export async function POST(req: NextRequest) {
     email: string | null,
     sessionId: string,
     payload: Record<string, unknown>,
+    // Vraies colonnes de pending_entitlements (jamais dans payload).
+    columns: { billing_day?: number | null } = {},
   ): Promise<NextResponse | null> {
     if (!email) {
       console.error(`Cannot park ${kind} purchase for session ${sessionId}: no verified email on the Stripe session.`);
@@ -137,6 +148,7 @@ export async function POST(req: NextRequest) {
       kind,
       payload,
       stripe_checkout_session_id: sessionId,
+      ...columns,
     });
     if (error) {
       // Rejeu du même événement : la contrainte unique sur la session tient.
@@ -149,6 +161,186 @@ export async function POST(req: NextRequest) {
     }
     console.log(`Pending ${kind} parked for ${email} (session ${sessionId}) — will be claimed at signup.`);
     return null;
+  }
+
+  /**
+   * Écriture de l'adhésion (payée, ou moyen de paiement enregistré pour une
+   * échéance future) : box_members si le compte existe, sinon
+   * pending_entitlements. Ferme ensuite l'invitation. Renvoie une réponse
+   * d'erreur si l'écriture échoue.
+   */
+  async function activateMembership(
+    session: Stripe.Checkout.Session,
+    m: {
+      boxId: string; planId: string; userId: string | null; buyerEmail: string | null;
+      billingDay: number | null; subscriptionId: string | null; periodEnd: string | null;
+      paymentMethodType: string | null; amountCents: number | null; feeCents: number | null;
+      commitmentEnd: string | null;
+    },
+  ): Promise<NextResponse | null> {
+    const patch = {
+      plan_id: m.planId,
+      subscription_status: 'active',
+      status: 'active',
+      payment_method_type: m.paymentMethodType,
+      past_due_since: null,
+      dunning_attempts: 0,
+      last_payment_error: null,
+      dunning_reminders_sent: 0,
+      stripe_subscription_id: m.subscriptionId,
+      stripe_checkout_session_id: session.id,
+      subscription_current_period_end: m.periodEnd,
+      amount_cents: m.amountCents,
+      platform_fee_cents: m.feeCents,
+      commitment_end_date: m.commitmentEnd,
+      subscription_paused: false,
+      ...(m.billingDay ? { billing_day: m.billingDay } : {}),
+    };
+
+    if (!m.userId) {
+      return parkPendingEntitlement('membership', m.buyerEmail, session.id, {
+        box_id: m.boxId,
+        plan_id: m.planId,
+        stripe_subscription_id: m.subscriptionId,
+        subscription_current_period_end: m.periodEnd,
+        amount_cents: m.amountCents,
+        platform_fee_cents: m.feeCents,
+        commitment_end_date: m.commitmentEnd,
+        payment_method_type: m.paymentMethodType,
+      }, m.billingDay ? { billing_day: m.billingDay } : {});
+    }
+
+    const { data: existing } = await supabase.from('box_members')
+      .select('id')
+      .eq('box_id', m.boxId)
+      .eq('member_id', m.userId)
+      .maybeSingle();
+
+    const { error: writeErr } = existing?.id
+      ? await supabase.from('box_members').update(patch).eq('id', existing.id)
+      : await supabase.from('box_members').insert({
+          box_id: m.boxId, member_id: m.userId, role: 'member', ...patch,
+        });
+    if (writeErr) {
+      console.error(`Membership box_members write failed for user ${m.userId} on box ${m.boxId}:`, writeErr.message);
+      return NextResponse.json({ error: writeErr.message }, { status: 500 });
+    }
+
+    await closeInvitation(session.metadata?.invitation_id, m.userId);
+
+    console.log(`Membership plan ${m.planId} activated for user ${m.userId} on box ${m.boxId}`);
+    return null;
+  }
+
+  /**
+   * Lot 3, échéance future : crée l'abonnement d'un adhérent qui migre, tel
+   * que l'aperçu l'a montré (dates et prorata posés dans la metadata par la
+   * route de checkout).
+   *
+   * Idempotent : un abonnement déjà créé pour cette session est retrouvé chez
+   * Stripe (metadata `checkout_session_id`) et réutilisé, et chaque création
+   * porte une clé d'idempotence liée à la session. Tout échec Stripe est
+   * journalisé et renvoie 500 : Stripe réessaie.
+   */
+  async function createDeferredMembership(
+    session: Stripe.Checkout.Session,
+    account: string | null,
+  ): Promise<NextResponse | null> {
+    const md = session.metadata ?? {};
+    const planId = md.plan_id;
+    const boxId = md.box_id;
+    const priceId = md.price_id;
+    const trialEnd = Number(md.trial_end);
+    const anchor = md.billing_cycle_anchor ? Number(md.billing_cycle_anchor) : null;
+    const merged = Number(md.merged_prorata_cents ?? 0) || 0;
+    const customerId = typeof session.customer === 'string' ? session.customer : session.customer?.id ?? null;
+    const setupIntentId = typeof session.setup_intent === 'string' ? session.setup_intent : session.setup_intent?.id ?? null;
+    if (!planId || !boxId || !priceId || !trialEnd || !customerId || !setupIntentId || !account) {
+      console.error(`membership_deferred ${session.id}: metadata, client, SetupIntent ou compte manquant — rien créé.`);
+      return null;
+    }
+    const opts = { stripeAccount: account };
+
+    let subscription: any;
+    let paymentMethodType: string | null = null;
+    try {
+      const setupIntent = await stripe.setupIntents.retrieve(setupIntentId, { expand: ['payment_method'] }, opts) as any;
+      const pm = setupIntent.payment_method;
+      const pmId: string | null = typeof pm === 'string' ? pm : pm?.id ?? null;
+      paymentMethodType = typeof pm === 'string' ? null : pm?.type ?? null;
+      if (!pmId) throw new Error(`SetupIntent ${setupIntentId} sans moyen de paiement`);
+
+      // Sans client passé au Checkout, la doc Stripe demande d'associer le
+      // moyen de paiement au client ; on ne le fait que s'il ne l'est pas déjà.
+      const pmCustomer = typeof pm === 'string' ? null : (typeof pm?.customer === 'string' ? pm.customer : pm?.customer?.id ?? null);
+      if (pmCustomer !== customerId) {
+        await stripe.paymentMethods.attach(pmId, { customer: customerId }, opts);
+      }
+
+      // Moyen de paiement enregistré par défaut, sur le client et sur l'abonnement.
+      await stripe.customers.update(customerId, { invoice_settings: { default_payment_method: pmId } }, opts);
+
+      const existing = await stripe.subscriptions.list({ customer: customerId, status: 'all', limit: 100 }, opts);
+      subscription = existing.data.find((sub: any) => sub.metadata?.checkout_session_id === session.id);
+
+      if (!subscription) {
+        subscription = await stripe.subscriptions.create(
+          {
+            customer: customerId,
+            items: [{ price: priceId }],
+            default_payment_method: pmId,
+            trial_end: trialEnd,
+            ...(anchor ? { billing_cycle_anchor: anchor, proration_behavior: 'create_prorations' as const } : {}),
+            ...(MEMBERSHIP_FEE_PERCENT > 0 ? { application_fee_percent: MEMBERSHIP_FEE_PERCENT } : {}),
+            metadata: {
+              plan_id: planId, box_id: boxId, checkout_session_id: session.id,
+              ...(md.user_id ? { user_id: md.user_id } : {}),
+              ...(md.invitation_id ? { invitation_id: md.invitation_id } : {}),
+            },
+          },
+          { ...opts, idempotencyKey: `membership-deferred-sub-${session.id}` },
+        );
+      }
+
+      // Fusion (échéance à moins de 7 jours du jour choisi) : le prorata
+      // rejoint la facture de fin d'essai, en un seul prélèvement.
+      if (merged > 0) {
+        const pending = await stripe.invoiceItems.list({ customer: customerId, pending: true, limit: 100 } as any, opts);
+        const already = pending.data.some((it: any) => it.metadata?.checkout_session_id === session.id);
+        if (!already) {
+          await stripe.invoiceItems.create(
+            {
+              customer: customerId,
+              subscription: subscription.id,
+              amount: merged,
+              currency: md.currency || 'eur',
+              description: 'Prorata depuis ta prochaine échéance',
+              metadata: { checkout_session_id: session.id },
+            } as any,
+            { ...opts, idempotencyKey: `membership-deferred-item-${session.id}` },
+          );
+        }
+      }
+    } catch (e: any) {
+      console.error(`membership_deferred ${session.id}: création de l'abonnement échouée — ${e.message}`);
+      return NextResponse.json({ error: e.message }, { status: 500 });
+    }
+
+    const { userId, email: buyerEmail } = await resolveBuyer(session);
+    const commitmentMonths = Number(md.commitment_months ?? 0) || 0;
+    return activateMembership(session, {
+      boxId, planId, userId, buyerEmail,
+      billingDay: metadataBillingDay(md),
+      subscriptionId: subscription.id,
+      periodEnd: subscriptionPeriodEnd(subscription) ?? new Date(trialEnd * 1000).toISOString(),
+      paymentMethodType,
+      amountCents: Number(md.amount_cents ?? 0) || null,
+      feeCents: Number(md.platform_fee_cents ?? 0) || null,
+      // Engagement : depuis l'échéance, premier mois réellement payé chez AthleX.
+      commitmentEnd: md.due_date
+        ? commitmentEndIso({ kind: 'deferred', dueDate: md.due_date } as BillingPlanDeferred, commitmentMonths, new Date())
+        : null,
+    });
   }
 
   try {
@@ -191,58 +383,22 @@ export async function POST(req: NextRequest) {
             }
           }
 
-          const patch = {
-            plan_id: planId,
-            subscription_status: 'active',
-            status: 'active',
-            payment_method_type: paymentMethodType,
-            past_due_since: null,
-            dunning_attempts: 0,
-            last_payment_error: null,
-            dunning_reminders_sent: 0,
-            stripe_subscription_id: (session.subscription as string) ?? null,
-            stripe_checkout_session_id: session.id,
-            subscription_current_period_end: periodEnd,
-            amount_cents: amountCents,
-            platform_fee_cents: feeCents,
-            commitment_end_date: commitmentEnd,
-            subscription_paused: false,
-          };
+          const activated = await activateMembership(session, {
+            boxId, planId, userId, buyerEmail,
+            billingDay: metadataBillingDay(session.metadata),
+            subscriptionId: membershipSubId,
+            periodEnd, paymentMethodType, amountCents, feeCents, commitmentEnd,
+          });
+          if (activated) return activated;
+          break;
+        }
 
-          if (!userId) {
-            const parked = await parkPendingEntitlement('membership', buyerEmail, session.id, {
-              box_id: boxId,
-              plan_id: planId,
-              stripe_subscription_id: patch.stripe_subscription_id,
-              subscription_current_period_end: periodEnd,
-              amount_cents: amountCents,
-              platform_fee_cents: feeCents,
-              commitment_end_date: commitmentEnd,
-              payment_method_type: paymentMethodType,
-            });
-            if (parked) return parked;
-            break;
-          }
-
-          const { data: existing } = await supabase.from('box_members')
-            .select('id')
-            .eq('box_id', boxId)
-            .eq('member_id', userId)
-            .maybeSingle();
-
-          const { error: writeErr } = existing?.id
-            ? await supabase.from('box_members').update(patch).eq('id', existing.id)
-            : await supabase.from('box_members').insert({
-                box_id: boxId, member_id: userId, role: 'member', ...patch,
-              });
-          if (writeErr) {
-            console.error(`Membership box_members write failed for user ${userId} on box ${boxId}:`, writeErr.message);
-            return NextResponse.json({ error: writeErr.message }, { status: 500 });
-          }
-
-          await closeInvitation(session.metadata.invitation_id, userId);
-
-          console.log(`Membership plan ${planId} activated for user ${userId} on box ${boxId}`);
+        // ── Abonnement de salle avec échéance future (lot 3) ─────────────
+        // Checkout en mode `setup` : moyen de paiement enregistré, rien payé.
+        // L'abonnement se crée ici, en essai jusqu'à l'échéance.
+        if (session.metadata?.kind === 'membership_deferred') {
+          const failed = await createDeferredMembership(session, event.account ?? null);
+          if (failed) return failed;
           break;
         }
 

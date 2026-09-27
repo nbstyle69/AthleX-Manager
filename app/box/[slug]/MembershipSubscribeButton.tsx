@@ -5,6 +5,7 @@ import { X, Loader2, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { entryRefusalFrom, entryRefusalInfo } from '@/lib/entryRefusalView';
 import { useConfirmDialog } from '@/components/ui/confirm-dialog';
+import BillingDayRecap from '@/components/membership/BillingDayRecap';
 
 interface Props {
   planId: string;
@@ -31,7 +32,15 @@ export default function MembershipSubscribeButton({
   // Archivage (PR 3) : un refus de box fermée s'affiche dans une boîte d'information.
   const { dialog, inform } = useConfirmDialog();
 
-  async function handleCheckout() {
+  // Refus renvoyé dès l'aperçu des montants (box fermée entre-temps).
+  function showRefusal(data: unknown): boolean {
+    const refusal = entryRefusalFrom(data);
+    if (!refusal) return false;
+    setOpen(false); void inform(entryRefusalInfo(refusal));
+    return true;
+  }
+
+  async function handleCheckout(billingDay?: number) {
     setLoading(true);
     setError(null);
     try {
@@ -40,7 +49,7 @@ export default function MembershipSubscribeButton({
       const res = await fetch('/api/create-membership-checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ plan_id: planId }),
+        body: JSON.stringify({ plan_id: planId, ...(billingDay ? { billing_day: billingDay } : {}) }),
       });
       const data = await res.json();
       const refusal = entryRefusalFrom(data);
@@ -62,7 +71,7 @@ export default function MembershipSubscribeButton({
 
       {open && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-ax-overlay backdrop-blur-sm">
-          <div className="w-full max-w-sm bg-ax-surface border border-ax-border rounded-ax-card p-6 relative">
+          <div className="w-full max-w-sm max-h-[90dvh] overflow-y-auto bg-ax-surface border border-ax-border rounded-ax-card p-6 relative">
             <button
               onClick={() => setOpen(false)}
               className="absolute top-4 right-4 text-ax-text-muted hover:text-ax-text transition-colors"
@@ -119,10 +128,22 @@ export default function MembershipSubscribeButton({
               </div>
             )}
 
-            {error && <p className="text-xs text-ax-danger mb-3">{error}</p>}
-            <Button onClick={handleCheckout} disabled={loading} variant="ax-white" className="w-full">
-              {loading ? <><Loader2 size={16} className="animate-spin" /> Redirection…</> : 'Payer par carte'}
-            </Button>
+            {oneShot ? (
+              <>
+                {error && <p className="text-xs text-ax-danger mb-3">{error}</p>}
+                <Button onClick={() => handleCheckout()} disabled={loading} variant="ax-white" className="w-full">
+                  {loading ? <><Loader2 size={16} className="animate-spin" /> Redirection…</> : 'Payer par carte'}
+                </Button>
+              </>
+            ) : (
+              <BillingDayRecap
+                request={{ plan_id: planId }}
+                onPay={handleCheckout}
+                paying={loading}
+                error={error}
+                onRefusal={showRefusal}
+              />
+            )}
             <p className="text-[10px] text-ax-text-muted mt-3 text-center">
               Paiement sécurisé par Stripe. Aucune donnée bancaire n'est stockée par AthleX.
             </p>

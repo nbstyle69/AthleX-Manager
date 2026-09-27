@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
-import { createServiceClient, getServerUser } from '@/lib/supabase/server';
-import { buyerIdentity, customerEmailField, identityMetadata } from '@/lib/buyerIdentity';
-import { SITE_URL } from '@/lib/site-url';
-import { refuseClosedBox } from '@/lib/boxEntryGuard';
+import { customerEmailField, identityMetadata } from '@/lib/buyerIdentity';
+import { returnOrigin } from '@/lib/returnOrigin';
+import { loadMembershipContext, billingPlanFor } from '@/lib/membershipCheckout';
 
 function getStripe() {
   return new Stripe(process.env.STRIPE_SECRET_KEY!, {
@@ -27,130 +26,30 @@ function subscriptionPaymentMethods(currency: string): ('card' | 'sepa_debit')[]
 }
 
 /**
- * Prorata calendaire : ancre la facturation au 1er du mois suivant (00:00 UTC).
- * Combiné à proration_behavior='create_prorations', Stripe facture au checkout
- * uniquement les jours restants du mois en cours, puis le plein tarif chaque 1er.
- */
-function firstOfNextMonthUnix(now: Date = new Date()): number {
-  const anchor = new Date(
-    Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1, 0, 0, 0),
-  );
-  return Math.floor(anchor.getTime() / 1000);
-}
-
-/**
  * Crée une session Stripe Checkout pour l'abonnement à une salle (formule),
  * en charge directe sur le compte connecté de la box (Stripe Connect).
- * Toujours en mode 'subscription' (abonnement mensuel).
+ *
+ * Abonnement (lot 3) : le membre choisit son jour de prélèvement (1 à 10).
+ * - Sans échéance : Checkout en mode abonnement, prorata aujourd'hui jusqu'au
+ *   jour choisi (ancre), puis plein tarif ce jour-là chaque mois.
+ * - Avec une échéance future (invitation d'un adhérent qui migre) : Checkout en
+ *   mode `setup` (carte ou mandat SEPA, rien aujourd'hui) ; le webhook crée
+ *   ensuite l'abonnement en essai jusqu'à l'échéance. Checkout ne sait pas
+ *   combiner essai et ancre.
  */
 export async function POST(req: NextRequest) {
   const stripe = getStripe();
   try {
-    const { plan_id, buyer_email, invitation_token } = await req.json();
-
-    const supabase = createServiceClient();
-
-    // Tunnel PUBLIC : aucune auth exigée. Mais l'e-mail du body n'attribue plus
-    // rien — soit l'acheteur est connecté (on impose son e-mail de session et on
-    // pose user_id), soit Stripe collecte et vérifie l'e-mail au paiement.
-    const sessionUser = await getServerUser();
-    let identity = buyerIdentity(sessionUser, buyer_email);
-
-    // Invitation nominative (lot 4) : le compte vient d'être créé côté serveur,
-    // le navigateur n'a donc pas forcément de session. L'identité et la formule
-    // ne se prennent alors PAS dans le body — elles se relisent à partir du
-    // jeton, seule chose que la page publique détienne.
-    let invitationId: string | null = null;
-    let planIdToUse: string | null = typeof plan_id === 'string' ? plan_id : null;
-
-    if (typeof invitation_token === 'string' && invitation_token.trim() !== '') {
-      const { data: resolved, error: resolveErr } = await supabase.rpc(
-        'resolve_box_invitation_for_checkout',
-        { p_token: invitation_token.trim() },
-      );
-      const inv = resolved as {
-        ok: boolean; reason?: string; id?: string; plan_id?: string; email?: string;
-      } | null;
-
-      if (resolveErr || !inv?.ok || !inv.id || !inv.plan_id || !inv.email) {
-        return NextResponse.json(
-          { error: 'Cette invitation n\'est plus payable.', reason: inv?.reason ?? resolveErr?.message },
-          { status: 409 },
-        );
-      }
-
-      invitationId = inv.id;
-      planIdToUse = inv.plan_id;
-
-      const { data: invitedProfile } = await supabase
-        .from('profiles')
-        .select('id')
-        .ilike('email', inv.email)
-        .maybeSingle();
-
-      identity = {
-        userId: (invitedProfile as { id?: string } | null)?.id ?? null,
-        customerEmail: inv.email,
-        submittedEmail: identity.submittedEmail,
-      };
-    }
-
-    if (!planIdToUse) {
-      return NextResponse.json({ error: 'plan_id required' }, { status: 400 });
-    }
-
-    const { data: plan, error: planErr } = await supabase
-      .from('membership_plans')
-      .select('id, box_id, name, description, price_cents, currency, is_active, stripe_product_id, stripe_price_id, plan_type, credits, validity_days, commitment_months')
-      .eq('id', planIdToUse)
-      .single();
-
-    if (planErr || !plan) {
-      return NextResponse.json({ error: 'Plan not found' }, { status: 404 });
-    }
-
-    const p = plan as unknown as {
-      id: string; box_id: string; name: string; description: string | null;
-      price_cents: number; currency: string; is_active: boolean;
-      stripe_product_id: string | null; stripe_price_id: string | null;
-      plan_type: 'subscription' | 'drop_in' | 'pack' | null;
-      credits: number | null; validity_days: number | null;
-      commitment_months: number | null;
-    };
-    const planType = p.plan_type ?? 'subscription';
-
-    if (!p.is_active) {
-      return NextResponse.json({ error: 'Cette formule n\'est plus disponible.' }, { status: 400 });
-    }
-    if (p.price_cents <= 0) {
-      return NextResponse.json({ error: 'Cette formule est gratuite — rapproche-toi de ta box.' }, { status: 400 });
-    }
-
-    // Archivage (PR 2) : box archivée ou en archivage programmé → refus.
-    const refus = await refuseClosedBox(supabase, p.box_id, 'achat');
-    if (refus) return refus;
-
-    const { data: box } = await supabase
-      .from('boxes')
-      .select('id, name, slug, stripe_account_id, stripe_onboarding_complete')
-      .eq('id', p.box_id)
-      .single();
-
-    const b = box as unknown as {
-      id: string; name: string; slug: string | null;
-      stripe_account_id: string | null; stripe_onboarding_complete: boolean | null;
-    } | null;
-
-    if (!b?.stripe_account_id || !b.stripe_onboarding_complete) {
-      return NextResponse.json(
-        { error: 'Cette box n\'a pas encore activé les paiements.' },
-        { status: 409 },
-      );
-    }
+    const body = await req.json();
+    const loaded = await loadMembershipContext(body);
+    if (!loaded.ok) return loaded.response;
+    const { ctx } = loaded;
+    const { supabase, identity, invitationId, plan: p, planType, box: b } = ctx;
 
     const stripeAccount = b.stripe_account_id;
     const feeAmount = Math.round((p.price_cents * MEMBERSHIP_FEE_PERCENT) / 100);
-    const baseUrl = SITE_URL;
+    // Retour sur la page qui a lancé le paiement (preview comprise), sinon le site public.
+    const baseUrl = returnOrigin(req.headers?.get?.('origin'));
     const successBase = b.slug ? `/box/${b.slug}` : '/landing';
 
     // ── Offres à paiement unique : Drop-in (1 séance) & Carnet (N séances) ──
@@ -204,6 +103,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ url: oneTimeSession.url });
     }
 
+    // Jour de prélèvement et premier prélèvement : même calcul que l'aperçu.
+    const billing = billingPlanFor(ctx, body.billing_day);
+    if (!billing.ok) return billing.response;
+    const { plan: bp, billingDay } = billing;
+
     // Produit / prix créés SUR le compte connecté (réutilisés ensuite).
     let priceId = p.stripe_price_id;
     if (!priceId) {
@@ -235,6 +139,46 @@ export async function POST(req: NextRequest) {
         .eq('id', p.id);
     }
 
+    const commonMetadata = {
+      plan_id: p.id,
+      box_id: p.box_id,
+      ...identityMetadata(identity),
+      ...(invitationId ? { invitation_id: invitationId } : {}),
+      amount_cents: String(p.price_cents),
+      platform_fee_cents: String(feeAmount),
+      commitment_months: String(p.commitment_months ?? 0),
+      billing_day: String(billingDay),
+    };
+
+    // ── Échéance future : on enregistre le moyen de paiement, rien aujourd'hui ──
+    if (bp.kind === 'deferred') {
+      const setupSession = await stripe.checkout.sessions.create(
+        {
+          mode: 'setup',
+          payment_method_types: subscriptionPaymentMethods(p.currency || 'eur'),
+          currency: p.currency || 'eur',
+          customer_creation: 'always',
+          ...customerEmailField(identity),
+          expires_at: bp.expiresAt,
+          success_url: `${baseUrl}${successBase}?subscription=success`,
+          cancel_url: `${baseUrl}${successBase}?subscription=cancel`,
+          // Tout ce qu'il faut au webhook pour créer l'abonnement tel qu'affiché.
+          metadata: {
+            kind: 'membership_deferred',
+            ...commonMetadata,
+            price_id: priceId,
+            due_date: bp.dueDate,
+            trial_end: String(bp.trialEnd),
+            ...(bp.anchor ? { billing_cycle_anchor: String(bp.anchor) } : {}),
+            merged_prorata_cents: String(bp.mergedProrataCents),
+            currency: p.currency || 'eur',
+          },
+        } as any,
+        { stripeAccount },
+      );
+      return NextResponse.json({ url: setupSession.url });
+    }
+
     const session = await stripe.checkout.sessions.create(
       {
         mode: 'subscription',
@@ -242,11 +186,11 @@ export async function POST(req: NextRequest) {
         ...customerEmailField(identity),
         allow_promotion_codes: true,
         line_items: [{ price: priceId, quantity: 1 }],
+        expires_at: bp.expiresAt,
         subscription_data: {
-          // Prorata calendaire : 1re facture = jours restants du mois en cours,
-          // puis plein tarif ancré au 1er de chaque mois.
-          billing_cycle_anchor: firstOfNextMonthUnix(),
-          proration_behavior: 'create_prorations',
+          // Prorata jusqu'au jour choisi, puis plein tarif ce jour-là chaque
+          // mois. Sans ancre (jour choisi = aujourd'hui) : plein tarif tout de suite.
+          ...(bp.anchor ? { billing_cycle_anchor: bp.anchor, proration_behavior: 'create_prorations' as const } : {}),
           ...(MEMBERSHIP_FEE_PERCENT > 0
             ? { application_fee_percent: MEMBERSHIP_FEE_PERCENT }
             : {}),
@@ -257,16 +201,7 @@ export async function POST(req: NextRequest) {
         },
         success_url: `${baseUrl}${successBase}?subscription=success`,
         cancel_url: `${baseUrl}${successBase}?subscription=cancel`,
-        metadata: {
-          kind: 'membership',
-          plan_id: p.id,
-          box_id: p.box_id,
-          ...identityMetadata(identity),
-          ...(invitationId ? { invitation_id: invitationId } : {}),
-          amount_cents: String(p.price_cents),
-          platform_fee_cents: String(feeAmount),
-          commitment_months: String(p.commitment_months ?? 0),
-        },
+        metadata: { kind: 'membership', ...commonMetadata },
       },
       { stripeAccount },
     );

@@ -16,6 +16,8 @@ import { Badge } from '@/components/ui/badge';
 import { useConfirmDialog } from '@/components/ui/confirm-dialog';
 import { countOf } from '@/lib/plural';
 import { entryRefusalFrom, entryRefusalInfo } from '@/lib/entryRefusalView';
+import { parisDate } from '@/lib/datetime';
+import { addMonths, parisYmd, ymdString } from '@/lib/membershipBilling';
 
 const supabase = createClient();
 
@@ -43,6 +45,7 @@ interface Invitation {
   last_sent_at: string | null;
   last_send_error: string | null;
   send_count: number;
+  next_due_date: string | null;
 }
 
 /** Lien vivant : le jeton n'étant stocké que haché, il n'existe qu'ici. */
@@ -69,6 +72,9 @@ function rpcMessage(error: { message: string } | null): string | null {
   if (m.includes('MEMBER_BANNED')) return 'Cette personne est exclue de la box.';
   if (m.includes('NOT_PENDING')) return 'Cette invitation n’est plus en attente : recrée-la.';
   if (m.includes('ALREADY_ACCEPTED')) return 'Cette invitation a déjà été utilisée.';
+  if (m.includes('DUE_DATE_INVALID')) return 'Prochaine échéance invalide : choisis une date dans le calendrier.';
+  if (m.includes('DUE_DATE_PAST')) return 'La prochaine échéance doit tomber après aujourd’hui.';
+  if (m.includes('DUE_DATE_TOO_FAR')) return 'La prochaine échéance doit tomber dans les 12 mois.';
   if (m.includes('FORBIDDEN')) return 'Vous n’administrez pas cette box.';
   return m;
 }
@@ -92,7 +98,17 @@ export default function InvitationsPage() {
   const [planId, setPlanId] = useState('');
   const [paymentMode, setPaymentMode] = useState<'box' | 'stripe'>('box');
   const [cashCollected, setCashCollected] = useState(false);
+  const [dueDate, setDueDate] = useState('');
   const [creating, setCreating] = useState(false);
+  // Bornes du calendrier (la base revérifie) : du lendemain à 12 mois, heure de Paris.
+  const dueBounds = useMemo(() => {
+    const today = parisYmd(new Date());
+    const tomorrow = new Date(Date.UTC(today.y, today.m - 1, today.d + 1));
+    return {
+      min: tomorrow.toISOString().slice(0, 10),
+      max: ymdString(addMonths(today, 12)),
+    };
+  }, []);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -108,7 +124,7 @@ export default function InvitationsPage() {
         .eq('box_id', box.id).eq('is_active', true)
         .order('sort_order', { ascending: true }),
       supabase.from('box_invitations')
-        .select('id, email, first_name, last_name, plan_id, payment_mode, cash_collected, status, expires_at, created_at, last_sent_at, last_send_error, send_count')
+        .select('id, email, first_name, last_name, plan_id, payment_mode, cash_collected, status, expires_at, created_at, last_sent_at, last_send_error, send_count, next_due_date')
         .eq('box_id', box.id)
         .order('created_at', { ascending: false }),
     ]);
@@ -143,6 +159,7 @@ export default function InvitationsPage() {
       p_plan_id: planId || null,
       p_payment_mode: paymentMode,
       p_cash_collected: paymentMode === 'box' && cashCollected,
+      p_next_due_date: dueDate || null,
     });
     setCreating(false);
 
@@ -150,7 +167,7 @@ export default function InvitationsPage() {
     if (message) { setError(message); return; }
 
     const created = data as { id: string; token: string; email: string };
-    setFirstName(''); setLastName(''); setEmail(''); setCashCollected(false);
+    setFirstName(''); setLastName(''); setEmail(''); setCashCollected(false); setDueDate('');
     await load();
     await openLink(created.id, created.email, created.token);
   }
@@ -315,6 +332,19 @@ export default function InvitationsPage() {
           </p>
         )}
 
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 items-start">
+          <label className="block">
+            <span className="block text-xs font-semibold text-ax-text-secondary mb-1.5">Prochaine échéance (facultatif)</span>
+            <input type="date" className={INPUT_CLS} value={dueDate} min={dueBounds.min} max={dueBounds.max}
+              onChange={e => setDueDate(e.target.value)} />
+          </label>
+          <p className="text-xs text-ax-text-muted md:pt-7">
+            {paymentMode === 'stripe'
+              ? 'Pour un adhérent qui paie encore son ancienne salle : il enregistre sa carte ou son mandat SEPA, et rien n’est prélevé avant cette date.'
+              : 'Indicative en encaissement box : aucun prélèvement Stripe.'}
+          </p>
+        </div>
+
         <button type="submit" disabled={creating || !email.trim()}
           className="flex items-center gap-2 px-4 py-2.5 rounded-ax-control bg-ax-text text-ax-background text-sm font-bold disabled:opacity-40">
           {creating ? <Loader2 size={15} className="animate-spin" /> : <UserPlus size={15} />} Créer l’invitation
@@ -364,6 +394,12 @@ export default function InvitationsPage() {
               {inv.payment_mode === 'stripe' && (
                 <Badge variant="neutral" className="text-[10px] font-bold px-2 py-1 gap-1">
                   <CreditCard size={11} /> Stripe
+                </Badge>
+              )}
+
+              {inv.next_due_date && (
+                <Badge variant="neutral" className="text-[10px] font-bold px-2 py-1">
+                  Échéance le {parisDate(inv.next_due_date, { day: 'numeric', month: 'short', year: '2-digit' })}
                 </Badge>
               )}
 

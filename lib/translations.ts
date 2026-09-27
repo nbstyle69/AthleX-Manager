@@ -495,6 +495,8 @@ export const translations = {
         payHint:
           "Carte ou prélèvement SEPA. Ton accès s'ouvre dès que la banque confirme le paiement — inutile de rester sur la page.",
         payUnavailable: 'Paiement indisponible — contacte ta box.',
+        nextDueBefore: 'Prochaine échéance le ',
+        nextDueAfter: ' : rien n’est prélevé avant.',
         refusedTitle: 'Invitation indisponible',
         refusedFallback: 'Ce lien d’invitation n’est plus valide.',
         refusedHint: 'Demande un nouveau lien à ta box, ou trouve-la dans l’annuaire.',
@@ -1145,6 +1147,8 @@ export const translations = {
         payHint:
           'Card or SEPA direct debit. Your access opens as soon as the bank confirms the payment — no need to stay on this page.',
         payUnavailable: 'Payment unavailable — contact your gym.',
+        nextDueBefore: 'Next due date: ',
+        nextDueAfter: '. Nothing is charged before.',
         refusedTitle: 'Invitation unavailable',
         refusedFallback: 'This invitation link is no longer valid.',
         refusedHint: 'Ask your gym for a new link, or find it in the directory.',
