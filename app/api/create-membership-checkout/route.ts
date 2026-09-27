@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { customerEmailField, identityMetadata } from '@/lib/buyerIdentity';
-import { SITE_URL } from '@/lib/site-url';
+import { returnOrigin } from '@/lib/returnOrigin';
 import { loadMembershipContext, billingPlanFor } from '@/lib/membershipCheckout';
 
 function getStripe() {
@@ -48,7 +48,8 @@ export async function POST(req: NextRequest) {
 
     const stripeAccount = b.stripe_account_id;
     const feeAmount = Math.round((p.price_cents * MEMBERSHIP_FEE_PERCENT) / 100);
-    const baseUrl = SITE_URL;
+    // Retour sur la page qui a lancé le paiement (preview comprise), sinon le site public.
+    const baseUrl = returnOrigin(req.headers?.get?.('origin'));
     const successBase = b.slug ? `/box/${b.slug}` : '/landing';
 
     // ── Offres à paiement unique : Drop-in (1 séance) & Carnet (N séances) ──

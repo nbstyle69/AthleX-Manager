@@ -218,3 +218,33 @@ describe('aperçu : même calcul, rien créé chez Stripe', () => {
     expect(((await preview(req({ plan_id: 'plan-1', billing_day: 5 }))) as any)._status).toBe(400);
   });
 });
+
+describe('adresses de retour Stripe', () => {
+  const PREVIEW = 'the-iibg3y2ne-nabilselmane-4786s-projects.vercel.app';
+  const withOrigin = (body: any, origin: string): any => ({
+    json: jest.fn().mockResolvedValue(body),
+    headers: { get: (k: string) => (k.toLowerCase() === 'origin' ? origin : null) },
+  });
+  afterEach(() => { delete process.env.VERCEL_URL; });
+
+  it('preview : retour sur la preview qui a lancé le paiement (abonnement et enregistrement)', async () => {
+    process.env.VERCEL_URL = PREVIEW;
+    await checkout(withOrigin({ plan_id: 'plan-1', billing_day: 5 }, `https://${PREVIEW}`));
+    invitation('2026-10-15');
+    await checkout(withOrigin({ invitation_token: 'jeton', billing_day: 5 }, `https://${PREVIEW}`));
+    for (const [params] of mockSessionsCreate.mock.calls) {
+      expect(params.success_url).toBe(`https://${PREVIEW}/box/cf-test?subscription=success`);
+      expect(params.cancel_url).toBe(`https://${PREVIEW}/box/cf-test?subscription=cancel`);
+    }
+    expect(mockSessionsCreate.mock.calls.map(([p]: any[]) => p.mode)).toEqual(['subscription', 'setup']);
+  });
+
+  it('production ou origine inconnue : le site public, comme avant', async () => {
+    process.env.VERCEL_URL = PREVIEW;
+    await checkout(withOrigin({ plan_id: 'plan-1', billing_day: 5 }, 'https://www.athlexapp.eu'));
+    await checkout(withOrigin({ plan_id: 'plan-1', billing_day: 5 }, 'https://attaquant.vercel.app'));
+    for (const [params] of mockSessionsCreate.mock.calls) {
+      expect(params.success_url).toBe('https://athlexapp.eu/box/cf-test?subscription=success');
+    }
+  });
+});
