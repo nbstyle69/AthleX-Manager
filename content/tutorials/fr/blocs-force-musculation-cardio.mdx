@@ -2,7 +2,7 @@
 slug: blocs-force-musculation-cardio
 title: Blocs Musculation et Cardio
 summary: Ajouter des séries de force et des séries cardio à un WOD, et savoir ce qui compte dans les badges.
-role: coach
+role: both
 pages: [whiteboard]
 tags: [musculation, force, cardio, series, badges, wod]
 order: 22
@@ -15,17 +15,17 @@ L'éditeur de WOD contient trois zones : **Programme / Mouvements** (le metcon),
 ## Étapes
 
 1. Ouvre un WOD sur le Whiteboard et repère le bloc **Musculation (optionnel)**. <Screenshot src="/tutorials/blocs-force-musculation-cardio/3.png" alt="Blocs Musculation, Cardio et Time cap du formulaire WOD" />
-2. Clique **Ajouter une série** puis remplis l'exercice, les séries, les reps et la charge — en kilos, en **%1RM**, ou en note libre du type `RPE 9` si la charge dépend du jour. Un **Tempo** (`30X1`) et un **Repos** peuvent compléter la ligne. <Screenshot src="/tutorials/blocs-force-musculation-cardio/1.png" alt="Bloc Musculation avec une série, charge et tempo" />
-3. Descends sur le bloc **Cardio (optionnel)** et clique **Ajouter une série cardio** : choisis le mouvement (Row, SkiErg, Run…), le nombre de séries et la quantité en mètres ou en calories. <Screenshot src="/tutorials/blocs-force-musculation-cardio/2.png" alt="Bloc Cardio (optionnel) du formulaire WOD" />
-4. Ajoute une cible d'intensité si tu en veux une : **Watts** ou **Allure**, jamais les deux sur la même ligne. Le repos entre séries s'écrit en `mm:ss`. <Screenshot src="/tutorials/blocs-force-musculation-cardio/4.png" alt="Ligne cardio avec Watts, cible, repos et RPE" />
-5. Publie le WOD : les trois blocs arrivent ensemble dans l'application de l'athlète, dans l'ordre où tu les as écrits.
+2. Clique **Ajouter une série** puis remplis l'exercice, les séries, les reps et la **Charge** en **kg** ou en **%1RM** ; si la charge dépend du jour, écris-la dans **Charge libre** (`RPE 9`). Un **Tempo** (`30X1`) et un **Repos** en secondes peuvent compléter la ligne. <Screenshot src="/tutorials/blocs-force-musculation-cardio/1.png" alt="Bloc Musculation avec une série, charge et tempo" />
+3. Descends sur le bloc **Cardio (optionnel)** et clique **Ajouter une série cardio** : choisis le mouvement (Row, SkiErg, Run…), le nombre de séries et la quantité en mètres, en calories ou en secondes. <Screenshot src="/tutorials/blocs-force-musculation-cardio/2.png" alt="Bloc Cardio (optionnel) avec une série Row" />
+4. Ajoute une cible d'intensité si tu en veux une : **Watts** ou **Allure**, jamais les deux sur la même ligne. Le repos entre séries s'écrit en `mm:ss`, et un **RPE** peut compléter la ligne. <Screenshot src="/tutorials/blocs-force-musculation-cardio/4.png" alt="Ligne cardio avec Watts, cible, repos et RPE" />
+5. Clique **Créer le WOD** (ou **Enregistrer**) : les trois blocs arrivent ensemble dans l'application de l'athlète, toujours dans cet ordre : Musculation, Cardio, puis le metcon.
 
 ## Erreurs fréquentes
 
 - **Les séries de force ne créditent aucun badge.** C'est le comportement attendu : les séries du bloc Musculation ne comptent pas de reps de badge, ce n'est pas du metcon → mets au metcon ce qui doit compter.
-- **Une série cardio n'est pas créditée.** Le bloc Cardio, lui, est bien crédité en `séries × quantité`, mais seulement si le mouvement vient du catalogue → choisis Row, SkiErg, Run… dans la liste.
-- **Une cible d'allure est ignorée.** Des watts ET une allure ont été saisis sur la même ligne → n'en garde qu'un des deux.
-- **La charge « RPE 9 » disparaît du champ kilos.** Une charge non numérique n'est pas un poids : elle se saisit en note de charge → utilise le champ de note libre.
+- **Une série cardio n'est pas créditée.** Le bloc Cardio est crédité en `séries × quantité`, mais une ligne sans exercice n'est pas enregistrée (« Choisis l’exercice pour enregistrer cette série. ») → choisis Row, SkiErg, Run… dans la liste.
+- **Une cible d'allure est ignorée.** Elle n'est pas au format `mm:ss` → écris-la comme `2:00`, puis choisis `/500 m` ou `/km`.
+- **La charge « RPE 9 » ne rentre pas dans le champ Charge.** Ce champ n'accepte que des nombres → écris-la dans **Charge libre**.
 
 ## Y aller
 

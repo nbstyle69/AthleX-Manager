@@ -2,7 +2,7 @@
 slug: creneaux-et-reservations
 title: Classes and bookings
 summary: Create the week's classes, set capacity and take attendance.
-role: owner
+role: both
 pages: [schedule]
 tags: [classes, schedule, bookings, capacity, attendance, coach]
 order: 32
@@ -14,18 +14,18 @@ order: 32
 
 ## Steps
 
-1. Open **Horaires & Créneaux** and move to the day you need. <Screenshot src="/tutorials/creneaux-et-reservations/1.png" alt="Schedules page with a class of the day" />
-2. Add a class and fill it in: **Type de cours** (class type) or a custom name, start time, duration, **Capacité** and an optional description. <Screenshot src="/tutorials/creneaux-et-reservations/4.png" alt="New slot form" />
+1. Open **Horaires & Créneaux**: the **Présences** tab shows the classes of one day (arrows and **Aujourd'hui** to change day), the **Grille hebdo** tab the whole week. <Screenshot src="/tutorials/creneaux-et-reservations/1.png" alt="Schedules page with a class of the day" />
+2. Click **Nouveau créneau** (or **+ Ajouter** under a day of the **Grille hebdo**) and fill it in: **Type de cours** (class type; pick **Autre** to type a **Nom personnalisé**), **Date**, **Début** (start), **Fin** (end), **Capacité** and an optional **Description (optionnel)**. <Screenshot src="/tutorials/creneaux-et-reservations/4.png" alt="New slot form" />
 3. Assign a coach (optional): they appear on the athlete side and it helps your coaches find their classes.
-4. Save: the class becomes bookable by members, up to its capacity.
-5. On the day, open the class and click **Faire l'appel** to see who booked and mark attendance. You can also add a member by hand if somebody shows up without a booking.
+4. Click **Créer**: the class becomes bookable by members, up to its capacity.
+5. On the day, in the **Présences** tab, click the class card (« Faire l'appel → »): the **Inscrits** (booked) list and the **Liste d'attente** (waiting list) open. Click the box in front of each name: one click marks them present, a second one absent. If somebody shows up without a booking, click **Ajouter**, type at least 3 letters of their username and pick them: they are booked and marked present.
 
 ## Créneaux types, your recurring grid
 
 Typing every class by hand makes no sense: **Créneaux types** is « la grille des créneaux récurrents de ta box, celle qui génère les cours des semaines à venir » (the recurring grid that generates the coming weeks).
 
-1. From **Horaires & Créneaux**, click **Créneaux types**: the grid shows the seven days of the week, each card carrying the time, the class name, the coach and the number of seats. <Screenshot src="/tutorials/creneaux-et-reservations/2.png" alt="Seven-day template slot grid" />
-2. **Nouveau créneau type** (new template), or **+ Ajouter** under a day, opens the form: **Jour** (day), **Type de cours** (class type), **Début** (start), **Coach**, **Capacité max** and **Description (optionnel)**, then **Enregistrer**. <Screenshot src="/tutorials/creneaux-et-reservations/3.png" alt="New template slot form" />
+1. Open **Créneaux types** (Entraînement → Créneaux types): the grid shows the seven days of the week, each card carrying the time, the class name, the coach and the number of seats. The **Créneaux types** button of **Horaires & Créneaux** opens the same grid in a side panel. <Screenshot src="/tutorials/creneaux-et-reservations/2.png" alt="Seven-day template slot grid" />
+2. **Nouveau créneau type** (new template), or **+ Ajouter** under a day, opens the form: **Jour** (day), **Type de cours** (class type), **Début** (start), **Fin** (end), **Coach**, **Capacité max** and **Description (optionnel)**, then **Créer**. <Screenshot src="/tutorials/creneaux-et-reservations/3.png" alt="New template slot form" />
 3. The icons on a card **Désactiver** / **Activer** a template (an inactive template is dimmed and generates nothing), edit it or delete it.
 4. Back in **Horaires & Créneaux**, **Générer 8 semaines** (generate 8 weeks) creates the classes from the active templates. It never duplicates an existing class: « Tous les créneaux des 8 prochaines semaines sont déjà générés. »
 5. From then on the generation extends itself every day, and a banner warns you when fewer than 14 days of classes remain — in red below 7 days.
@@ -36,8 +36,8 @@ Editing a template does not rewrite classes that are already generated: fix thos
 
 ## Common mistakes
 
-- **"Aucun coach assigné à cette box." (no coach in this box).** No coach is registered in the settings → add one, then come back and assign the class.
-- **A member cannot book.** Capacity is full, or the class is in the past → raise the capacity or open a second class.
+- **"Aucun coach assigné à cette box" (no coach in this box).** No member has the **Coach** role → the owner gives it in **Membres**, **Rôle** column, then come back and assign the class.
+- **A member cannot book.** The class is in the past, or their bookings are suspended for a failed payment (the owner sees it in **Abonnés**). A full class does not turn anybody away: the member goes on the **Liste d'attente** (waiting list) → raise the **Capacité** or open a second class.
 - **"Aucun inscrit pour ce créneau" although the class is full.** You are looking at another day or another class of the same type → check the date shown at the top.
 - **Next week's classes are missing.** They are generated from **Créneaux types** → lay out the recurring grid, then click **Générer 8 semaines**.
 - **« Aucun modèle actif. » (no active template).** All your templates are disabled (dimmed cards) → re-enable them before generating.

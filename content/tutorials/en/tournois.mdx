@@ -1,8 +1,8 @@
 ---
 slug: tournois
 title: Create and run a tournament
-summary: Set up an in-box tournament, register participants and follow the ranking.
-role: both
+summary: Set up an in-box tournament, follow its entrants, validate scores and follow the ranking.
+role: owner
 pages: [tournaments]
 tags: [tournament, ranking, participants, elo, events]
 order: 60
@@ -10,22 +10,22 @@ order: 60
 
 ## Before you start
 
-**Tournois** brings the box to life: one event, participants, a ranking. The page separates ongoing and upcoming tournaments from the history.
+**Tournois** brings the box to life: one event, participants, a ranking. The page separates **En cours & à venir** (ongoing and upcoming) from the **Historique** (closed tournaments); the **Actifs / Archivés** filter shows archived tournaments.
 
 ## Steps
 
-1. Open **Tournois** and create a tournament. <Screenshot src="/tutorials/tournois/1.png" alt="Tournament list of the box" />
-2. Fill it in: name, date, level and format. The status shown in the list then follows the life cycle of the event. <Screenshot src="/tutorials/tournois/2.png" alt="Tournament creation form" />
-3. Open the tournament to manage its participants: box members are added from its record.
-4. On the day, enter the results from the tournament record: the ranking recomputes as you go.
-5. Once finished, the tournament moves to the history and the performances stay visible to athletes.
+1. Open **Tournois** and click **Créer un tournoi**. <Screenshot src="/tutorials/tournois/1.png" alt="Tournament list of the box" />
+2. Pick the **Format du tournoi**, then fill in name, dates, level, maximum number of participants and, if needed, **Inscriptions ouvertes pendant le tournoi**. The format cannot be changed afterwards. Click **Publier** to open registrations, or **Enregistrer**. The tournament starts on its own on its start date (00:00, Paris time). <Screenshot src="/tutorials/tournois/2.png" alt="Tournament creation form" />
+3. After creation you land on **Programme des WODs**: click **Ajouter un WOD** for each event. Athletes register themselves in the app; the **Participants** tile of the record lists them, and **Exclure** removes an entrant.
+4. During the tournament, athletes send their scores from the app: validate them in **Scores à valider** (**Valider**, **Rejeter**, or correct the value). The **Classement** is recomputed on each validation. For a bracket, decide the matches in **Tableau du bracket** (**Décider selon les scores**, then **Round suivant**).
+5. To finish, click **Terminer le tournoi** (WODs close, the tournament becomes « En révision »), validate the last scores, then **Distribuer l'ELO et clôturer**. Once closed, it moves to the **Historique** and its results stay visible.
 
 ## Common mistakes
 
-- **"Aucun tournoi." (no tournament).** Nothing has been created in this box yet → create one.
-- **A member cannot be registered.** They are not an active member of the box → check their member record.
-- **The ranking looks frozen.** Not all results are entered → complete the missing scores from the tournament record.
-- **A past tournament clutters the list.** It moves to the history once finished → change its status rather than deleting it, so performances are kept.
+- **"Aucun tournoi" (no tournament).** Nothing has been created in this box yet → click **Créer un tournoi**.
+- **An athlete cannot register.** The tournament started without **Inscriptions ouvertes pendant le tournoi**, the bracket is already drawn, the tournament is full or archived → tick the box in **Modifier**, raise **Max participants**, or unarchive the tournament.
+- **The ranking looks frozen.** Some scores are still pending: only validated scores count → validate them in **Scores à valider**.
+- **A past tournament clutters the list.** Close it (**Distribuer l'ELO et clôturer**) to move it to the **Historique**, or **Archiver** to take it out of the lists: its results, rankings and ELO are kept, and **Désarchiver** brings it back.
 
 ## Go there
 

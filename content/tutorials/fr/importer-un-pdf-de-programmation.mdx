@@ -2,7 +2,7 @@
 slug: importer-un-pdf-de-programmation
 title: Importer un PDF de programmation
 summary: Transformer un PDF de semaine en WODs ou en séances de programme, en relisant l'écran de preview.
-role: coach
+role: both
 pages: [whiteboard, programs]
 tags: [pdf, import, programmation, preview, notes coach]
 order: 24
@@ -10,22 +10,23 @@ order: 24
 
 ## Avant de commencer
 
-L'import PDF lit un document de programmation et propose des séances prêtes à insérer : sur le **Whiteboard** pour la semaine de la box, ou dans l'éditeur de séances d'un **Programme athlète**. L'analyse est une proposition, jamais un enregistrement direct.
+L'import PDF lit un document de programmation et propose des séances prêtes à insérer : sur le **Whiteboard** pour la semaine de la box, ou (gérant) dans l'éditeur de séances d'un **Programme athlète**. L'analyse est une proposition, jamais un enregistrement direct.
 
 ## Étapes
 
-1. Depuis le Whiteboard, ouvre l'import et dépose ton fichier — tu peux aussi le glisser directement sur la page, qui affiche « Lâche ton fichier pour l'importer ». <Screenshot src="/tutorials/importer-un-pdf-de-programmation/1.png" alt="Barre d’outils du Whiteboard avec le bouton Importer" />
+1. Sur le Whiteboard, clique **Importer** et choisis ton PDF — tu peux aussi le glisser directement sur la page, qui affiche « Lâche ton fichier pour l'importer ». <Screenshot src="/tutorials/importer-un-pdf-de-programmation/1.png" alt="Barre d’outils du Whiteboard avec le bouton Importer" />
 2. Attends la fin de l'**Analyse du PDF…**. L'écran de preview liste chaque séance détectée avec ses mouvements, son bloc **Musculation** et ses **Notes coach**.
-3. Relis ligne par ligne. Les champs surlignés portent l'avertissement **Mouvement hors catalogue** : corrige-les en choisissant l'exercice de la liste, ou laisse le nom brut en connaissance de cause.
-4. Choisis l'audience dans **Qui verra ces WOD** (ou **Qui verra ces séances** pour un programme athlète) : toute la box, des groupes, ou personne pour l'instant.
-5. Valide l'insertion. Les séances arrivent sur les jours détectés et restent modifiables comme n'importe quel WOD.
+3. Relis carte par carte. Les champs en orange sont hors catalogue et la carte porte le badge **Mouvement hors catalogue** : corrige le nom dans la preview, puis, après l'insertion, rouvre le WOD, supprime la ligne et ajoute-la de nouveau en choisissant l'exercice dans la liste — ou laisse le nom brut en connaissance de cause. Décoche une carte pour ne pas l'insérer.
+4. Choisis dans **Qui verra ces WOD** les groupes ou programmes visés ; sans rien cocher, les WOD sont visibles par toute la box. Pour un programme athlète, **Qui verra ces séances** est fixé sur le programme ouvert.
+5. Clique **Insérer N WOD**. Les séances arrivent aux dates indiquées sur les cartes, déjà publiées, et restent modifiables comme n'importe quel WOD.
 
 ## Erreurs fréquentes
 
-- **« Aucun WOD détecté dans ce PDF. »** Le document est une image scannée ou une mise en page que l'analyse ne reconnaît pas → saisis la semaine à la main, ou repasse par un PDF texte.
-- **Les charges en RPE ou en % du RM ont disparu des champs de poids.** Une charge non numérique n'est pas un kilo : elle part en note de charge ou en notes coach → vérifie-la dans la preview avant d'insérer.
-- **Des mouvements sont surlignés en orange.** Ils sont hors catalogue et seront conservés tels quels, donc sans badge → remplace-les par une entrée de la liste.
-- **Les séances importées ne sont visibles par personne.** L'audience choisie dans la preview était « personne encore » → rouvre chaque séance et fixe son audience.
+- **« PDF sans texte exploitable (scan ?) ».** Le document est une image scannée → repasse par un PDF texte, ou saisis la semaine à la main.
+- **« Aucun WOD détecté dans ce PDF. »** La mise en page n'est pas reconnue → choisis une autre **Source** puis **Ré-analyser**, ou saisis la semaine à la main.
+- **Une charge en RPE n'est pas dans un champ de poids.** Ce n'est pas un kilo : elle passe dans **RPE / note** et la série est recopiée dans les notes sous « Musculation (non structurée) » (badge **Muscu non structurée**) → vérifie-la dans la preview avant d'insérer.
+- **Des mouvements sont surlignés en orange.** Ils sont hors catalogue et seront conservés tels quels, donc sans badge → après l'insertion, rouvre le WOD, supprime ces lignes et ajoute-les de nouveau depuis la liste.
+- **Les séances importées ne sont visibles par personne dans la box.** Seul un **Programme** était coché : le WOD n'est visible que par ses membres → rouvre chaque WOD et choisis des groupes, ou **Toute la box** en décochant le programme dans **Mes programmes athlètes**.
 
 ## Y aller
 
