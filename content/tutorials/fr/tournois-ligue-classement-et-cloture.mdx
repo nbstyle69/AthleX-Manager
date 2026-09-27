@@ -1,0 +1,54 @@
+---
+slug: tournois-ligue-classement-et-cloture
+title: Ligue, classement, clôture et archivage d'un tournoi
+summary: Gère les divisions et les saisons d'une ligue, lis le classement, puis clôture, archive ou supprime un tournoi.
+role: owner
+pages: [tournaments]
+tags: [tournoi, ligue, divisions, saison, promotion, relegation, classement, cloturer, terminer, elo, archiver, desarchiver, supprimer]
+order: 63
+---
+
+## Avant de commencer
+
+Ces actions se font sur la fiche d'un tournoi (Animation → Tournois → le tournoi) et dans ses tuiles **Divisions** (ligue seulement) et **Classement**. Seul le gérant a accès à ces écrans.
+
+## Gérer les divisions d'une ligue
+
+1. Ouvre **Divisions**. L'en-tête affiche la **Saison** en cours. **Division** ouvre « Créer une nouvelle division ? » : saisis le **Nom de la division**, puis **Créer la division** (16 places, 3 promus, aucun relégué, modifiables ensuite).
+2. Sur chaque division, règle **Max**, **Promus ↑** et **Relég. ↓**. Dans le tableau, « PROMU » et « RELÉG. » marquent les athlètes qui changeront de division en fin de saison.
+3. **Ajouter** place un athlète de la liste « Athlètes inscrits non assignés ». La liste de chaque ligne le déplace (« Changer … de division ? », **Déplacer**) ; l'icône de retrait ouvre « Retirer … de sa division ? ». <Screenshot src="/tutorials/tournois-ligue-classement-et-cloture/1.png" alt="Page Divisions avec deux divisions et les marques PROMU et RELÉG." />
+4. En fin de saison, clique **Clôturer saison N → N+1**. La fenêtre « Clôturer la saison N ? » prévient : le classement final est archivé, les promus et relégués changent de division, tous les points repartent de 0. C'est définitif. Confirme avec **Clôturer la saison**. La saison rejoint l'« Historique des saisons clôturées ».
+
+## Lire le classement
+
+1. Ouvre **Classement**. Les onglets **Général**, **Divisions** (ligue) et **WOD 1**, **WOD 2**… détaillent le classement.
+2. Hors tableau, la page rappelle le barème : « Barème : 100, 97, 95, 93… Ex-aequo : même rang, mêmes points, le rang suivant est sauté. » Le calcul est fait par la base, à partir des seuls scores validés.
+3. En ligue, le sélecteur passe de **Saison en cours** aux saisons terminées. Dans un tableau, le classement affiche Champion et Finaliste. <Screenshot src="/tutorials/tournois-ligue-classement-et-cloture/2.png" alt="Classement, onglet Général, avec la ligne du barème" />
+
+## Démarrer, terminer, clôturer
+
+1. **Démarrer le tournoi** ouvre « Démarrer le tournoi ? ». Si **Inscriptions ouvertes pendant le tournoi** est décochée, tu confirmes avec **Démarrer et fermer les inscriptions** : plus personne ne pourra s'inscrire. Sinon, le bouton reste **Démarrer le tournoi**. Sans toi, le tournoi démarre seul à sa date de début.
+2. À la fin, **Terminer le tournoi** ouvre « Terminer le tournoi ? » puis **Fermer les WOD** : plus aucun score n'arrive et le tournoi passe « En révision ». Tu peux encore valider ou rejeter les scores en attente.
+3. Clique **Distribuer l'ELO et clôturer**, puis **Distribuer l'ELO**. Le tournoi passe « Clôturé » : c'est définitif. La fenêtre « ✅ Tournoi clôturé ! » liste les premiers et leur variation d'ELO. <Screenshot src="/tutorials/tournois-ligue-classement-et-cloture/3.png" alt="Fenêtre Distribuer l'ELO et clôturer bloquée par des scores encore en attente" />
+
+## Archiver, désarchiver, supprimer
+
+1. Sans résultat validé, **Supprimer** ouvre « Supprimer ce tournoi ? » : les WODs, participants et scores sont supprimés. Clique **Confirmer la suppression**.
+2. Avec un résultat validé, le bouton devient **Archiver** : « Archiver ce tournoi ? ». Archivé, il n'apparaît plus dans les listes, mais ses résultats, ses classements et l'ELO sont conservés. Un bandeau l'indique sur sa fiche.
+3. Pour le retrouver, choisis **Archivés** sur la liste des tournois, ouvre-le et clique **Désarchiver**. <Screenshot src="/tutorials/tournois-ligue-classement-et-cloture/4.png" alt="Fiche d'un tournoi archivé avec son bandeau et le bouton Désarchiver" />
+
+<Callout type="warning">
+La clôture de saison et la distribution de l'ELO ne s'annulent pas. Vérifie les scores avant.
+</Callout>
+
+## Erreurs fréquentes
+
+- **« ⚠️ N scores encore en attente — valide ou rejette-les avant de distribuer l’ELO. »** Le bouton **Distribuer l'ELO** reste grisé → traite-les dans **Scores à valider**.
+- **« … est pleine (n/max). »** La division cible est complète → augmente son **Max** ou déplace quelqu'un d'autre.
+- **« Aucun score validé ».** Le classement attend les premières validations → valide des scores.
+- **Après Confirmer la suppression, c'est « Archiver ce tournoi ? » qui s'ouvre.** La base a trouvé un résultat validé : un tournoi joué ne se supprime plus → archive-le.
+- **« Tournoi clôturé » remplace le bouton de clôture.** L'ELO est déjà distribué : il ne se distribue pas deux fois → rien à faire, ou archive le tournoi.
+
+## Y aller
+
+<GoTo page="tournaments" />

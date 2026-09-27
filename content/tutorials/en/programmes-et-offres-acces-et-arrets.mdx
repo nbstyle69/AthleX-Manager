@@ -1,0 +1,56 @@
+---
+slug: programmes-et-offres-acces-et-arrets
+title: Access, stops and deletions for programs and offers
+summary: Give or remove access at the counter, deactivate a program or an offer still being paid, manage your sessions in bulk.
+role: owner
+pages: [programs, marketplace-offers]
+tags: [access, assign, free access, remove, deactivate, delete, duplicate, program, offer]
+order: 42
+---
+
+## Before you start
+
+Athlete programs live in **Marketplace → Programmes athlètes**, your offers for other boxes in **Marketplace → Mes offres**. These pages are for the owner only: a coach has no access. On-screen labels are in French, so they are quoted as they appear.
+
+## Give or remove access
+
+1. Click **Accès** on the program card: the **Accès au programme** window opens.
+2. Under **Donner l'accès à un membre**, pick a member in « Choisir un membre actif… ».
+3. **Assigner (offert)** gives free access, recorded as such. If the program has a price, **Assigner — payé au comptoir** records a counter payment: the amount is prefilled with the price, can only be lowered, and goes into the cash log, where it can no longer be corrected.
+4. **Ont accès** (who has access) shows the origin: « Acheté (Stripe) », « Payé au comptoir », « Offert par la box » or « Inscription héritée (origine non vérifiée) ». <Screenshot src="/tutorials/programmes-et-offres-acces-et-arrets/1.png" alt="Accès au programme window: a member selected, the Assigner (offert) and Assigner — payé au comptoir buttons, the Ont accès list with three origins" />
+5. **Retirer** (remove): free access goes at once. Access paid at the counter asks for confirmation (**Retirer l’accès**): any refund is up to you. Stripe access shows « Accès payé — se retire par remboursement Stripe » (removed through a Stripe refund).
+
+## Deactivate or delete a program or an offer
+
+1. **Désactiver** takes a program off sale (**Inactif** badge), **Activer** puts it back.
+2. **Supprimer** with no running Stripe buyer: every buyer loses access immediately, with no way to restore it.
+3. If buyers still pay through Stripe: « … paie encore le programme par Stripe : tu ne peux pas le supprimer tel quel. » Pick **Désactiver le programme** (subscribers keep paying) or **Arrêter l’abonnement à la fin de sa période et désactiver le programme**, confirmed with **Arrêter et désactiver**: everyone keeps access until the end of their paid period, with no new charge. You can delete it after the last subscription ends. <Screenshot src="/tutorials/programmes-et-offres-acces-et-arrets/2.png" alt="“Supprimer le programme … ?” window with Stripe buyers: Désactiver le programme and stop-then-deactivate choices" />
+4. In **Mes offres**, the bin of an offer paid by subscribed boxes likewise offers **Désactiver l’offre** (it goes back to **Brouillon**, draft) or **Arrêter et désactiver**. With no running Stripe subscription, deleting ends the subscribed boxes' subscription, but the sessions already placed with them stay. <Screenshot src="/tutorials/programmes-et-offres-acces-et-arrets/3.png" alt="“Supprimer l’offre … ?” window with subscribed boxes: Désactiver l’offre and stop-then-deactivate choices" />
+
+## Manage sessions in bulk
+
+1. **Séances** on the card opens the editor, week by week.
+2. The moon icon **Repos** turns a day into a rest day: it no longer accepts sessions.
+3. **Dupliquer sem. 1 → 2** copies the sessions and rest days of the displayed week to the next one, on top of what it already holds.
+4. **Sélectionner** adds a checkbox to each session: tick them (or **Toute la semaine**), then **Supprimer la sélection**. <Screenshot src="/tutorials/programmes-et-offres-acces-et-arrets/4.png" alt="Session editor in selection mode: two sessions ticked, one rest day, the Supprimer la sélection and Dupliquer sem. 1 → 2 buttons" />
+5. **Tout supprimer** deletes the sessions of the displayed week, without touching other weeks or the Whiteboard.
+6. **Exporter** downloads the displayed week as CSV.
+
+<Callout type="warning">
+**A deleted session does not come back.** Export the week before a **Tout supprimer** if you want to keep it.
+</Callout>
+
+## Common mistakes
+
+- **A member is missing from the list.** Only active box members without current access appear.
+- **« Montant encaissé supérieur au prix du programme (…) : une remise comptoir descend, elle ne monte pas. »** → enter an amount lower than or equal to the price.
+- **« Montant encaissé invalide : indique une somme positive. »** → fix the amount.
+- **« Suppression pas encore possible ».** All remaining subscriptions are already scheduled to stop → come back after the date shown.
+- **« Stripe a refusé l’arrêt … »** Nothing is deactivated, the other stops are done → run the action again.
+- **« Ce jour contient des séances : déplacez-les ou supprimez-les avant de le passer en repos. »** → empty the day first.
+- **« Dupliquer » is greyed out.** The week has no session, or it is the last week of a fixed program → raise the **Durée (semaines)** with **Modifier**. **Exporter** is only greyed out on an empty week.
+
+## Go there
+
+<GoTo page="programs" />
+<GoTo page="marketplace-offers" />

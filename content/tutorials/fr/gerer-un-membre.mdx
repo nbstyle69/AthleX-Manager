@@ -1,0 +1,51 @@
+---
+slug: gerer-un-membre
+title: Rôle, co-gérant, bannir un membre
+summary: Nomme un coach ou un co-gérant, bannis ou réactive un membre, ouvre sa fiche et range-le dans ses groupes.
+role: owner
+pages: [members, groups]
+tags: [rôle, coach, co-gérant, owner, bannir, débannir, réactiver, fiche, groupe, diffusion des wods]
+order: 34
+---
+
+## Avant de commencer
+
+Tout se passe dans **Membres** (Communauté → Membres), une ligne par membre, et dans **Groupes** (Communauté → Groupes). Ces deux écrans sont réservés au gérant et au co-gérant : un coach y reçoit « Accès refusé ».
+
+## Changer le rôle
+
+1. Dans la colonne **Rôle**, clique le bouton du membre (**Membre**, **Coach** ou **Owner**) et choisis le nouveau rôle. **Owner** correspond au co-gérant.
+2. Vers **Coach** : la fenêtre « Changer le rôle de … ? » indique « Il pourra gérer le planning et les WOD, mais pas l’argent. » Confirme avec **Changer le rôle**. Vers **Membre**, le texte devient « Il perd les accès de gestion. »
+3. Vers **Owner** : « Nommer … co-gérant ? » prévient « Il aura les mêmes accès que toi, facturation comprise. » Il n'y a qu'un co-gérant à la fois : si quelqu'un l'est déjà, la fenêtre ajoute qu'il redeviendra simple membre. Confirme avec **Nommer co-gérant**. <Screenshot src="/tutorials/gerer-un-membre/1.png" alt="Fenêtre Nommer Karim Benali co-gérant ? avec le passage Coach vers Owner" />
+
+## Bannir ou réactiver
+
+1. Clique **Bannir** au bout de la ligne. La fenêtre « Bannir … ? » rappelle son e-mail et prévient : un abonnement en cours (Stripe ou au comptoir) est arrêté aujourd'hui, sans remboursement, avec un e-mail au membre ; ses réservations à venir sont annulées. Confirme avec **Bannir le membre**. <Screenshot src="/tutorials/gerer-un-membre/2.png" alt="Fenêtre Bannir Thomas Laurent ? avec le bouton rouge Bannir le membre" />
+2. Le membre passe en **Banni** dans la colonne **Statut**, son nom est barré et son bouton **Rôle** est grisé.
+3. **Débannir** réactive le membre tout de suite, sans fenêtre de confirmation. Il revient sans formule (la colonne **Contrat** affiche **Illimité**) et son ancien abonnement n'est pas relancé : il devra en souscrire un nouveau.
+
+## Fiche, contrat et groupes
+
+1. **Fiche** ouvre un panneau latéral en lecture seule : **Niveau**, **ELO**, **Genre**, **Records 1RM** et **Séries réalisées**. <Screenshot src="/tutorials/gerer-un-membre/3.png" alt="Fiche d'un athlète avec ses records 1RM et ses séries réalisées" />
+2. La colonne **Contrat** montre sa formule, ou **Illimité**. Clique-la pour en choisir une autre : le membre entre aussi dans les groupes que la formule inclut (menu **Cours inclus** du panneau **Contrats**).
+3. Le menu **Groupes** de la ligne coche ou décoche ses groupes, un clic chacun.
+
+## Modifier ou supprimer un groupe
+
+1. Dans **Groupes**, ouvre un groupe puis clique **Modifier** : **Nom**, **Couleur** et **Diffusion des WODs**. **Jour par jour** : « Les membres ne voient que les WODs du jour (pas les jours futurs) » ; **Semaine entière** : ils voient toute la semaine. Clique **Enregistrer**. <Screenshot src="/tutorials/gerer-un-membre/4.png" alt="Détail d'un groupe en mode Modifier, Diffusion des WODs sur Jour par jour" />
+2. **Retirer**, sur la ligne d'un membre, le sort du groupe tout de suite, sans confirmation. **Message** ouvre une annonce avec ce groupe déjà choisi.
+3. **Supprimer** ouvre « Supprimer le groupe « … » ? » : les messages du groupe sont supprimés, les formules n'y inscrivent plus personne et les WOD réservés à ce seul groupe deviennent visibles par toute la box. Confirme avec **Supprimer le groupe**.
+
+## Erreurs fréquentes
+
+- **Le bouton Rôle est grisé.** Le membre est banni → clique **Débannir** d'abord.
+- **« Réactivation impossible ».** Un abonnement Stripe est encore en cours pour ce membre → arrête-le dans **Abonnés**, puis débannis.
+- **« Compte de paiement de la box introuvable. »** Le membre paie par Stripe mais la box n'a plus de compte de paiement relié → vérifie **Réglages** → Paiements ; rien n'a été arrêté ni banni.
+- **« Membre banni » : l'e-mail n'est pas parti.** Le bannissement est fait, mais le membre n'a pas reçu l'e-mail → préviens-le directement.
+- **« L’action n’a pas abouti ».** La base a refusé le changement (rôle, formule, suppression de groupe) : le message dit pourquoi, et l'écran garde l'ancien état.
+
+## Y aller
+
+<GoTo page="members" />
+
+<GoTo page="groups" />
