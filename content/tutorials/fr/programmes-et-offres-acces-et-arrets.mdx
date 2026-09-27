@@ -1,0 +1,56 @@
+---
+slug: programmes-et-offres-acces-et-arrets
+title: Accès, arrêts et suppressions des programmes et offres
+summary: Donne ou retire un accès au comptoir, désactive un programme ou une offre encore payés, gère tes séances en masse.
+role: owner
+pages: [programs, marketplace-offers]
+tags: [accès, assigner, offert, retirer, désactiver, supprimer, dupliquer, programme, offre]
+order: 42
+---
+
+## Avant de commencer
+
+Les programmes athlètes sont dans **Marketplace → Programmes athlètes**, tes offres pour les autres box dans **Marketplace → Mes offres**. Ces pages sont réservées au gérant : un coach n'y a pas accès.
+
+## Donner ou retirer un accès
+
+1. Clique **Accès** sur la carte du programme : la fenêtre **Accès au programme** s'ouvre.
+2. Sous **Donner l'accès à un membre**, choisis un membre dans « Choisir un membre actif… ».
+3. **Assigner (offert)** donne un accès gratuit, tracé comme tel. Si le programme a un prix, **Assigner — payé au comptoir** enregistre un encaissement : le montant est pré-rempli au prix, modifiable à la baisse, et part dans le journal de caisse, où il ne se corrige plus.
+4. **Ont accès** indique la provenance : « Acheté (Stripe) », « Payé au comptoir », « Offert par la box » ou « Inscription héritée (origine non vérifiée) ». <Screenshot src="/tutorials/programmes-et-offres-acces-et-arrets/1.png" alt="Fenêtre Accès au programme : un membre choisi, les boutons Assigner (offert) et Assigner — payé au comptoir, la liste Ont accès avec trois provenances" />
+5. **Retirer** : un accès offert part tout de suite. Un accès payé au comptoir demande confirmation (**Retirer l’accès**) : le remboursement éventuel est à ta charge. Un accès Stripe affiche « Accès payé — se retire par remboursement Stripe ».
+
+## Désactiver ou supprimer un programme ou une offre
+
+1. **Désactiver** retire un programme de la vente (badge **Inactif**), **Activer** le remet.
+2. **Supprimer** sans acheteur Stripe en cours : tous les acheteurs perdent leur accès immédiatement, sans restauration possible.
+3. Si des acheteurs paient encore par Stripe : « … paie encore le programme par Stripe : tu ne peux pas le supprimer tel quel. » Choisis **Désactiver le programme** (les abonnés continuent de payer) ou **Arrêter l’abonnement à la fin de sa période et désactiver le programme**, confirmé par **Arrêter et désactiver** : chacun garde l'accès jusqu'à la fin de sa période payée, sans nouveau prélèvement. Tu pourras le supprimer après le dernier abonnement. <Screenshot src="/tutorials/programmes-et-offres-acces-et-arrets/2.png" alt="Fenêtre « Supprimer le programme … ? » avec des acheteurs Stripe : choix Désactiver le programme et Arrêter puis désactiver" />
+4. Dans **Mes offres**, la corbeille d'une offre payée par des box abonnées propose de même **Désactiver l’offre** (elle repasse en **Brouillon**) ou **Arrêter et désactiver**. Sans abonnement Stripe en cours, la suppression coupe l'abonnement des box abonnées, mais les séances déjà posées chez elles restent. <Screenshot src="/tutorials/programmes-et-offres-acces-et-arrets/3.png" alt="Fenêtre « Supprimer l’offre … ? » avec des box abonnées : choix Désactiver l’offre et Arrêter puis désactiver" />
+
+## Gérer les séances en masse
+
+1. **Séances** sur la carte ouvre l'éditeur, semaine par semaine.
+2. L'icône lune **Repos** passe un jour en repos : il n'accepte plus de séance.
+3. **Dupliquer sem. 1 → 2** recopie les séances et les jours de repos de la semaine affichée sur la suivante, en plus de ce qu'elle contient déjà.
+4. **Sélectionner** ajoute une case à chaque séance : coche-les (ou **Toute la semaine**), puis **Supprimer la sélection**. <Screenshot src="/tutorials/programmes-et-offres-acces-et-arrets/4.png" alt="Éditeur de séances en mode sélection : deux séances cochées, un jour en repos, les boutons Supprimer la sélection et Dupliquer sem. 1 → 2" />
+5. **Tout supprimer** efface les séances de la semaine affichée, sans toucher aux autres semaines ni au Whiteboard.
+6. **Exporter** télécharge la semaine affichée en CSV.
+
+<Callout type="warning">
+**Une séance supprimée ne revient pas.** Exporte la semaine avant un **Tout supprimer** si tu veux la garder.
+</Callout>
+
+## Erreurs fréquentes
+
+- **Un membre manque dans la liste.** Seuls les membres actifs de la box sans accès en cours y figurent.
+- **« Montant encaissé supérieur au prix du programme (…) : une remise comptoir descend, elle ne monte pas. »** → saisis un montant inférieur ou égal au prix.
+- **« Montant encaissé invalide : indique une somme positive. »** → corrige le montant.
+- **« Suppression pas encore possible ».** Tous les abonnements restants sont déjà programmés pour s'arrêter → reviens après la date indiquée.
+- **« Stripe a refusé l’arrêt … »** Rien n'est désactivé, les autres arrêts sont faits → relance l'action.
+- **« Ce jour contient des séances : déplacez-les ou supprimez-les avant de le passer en repos. »** → vide le jour d'abord.
+- **« Dupliquer » est grisé.** La semaine n'a pas de séance, ou c'est la dernière d'un programme fixe → augmente la **Durée (semaines)** avec **Modifier**. **Exporter**, lui, n'est grisé que sur une semaine vide.
+
+## Y aller
+
+<GoTo page="programs" />
+<GoTo page="marketplace-offers" />

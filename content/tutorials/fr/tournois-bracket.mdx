@@ -1,0 +1,50 @@
+---
+slug: tournois-bracket
+title: Faire vivre un tableau à élimination (bracket)
+summary: Tire le premier tour, décide les matchs selon les scores, gère le Loser Bracket et la grande finale.
+role: owner
+pages: [tournaments]
+tags: [tournoi, bracket, tableau, elimination, round, match, vainqueur, loser bracket, grande finale, double elimination]
+order: 62
+---
+
+## Avant de commencer
+
+Le **Tableau du bracket** s'ouvre depuis la fiche d'un tournoi au format **Bracket (élimination simple)** ou **Swiss (double élimination)** (Animation → Tournois → le tournoi). Pour les autres formats, la page renvoie vers la fiche. Seul le gérant a accès à cet écran.
+
+## Préparer les WOD de chaque étape
+
+1. Avant le tirage, sur **Programme des WODs**, donne à chaque WOD son **Étape du tournoi** (ex. 8e de finale). Chaque match créé reçoit le WOD prévu pour son étape : c'est la base qui le pose.
+2. Un WOD sur « 🌐 Toutes les étapes (non assigné) » reste disponible pour toutes les étapes.
+
+## Tirer et faire avancer le tableau
+
+1. Tableau vide : « Aucun match généré. » et le nombre d'inscrits. Clique **Générer le round 1**. La fenêtre « Générer le premier tour ? » rappelle que les affiches sont tirées au hasard ; avec un nombre impair, un athlète tiré au sort passe directement au tour suivant. Confirme avec **Générer le tour**. <Screenshot src="/tutorials/tournois-bracket/1.png" alt="Tableau vide avec le bouton Générer le round 1" />
+2. Les athlètes envoient leurs scores sur le WOD du match, puis tu les valides dans **Scores à valider**. Un « * » signale un score pas encore validé.
+3. Clique **Décider selon les scores**. La fenêtre « Décider les matchs d’après les scores validés ? » explique la règle : un For Time terminé bat un CAP, entre deux CAP le plus de reps gagne, puis le tie-break. L'ELO des deux athlètes est mis à jour tout de suite. Clique **Décider les matchs**. <Screenshot src="/tutorials/tournois-bracket/2.png" alt="Fenêtre Décider les matchs d’après les scores validés, avec le round et le WOD" />
+4. Le bilan affiche le nombre de matchs décidés, et pour chaque match laissé à la main sa raison. Pour ceux-là, clique la **couronne** (**Désigner vainqueur**) du bon côté. Cliquer le nom d'un athlète ouvre sa fiche de soumission (score, tie-break, vidéo). <Screenshot src="/tutorials/tournois-bracket/3.png" alt="Bilan de décision avec un match à décider à la main pour égalité parfaite" />
+5. Quand tous les matchs du tour ont un vainqueur, clique **Round suivant** : « Round suivant généré (… matchs). Décide ses vainqueurs pour continuer. »
+6. Au survol d'une carte, le crayon **Éditer (joueurs / date / notes)** change les joueurs, la date ou les notes du match.
+
+## Double élimination
+
+1. En **Swiss**, le perdant d'un match des gagnants descend dans le **Loser Bracket**. Ses colonnes « Tour 1 des perdants », « Tour 2 des perdants »… ont chacune une liste **WOD de ce tour**.
+2. Le bouton **Round suivant** crée aussi la **Grande finale**, puis, si elle est due, la « Grande finale — match décisif ». Le champion du Winner Bracket choisit le WOD de la grande finale : reporte-le dans « — Sélectionner un WOD — ». Les boutons des deux finalistes s'activent ensuite. <Screenshot src="/tutorials/tournois-bracket/4.png" alt="Tableau Swiss avec Winner Bracket, Loser Bracket et Grande finale" />
+
+## Corriger un résultat
+
+1. Sur un match terminé, le bouton **Annuler le résultat** ouvre « Effacer le résultat de ce match ? » : le match redevient « à jouer » et l'ELO gagné ou perdu est rendu aux deux athlètes. Les tours suivants déjà générés ne changent pas : corrige avant de cliquer **Round suivant**. Confirme avec **Effacer le résultat**.
+2. **Régénérer** ouvre « Refaire tout le tableau ? » : les matchs sont effacés et un nouveau premier tour est tiré, tant qu'aucun match n'est joué.
+
+## Erreurs fréquentes
+
+- **« À décider à la main : score manquant ou non validé. »** Un des deux scores manque ou attend → valide-le, puis décide à nouveau, ou choisis le vainqueur à la couronne.
+- **« À décider à la main : égalité parfaite (scores et tie-breaks). »** La base ne tranche pas → désigne le vainqueur toi-même.
+- **« À décider à la main : aucun WOD pour ce match. »** Ni le match ni son étape n'ont de WOD → assigne une **Étape du tournoi** au WOD, ou choisis le WOD du tour des perdants.
+- **« Le tour … a encore … matchs à décider. »** Un match du tour n'a pas de vainqueur → décide-le avant **Round suivant**.
+- **« Il faut au moins 2 participants pour tirer le tableau. »** Pas assez d'inscrits → attends les inscriptions.
+- **« Le tableau ne peut plus être régénéré : un match est déjà joué. »** → corrige le match concerné au lieu de tout refaire.
+
+## Y aller
+
+<GoTo page="tournaments" />

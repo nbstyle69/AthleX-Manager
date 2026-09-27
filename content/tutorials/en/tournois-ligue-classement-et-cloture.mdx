@@ -1,0 +1,54 @@
+---
+slug: tournois-ligue-classement-et-cloture
+title: League, ranking, closing and archiving a tournament
+summary: Manage a league's divisions and seasons, read the ranking, then close, archive or delete a tournament.
+role: owner
+pages: [tournaments]
+tags: [tournament, league, divisions, season, promotion, relegation, ranking, close, finish, elo, archive, unarchive, delete]
+order: 63
+---
+
+## Before you start
+
+These actions happen on a tournament's record (Animation → Tournois → the tournament) and in its **Divisions** (league only) and **Classement** tiles. Only the owner has access to these screens.
+
+## Manage a league's divisions
+
+1. Open **Divisions**. The header shows the current **Saison** (season). **Division** opens « Créer une nouvelle division ? »: type the **Nom de la division**, then **Créer la division** (16 seats, 3 promoted, no relegation, editable later).
+2. On each division, set **Max**, **Promus ↑** and **Relég. ↓**. In the table, « PROMU » and « RELÉG. » mark the athletes who will change division at season end.
+3. **Ajouter** places an athlete from the « Athlètes inscrits non assignés » list (unassigned entrants). Each row's list moves them (« Changer … de division ? », **Déplacer**); the remove icon opens « Retirer … de sa division ? ». <Screenshot src="/tutorials/tournois-ligue-classement-et-cloture/1.png" alt="Divisions page with two divisions and the PROMU and RELÉG. marks" />
+4. At season end, click **Clôturer saison N → N+1**. The « Clôturer la saison N ? » window warns: the final ranking is archived, promoted and relegated athletes change division, all points go back to 0. It is final. Confirm with **Clôturer la saison**. The season joins the « Historique des saisons clôturées » (closed seasons history).
+
+## Read the ranking
+
+1. Open **Classement**. The **Général**, **Divisions** (league) and **WOD 1**, **WOD 2**… tabs break the ranking down.
+2. Outside brackets, the page recalls the scale: « Barème : 100, 97, 95, 93… Ex-aequo : même rang, mêmes points, le rang suivant est sauté. » (ties share rank and points, the next rank is skipped). The database computes it, from validated scores only.
+3. In a league, the selector switches from **Saison en cours** to finished seasons. In a bracket, the ranking shows Champion and Finaliste. <Screenshot src="/tutorials/tournois-ligue-classement-et-cloture/2.png" alt="Ranking, Général tab, with the scale line" />
+
+## Start, finish, close
+
+1. **Démarrer le tournoi** opens « Démarrer le tournoi ? ». If **Inscriptions ouvertes pendant le tournoi** is unticked, you confirm with **Démarrer et fermer les inscriptions**: nobody else can register. Otherwise the button stays **Démarrer le tournoi**. Without you, the tournament starts on its own on its start date.
+2. At the end, **Terminer le tournoi** opens « Terminer le tournoi ? », then **Fermer les WOD**: no more scores come in and the tournament goes « En révision » (under review). You can still validate or reject pending scores.
+3. Click **Distribuer l'ELO et clôturer**, then **Distribuer l'ELO**. The tournament goes « Clôturé »: it is final. The « ✅ Tournoi clôturé ! » window lists the top athletes and their ELO change. <Screenshot src="/tutorials/tournois-ligue-classement-et-cloture/3.png" alt="Distribute ELO and close window blocked by scores still pending" />
+
+## Archive, unarchive, delete
+
+1. Without a validated result, **Supprimer** opens « Supprimer ce tournoi ? »: WODs, participants and scores are deleted. Click **Confirmer la suppression**.
+2. With a validated result, the button becomes **Archiver**: « Archiver ce tournoi ? ». Archived, it no longer appears in the lists, but its results, rankings and ELO are kept. A banner says so on its record.
+3. To find it again, pick **Archivés** on the tournament list, open it and click **Désarchiver**. <Screenshot src="/tutorials/tournois-ligue-classement-et-cloture/4.png" alt="Record of an archived tournament with its banner and the Désarchiver button" />
+
+<Callout type="warning">
+Closing a season and distributing ELO cannot be undone. Check the scores first.
+</Callout>
+
+## Common mistakes
+
+- **« ⚠️ N scores encore en attente — valide ou rejette-les avant de distribuer l’ELO. » (scores still pending).** The **Distribuer l'ELO** button stays greyed → handle them in **Scores à valider**.
+- **« … est pleine (n/max). » (division is full).** The target division is full → raise its **Max** or move someone else.
+- **« Aucun score validé » (no validated score).** The ranking waits for the first validations → validate scores.
+- **After Confirmer la suppression, « Archiver ce tournoi ? » opens instead.** The database found a validated result: a played tournament can no longer be deleted → archive it.
+- **« Tournoi clôturé » replaces the closing button.** ELO is already distributed: it is not distributed twice → nothing to do, or archive the tournament.
+
+## Go there
+
+<GoTo page="tournaments" />

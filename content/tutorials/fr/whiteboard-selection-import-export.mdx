@@ -1,0 +1,56 @@
+---
+slug: whiteboard-selection-import-export
+title: Sélectionner, importer, exporter et vider le Whiteboard
+summary: Assigne plusieurs WOD d'un coup, importe un CSV, exporte ta semaine, déplace les cartes ou vide la semaine.
+role: both
+pages: [whiteboard]
+tags: [sélection, assigner, import csv, export, template csv, tout supprimer, déplacer, dépublier, colonnes, whiteboard]
+order: 27
+---
+
+## Avant de commencer
+
+La barre d'outils du **Whiteboard** (Entraînement → Whiteboard) agit sur la semaine affichée. Le gérant et les coachs ont les mêmes boutons ; seul **Copier vers une offre** est réservé au gérant ou au co-gérant, et le serveur le refuse à un coach.
+
+## Sélectionner et assigner plusieurs WOD
+
+1. Clique **Sélectionner** : une case apparaît devant chaque carte, et une barre affiche le compteur (« 3 WODs sélectionnés »). **Toute la semaine** coche tous les WOD de la semaine, même ceux cachés par un onglet de piste. <Screenshot src="/tutorials/whiteboard-selection-import-export/1.png" alt="Whiteboard en mode sélection avec trois WOD cochés et le bouton Assigner à…" />
+2. Clique **Assigner à…**. Dans la fenêtre, coche des **Groupes** et des **Programmes**, puis choisis **Ajouter aux restrictions existantes** (ce qui est posé reste en place) ou **Remplacer les restrictions** (les WOD n'auront plus que ce qui est coché). <Screenshot src="/tutorials/whiteboard-selection-import-export/2.png" alt="Fenêtre Assigner 3 WODs avec un groupe coché et Remplacer les restrictions choisi" />
+3. Clique **Assigner** (ou **Remplacer**). Le compte rendu nomme les destinations, par exemple « 3 WODs assignés à Groupe : Compétiteurs. ». **Quitter la sélection** fait disparaître les cases.
+
+## Importer et exporter un CSV
+
+1. **Template CSV** télécharge `template_wods.csv` : colonnes `date,title,type,description,timecap,rounds,notes,block,published,rank,groups`, avec des lignes d'exemple. Dans `groups`, sépare les noms de groupes par `|` ; vide, le WOD est visible par tous.
+2. Clique **Importer** et choisis ton fichier CSV ou JSON (un PDF ouvre l'import PDF). Tu peux aussi glisser le fichier sur la page.
+3. Une carte de résultat s'affiche, par exemple « ✅ 4 WODs posés — ⚠️ 1 erreur », avec le détail ligne par ligne. Les WOD importés sont déjà sélectionnés : clique **Assigner à…** pour leur poser des programmes. <Screenshot src="/tutorials/whiteboard-selection-import-export/3.png" alt="Carte de résultat d'import avec quatre WOD posés et une erreur de ligne" />
+4. **Exporter** télécharge la semaine affichée (`wods_semaine_AAAA-MM-JJ.csv`, daté du lundi) avec la date, le titre, le type, les mouvements, le time cap, les rounds, les notes et la publication.
+
+## Ranger les cartes
+
+1. Les flèches **Jour précédent** / **Jour suivant** déplacent une carte d'un jour ; **Monter** / **Descendre** changent son ordre dans la journée.
+2. L'œil **Dépublier** / **Publier** cache ou montre le WOD aux athlètes sans l'ouvrir. En vue lignes, un WOD dépublié porte le badge **Brouillon**.
+3. **Colonnes** passe à un jour par colonne, **Lignes** revient à un jour par ligne. Ton choix est mémorisé.
+
+## Vider la semaine
+
+1. **Tout supprimer** ouvre « Supprimer les N WOD de la semaine ? ». Tous les WOD de la semaine affichée partent, quel que soit l'onglet choisi, y compris ceux reçus d'une programmation, avec les scores et les validations des athlètes. Les points ELO ne changent pas. <Screenshot src="/tutorials/whiteboard-selection-import-export/4.png" alt="Fenêtre de confirmation Supprimer les WOD de la semaine" />
+2. Pour un seul WOD, la corbeille de la carte ouvre « Supprimer ce WOD ? », avec les mêmes conséquences.
+
+<Callout type="warning">
+Les deux suppressions sont définitives : exporte la semaine avant si tu veux en garder une trace.
+</Callout>
+
+## Erreurs fréquentes
+
+- **« Type de fichier non supporté : « … ». L'import accepte PDF, CSV et JSON. »** → enregistre ton tableur en CSV.
+- **« Ligne N ignorée : date invalide (attendu AAAA-MM-JJ) ».** → écris la date comme `2026-10-05`.
+- **« Groupes inconnus (ignorés) : … ».** Le nom ne correspond à aucun groupe de la box → corrige-le, ou assigne le groupe après coup avec **Assigner à…**.
+- **« Rien n'est coché : ces N WOD perdront toute restriction et deviendront visibles par toute la box. »** Tu es en **Remplacer les restrictions** sans rien cocher → coche une destination, ou reviens à **Ajouter aux restrictions existantes**.
+- **Un déplacement ou l'œil ne semble rien faire.** Ces actions n'affichent aucun message en cas d'échec → recharge la page pour voir l'état réel.
+- **Une carte AUTO devient AUTO · MODIFIÉE après un déplacement.** C'est voulu : la régénération conservera ce jour.
+- **Réimporter un export ne remet pas les groupes.** L'export n'a ni colonne `block` ni colonne `groups` → pars du **Template CSV** pour préparer un import complet.
+- **« Accès refusé : gérant ou co-gérant de la box éditrice requis ».** Un coach a cliqué **Copier vers une offre** → c'est au gérant de faire la copie.
+
+## Y aller
+
+<GoTo page="whiteboard" />

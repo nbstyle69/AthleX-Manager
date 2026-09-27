@@ -1,0 +1,50 @@
+---
+slug: presences-et-liste-d-attente
+title: Attendance sheet and waiting list
+summary: Take attendance, remove a booked member, handle the waiting list, export the sheet and delete a class without surprises.
+role: both
+pages: [schedule]
+tags: [attendance, roll call, waiting list, remove, booked, export, csv, delete a class, coach]
+order: 33
+---
+
+## Before you start
+
+The attendance sheet opens from **Horaires & Créneaux** (Entraînement → Horaires). Coaches and owners both have access, and each of them can do every action in this tutorial. Nobody is ever notified of a removal or a deletion: tell the athletes yourself.
+
+## Take attendance
+
+1. **Présences** tab: the classes of the day show as cards, with booked members over capacity, « · N en attente » (N waiting) when there is a waiting list, and on the right « Appel à faire » (roll call to do) or « N pointés » (N checked). Today, the first class not yet over carries the **Prochain cours** (next class) badge. <Screenshot src="/tutorials/presences-et-liste-d-attente/1.png" alt="Présences tab with three classes of the day, one badged Prochain cours and one already checked" />
+2. Click the card (« Faire l'appel → »): the sheet opens with the **Inscrits** (booked) list, then the **Liste d'attente** (waiting list), each numbered in booking order.
+3. Click the box in front of a name: the first click marks them present, the next one absent, then present again. The bottom of the sheet counts present, absent and unmarked people.
+4. A visitor who came for a trial session carries the **ESSAI** badge. Marking them present or absent moves their card forward in **Prospects** (came or did not come). <Screenshot src="/tutorials/presences-et-liste-d-attente/2.png" alt="Attendance sheet of a full class: checked members, a visitor badged ESSAI and two people on the waiting list" />
+5. Somebody shows up without a booking: click **Ajouter**, type at least 3 letters of their username and pick them. They are booked and marked present. If the class is full, they go on the waiting list and a window tells you so: « Placé en liste d’attente ».
+6. **Exporter CSV** downloads the sheet (name, email, status, present, trial or member). The button is greyed out while nobody is booked.
+
+## Remove somebody
+
+1. Hover the row and click the removal icon at its end (tooltip « Retirer du créneau » or « Retirer de la liste d'attente »).
+2. For a booked member, the « Retirer … de ce cours ? » window explains: the seat is freed and the first person on the waiting list is booked in their place. A session taken from a class pack is only given back if the class starts in more than 5 hours. Confirm with **Retirer du cours**. <Screenshot src="/tutorials/presences-et-liste-d-attente/3.png" alt="Retirer Léa Garnier de ce cours ? window with the Retirer du cours button" />
+3. For a waiting person, « Retirer … de la liste d’attente ? » is confirmed with **Retirer de la liste**. The sheet reloads and shows the new list.
+
+## Delete a class
+
+1. Switch to the **Grille hebdo** tab, hover the class card and click the bin (**Supprimer**).
+2. The « Supprimer ce cours ? » window recalls the class, its time, its coach, the number booked and waiting. If people are booked, the class goes with all its bookings, its waiting list and the attendance already taken; participants are not notified and sessions taken from a class pack are not given back. Other weeks do not change. <Screenshot src="/tutorials/presences-et-liste-d-attente/4.png" alt="Supprimer ce cours ? window for a class with booked members and a waiting list" />
+3. Click **Supprimer le cours** to confirm, or **Annuler**.
+
+<Callout type="warning">
+Deletion is final: tell the booked members before you click.
+</Callout>
+
+## Common mistakes
+
+- **« Déjà inscrit » (already booked).** This member is already on the sheet → look for their name under **Inscrits** or **Liste d'attente**.
+- **« Aucun résultat » in Ajouter.** The search only covers the username of active members, from 3 letters → check the spelling; a banned member does not show up.
+- **« Impossible de retirer ce membre : … ».** The database refused the removal → reload the page and try again; the message says why.
+- **« Suppression impossible : … ».** Same thing when deleting a class.
+- **The bin does not show.** It only exists in the **Grille hebdo**; on a large screen, it appears when you hover the card.
+
+## Go there
+
+<GoTo page="schedule" />

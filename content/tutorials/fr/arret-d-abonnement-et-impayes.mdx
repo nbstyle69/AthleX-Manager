@@ -1,0 +1,60 @@
+---
+slug: arret-d-abonnement-et-impayes
+title: Arrêter un abonnement et traiter un impayé
+summary: Arrête un abonnement au bon moment, relance ou encaisse un impayé, retire une offre encore payée et gère tes codes promo.
+role: owner
+pages: [subscribers, plans]
+tags: [arrêter, arrêt, impayé, relancer, encaisser, geler, suspension, comptoir, code promo]
+order: 82
+---
+
+## Avant de commencer
+
+Tout se passe dans **Abonnés** (Communauté → Abonnés) et dans **Formules** (Communauté → Formules). Ces pages sont réservées au gérant : un coach n'y a pas accès. Un arrêt ne rembourse rien : le mois en cours reste encaissé.
+
+## Arrêter un abonnement
+
+1. Sur la ligne d'un abonnement de salle **Actif** ou **Impayé**, clique **Arrêter l’abonnement**. La fenêtre rappelle la formule, le montant, le moyen de paiement et la période payée.
+2. Abonnement Stripe : choisis **À la fin de la période payée, le …** (coché par défaut, il garde l'accès jusque-là) ou **Immédiatement.** (ses réservations à venir sont annulées). En impayé, seul **Immédiatement.** est proposé.
+3. Membre au comptoir : aucun choix, « Il paie au comptoir : aucun prélèvement à arrêter. » Son adhésion passe en inactive tout de suite.
+4. Membre engagé : le bandeau « Engagement en cours jusqu’au … » t'avertit que l'arrêt lève l'engagement, les mois restants ne seront pas prélevés.
+5. Confirme avec le bouton rouge **Arrêter l’abonnement**. Le membre est prévenu par e-mail. Un arrêt en fin de période affiche ensuite **Fin programmée le …**. <Screenshot src="/tutorials/arret-d-abonnement-et-impayes/1.png" alt="Fenêtre « Arrêter l’abonnement de … ? » d'un abonnement Stripe engagé, avec les choix À la fin de la période payée et Immédiatement" />
+
+<Callout type="warning">
+**Un abonnement arrêté ne se réactive pas** : le membre devra en souscrire un nouveau. Pour une pause, utilise **Geler**.
+</Callout>
+
+## Geler ou répondre à une demande
+
+1. **Geler** met en pause un abonnement Stripe, **Reprendre** le relance.
+2. Le bandeau **Demandes de résiliation** montre le motif, le message et le **Justificatif** de chaque demande.
+3. **Approuver**, puis **Approuver la résiliation** : l'abonnement s'arrête à la fin de la période en cours et l'engagement est effacé. **Refuser** propose un **Motif du refus (facultatif)**, puis **Refuser la demande** : rien ne change.
+
+## Traiter un impayé
+
+1. Un prélèvement échoué ajoute le membre au panneau **Impayés**, au-dessus du tableau : « Impayé depuis le … », tentatives, relances, motif de l'échec.
+2. Surveille « Suspension des réservations dans N jours », puis « Réservations suspendues » une fois le délai de grâce passé. Les réservations reviennent dès le paiement.
+3. **Relancer** envoie un e-mail de rappel. **Encaisser** retente le prélèvement de la facture impayée. <Screenshot src="/tutorials/arret-d-abonnement-et-impayes/2.png" alt="Panneau Impayés avec deux membres, le délai avant suspension et les boutons Relancer et Encaisser" />
+4. Le délai de grâce se règle dans **Réglages** : « Impayé : délai avant suspension (jours) ».
+
+## Retirer une offre payée, gérer les codes promo
+
+1. Dans **Formules**, **Supprimer** sur une offre encore payée par Stripe annonce « … paie encore la formule par Stripe : tu ne peux pas la supprimer telle quelle. »
+2. Choisis **Désactiver la formule** (plus proposée aux nouveaux membres, les abonnés continuent de payer) ou **Arrêter l’abonnement à la fin de sa période, puis supprimer** (« Arrêter les N abonnements… » s'il y en a plusieurs) : chacun garde l'accès jusqu'à la fin de sa période payée, un impayé est arrêté tout de suite. Confirme avec **Arrêter et supprimer**. <Screenshot src="/tutorials/arret-d-abonnement-et-impayes/3.png" alt="Fenêtre de suppression d'une offre payée par Stripe, avec les choix Désactiver la formule et Arrêter puis supprimer" />
+3. Sous **Codes promo**, un code peut porter **Désactivé** ou **Expiré**. **Copier** le copie, **Désactiver** / **Activer** le retire ou le remet en service, **Supprimer** le retire du paiement ; ceux qui en bénéficient gardent leur remise. <Screenshot src="/tutorials/arret-d-abonnement-et-impayes/4.png" alt="Section Codes promo avec un code actif, un code Désactivé et un code Expiré, et leurs boutons Copier, Désactiver, Supprimer" />
+
+## Erreurs fréquentes
+
+- **« Arrêter l’abonnement » manque.** L'arrêt est déjà programmé, la ligne est un programme, ou l'abonnement est annulé.
+- **« Cet abonnement est en impayé : seul l'arrêt immédiat est possible. »** Le prélèvement a échoué depuis l'affichage → recharge et choisis **Immédiatement.**
+- **« E-mail non envoyé ».** L'action est faite, pas l'e-mail → préviens le membre directement.
+- **« Compte de paiement de la box introuvable. »** Les paiements Stripe ne sont pas reliés → **Réglages → Paiements**.
+- **« Encaisser » est grisé.** « Aucun abonnement Stripe rattaché » : le membre paie au comptoir → **Encaissement reçu**.
+- **« Aucune facture impayée à encaisser. »** Le paiement est peut-être déjà passé → recharge la page.
+- **« Ce membre n'a pas d'email. »** Relance impossible → contacte-le autrement.
+- **« Stripe a refusé l’arrêt … »** Rien n'est supprimé, les autres arrêts sont faits → relance la suppression.
+
+## Y aller
+
+<GoTo page="subscribers" />
+<GoTo page="plans" />

@@ -1,0 +1,60 @@
+---
+slug: arret-d-abonnement-et-impayes
+title: Stop a subscription and handle a failed payment
+summary: Stop a subscription at the right time, remind or collect a failed payment, withdraw an offer still being paid and manage your promo codes.
+role: owner
+pages: [subscribers, plans]
+tags: [stop, unpaid, failed payment, remind, collect, freeze, suspension, counter, promo code]
+order: 82
+---
+
+## Before you start
+
+Everything happens in **Abonnés** (Communauté → Abonnés, subscribers) and **Formules** (Communauté → Formules, plans). These pages are for the owner only: a coach has no access. Stopping refunds nothing: the current month stays collected. On-screen labels are in French, so they are quoted as they appear.
+
+## Stop a subscription
+
+1. On the row of a gym subscription that is **Actif** or **Impayé** (unpaid), click **Arrêter l’abonnement**. The window recalls the plan, the amount, the payment method and the paid period.
+2. Stripe subscription: pick **À la fin de la période payée, le …** (at the end of the paid period, selected by default, access is kept until then) or **Immédiatement.** (immediately, upcoming bookings are cancelled). When unpaid, only **Immédiatement.** is offered.
+3. Member paying at the counter: no choice, « Il paie au comptoir : aucun prélèvement à arrêter. ». The membership turns inactive at once.
+4. Member under commitment: the banner « Engagement en cours jusqu’au … » warns you that stopping lifts the commitment; the remaining months will not be charged.
+5. Confirm with the red **Arrêter l’abonnement** button. The member is told by e-mail. An end-of-period stop then shows **Fin programmée le …** (end scheduled on). <Screenshot src="/tutorials/arret-d-abonnement-et-impayes/1.png" alt="“Arrêter l’abonnement de … ?” window for a committed Stripe subscription, with the end-of-paid-period and immediate choices" />
+
+<Callout type="warning">
+**A stopped subscription cannot be reactivated**: the member will have to take out a new one. For a pause, use **Geler** (freeze).
+</Callout>
+
+## Freeze or answer a request
+
+1. **Geler** pauses a Stripe subscription, **Reprendre** restarts it.
+2. The **Demandes de résiliation** banner (cancellation requests) shows each request's reason, message and **Justificatif** (supporting document).
+3. **Approuver**, then **Approuver la résiliation**: the subscription stops at the end of the current period and the commitment is cleared. **Refuser** offers a **Motif du refus (facultatif)** (optional reason), then **Refuser la demande**: nothing changes.
+
+## Handle a failed payment
+
+1. A failed debit adds the member to the **Impayés** panel above the table: « Impayé depuis le … » (unpaid since), attempts, reminders, failure reason.
+2. Watch « Suspension des réservations dans N jours » (bookings suspended in N days), then « Réservations suspendues » once the grace period is over. Bookings come back as soon as the payment goes through.
+3. **Relancer** sends a reminder e-mail. **Encaisser** retries the debit of the unpaid invoice. <Screenshot src="/tutorials/arret-d-abonnement-et-impayes/2.png" alt="Impayés panel with two members, the delay before suspension and the Relancer and Encaisser buttons" />
+4. The grace period is set in **Réglages**: « Impayé : délai avant suspension (jours) ».
+
+## Withdraw a paid offer, manage promo codes
+
+1. In **Formules**, **Supprimer** on an offer still paid through Stripe says « … paie encore la formule par Stripe : tu ne peux pas la supprimer telle quelle. ».
+2. Pick **Désactiver la formule** (no longer offered to new members, current subscribers keep paying) or **Arrêter l’abonnement à la fin de sa période, puis supprimer** (« Arrêter les N abonnements… » when there are several): everyone keeps access until the end of their paid period, an unpaid one is stopped at once. Confirm with **Arrêter et supprimer**. <Screenshot src="/tutorials/arret-d-abonnement-et-impayes/3.png" alt="Deletion window of an offer paid through Stripe, with the Désactiver la formule and stop-then-delete choices" />
+3. Under **Codes promo**, a code can carry **Désactivé** (disabled) or **Expiré** (expired). **Copier** copies it, **Désactiver** / **Activer** takes it out of or back into service, **Supprimer** removes it from checkout; members who already have the discount keep it. <Screenshot src="/tutorials/arret-d-abonnement-et-impayes/4.png" alt="Codes promo section with an active code, a Désactivé code and an Expiré code, and their Copier, Désactiver, Supprimer buttons" />
+
+## Common mistakes
+
+- **« Arrêter l’abonnement » is missing.** The stop is already scheduled, the row is a program, or the subscription is cancelled.
+- **« Cet abonnement est en impayé : seul l'arrêt immédiat est possible. »** The debit failed after the page was displayed → reload and pick **Immédiatement.**
+- **« E-mail non envoyé ».** The action is done, not the e-mail → tell the member directly.
+- **« Compte de paiement de la box introuvable. »** Stripe payments are not connected → **Réglages → Paiements**.
+- **« Encaisser » is greyed out.** « Aucun abonnement Stripe rattaché »: the member pays at the counter → **Encaissement reçu**.
+- **« Aucune facture impayée à encaisser. »** The payment may already have gone through → reload the page.
+- **« Ce membre n'a pas d'email. »** No reminder possible → reach them another way.
+- **« Stripe a refusé l’arrêt … »** Nothing is deleted, the other stops are done → run the deletion again.
+
+## Go there
+
+<GoTo page="subscribers" />
+<GoTo page="plans" />
