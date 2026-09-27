@@ -44,6 +44,21 @@ const EXPECTED_SLUGS = [
   'actualites-et-messages',
   'statistiques',
   'reglages-de-la-box',
+  // Lot « tutoriels manquants »
+  'dashboard-code-d-invitation-et-support',
+  'barre-laterale-et-messages',
+  'abonnement-athlex-et-archivage',
+  'whiteboard-programmation-automatique',
+  'whiteboard-selection-import-export',
+  'editeur-wod-formats-et-publication',
+  'presences-et-liste-d-attente',
+  'gerer-un-membre',
+  'programmes-et-offres-acces-et-arrets',
+  'tournois-wod-scores-participants',
+  'tournois-bracket',
+  'tournois-ligue-classement-et-cloture',
+  'arret-d-abonnement-et-impayes',
+  'suivi-apres-l-essai',
 ];
 
 const BANNED = [/crossfit/i, /hyrox/i, /thehub/i];
@@ -60,7 +75,7 @@ describe('tutoriels — chargement et front matter', () => {
     }
   });
 
-  it('expose les 28 slugs attendus, sans doublon', () => {
+  it('expose les 42 slugs attendus, sans doublon', () => {
     expect(allSlugs().sort()).toEqual([...EXPECTED_SLUGS].sort());
     expect(new Set(allSlugs()).size).toBe(EXPECTED_SLUGS.length);
   });
@@ -190,7 +205,14 @@ describe('registre de pages', () => {
 
   it('liste les tutoriels d’une page', () => {
     expect(getTutorialsForPage('fr', 'whiteboard').length).toBeGreaterThan(3);
-    expect(getTutorialsForPage('fr', 'tournaments').map((t) => t.slug)).toEqual(['tournois']);
+    expect(getTutorialsForPage('fr', 'tournaments').map((t) => t.slug)).toEqual([
+      'tournois',
+      'tournois-wod-scores-participants',
+      'tournois-bracket',
+      'tournois-ligue-classement-et-cloture',
+    ]);
+    // Support n'a pas de bouton « ? », mais ses tutoriels y mènent par <GoTo>.
+    expect(getTutorialsForPage('fr', 'support').length).toBeGreaterThan(0);
   });
 
   it('couvre par un tutoriel les pages du lot 2, et leur branche le bouton « ? »', () => {
@@ -258,9 +280,12 @@ describe('recherche', () => {
 describe('navigation', () => {
   it('chaîne les tutoriels par ordre croissant', () => {
     expect(neighbours('fr', 'premiers-pas').previous).toBeNull();
-    expect(neighbours('fr', 'premiers-pas').next?.slug).toBe('creer-un-wod');
-    expect(neighbours('fr', 'tournois').next?.slug).toBe('parcours-d-un-nouveau-membre');
-    expect(neighbours('fr', 'reglages-de-la-box').next).toBeNull();
+    expect(neighbours('fr', 'premiers-pas').next?.slug).toBe('dashboard-code-d-invitation-et-support');
+    expect(neighbours('fr', 'abonnement-athlex-et-archivage').next?.slug).toBe('creer-un-wod');
+    expect(neighbours('fr', 'tournois').next?.slug).toBe('tournois-wod-scores-participants');
+    expect(neighbours('fr', 'tournois-ligue-classement-et-cloture').next?.slug).toBe('parcours-d-un-nouveau-membre');
+    expect(neighbours('fr', 'reglages-de-la-box').next?.slug).toBe('arret-d-abonnement-et-impayes');
+    expect(neighbours('fr', 'suivi-apres-l-essai').next).toBeNull();
   });
 
   it('rend null sur un slug inconnu', () => {

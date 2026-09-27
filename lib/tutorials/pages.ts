@@ -29,6 +29,7 @@ export const PAGE_IDS = [
   'stats',
   'tournaments',
   'settings',
+  'support',
 ] as const;
 
 export type PageId = (typeof PAGE_IDS)[number];
@@ -58,6 +59,7 @@ export const HELP_PAGES: readonly HelpPage[] = [
   { id: 'stats',       route: '/stats',        labelKey: 'page.stats' },
   { id: 'tournaments', route: '/tournaments',  labelKey: 'page.tournaments' },
   { id: 'settings',    route: '/settings',     labelKey: 'page.settings' },
+  { id: 'support',     route: '/support',      labelKey: 'page.support' },
 ];
 
 export function helpPage(id: PageId): HelpPage {
