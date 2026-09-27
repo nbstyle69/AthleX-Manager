@@ -1,0 +1,51 @@
+---
+slug: gerer-un-membre
+title: Role, co-owner, ban a member
+summary: Make someone a coach or co-owner, ban or reactivate a member, open their profile and put them in their groups.
+role: owner
+pages: [members, groups]
+tags: [role, coach, co-owner, owner, ban, unban, reactivate, profile, group, wod release]
+order: 34
+---
+
+## Before you start
+
+Everything happens in **Membres** (Communauté → Membres), one row per member, and in **Groupes** (Communauté → Groupes). Both screens are reserved to the owner and the co-owner: a coach gets « Accès refusé » (access denied).
+
+## Change the role
+
+1. In the **Rôle** column, click the member's button (**Membre**, **Coach** or **Owner**) and pick the new role. **Owner** means co-owner.
+2. To **Coach**: the « Changer le rôle de … ? » window says « Il pourra gérer le planning et les WOD, mais pas l’argent. » (they can manage the schedule and the WODs, not the money). Confirm with **Changer le rôle**. To **Membre**, the text becomes « Il perd les accès de gestion. » (they lose management access).
+3. To **Owner**: « Nommer … co-gérant ? » warns « Il aura les mêmes accès que toi, facturation comprise. » (same access as you, billing included). There is one co-owner at a time: if someone already is, the window adds that they go back to plain member. Confirm with **Nommer co-gérant**. <Screenshot src="/tutorials/gerer-un-membre/1.png" alt="Nommer Karim Benali co-gérant ? window with the Coach to Owner change" />
+
+## Ban or reactivate
+
+1. Click **Bannir** at the end of the row. The « Bannir … ? » window shows their email and warns: a running subscription (Stripe or counter) is stopped today, without refund, with an email to the member; their upcoming bookings are cancelled. Confirm with **Bannir le membre**. <Screenshot src="/tutorials/gerer-un-membre/2.png" alt="Bannir Thomas Laurent ? window with the red Bannir le membre button" />
+2. The member turns **Banni** in the **Statut** column, their name is struck through and their **Rôle** button is greyed out.
+3. **Débannir** reactivates the member at once, with no confirmation window. They come back without a plan (the **Contrat** column shows **Illimité**) and their old subscription is not restarted: they will have to take a new one.
+
+## Profile, plan and groups
+
+1. **Fiche** opens a read-only side panel: **Niveau** (level), **ELO**, **Genre** (gender), **Records 1RM** and **Séries réalisées** (logged sets). <Screenshot src="/tutorials/gerer-un-membre/3.png" alt="Athlete profile with 1RM records and logged sets" />
+2. The **Contrat** column shows their plan, or **Illimité** (unlimited). Click it to pick another one: the member also joins the groups the plan includes (**Cours inclus** menu of the **Contrats** panel).
+3. The row's **Groupes** menu ticks or unticks their groups, one click each.
+
+## Edit or delete a group
+
+1. In **Groupes**, open a group and click **Modifier**: **Nom**, **Couleur** and **Diffusion des WODs** (WOD release). **Jour par jour**: « Les membres ne voient que les WODs du jour (pas les jours futurs) » (members only see today's WODs); **Semaine entière**: they see the whole week. Click **Enregistrer**. <Screenshot src="/tutorials/gerer-un-membre/4.png" alt="Group detail in edit mode, Diffusion des WODs set to Jour par jour" />
+2. **Retirer**, on a member's row, takes them out of the group at once, without confirmation. **Message** opens an announcement with this group already selected.
+3. **Supprimer** opens « Supprimer le groupe « … » ? »: the group's messages are deleted, plans no longer enrol anyone in it and WODs reserved to this group alone become visible to the whole box. Confirm with **Supprimer le groupe**.
+
+## Common mistakes
+
+- **The Rôle button is greyed out.** The member is banned → click **Débannir** first.
+- **« Réactivation impossible ».** A Stripe subscription is still running for this member → stop it in **Abonnés**, then unban.
+- **« Compte de paiement de la box introuvable. »** The member pays through Stripe but the box no longer has a linked payment account → check **Réglages** → Paiements; nothing was stopped or banned.
+- **« Membre banni »: the email did not go out.** The ban is done, but the member did not get the email → tell them directly.
+- **« L’action n’a pas abouti ».** The database refused the change (role, plan, group deletion): the message says why, and the screen keeps the previous state.
+
+## Go there
+
+<GoTo page="members" />
+
+<GoTo page="groups" />

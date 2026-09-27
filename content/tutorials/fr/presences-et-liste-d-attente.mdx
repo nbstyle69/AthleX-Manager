@@ -1,0 +1,50 @@
+---
+slug: presences-et-liste-d-attente
+title: Feuille de présence et liste d'attente
+summary: Fais l'appel, retire un inscrit, gère la liste d'attente, exporte la feuille et supprime un cours sans surprise.
+role: both
+pages: [schedule]
+tags: [presence, appel, liste d'attente, retirer, inscrit, export, csv, supprimer un cours, coach]
+order: 33
+---
+
+## Avant de commencer
+
+La feuille de présence s'ouvre depuis **Horaires & Créneaux** (Entraînement → Horaires). Le coach et le gérant y ont accès tous les deux, et chacun peut y faire toutes les actions de ce tutoriel. Personne n'est jamais prévenu d'un retrait ou d'une suppression : préviens toi-même les athlètes concernés.
+
+## Faire l'appel
+
+1. Onglet **Présences** : les cours du jour s'affichent en cartes, avec le nombre d'inscrits sur la capacité, « · N en attente » s'il y a une liste d'attente, et à droite « Appel à faire » ou « N pointés ». Aujourd'hui, le premier cours pas encore terminé porte le badge **Prochain cours**. <Screenshot src="/tutorials/presences-et-liste-d-attente/1.png" alt="Onglet Présences avec trois cours du jour, dont un badgé Prochain cours et un déjà pointé" />
+2. Clique la carte (« Faire l'appel → ») : la feuille s'ouvre avec les **Inscrits** puis la **Liste d'attente**, chacune numérotée dans l'ordre d'inscription.
+3. Clique la case devant un nom : le premier clic le marque présent, le suivant absent, puis de nouveau présent. Le bas de la feuille compte les présents, les absents et les non marqués.
+4. Un visiteur venu pour une séance d'essai porte le badge **ESSAI**. Le pointer présent ou absent fait avancer sa fiche dans **Prospects** (venu ou pas venu). <Screenshot src="/tutorials/presences-et-liste-d-attente/2.png" alt="Feuille de présence d'un cours complet : inscrits pointés, un visiteur badgé ESSAI et deux personnes en liste d'attente" />
+5. Quelqu'un arrive sans réservation : clique **Ajouter**, tape au moins 3 lettres de son pseudo et choisis-le. Il est inscrit et marqué présent. Si le cours est plein, il passe en liste d'attente et une fenêtre te le dit : « Placé en liste d’attente ».
+6. **Exporter CSV** télécharge la feuille (nom, e-mail, statut, présent, essai ou adhérent). Le bouton est grisé tant que personne n'est inscrit.
+
+## Retirer quelqu'un
+
+1. Survole la ligne et clique l'icône de retrait au bout (infobulle « Retirer du créneau » ou « Retirer de la liste d'attente »).
+2. Pour un inscrit, la fenêtre « Retirer … de ce cours ? » précise : la place est libérée et la première personne de la liste d'attente est inscrite à sa place. Une séance prise sur un carnet n'y est rendue que si le cours commence dans plus de 5 heures. Confirme avec **Retirer du cours**. <Screenshot src="/tutorials/presences-et-liste-d-attente/3.png" alt="Fenêtre Retirer Léa Garnier de ce cours ? avec le bouton Retirer du cours" />
+3. Pour une personne en attente, « Retirer … de la liste d’attente ? » se confirme avec **Retirer de la liste**. La feuille se recharge et montre la nouvelle liste.
+
+## Supprimer un cours
+
+1. Passe sur l'onglet **Grille hebdo**, survole la carte du cours et clique la corbeille (**Supprimer**).
+2. La fenêtre « Supprimer ce cours ? » rappelle le cours, son horaire, son coach, le nombre d'inscrits et d'attente. S'il y a du monde, le cours part avec toutes ses inscriptions, sa liste d'attente et les présences pointées ; les participants ne sont pas prévenus et les séances prises sur un carnet ne sont pas rendues. Les autres semaines ne changent pas. <Screenshot src="/tutorials/presences-et-liste-d-attente/4.png" alt="Fenêtre Supprimer ce cours ? pour un cours avec des inscrits et une liste d'attente" />
+3. Clique **Supprimer le cours** pour confirmer, ou **Annuler**.
+
+<Callout type="warning">
+La suppression est définitive : préviens les inscrits avant de cliquer.
+</Callout>
+
+## Erreurs fréquentes
+
+- **« Déjà inscrit ».** Ce membre est déjà sur la feuille → cherche son nom dans les **Inscrits** ou la **Liste d'attente**.
+- **« Aucun résultat » dans Ajouter.** La recherche ne porte que sur le pseudo des membres actifs, à partir de 3 lettres → vérifie l'orthographe ; un membre banni n'apparaît pas.
+- **« Impossible de retirer ce membre : … ».** La base a refusé le retrait → recharge la page et réessaie ; le message dit pourquoi.
+- **« Suppression impossible : … ».** Même chose pour la suppression d'un cours.
+- **La corbeille n'apparaît pas.** Elle n'existe que dans la **Grille hebdo** ; sur un grand écran, elle s'affiche au survol de la carte.
+
+## Y aller
+
+<GoTo page="schedule" />

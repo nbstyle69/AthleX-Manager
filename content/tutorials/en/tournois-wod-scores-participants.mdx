@@ -1,0 +1,50 @@
+---
+slug: tournois-wod-scores-participants
+title: Prepare a tournament's WODs, validate scores, remove an entrant
+summary: Pick the format, prepare the WODs of each stage, open them on time and validate the scores sent in.
+role: owner
+pages: [tournaments]
+tags: [tournament, wod, scores, validate, reject, video, remove, participants, format, bracket, league]
+order: 61
+---
+
+## Before you start
+
+Everything happens in **Tournois** (Animation → Tournois), on a tournament's record: its **WODs configurés**, **Participants** and **Scores à valider** tiles open the screens described here. Only the owner has access: a coach is refused on every Tournois page.
+
+## Pick the format
+
+1. At creation, the **Format du tournoi** block offers four cards: **Classique** (points added up over the WODs), **Bracket (élimination simple)** (single elimination), **Swiss (double élimination)** (Winner Bracket, Loser Bracket and grand final) and **Ligue avec divisions** (league with promotion and relegation at season end).
+2. A greyed card with a padlock reads « Contacte-nous pour l’activer » (contact us to enable it): this format is not included for your box. Ask support for it.
+3. If needed, tick **Exiger une preuve vidéo pour valider les scores** (require video proof). The format itself cannot be changed after creation. <Screenshot src="/tutorials/tournois-wod-scores-participants/1.png" alt="Tournament format block with four cards, one of them locked with « Contacte-nous pour l’activer »" />
+
+## Prepare the WODs
+
+1. On **Programme des WODs**, click **Ajouter un WOD** (or **Créer le premier WOD**). The **Générer un WOD** panel suggests a Functional Fitness or Hybrid WOD; otherwise fill in **Titre**, **Type de WOD**, **Statut**, the timer and the movements.
+2. In a bracket tournament, pick the **Étape du tournoi** (tournament stage): every match of that stage will use this WOD. « 🌐 Toutes les étapes (non assigné) » keeps it available everywhere. In a league, **Assigner à** picks a division or « 🌐 Général (toutes les divisions) ». <Screenshot src="/tutorials/tournois-wod-scores-participants/2.png" alt="New WOD window with the Demi-finales stage chosen in Étape du tournoi" />
+3. **Ouverture programmée** (scheduled opening) hides the WOD from participants until that date, even when « Ouvert ». Click **Ajouter le WOD**.
+4. On the card, the **Activer le WOD** button opens it. If it is scheduled later, the « Ouvrir « … » maintenant ? » window lets you choose **Ouvrir maintenant** (it becomes visible and the tournament starts if it has not yet) or **Garder la date** (keep the date). <Screenshot src="/tutorials/tournois-wod-scores-participants/3.png" alt="Open now window with the Ouvrir maintenant and Garder la date buttons" />
+5. In a league, **Attribuer ELO** computes the ELO of one WOD; it then shows « ELO attribué ».
+
+## Validate the scores
+
+1. Open **Scores à valider**. The **En attente**, **Validés**, **Rejetés** and **Tous** filters sort what was sent in.
+2. Each card shows the athlete, the WOD, the value, the athlete's note and « Vidéo YouTube soumise » or « Aucune vidéo soumise » (video sent or not). Click **Valider** or **Rejeter**. A rejected score keeps **Valider quand même** (validate anyway).
+3. The **Modifier le score** pencil corrects the value (a time in mm:ss or a number). **Envoyer un message à l'athlète** leaves a note visible in the app. <Screenshot src="/tutorials/tournois-wod-scores-participants/4.png" alt="Scores page, pending filter, a score with its video and the Rejeter and Valider buttons" />
+
+## Remove an entrant
+
+1. Athletes register themselves in the app: the Manager adds nobody. The **Participants** tile lists them.
+2. Click **Exclure**: the « Exclure … du tournoi ? » window explains that they can no longer send scores, but their scores, division and bracket matches are kept. They can register again while registrations are open.
+
+## Common mistakes
+
+- **« Preuve vidéo requise » (video proof required).** The tournament requires a video and the score has none → ask the athlete for the video, or reject the score.
+- **« Score illisible : « … ». Saisis un temps en mm:ss ou un nombre. » (unreadable score).** The correction is mistyped → type 9:30 or 120.
+- **« Un WOD est déjà prévu pour cette étape. » (a WOD is already planned for this stage).** A stage has only one WOD → edit the existing WOD, or pick another stage.
+- **An athlete cannot register.** The database refuses registration when the tournament has started, the bracket is already drawn, the league's entry division is full, or the tournament is full or archived. With **Inscriptions ouvertes pendant le tournoi**, a bracket accepts registrations until the first round is drawn, a league while its lowest division has room → tick the box in **Modifier**, raise **Max participants** or unarchive the tournament.
+- **A WOD stays invisible although it is « Ouvert ».** Its **Ouverture programmée** is in the future (« Visible le … ») → open it with the pencil and clear **Ouverture programmée**.
+
+## Go there
+
+<GoTo page="tournaments" />

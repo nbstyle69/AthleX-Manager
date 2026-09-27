@@ -1,0 +1,50 @@
+---
+slug: tournois-wod-scores-participants
+title: Préparer les WOD d'un tournoi, valider les scores, exclure un inscrit
+summary: Choisis le format, prépare les WOD de chaque étape, ouvre-les à l'heure et valide les scores envoyés.
+role: owner
+pages: [tournaments]
+tags: [tournoi, wod, scores, valider, rejeter, video, exclure, participants, format, bracket, ligue]
+order: 61
+---
+
+## Avant de commencer
+
+Tout se passe dans **Tournois** (Animation → Tournois), sur la fiche d'un tournoi : ses tuiles **WODs configurés**, **Participants** et **Scores à valider** ouvrent les écrans décrits ici. Seul le gérant y a accès : un coach reçoit un refus sur toutes les pages Tournois.
+
+## Choisir le format
+
+1. À la création, le bloc **Format du tournoi** propose quatre cartes : **Classique** (points cumulés sur les WODs), **Bracket (élimination simple)**, **Swiss (double élimination)** (Winner Bracket, Loser Bracket et grande finale) et **Ligue avec divisions** (promotion et relégation en fin de saison).
+2. Une carte grisée avec un cadenas porte « Contacte-nous pour l’activer » : ce format n'est pas inclus pour ta box. Demande-le au support.
+3. Coche si besoin **Exiger une preuve vidéo pour valider les scores**. Le format, lui, ne se change plus après la création. <Screenshot src="/tutorials/tournois-wod-scores-participants/1.png" alt="Bloc Format du tournoi avec quatre cartes, dont une verrouillée « Contacte-nous pour l’activer »" />
+
+## Préparer les WOD
+
+1. Sur **Programme des WODs**, clique **Ajouter un WOD** (ou **Créer le premier WOD**). Le panneau **Générer un WOD** propose un WOD Functional Fitness ou Hybrid ; sinon remplis **Titre**, **Type de WOD**, **Statut**, le timer, les mouvements.
+2. Dans un tournoi à tableau, choisis l'**Étape du tournoi** : tous les matchs de cette étape utiliseront ce WOD. « 🌐 Toutes les étapes (non assigné) » le laisse disponible partout. En ligue, **Assigner à** choisit une division ou « 🌐 Général (toutes les divisions) ». <Screenshot src="/tutorials/tournois-wod-scores-participants/2.png" alt="Fenêtre Nouveau WOD avec l'étape Demi-finales choisie dans Étape du tournoi" />
+3. **Ouverture programmée** cache le WOD aux participants jusqu'à la date, même « Ouvert ». Clique **Ajouter le WOD**.
+4. Sur la carte, le bouton **Activer le WOD** l'ouvre. S'il est programmé plus tard, la fenêtre « Ouvrir « … » maintenant ? » te laisse choisir **Ouvrir maintenant** (il devient visible et le tournoi démarre s'il n'a pas démarré) ou **Garder la date**. <Screenshot src="/tutorials/tournois-wod-scores-participants/3.png" alt="Fenêtre Ouvrir maintenant avec les boutons Ouvrir maintenant et Garder la date" />
+5. En ligue, **Attribuer ELO** calcule l'ELO d'un WOD ; il affiche ensuite « ELO attribué ».
+
+## Valider les scores
+
+1. Ouvre **Scores à valider**. Les filtres **En attente**, **Validés**, **Rejetés** et **Tous** trient les envois.
+2. Chaque carte montre l'athlète, le WOD, la valeur, la note de l'athlète et « Vidéo YouTube soumise » ou « Aucune vidéo soumise ». Clique **Valider** ou **Rejeter**. Un score rejeté garde **Valider quand même**.
+3. Le crayon **Modifier le score** corrige la valeur (un temps en mm:ss ou un nombre). **Envoyer un message à l'athlète** laisse un mot visible dans l'app. <Screenshot src="/tutorials/tournois-wod-scores-participants/4.png" alt="Page Scores, filtre En attente, un score avec sa vidéo et les boutons Rejeter et Valider" />
+
+## Exclure un inscrit
+
+1. Les athlètes s'inscrivent eux-mêmes depuis l'app : le Manager n'ajoute personne. La tuile **Participants** les liste.
+2. Clique **Exclure** : la fenêtre « Exclure … du tournoi ? » précise qu'il ne pourra plus envoyer de score, mais que ses scores, sa division et ses matchs du tableau sont conservés. Il peut se réinscrire tant que les inscriptions sont ouvertes.
+
+## Erreurs fréquentes
+
+- **« Preuve vidéo requise ».** Le tournoi exige une vidéo et le score n'en a pas → demande la vidéo à l'athlète, ou rejette le score.
+- **« Score illisible : « … ». Saisis un temps en mm:ss ou un nombre. »** La correction est mal tapée → écris 9:30 ou 120.
+- **« Un WOD est déjà prévu pour cette étape. »** Une étape n'a qu'un WOD → modifie le WOD existant, ou choisis une autre étape.
+- **Un athlète ne peut pas s'inscrire.** La base refuse l'inscription quand le tournoi a démarré, que le tableau est déjà tiré, que la division d'entrée de la ligue est complète, que le tournoi est complet ou archivé. Avec **Inscriptions ouvertes pendant le tournoi**, un tableau accepte les inscriptions jusqu'au tirage du premier tour, une ligue tant que sa division la plus basse a de la place → coche la case dans **Modifier**, augmente **Max participants** ou désarchive le tournoi.
+- **Un WOD reste invisible alors qu'il est « Ouvert ».** Son **Ouverture programmée** est dans le futur (« Visible le … ») → ouvre-le avec le crayon et vide **Ouverture programmée**.
+
+## Y aller
+
+<GoTo page="tournaments" />

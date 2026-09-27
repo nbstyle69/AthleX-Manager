@@ -1,0 +1,50 @@
+---
+slug: tournois-bracket
+title: Run an elimination bracket
+summary: Draw the first round, decide matches from the scores, handle the Loser Bracket and the grand final.
+role: owner
+pages: [tournaments]
+tags: [tournament, bracket, elimination, round, match, winner, loser bracket, grand final, double elimination]
+order: 62
+---
+
+## Before you start
+
+The **Tableau du bracket** opens from the record of a **Bracket (élimination simple)** or **Swiss (double élimination)** tournament (Animation → Tournois → the tournament). For other formats, the page sends you back to the record. Only the owner has access to this screen.
+
+## Prepare the WODs of each stage
+
+1. Before the draw, on **Programme des WODs**, give each WOD its **Étape du tournoi** (stage, e.g. round of 16). Each match created receives the WOD planned for its stage: the database sets it.
+2. A WOD on « 🌐 Toutes les étapes (non assigné) » stays available for every stage.
+
+## Draw and move the bracket forward
+
+1. Empty bracket: « Aucun match généré. » (no match generated) and the number of entrants. Click **Générer le round 1**. The « Générer le premier tour ? » window reminds you the pairings are drawn at random; with an odd number, one athlete drawn at random goes straight to the next round. Confirm with **Générer le tour**. <Screenshot src="/tutorials/tournois-bracket/1.png" alt="Empty bracket with the Générer le round 1 button" />
+2. Athletes send their scores on the match WOD, then you validate them in **Scores à valider**. A « * » marks a score not yet validated.
+3. Click **Décider selon les scores**. The « Décider les matchs d’après les scores validés ? » window explains the rule: a finished For Time beats a CAP, between two CAPs the most reps wins, then the tie-break. Both athletes' ELO is updated right away. Click **Décider les matchs**. <Screenshot src="/tutorials/tournois-bracket/2.png" alt="Decide matches from validated scores window, with the round and the WOD" />
+4. The summary shows how many matches were decided and, for each match left to you, the reason. For those, click the **crown** (**Désigner vainqueur**) on the right side. Clicking an athlete's name opens their submission sheet (score, tie-break, video). <Screenshot src="/tutorials/tournois-bracket/3.png" alt="Decision summary with one match left to decide by hand for a perfect tie" />
+5. When every match of the round has a winner, click **Round suivant**: « Round suivant généré (… matchs). Décide ses vainqueurs pour continuer. » (next round generated).
+6. Hovering a card shows the **Éditer (joueurs / date / notes)** pencil, which changes the players, date or notes of the match.
+
+## Double elimination
+
+1. In **Swiss**, the loser of a winners' match drops into the **Loser Bracket**. Its columns « Tour 1 des perdants », « Tour 2 des perdants »… each have a **WOD de ce tour** list (WOD of this round).
+2. The **Round suivant** button also creates the **Grande finale**, then, if due, the « Grande finale — match décisif » (deciding match). The Winner Bracket champion picks the grand final WOD: set it in « — Sélectionner un WOD — ». The two finalists' buttons then become active. <Screenshot src="/tutorials/tournois-bracket/4.png" alt="Swiss bracket with Winner Bracket, Loser Bracket and grand final" />
+
+## Correct a result
+
+1. On a finished match, the **Annuler le résultat** button opens « Effacer le résultat de ce match ? »: the match goes back to « to be played » and the ELO won or lost is returned to both athletes. Later rounds already generated do not change: correct before clicking **Round suivant**. Confirm with **Effacer le résultat**.
+2. **Régénérer** opens « Refaire tout le tableau ? » (redo the whole bracket): matches are wiped and a new first round is drawn, as long as no match has been played.
+
+## Common mistakes
+
+- **« À décider à la main : score manquant ou non validé. » (missing or unvalidated score).** One of the two scores is missing or pending → validate it and decide again, or pick the winner with the crown.
+- **« À décider à la main : égalité parfaite (scores et tie-breaks). » (perfect tie).** The database does not settle it → pick the winner yourself.
+- **« À décider à la main : aucun WOD pour ce match. » (no WOD for this match).** Neither the match nor its stage has a WOD → give the WOD an **Étape du tournoi**, or pick the WOD of the losers' round.
+- **« Le tour … a encore … matchs à décider. » (round still has matches to decide).** A match of the round has no winner → decide it before **Round suivant**.
+- **« Il faut au moins 2 participants pour tirer le tableau. » (at least 2 participants needed).** Not enough entrants → wait for registrations.
+- **« Le tableau ne peut plus être régénéré : un match est déjà joué. » (bracket can no longer be regenerated).** → correct the match concerned instead of redoing everything.
+
+## Go there
+
+<GoTo page="tournaments" />
