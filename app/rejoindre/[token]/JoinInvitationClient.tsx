@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Loader2, AlertCircle, CheckCircle2, Mail, Building2, CreditCard } from 'lucide-react';
+import { Loader2, AlertCircle, CheckCircle2, Mail, Building2 } from 'lucide-react';
 import { LandingHeader } from '@/components/landing/header';
 import { useLanguage } from '@/components/language-provider';
 import { StoreBadges } from '@/components/store-badges';
@@ -10,6 +10,8 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { entryRefusalFrom, entryRefusalInfo } from '@/lib/entryRefusalView';
 import { useConfirmDialog } from '@/components/ui/confirm-dialog';
+import BillingDayRecap from '@/components/membership/BillingDayRecap';
+import { parisDate } from '@/lib/datetime';
 
 export type InvitationPeek = {
   ok: true;
@@ -18,6 +20,8 @@ export type InvitationPeek = {
   last_name: string | null;
   payment_mode: 'box' | 'stripe';
   expires_at: string;
+  /** Prochaine échéance d'un adhérent qui migre (AAAA-MM-JJ), lot 3. */
+  next_due_date?: string | null;
   box: { name: string; slug: string | null; city: string | null; logo_url: string | null };
   plan: {
     name: string;
@@ -99,14 +103,21 @@ export default function JoinInvitationClient({
   // Mode Stripe : le compte existe, l'accès non. Le Checkout est ouvert sur le
   // compte connecté de la box, et c'est le webhook — jamais ce retour de
   // navigateur — qui activera l'adhésion.
-  async function pay() {
+  function payRefusal(data: unknown): boolean {
+    const refusal = entryRefusalFrom(data);
+    if (!refusal) return false;
+    void inform(entryRefusalInfo(refusal));
+    return true;
+  }
+
+  async function pay(billingDay: number) {
     setPayLoading(true);
     setPayError(null);
     try {
       const res = await fetch('/api/create-membership-checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ invitation_token: token }),
+        body: JSON.stringify({ invitation_token: token, billing_day: billingDay }),
       });
       const json = await res.json();
       const refusal = entryRefusalFrom(json);
@@ -144,13 +155,16 @@ export default function JoinInvitationClient({
             </p>
           )}
           {invitation.payment_mode === 'stripe' && (
-            <div className="mt-5">
-              <Button type="button" disabled={payLoading} onClick={pay} variant="ax-white" className="w-full">
-                {payLoading ? <Loader2 size={16} className="animate-spin" /> : <CreditCard size={16} />}
-                {payLoading ? j.payOpening : j.payCta}
-              </Button>
-              <p className="text-xs text-ax-text-muted mt-2">{j.payHint}</p>
-              {payError && <p className="text-xs text-ax-danger mt-2">{payError}</p>}
+            <div className="mt-5 text-left">
+              {dialog}
+              <BillingDayRecap
+                request={{ invitation_token: token }}
+                onPay={pay}
+                paying={payLoading}
+                error={payError}
+                onRefusal={payRefusal}
+              />
+              {!invitation.next_due_date && <p className="text-xs text-ax-text-muted mt-2 text-center">{j.payHint}</p>}
             </div>
           )}
 
@@ -202,6 +216,13 @@ export default function JoinInvitationClient({
                 : ''}
               {invitation.payment_mode === 'box' ? j.paidAtBox : ''}
             </p>
+            {invitation.payment_mode === 'stripe' && invitation.next_due_date && (
+              <p className="text-xs text-ax-text-secondary mt-1.5">
+                {j.nextDueBefore}
+                {parisDate(invitation.next_due_date, { day: 'numeric', month: 'long', year: 'numeric' }, lang === 'en' ? 'en-GB' : 'fr-FR')}
+                {j.nextDueAfter}
+              </p>
+            )}
           </div>
         )}
       </div>

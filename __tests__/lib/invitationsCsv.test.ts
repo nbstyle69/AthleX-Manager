@@ -1,5 +1,5 @@
 import {
-  parseInvitationsCsv, decodeCsv, verdictLabel, IMPORT_MAX_ROWS,
+  parseInvitationsCsv, decodeCsv, verdictLabel, IMPORT_MAX_ROWS, invitationCsvTemplate,
 } from '@/lib/invitationsCsv';
 
 const PLANS = [
@@ -87,5 +87,48 @@ describe('verdictLabel', () => {
   it('traduit le verdict serveur et sa raison', () => {
     expect(verdictLabel('ignoree', 'deja_membre')).toBe('Ignorée — déjà membre de ta box');
     expect(verdictLabel('creee', null)).toBe('Invitation créée');
+  });
+});
+
+describe('prochaine échéance (lot 3)', () => {
+  const NOW = new Date('2026-09-27T10:00:00Z');
+  const parse = (dates: string[]) => parseInvitationsCsv(
+    'email;formule;prochaine échéance\n' + dates.map((d, i) => `m${i}@b.fr;Illimité;${d}`).join('\n'),
+    PLANS, NOW,
+  );
+
+  it('lit JJ/MM/AAAA, facultative', () => {
+    const { rows, ready } = parse(['15/10/2026', '5/1/2027', '']);
+    expect(rows.map((r) => r.dueDate)).toEqual(['2026-10-15', '2027-01-05', null]);
+    expect(ready).toBe(3);
+  });
+
+  it('refuse par ligne une date mal formée, passée ou à plus de 12 mois', () => {
+    const { rows, ready } = parse(['2026-10-15', '31/02/2027', '27/09/2026', '28/09/2027', '27/09/2027']);
+    expect(rows.map((r) => r.error)).toEqual([
+      'Échéance mal formée : « 2026-10-15 » (JJ/MM/AAAA attendu)',
+      'Échéance mal formée : « 31/02/2027 » (JJ/MM/AAAA attendu)',
+      'Échéance passée',
+      'Échéance à plus de 12 mois',
+      null,
+    ]);
+    expect(ready).toBe(1);
+  });
+
+  it('reconnaît les en-têtes sans accent', () => {
+    const { rows } = parseInvitationsCsv('email;echeance\na@b.fr;01/12/2026', PLANS, NOW);
+    expect(rows[0].dueDate).toBe('2026-12-01');
+  });
+
+  it('traduit les verdicts serveur d’échéance', () => {
+    expect(verdictLabel('refusee', 'DUE_DATE_PAST')).toBe('Refusée — échéance passée');
+    expect(verdictLabel('refusee', 'DUE_DATE_INVALID')).toBe('Refusée — échéance mal formée');
+    expect(verdictLabel('refusee', 'DUE_DATE_TOO_FAR')).toBe('Refusée — échéance à plus de 12 mois');
+  });
+
+  it('le modèle porte une échéance d’exemple valable, relue sans erreur', () => {
+    const { rows } = parseInvitationsCsv(invitationCsvTemplate(NOW), PLANS, NOW);
+    expect(rows.map((r) => r.error)).toEqual([null, null]);
+    expect(rows[0].dueDate).toBe('2026-10-27');
   });
 });

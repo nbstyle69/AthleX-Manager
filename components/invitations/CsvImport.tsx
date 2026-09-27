@@ -5,10 +5,11 @@ import { Download, Upload, Loader2, FileSpreadsheet, X } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import {
   decodeCsv, parseInvitationsCsv, verdictLabel,
-  INVITATION_CSV_TEMPLATE, IMPORT_MAX_ROWS,
+  invitationCsvTemplate, IMPORT_MAX_ROWS,
   type ParsedInvitationFile,
 } from '@/lib/invitationsCsv';
 import { countOf } from '@/lib/plural';
+import { parisDate } from '@/lib/datetime';
 
 const supabase = createClient();
 
@@ -49,7 +50,7 @@ export default function CsvImport({
 
   function downloadTemplate() {
     // Le BOM fait ouvrir le modèle en UTF-8 par Excel, accents compris.
-    const blob = new Blob(['\uFEFF' + INVITATION_CSV_TEMPLATE], { type: 'text/csv;charset=utf-8' });
+    const blob = new Blob(['\uFEFF' + invitationCsvTemplate()],{ type: 'text/csv;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
@@ -83,6 +84,7 @@ export default function CsvImport({
         first_name: r.firstName || null,
         last_name: r.lastName || null,
         plan_id: r.planId,
+        next_due_date: r.dueDate,
       })),
     });
     setRunning(false);
@@ -119,7 +121,7 @@ export default function CsvImport({
       </div>
 
       <p className="text-xs text-ax-text-muted">
-        Colonnes attendues : prénom, nom, e-mail, formule (facultative). {IMPORT_MAX_ROWS} lignes maximum.
+        Colonnes attendues : prénom, nom, e-mail, formule (facultative), prochaine échéance (facultative, JJ/MM/AAAA). {IMPORT_MAX_ROWS} lignes maximum.
         L’import ne crée aucun membre : chaque ligne devient une invitation, que l’adhérent accepte lui-même.
       </p>
 
@@ -150,6 +152,7 @@ export default function CsvImport({
                       <th className="text-left px-3 py-2 font-bold">Adhérent</th>
                       <th className="text-left px-3 py-2 font-bold">E-mail</th>
                       <th className="text-left px-3 py-2 font-bold">Formule</th>
+                      <th className="text-left px-3 py-2 font-bold">Échéance</th>
                       <th className="text-left px-3 py-2 font-bold">État</th>
                     </tr>
                   </thead>
@@ -160,6 +163,9 @@ export default function CsvImport({
                         <td className="px-3 py-1.5 text-ax-text-secondary">{[r.firstName, r.lastName].filter(Boolean).join(' ') || '—'}</td>
                         <td className="px-3 py-1.5 text-ax-text-secondary">{r.email || '—'}</td>
                         <td className="px-3 py-1.5 text-ax-text-muted">{r.planLabel || 'Sans formule'}</td>
+                        <td className="px-3 py-1.5 text-ax-text-muted whitespace-nowrap">
+                          {r.dueDate ? parisDate(r.dueDate, { day: '2-digit', month: '2-digit', year: 'numeric' }) : '—'}
+                        </td>
                         <td className={`px-3 py-1.5 ${r.error ? 'text-ax-danger' : 'text-ax-success'}`}>
                           {r.error ?? 'Prête'}
                         </td>

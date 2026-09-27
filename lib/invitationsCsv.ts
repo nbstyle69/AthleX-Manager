@@ -10,7 +10,17 @@
  * autre box…).
  */
 
-export const INVITATION_CSV_TEMPLATE = 'prenom;nom;email;formule\nÉlodie;Durand;elodie.durand@exemple.fr;Illimité\nJean;Bon;jean.bon@exemple.fr;\n';
+import { addMonths, parisYmd, parseDueDate, ymdString, type Ymd } from '@/lib/membershipBilling';
+
+/**
+ * Modèle téléchargeable. La prochaine échéance d'exemple est posée dans un
+ * mois, pour que le modèle importé tel quel reste valable.
+ */
+export function invitationCsvTemplate(now: Date = new Date()): string {
+  const d = addMonths(parisYmd(now), 1);
+  const exemple = `${String(d.d).padStart(2, '0')}/${String(d.m).padStart(2, '0')}/${d.y}`;
+  return `prenom;nom;email;formule;prochaine échéance\nÉlodie;Durand;elodie.durand@exemple.fr;Illimité;${exemple}\nJean;Bon;jean.bon@exemple.fr;;\n`;
+}
 
 export const IMPORT_MAX_ROWS = 500;
 
@@ -21,6 +31,8 @@ export interface ParsedInvitationRow {
   email: string;
   planLabel: string;
   planId: string | null;
+  /** Prochaine échéance lue (AAAA-MM-JJ), sinon null. */
+  dueDate: string | null;
   error: string | null;
 }
 
@@ -36,9 +48,28 @@ const ALIASES: Record<keyof typeof FIELDS, string[]> = {
   lastName: ['nom', 'nom de famille', 'lastname', 'last name', 'last_name', 'surname', 'family name'],
   email: ['email', 'e-mail', 'mail', 'courriel', 'adresse email', 'adresse e-mail', 'e mail'],
   plan: ['formule', 'abonnement', 'plan', 'forfait', 'membership', 'offre'],
+  dueDate: [
+    'prochaine échéance', 'prochaine echeance', 'prochaine_echeance', 'échéance', 'echeance',
+    "date d'échéance", 'date d’échéance', "date d'echeance", 'next due date', 'next_due_date', 'due date',
+  ],
 };
 
-const FIELDS = { firstName: 0, lastName: 0, email: 0, plan: 0 };
+const FIELDS = { firstName: 0, lastName: 0, email: 0, plan: 0, dueDate: 0 };
+
+/**
+ * Échéance JJ/MM/AAAA (jour et mois sur 1 ou 2 chiffres) → AAAA-MM-JJ, ou une
+ * erreur de ligne. Mêmes règles que la base : du lendemain à 12 mois, Paris.
+ */
+function readDueDate(raw: string, today: Ymd): { value: string | null; error: string | null } {
+  if (raw === '') return { value: null, error: null };
+  const m = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(raw);
+  const parsed = m ? parseDueDate(`${m[3]}-${m[2].padStart(2, '0')}-${m[1].padStart(2, '0')}`) : null;
+  if (!parsed) return { value: null, error: `Échéance mal formée : « ${raw} » (JJ/MM/AAAA attendu)` };
+  const value = ymdString(parsed);
+  if (value <= ymdString(today)) return { value: null, error: 'Échéance passée' };
+  if (value > ymdString(addMonths(today, 12))) return { value: null, error: 'Échéance à plus de 12 mois' };
+  return { value, error: null };
+}
 
 /** `Nom` et `nom de famille` doivent tomber sur la même colonne. */
 function normalizeHeader(raw: string): string {
@@ -97,7 +128,9 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 export function parseInvitationsCsv(
   text: string,
   plans: Array<{ id: string; name: string }>,
+  now: Date = new Date(),
 ): ParsedInvitationFile {
+  const today = parisYmd(now);
   const lines = text.split(/\r\n|\n|\r/);
   const headerIndex = lines.findIndex(l => l.trim() !== '');
   if (headerIndex === -1) {
@@ -115,6 +148,7 @@ export function parseInvitationsCsv(
     lastName: columnOf('lastName'),
     email: columnOf('email'),
     plan: columnOf('plan'),
+    dueDate: columnOf('dueDate'),
   };
 
   if (cols.email === -1) {
@@ -149,6 +183,9 @@ export function parseInvitationsCsv(
       if (planId === null) error = `Formule inconnue : « ${planLabel} »`;
     }
 
+    const due = readDueDate(at(cols.dueDate), today);
+    if (!error) error = due.error;
+
     if (!error) seen.add(email);
 
     rows.push({
@@ -158,6 +195,7 @@ export function parseInvitationsCsv(
       email,
       planLabel,
       planId,
+      dueDate: due.value,
       error,
     });
   }
@@ -193,6 +231,9 @@ const REASON_LABELS: Record<string, string> = {
   membre_exclu: 'personne exclue de la box',
   email_invalide: 'e-mail invalide',
   formule_inconnue: 'formule inconnue',
+  DUE_DATE_INVALID: 'échéance mal formée',
+  DUE_DATE_PAST: 'échéance passée',
+  DUE_DATE_TOO_FAR: 'échéance à plus de 12 mois',
 };
 
 export function verdictLabel(verdict: string, reason: string | null): string {

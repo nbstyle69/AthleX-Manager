@@ -81,6 +81,8 @@ const CLASSIFICATION: Record<string, Classe> = {
   'create-box': 'auth',
   'create-checkout': 'primary_owner',
   'create-membership-checkout': 'self_service',
+  // Lot 3 : aperçu des montants, mêmes contrôles que le checkout (lib partagée).
+  'membership-checkout-preview': 'self_service',
   'create-owner-checkout': 'owner_self',
   'create-program-checkout': 'self_service',
   'create-programming-checkout': 'owner_admin',
@@ -156,8 +158,16 @@ function routes(dir: string, prefix = ''): string[] {
   return out.sort();
 }
 
+/** Contrôles déplacés dans une lib partagée : lus avec la route qui les appelle. */
+const PARTAGE: Record<string, string[]> = {
+  'create-membership-checkout': ['lib/membershipCheckout.ts'],
+  'membership-checkout-preview': ['lib/membershipCheckout.ts'],
+};
+
 function source(route: string): string {
-  return fs.readFileSync(path.join(API_DIR, ...route.split('/'), 'route.ts'), 'utf8');
+  return [path.join(API_DIR, ...route.split('/'), 'route.ts'), ...(PARTAGE[route] ?? []).map((f) => path.join(process.cwd(), f))]
+    .map((f) => fs.readFileSync(f, 'utf8'))
+    .join('\n');
 }
 
 /**
@@ -168,6 +178,7 @@ function source(route: string): string {
  */
 const ENTREES: Record<string, string> = {
   'create-membership-checkout': "refuseClosedBox(supabase, p.box_id, 'achat')",
+  'membership-checkout-preview': "refuseClosedBox(supabase, p.box_id, 'achat')",
   'change-membership-plan': "refuseClosedBox(supabase, p.box_id, 'achat')",
   'create-program-checkout': "refuseClosedBox(supabase, p.box_id, 'achat')",
   'create-programming-checkout': "refuseClosedBox(supabase, p.publisher_box_id, 'achat')",
