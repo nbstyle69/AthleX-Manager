@@ -26,7 +26,6 @@ import {
 } from '@/lib/autoProgramming';
 import { WodEditorOffer } from '@/components/wods/WodEditor';
 import { Audience, isAudience, subscriptionColorVar } from '@/lib/audience';
-import PdfImportModal from '@/components/wods/PdfImportModal';
 import { applyWeekNotes } from '@/lib/programWeek';
 import {
   BLOCK_COLOR, BLOCK_LABEL, DAY_LABELS, EMPTY_WOD_FORM, TYPE_COLOR,
@@ -112,7 +111,6 @@ export default function WODsPage() {
   const [importing,   setImporting]   = useState(false);
   const [importResult, setImportResult] = useState<{ ok: number; errors: string[]; notes?: string[] } | null>(null);
 
-  const [pdfFile, setPdfFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [layout, setLayoutRaw] = useState<'rows' | 'columns'>(() => {
     if (typeof window !== 'undefined') {
@@ -567,7 +565,7 @@ export default function WODsPage() {
     downloadWodCsvTemplate('whiteboard');
   }
 
-  // ── CSV / JSON / PDF Import ──────────────────────────────────────────────────────────────
+  // ── CSV / JSON Import ────────────────────────────────────────────────────────────────────
   async function handleImport(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (fileInputRef.current) fileInputRef.current.value = '';
@@ -576,20 +574,16 @@ export default function WODsPage() {
 
   /**
    * Un seul chemin d'import, deux portes : le bouton « Importer » et le
-   * glisser-déposer. Même parseur, mêmes refus nommés, même preview PDF.
+   * glisser-déposer. Même parseur, mêmes refus nommés.
    */
   async function importFile(file: File) {
     if (!boxId || !userId) return;
     const nom = file.name.toLowerCase();
 
-    if (file.type === 'application/pdf' || nom.endsWith('.pdf')) {
-      setPdfFile(file);
-      return;
-    }
     if (!nom.endsWith('.csv') && !nom.endsWith('.json')) {
       setImportResult({
         ok: 0,
-        errors: [`Type de fichier non supporté : « ${file.name} ». L'import accepte PDF, CSV et JSON.`],
+        errors: [`Type de fichier non supporté : « ${file.name} ». L'import accepte CSV et JSON.`],
       });
       return;
     }
@@ -740,7 +734,7 @@ export default function WODsPage() {
           <div className="border-2 border-dashed border-ax-input-border rounded-ax-panel px-10 py-8 text-center bg-ax-glass">
             <Upload size={28} className="text-ax-text mx-auto mb-2" />
             <p className="text-base font-bold text-ax-text">Lâche ton fichier pour l&apos;importer</p>
-            <p className="text-xs text-ax-text-secondary mt-1">PDF, CSV ou JSON — même parseur que le bouton « Importer ».</p>
+            <p className="text-xs text-ax-text-secondary mt-1">CSV ou JSON — même parseur que le bouton « Importer ».</p>
           </div>
         </div>
       )}
@@ -763,7 +757,7 @@ export default function WODsPage() {
           <label className={cn(buttonVariants({ variant: 'ax-outline', size: 'ax-compact' }), TOOLBAR_BTN, 'cursor-pointer', importing && 'opacity-60 pointer-events-none')}>
             {importing ? <Loader2 size={13} className="animate-spin" /> : <Upload size={13} />}
             {importing ? 'Import…' : 'Importer'}
-            <input ref={fileInputRef} type="file" accept=".csv,.json,.pdf" className="hidden" onChange={handleImport} />
+            <input ref={fileInputRef} type="file" accept=".csv,.json" className="hidden" onChange={handleImport} />
           </label>
           <Button
             variant="ax-outline"
@@ -950,17 +944,6 @@ export default function WODsPage() {
       )}
 
       {dialog}
-
-      {pdfFile && boxId && userId && (
-        <PdfImportModal
-          file={pdfFile}
-          boxId={boxId}
-          userId={userId}
-          target={{ kind: 'whiteboard', defaultWeekStart: toISO(weekDates[0]), groups: refGroups, programs: refPrograms }}
-          onClose={() => setPdfFile(null)}
-          onDone={r => { setPdfFile(null); setImportResult(r); void load(); }}
-        />
-      )}
 
       {/* Import result */}
       {importResult && (

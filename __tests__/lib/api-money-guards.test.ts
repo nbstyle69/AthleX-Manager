@@ -65,7 +65,7 @@ const CLASSIFICATION: Record<string, Classe> = {
   'box-export': 'owner_admin',
   'box-revenue': 'owner_admin',
   // Poser ou régénérer la semaine automatique n'est pas une opération
-  // d'argent : le coach de la box y a sa place, comme sur l'import PDF.
+  // d'argent : le coach de la box y a sa place.
   'box/[id]/auto-programming': 'box_staff',
   'box/[id]/auto-programming/run': 'box_staff',
   'box/dunning': 'owner_admin',
@@ -109,7 +109,6 @@ const CLASSIFICATION: Record<string, Classe> = {
   'trial/slots': 'public_debit',
   'upload-box-logo': 'owner_admin',
   'verify-subscription': 'primary_owner',
-  'wods/import-pdf': 'box_staff',
 };
 
 /**

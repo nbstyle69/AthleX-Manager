@@ -116,7 +116,7 @@ export const translations = {
       noResults: "Tes prochains résultats commencent ici",
       messages: "Reste connecté à ta communauté",
       explore: "Explorer les programmes",
-      import: "Importer un PDF",
+      import: "Importer un CSV",
       publish: "Publier à mes membres",
       target: "Choisis ton objectif",
       goals: ["Prise de muscle", "Force", "Tonification"],
@@ -266,10 +266,10 @@ export const translations = {
       {
         label: "Le tableau de contrôle",
         title: "Ta méthode. Ton tableau. Tes règles.",
-        copy: "Programme à la main, génère une séance ou importe tes WODs depuis un PDF. Un seul tableau pour donner le rythme à toute ta box.",
+        copy: "Programme à la main, génère une séance ou importe tes WODs depuis un CSV. Un seul tableau pour donner le rythme à toute ta box.",
         features: [
           "Création manuelle de tes entraînements",
-          "Génération et import PDF",
+          "Génération et import CSV",
           "Publication du WOD à tous tes membres",
         ],
         action: "Prendre les commandes",
@@ -539,7 +539,7 @@ export const translations = {
       noResults: "Your next results start here",
       messages: "Stay connected to your community",
       explore: "Explore programs",
-      import: "Import a PDF",
+      import: "Import a CSV",
       publish: "Publish to my members",
       target: "Choose your goal",
       goals: ["Build muscle", "Strength", "Toning"],
@@ -689,10 +689,10 @@ export const translations = {
       {
         label: "Whiteboard control",
         title: "Your method. Your board. Your rules.",
-        copy: "Program by hand, generate a session or import your workouts from a PDF. One whiteboard to set the pace for your entire gym.",
+        copy: "Program by hand, generate a session or import your workouts from a CSV. One whiteboard to set the pace for your entire gym.",
         features: [
           "Create workouts manually",
-          "Generation and PDF import",
+          "Generation and CSV import",
           "Publish the daily workout to all members",
         ],
         action: "Take control",
@@ -1097,12 +1097,12 @@ export const gymTranslations = {
       "Réservations automatiques",
     ],
     programmingCopy:
-      "Trois disciplines à activer par box. Générées chaque samedi, révélées à l’heure de ton choix : ou programme à la main et importe tes WODs depuis un PDF.",
+      "Trois disciplines à activer par box. Générées chaque samedi, révélées à l’heure de ton choix : ou programme à la main et importe tes WODs depuis un CSV.",
     programmingFeatures: [
       "Functional : 6 séances par semaine",
       "Hybrid : 6 séances — course, stations, simulations ; test de 75 min toutes les 8 semaines",
       "Musculation : 5 séances, cycles de 6 semaines",
-      "Générer / Régénérer, historique et import PDF",
+      "Générer / Régénérer, historique et import CSV",
     ],
     generatorFeatures: [
       "Functional, Hybrid et Musculation · 300+ mouvements",
@@ -1194,12 +1194,12 @@ export const gymTranslations = {
       "Automatic class bookings",
     ],
     programmingCopy:
-      "Switch on three tracks per gym. Generated every Saturday, revealed when you choose — or program manually and import workouts from a PDF.",
+      "Switch on three tracks per gym. Generated every Saturday, revealed when you choose — or program manually and import workouts from a CSV.",
     programmingFeatures: [
       "Functional: 6 sessions per week",
       "Hybrid: 6 sessions — running, stations, simulations; a 75-minute test every 8 weeks",
       "Strength: 5 sessions on 6-week cycles",
-      "Generate / Regenerate, generation log and PDF import",
+      "Generate / Regenerate, generation log and CSV import",
     ],
     generatorFeatures: [
       "Functional, Hybrid and Strength · 300+ movements",
@@ -1233,7 +1233,7 @@ const panelDescriptions: Record<
     2: {
       athlete:
         "Le programme du jour, tes mouvements et ton score. Tout est au même endroit.",
-      pro: "Trois disciplines. Génère ta semaine, programme à la main ou importe un PDF.",
+      pro: "Trois disciplines. Génère ta semaine, programme à la main ou importe un CSV.",
     },
     3: {
       athlete:
@@ -1281,7 +1281,7 @@ const panelDescriptions: Record<
     2: {
       athlete:
         "Today’s workout, your movements and your score. Everything in one place.",
-      pro: "Three tracks. Generate your week, program by hand or import a PDF.",
+      pro: "Three tracks. Generate your week, program by hand or import a CSV.",
     },
     3: {
       athlete:

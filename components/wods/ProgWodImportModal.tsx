@@ -1,27 +1,25 @@
 'use client';
 
 import { useRef, useState } from 'react';
-import { X, Loader2, FileText, Upload, Sparkles, AlertTriangle } from 'lucide-react';
+import { X, Loader2, FileText, Upload, AlertTriangle } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
-import { DAY_LABELS, formatCap, parseCap } from '@/lib/wodFields';
+import { DAY_LABELS, parseCap } from '@/lib/wodFields';
 import {
-  ImportedWodRow, VALID_WOD_TYPES, dateToWeekDay,
+  ImportedWodRow, VALID_WOD_TYPES,
   downloadWodCsvTemplate, parseWodImportFile,
 } from '@/lib/wodImport';
 import { countOf } from '@/lib/plural';
 
 /**
  * Import en masse dans une programmation. Mêmes circuits que le Whiteboard —
- * même template CSV/JSON (parseur partagé, `week,day` au lieu de `date`) et
- * même analyse PDF par IA (`parse-wod-pdf`, qui rend des WOD datés qu'on
- * convertit en semaine × jour). Rien n'est écrit avant validation : la
+ * même template CSV/JSON (parseur partagé, `week,day` au lieu de `date`).
+ * Rien n'est écrit avant validation : la
  * répartition proposée est éditable ligne par ligne, comme l'exige un contenu
  * destiné à être vendu.
  */
 
 interface Props {
   programmingId: string;
-  boxId: string;
   weeksCount: number;
   /** Décalage de `sort_order` pour ne pas écraser l'ordre des WOD existants. */
   sortOffset: number;
@@ -33,51 +31,18 @@ interface PreviewRow extends ImportedWodRow {
   keep: boolean;
 }
 
-interface ParsedPdfWod {
-  scheduled_date: string;
-  title: string;
-  wod_type: string;
-  description: string | null;
-  time_cap_seconds: number | null;
-  rounds: number | null;
-  notes: string | null;
-  block_name: string | null;
-}
-
 const INPUT_CLS = 'w-full px-2 py-1.5 rounded-ax-control bg-ax-overlay border border-ax-border text-xs text-ax-text';
 
-function mondayOfToday(): string {
-  const d = new Date();
-  const dow = d.getDay();
-  d.setDate(d.getDate() - (dow === 0 ? 6 : dow - 1));
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-}
-
-async function fileToBase64(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(((reader.result as string) ?? '').split(',')[1] ?? '');
-    reader.onerror = () => reject(reader.error);
-    reader.readAsDataURL(file);
-  });
-}
-
 export default function ProgWodImportModal({
-  programmingId, boxId, weeksCount, sortOffset, onClose, onImported,
+  programmingId, weeksCount, sortOffset, onClose, onImported,
 }: Props) {
   const supabase = createClient();
   const fileRef = useRef<HTMLInputElement>(null);
 
   const [busy, setBusy]       = useState(false);
-  const [analyzing, setAnalyzing] = useState(false);
   const [rows, setRows]       = useState<PreviewRow[] | null>(null);
   const [warnings, setWarnings] = useState<string[]>([]);
   const [error, setError]     = useState<string | null>(null);
-  const [aiSource, setAiSource] = useState(false);
-
-  function clampWeek(n: number): number {
-    return Math.min(weeksCount, Math.max(1, n));
-  }
 
   async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -86,81 +51,15 @@ export default function ProgWodImportModal({
     setWarnings([]);
     if (fileRef.current) fileRef.current.value = '';
 
-    const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
-    if (isPdf) {
-      await analyzePdf(file);
-      return;
-    }
-
     const text = await file.text();
     const { rows: parsed, errors } = parseWodImportFile(text, file.name, 'programming', weeksCount);
     setWarnings(errors);
-    setAiSource(false);
     if (parsed.length === 0) {
       setRows(null);
       if (errors.length === 0) setError('Aucun WOD trouvé dans le fichier.');
       return;
     }
     setRows(parsed.map((r) => ({ ...r, keep: true })));
-  }
-
-  /**
-   * Le PDF passe par l'edge function existante, qui raisonne en dates : on lui
-   * donne un lundi de référence et on retraduit sa sortie en semaine × jour.
-   */
-  async function analyzePdf(file: File) {
-    try {
-      setAnalyzing(true);
-      const pdfBase64 = await fileToBase64(file);
-      const start = mondayOfToday();
-      const { data: { session } } = await supabase.auth.getSession();
-      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-      const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-      const res = await fetch(`${supabaseUrl}/functions/v1/parse-wod-pdf`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${session?.access_token ?? anonKey}`,
-          apikey: anonKey,
-        },
-        body: JSON.stringify({ box_id: boxId, pdf_base64: pdfBase64, default_start_date: start }),
-      });
-      const json = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error((json as { error?: string })?.error ?? `HTTP ${res.status}`);
-      const parsed = (json as { wods?: ParsedPdfWod[] })?.wods ?? [];
-      if (parsed.length === 0) {
-        setRows(null);
-        setError('Aucun WOD détecté dans le PDF.');
-        return;
-      }
-      setAiSource(true);
-      setRows(parsed.map((w) => {
-        const { week, day } = dateToWeekDay(w.scheduled_date, start);
-        return {
-          keep: true,
-          title: w.title,
-          type: w.wod_type,
-          description: w.description ?? '',
-          // mm:ss plutôt qu'un arrondi minute : le cap de l'IA arrive en secondes
-          // et doit traverser la prévisualisation sans perdre ses secondes.
-          timeCap: formatCap(w.time_cap_seconds),
-          rounds: w.rounds != null ? String(w.rounds) : '',
-          notes: w.notes ?? '',
-          block: w.block_name ?? '',
-          published: true,
-          rank: true,
-          groupNames: [],
-          date: w.scheduled_date,
-          week: clampWeek(week),
-          day,
-        };
-      }));
-    } catch (e) {
-      setRows(null);
-      setError(`Erreur IA : ${e instanceof Error ? e.message : 'analyse PDF impossible'}`);
-    } finally {
-      setAnalyzing(false);
-    }
   }
 
   async function insertRows() {
@@ -203,19 +102,19 @@ export default function ProgWodImportModal({
         {!rows && (
           <div className="space-y-3">
             <p className="text-xs text-ax-text-secondary">
-              CSV/JSON avec les colonnes <span className="text-ax-text font-semibold">week,day,title,type,description,timecap,rounds,notes,block</span>,
-              ou un PDF analysé par l&apos;IA. La semaine et le jour restent modifiables avant l&apos;écriture.
+              CSV/JSON avec les colonnes <span className="text-ax-text font-semibold">week,day,title,type,description,timecap,rounds,notes,block</span>.
+              La semaine et le jour restent modifiables avant l&apos;écriture.
             </p>
             <div className="flex flex-wrap gap-2">
               <button onClick={() => downloadWodCsvTemplate('programming')}
                 className="px-3 py-2 rounded-ax-control bg-ax-surface-secondary border border-ax-border text-xs font-bold text-ax-text-secondary hover:text-ax-text flex items-center gap-2">
                 <FileText size={13} /> Template CSV
               </button>
-              <button onClick={() => fileRef.current?.click()} disabled={analyzing}
+              <button onClick={() => fileRef.current?.click()}
                 className="px-3 py-2 rounded-ax-control bg-ax-text text-ax-background text-xs font-bold hover:brightness-110 disabled:opacity-50 flex items-center gap-2">
-                {analyzing ? <><Loader2 size={13} className="animate-spin" /> Analyse du PDF…</> : <><Upload size={13} /> Choisir un fichier</>}
+                <Upload size={13} /> Choisir un fichier
               </button>
-              <input ref={fileRef} type="file" accept=".csv,.json,.pdf" onChange={handleFile} className="hidden" />
+              <input ref={fileRef} type="file" accept=".csv,.json" onChange={handleFile} className="hidden" />
             </div>
           </div>
         )}
@@ -233,12 +132,6 @@ export default function ProgWodImportModal({
 
         {rows && (
           <div className="mt-4">
-            {aiSource && (
-              <p className="text-xs text-ax-text-secondary mb-2 flex items-center gap-1.5">
-                <Sparkles size={12} className="text-ax-text" />
-                Répartition proposée par l&apos;IA depuis les dates du PDF — vérifiez semaine et jour avant d&apos;importer.
-              </p>
-            )}
             <div className="space-y-2">
               {rows.map((r, i) => (
                 <div key={i} className="rounded-ax-control bg-ax-surface-secondary border border-ax-border p-3">

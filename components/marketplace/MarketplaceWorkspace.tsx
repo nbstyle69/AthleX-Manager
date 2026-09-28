@@ -1128,7 +1128,6 @@ function OfferEditor({ offer, publisherBoxId, onClose, onSaved }: {
         <div onClick={(e) => e.stopPropagation()}>
           <ProgWodImportModal
             programmingId={offerId}
-            boxId={publisherBoxId}
             weeksCount={weeksCount}
             sortOffset={wods.length}
             onClose={() => setImportModal(false)}

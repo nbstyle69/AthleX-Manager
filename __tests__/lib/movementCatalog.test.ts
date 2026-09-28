@@ -9,7 +9,6 @@ import {
   type MovementCatalogRow,
 } from '@/lib/movementCatalog';
 import { defaultUnitFor, isCardioMovement, isWeightedMovement, parseMovementRow, serializeMovement } from '@/lib/movements';
-import { resolveMovementName } from '@/lib/pdfImport/movements';
 
 const fakeRow = (over: Partial<MovementCatalogRow>): MovementCatalogRow => ({
   id: 'x', name: 'X', family: 'other', pattern: [], modality: 'M', unit_default: 'reps', units_allowed: ['reps'],
@@ -64,7 +63,6 @@ describe('movementCatalog (snapshot + Supabase)', () => {
     expect(isWeightedMovement('ZZ Test Move')).toBe(true);
     expect(isWeightedMovement('Thruster')).toBe(false);
     expect(parseMovementRow('500 m Run').unit).toBe('m');
-    expect(resolveMovementName('zz test moves')).toEqual({ name: 'ZZ Test Move', resolved: true });
   });
 
   it('garde le snapshot si Supabase échoue ou ne renvoie rien', async () => {

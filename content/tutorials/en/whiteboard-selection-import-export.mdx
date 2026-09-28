@@ -21,7 +21,7 @@ The **Whiteboard** toolbar (Entraînement → Whiteboard) acts on the week shown
 ## Import and export a CSV
 
 1. **Template CSV** downloads `template_wods.csv`: columns `date,title,type,description,timecap,rounds,notes,block,published,rank,groups`, with sample rows. In `groups`, separate group names with `|`; left empty, the WOD is visible to everybody.
-2. Click **Importer** (import) and pick your CSV or JSON file (a PDF opens the PDF import). You can also drop the file onto the page.
+2. Click **Importer** (import) and pick your CSV or JSON file. You can also drop the file onto the page.
 3. A result card shows, for example « ✅ 4 WODs posés — ⚠️ 1 erreur » (4 WODs laid, 1 error), with the detail line by line. The imported WODs are already selected: click **Assigner à…** to give them programs. <Screenshot src="/tutorials/whiteboard-selection-import-export/3.png" alt="Import result card with four WODs laid and one line error" />
 4. **Exporter** (export) downloads the week shown (`wods_semaine_AAAA-MM-JJ.csv`, dated with the Monday) with the date, title, type, movements, time cap, rounds, notes and publication.
 
@@ -42,7 +42,7 @@ Both deletions are final: export the week first if you want to keep a record.
 
 ## Common mistakes
 
-- **« Type de fichier non supporté : « … ». L'import accepte PDF, CSV et JSON. »** (file type not supported) → save your spreadsheet as CSV.
+- **« Type de fichier non supporté : « … ». L'import accepte CSV et JSON. »** (file type not supported) → save your spreadsheet as CSV.
 - **« Ligne N ignorée : date invalide (attendu AAAA-MM-JJ) ».** (invalid date) → write the date as `2026-10-05`.
 - **« Groupes inconnus (ignorés) : … ».** (unknown groups) The name matches no group of the box → fix it, or assign the group afterwards with **Assigner à…**.
 - **« Rien n'est coché : ces N WOD perdront toute restriction et deviendront visibles par toute la box. »** (nothing ticked: the WODs become visible to the whole box) You are in **Remplacer les restrictions** with nothing ticked → tick a destination, or go back to **Ajouter aux restrictions existantes**.

@@ -183,15 +183,6 @@ const SHOTS: Shot[] = [
     cleanup: escape,
     area: MODAL,
   },
-  // « Importer » est un label sur un input fichier caché : le cliquer ouvrirait
-  // le sélecteur de fichiers de l'OS, donc on capture la barre d'outils.
-  {
-    slug: 'importer-un-pdf-de-programmation',
-    n: 1,
-    route: '/wods',
-    area: (page) =>
-      page.getByText(/Template CSV/i).first().locator('xpath=ancestor::div[1]'),
-  },
   {
     slug: 'semaines-types',
     n: 1,

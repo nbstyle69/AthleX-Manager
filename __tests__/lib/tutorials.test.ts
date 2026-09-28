@@ -21,7 +21,6 @@ const EXPECTED_SLUGS = [
   'visibilite-d-un-wod',
   'blocs-force-musculation-cardio',
   'mouvements-et-badges',
-  'importer-un-pdf-de-programmation',
   'semaines-types',
   'groupes-de-membres',
   'membres-et-formules',

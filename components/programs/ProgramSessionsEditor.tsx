@@ -7,7 +7,6 @@ import {
   Moon,
 } from 'lucide-react';
 import WodEditor from '@/components/wods/WodEditor';
-import PdfImportModal from '@/components/wods/PdfImportModal';
 import { downloadWodCsvTemplate, parseWodImportFile } from '@/lib/wodImport';
 import { messageErreur } from '@/lib/erreurs';
 import { softVar } from '@/lib/colorVars';
@@ -80,7 +79,6 @@ export default function ProgramSessionsEditor({ program, userId, onClose, onChan
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
 
-  const [pdfFile, setPdfFile] = useState<File | null>(null);
   const [importing, setImporting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -272,15 +270,13 @@ export default function ProgramSessionsEditor({ program, userId, onClose, onChan
   }
 
   /**
-   * Import : PDF (même cœur et même preview que le Whiteboard, destination
-   * verrouillée sur ce programme) ou CSV/JSON au format « programming »
+   * Import CSV/JSON au format « programming »
    * (`week,day,title,…`). Tout passe par la sérialisation du formulaire.
    */
   async function importFile(file: File) {
     const nom = file.name.toLowerCase();
-    if (file.type === 'application/pdf' || nom.endsWith('.pdf')) { setPdfFile(file); return; }
     if (!nom.endsWith('.csv') && !nom.endsWith('.json')) {
-      setNotice({ ok: false, text: `Type de fichier non supporté : « ${file.name} ». L'import accepte PDF, CSV et JSON.` });
+      setNotice({ ok: false, text: `Type de fichier non supporté : « ${file.name} ». L'import accepte CSV et JSON.` });
       return;
     }
     setImporting(true);
@@ -395,11 +391,11 @@ export default function ProgramSessionsEditor({ program, userId, onClose, onChan
             <Button variant="ax-outline" size="ax-compact" onClick={exportCSV} disabled={semaine.length === 0} className={TOOLBAR_BTN}>
               <Download size={13} /> Exporter
             </Button>
-            <Button variant="ax-outline" size="ax-compact" onClick={() => fileInputRef.current?.click()} disabled={importing} title="Importer un PDF de programmation ou un CSV/JSON" className={TOOLBAR_BTN}>
+            <Button variant="ax-outline" size="ax-compact" onClick={() => fileInputRef.current?.click()} disabled={importing} title="Importer un CSV/JSON" className={TOOLBAR_BTN}>
               {importing ? <Loader2 size={13} className="animate-spin" /> : <Upload size={13} />} Importer
             </Button>
             <input
-              ref={fileInputRef} type="file" accept=".csv,.json,.pdf" className="hidden"
+              ref={fileInputRef} type="file" accept=".csv,.json" className="hidden"
               onChange={e => { const f = e.target.files?.[0]; e.target.value = ''; if (f) void importFile(f); }}
             />
             <Button
@@ -696,27 +692,6 @@ export default function ProgramSessionsEditor({ program, userId, onClose, onChan
             </div>
           </Card>
         </div>
-      )}
-
-      {pdfFile && userId && (
-        <PdfImportModal
-          file={pdfFile}
-          boxId={program.box_id}
-          userId={userId}
-          target={{
-            kind: 'program',
-            program: { id: program.id, title: program.title, type: program.type },
-            defaultWeek: week,
-            weeksCount: totalSemaines,
-            restDays,
-          }}
-          onClose={() => setPdfFile(null)}
-          onDone={r => {
-            setPdfFile(null);
-            setNotice({ ok: r.errors.length === 0, text: [`${r.ok} séance${r.ok > 1 ? 's' : ''} importée${r.ok > 1 ? 's' : ''}.`, ...(r.notes ?? []), ...r.errors].join(' ') });
-            void apresEcriture();
-          }}
-        />
       )}
 
       {modal && (

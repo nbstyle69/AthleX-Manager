@@ -223,9 +223,8 @@ export function parseWodImportFile(
 }
 
 /**
- * L'analyse PDF par IA (`parse-wod-pdf`) rend des WOD **datés** depuis une date
- * de départ : on ne touche pas au parseur, on convertit sa sortie en
- * semaine × jour. La semaine est l'écart en semaines depuis le lundi de la date
+ * Convertit une date en semaine × jour relativement à une date de départ.
+ * La semaine est l'écart en semaines depuis le lundi de la date
  * de départ, le jour est le jour ISO (lundi = 1).
  */
 export function dateToWeekDay(iso: string, startISO: string): { week: number; day: number } {

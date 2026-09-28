@@ -89,9 +89,6 @@ describe('verbes et participes accordés au nombre', () => {
   it('« 1 membre en fait partie » / « 3 membres en font partie »', () => {
     expect(read('app/(dashboard)/groups/[id]/page.tsx')).toContain("countOf(members.length, 'membre en fait partie', 'membres en font partie')");
   });
-  it('« semaine 2 » / « semaines 2, 3 »', () => {
-    expect(read('components/wods/PdfImportModal.tsx')).toContain("${couvertes.length > 1 ? 'semaines' : 'semaine'} ${couvertes.join(', ')}");
-  });
 });
 
 describe('routes S4 de suppression : le message d’échec accorde le nombre', () => {

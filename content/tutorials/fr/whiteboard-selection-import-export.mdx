@@ -21,7 +21,7 @@ La barre d'outils du **Whiteboard** (Entraînement → Whiteboard) agit sur la s
 ## Importer et exporter un CSV
 
 1. **Template CSV** télécharge `template_wods.csv` : colonnes `date,title,type,description,timecap,rounds,notes,block,published,rank,groups`, avec des lignes d'exemple. Dans `groups`, sépare les noms de groupes par `|` ; vide, le WOD est visible par tous.
-2. Clique **Importer** et choisis ton fichier CSV ou JSON (un PDF ouvre l'import PDF). Tu peux aussi glisser le fichier sur la page.
+2. Clique **Importer** et choisis ton fichier CSV ou JSON. Tu peux aussi glisser le fichier sur la page.
 3. Une carte de résultat s'affiche, par exemple « ✅ 4 WODs posés — ⚠️ 1 erreur », avec le détail ligne par ligne. Les WOD importés sont déjà sélectionnés : clique **Assigner à…** pour leur poser des programmes. <Screenshot src="/tutorials/whiteboard-selection-import-export/3.png" alt="Carte de résultat d'import avec quatre WOD posés et une erreur de ligne" />
 4. **Exporter** télécharge la semaine affichée (`wods_semaine_AAAA-MM-JJ.csv`, daté du lundi) avec la date, le titre, le type, les mouvements, le time cap, les rounds, les notes et la publication.
 
@@ -42,7 +42,7 @@ Les deux suppressions sont définitives : exporte la semaine avant si tu veux en
 
 ## Erreurs fréquentes
 
-- **« Type de fichier non supporté : « … ». L'import accepte PDF, CSV et JSON. »** → enregistre ton tableur en CSV.
+- **« Type de fichier non supporté : « … ». L'import accepte CSV et JSON. »** → enregistre ton tableur en CSV.
 - **« Ligne N ignorée : date invalide (attendu AAAA-MM-JJ) ».** → écris la date comme `2026-10-05`.
 - **« Groupes inconnus (ignorés) : … ».** Le nom ne correspond à aucun groupe de la box → corrige-le, ou assigne le groupe après coup avec **Assigner à…**.
 - **« Rien n'est coché : ces N WOD perdront toute restriction et deviendront visibles par toute la box. »** Tu es en **Remplacer les restrictions** sans rien cocher → coche une destination, ou reviens à **Ajouter aux restrictions existantes**.

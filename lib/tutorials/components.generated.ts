@@ -19,7 +19,6 @@ import Mdx_fr_essai_gratuit_et_reservation from './generated/fr/essai-gratuit-et
 import Mdx_fr_formules_d_acces_a_la_salle from './generated/fr/formules-d-acces-a-la-salle';
 import Mdx_fr_gerer_un_membre from './generated/fr/gerer-un-membre';
 import Mdx_fr_groupes_de_membres from './generated/fr/groupes-de-membres';
-import Mdx_fr_importer_un_pdf_de_programmation from './generated/fr/importer-un-pdf-de-programmation';
 import Mdx_fr_inviter_un_membre from './generated/fr/inviter-un-membre';
 import Mdx_fr_marketplace_appliquer_au_whiteboard from './generated/fr/marketplace-appliquer-au-whiteboard';
 import Mdx_fr_marketplace_publier_une_offre from './generated/fr/marketplace-publier-une-offre';
@@ -61,7 +60,6 @@ import Mdx_en_essai_gratuit_et_reservation from './generated/en/essai-gratuit-et
 import Mdx_en_formules_d_acces_a_la_salle from './generated/en/formules-d-acces-a-la-salle';
 import Mdx_en_gerer_un_membre from './generated/en/gerer-un-membre';
 import Mdx_en_groupes_de_membres from './generated/en/groupes-de-membres';
-import Mdx_en_importer_un_pdf_de_programmation from './generated/en/importer-un-pdf-de-programmation';
 import Mdx_en_inviter_un_membre from './generated/en/inviter-un-membre';
 import Mdx_en_marketplace_appliquer_au_whiteboard from './generated/en/marketplace-appliquer-au-whiteboard';
 import Mdx_en_marketplace_publier_une_offre from './generated/en/marketplace-publier-une-offre';
@@ -109,7 +107,6 @@ export const TUTORIAL_COMPONENTS: Record<Locale, Record<string, TutorialComponen
     "formules-d-acces-a-la-salle": Mdx_fr_formules_d_acces_a_la_salle,
     "gerer-un-membre": Mdx_fr_gerer_un_membre,
     "groupes-de-membres": Mdx_fr_groupes_de_membres,
-    "importer-un-pdf-de-programmation": Mdx_fr_importer_un_pdf_de_programmation,
     "inviter-un-membre": Mdx_fr_inviter_un_membre,
     "marketplace-appliquer-au-whiteboard": Mdx_fr_marketplace_appliquer_au_whiteboard,
     "marketplace-publier-une-offre": Mdx_fr_marketplace_publier_une_offre,
@@ -153,7 +150,6 @@ export const TUTORIAL_COMPONENTS: Record<Locale, Record<string, TutorialComponen
     "formules-d-acces-a-la-salle": Mdx_en_formules_d_acces_a_la_salle,
     "gerer-un-membre": Mdx_en_gerer_un_membre,
     "groupes-de-membres": Mdx_en_groupes_de_membres,
-    "importer-un-pdf-de-programmation": Mdx_en_importer_un_pdf_de_programmation,
     "inviter-un-membre": Mdx_en_inviter_un_membre,
     "marketplace-appliquer-au-whiteboard": Mdx_en_marketplace_appliquer_au_whiteboard,
     "marketplace-publier-une-offre": Mdx_en_marketplace_publier_une_offre,
