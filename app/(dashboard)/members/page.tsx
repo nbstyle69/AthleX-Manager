@@ -14,6 +14,7 @@ import AthleteSheet from '@/components/dashboard/AthleteSheet';
 import { useConfirmDialog } from '@/components/ui/confirm-dialog';
 import { ERROR_TITLE } from '@/lib/confirmDialog';
 import { reactivationErrorBox } from '@/lib/memberReactivation';
+import { CO_OWNER_RESERVED, roleChoices, roleErrorMessage } from '@/lib/memberRoles';
 import { askDeleteWithSubscriptions, countOf } from '@/lib/deleteWithSubscriptions';
 import {
   eloChoiceOf,
@@ -218,25 +219,28 @@ const ROLES: { key: 'member' | 'coach' | 'owner'; label: string; icon: any; colo
   { key: 'owner',  label: 'Owner',  icon: Crown, color: 'var(--ax-text)' },
 ];
 
-function RolePopover({ member, onChange }: {
+function RolePopover({ member, isPrimaryOwner, onChange }: {
   member: Member;
+  isPrimaryOwner: boolean;
   onChange: (member: Member, role: 'member' | 'coach' | 'owner') => void;
 }) {
   const [open, setOpen] = useState(false);
   const current = ROLES.find(r => r.key === member.role) ?? ROLES[0];
   const Icon = current.icon;
+  const choices = roleChoices(isPrimaryOwner, member.role);
+  const locked = member.is_banned || choices.length === 0;
   return (
     <div>
       <TableMenu open={open} onOpenChange={setOpen} align="start" className="min-w-[150px]" trigger={
-        <button disabled={member.is_banned}
-          className={`flex items-center gap-1.5 text-xs font-bold px-2.5 py-1.5 rounded-ax-control border transition-colors ${member.is_banned ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer hover:border-ax-input-border'}`}
+        <button disabled={locked} title={!member.is_banned && choices.length === 0 ? CO_OWNER_RESERVED : undefined}
+          className={`flex items-center gap-1.5 text-xs font-bold px-2.5 py-1.5 rounded-ax-control border transition-colors ${locked ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer hover:border-ax-input-border'}`}
           style={{ color: current.color, borderColor: softVar(current.color, 0.25), backgroundColor: softVar(current.color, 0.063) }}>
           <Icon size={12} />
           {current.label}
           <ChevronDown size={10} className={`transition-transform ${open ? 'rotate-180' : ''}`} />
         </button>
       }>
-            {ROLES.map(r => {
+            {ROLES.filter(r => choices.includes(r.key)).map(r => {
               const selected = member.role === r.key;
               const RIcon = r.icon;
               return (
@@ -265,7 +269,8 @@ export default function MembersPage() {
   const [members,    setMembers]    = useState<Member[]>([]);
   const [allGroups,  setAllGroups]  = useState<{ id: string; name: string; color: string }[]>([]);
   const [boxId,      setBoxId]      = useState<string | null>(null);
-  const [loading,    setLoading]    = useState(true);
+  const [isPrimaryOwner, setIsPrimaryOwner] = useState(false);
+  const [loading,   setLoading]    = useState(true);
   const [toggling,   setToggling]   = useState<string | null>(null);
   const [banning,    setBanning]    = useState<string | null>(null);
   const [plans,      setPlans]      = useState<MembershipPlan[]>([]);
@@ -313,6 +318,10 @@ export default function MembersPage() {
     const box = await getMyBox(supabase);
     if (!box) { router.push('/login'); return; }
     setBoxId(box.id);
+
+    // Gérant principal = `boxes.owner_id` : lui seul nomme ou retire un co-gérant.
+    const { data: boxRow } = await supabase.from('boxes').select('owner_id').eq('id', box.id).maybeSingle();
+    setIsPrimaryOwner((boxRow as { owner_id: string } | null)?.owner_id === user.id);
 
     const [{ data: membersRaw }, { data: groups }, { data: groupMemberships }, { data: plansData }, { data: planGroupData }] = await Promise.all([
       supabase.from('box_members')
@@ -378,6 +387,10 @@ export default function MembersPage() {
 
   async function changeRole(member: Member, newRole: 'member' | 'coach' | 'owner') {
     if (!boxId || member.role === newRole) return;
+    if (!roleChoices(isPrimaryOwner, member.role).includes(newRole)) {
+      inform({ kind: 'error', title: ERROR_TITLE, body: CO_OWNER_RESERVED });
+      return;
+    }
     const labels: Record<string, string> = { member: 'Membre', coach: 'Coach', owner: 'Owner' };
     const coOwner = members.find(m => m.role === 'owner' && m.id !== member.id);
     ask(newRole === 'owner'
@@ -409,12 +422,14 @@ export default function MembersPage() {
       const currentOwner = members.find(m => m.role === 'owner' && m.id !== member.id);
       if (currentOwner) {
         const { error } = await supabase.from('box_members').update({ role: 'member' }).eq('member_id', currentOwner.id).eq('box_id', boxId);
-        if (error) errors.push(error.message);
+        if (error) errors.push(roleErrorMessage(error));
       }
     }
 
-    const { error } = await supabase.from('box_members').update({ role: newRole }).eq('member_id', member.id).eq('box_id', boxId);
-    if (error) errors.push(error.message);
+    // `.select()` : un refus par la RLS ne lève rien, il ne modifie aucune ligne.
+    const { data: written, error } = await supabase.from('box_members').update({ role: newRole }).eq('member_id', member.id).eq('box_id', boxId).select('member_id');
+    if (error) errors.push(roleErrorMessage(error));
+    else if (!written?.length) errors.push(roleErrorMessage({}));
     // Jusqu'ici, un refus affichait quand même le nouveau rôle.
     if (errors.length) { inform({ kind: 'error', title: ERROR_TITLE, body: errors.join('\n') }); return; }
     setMembers(prev => prev.map(m => {
@@ -768,7 +783,7 @@ export default function MembersPage() {
                       </div>
                     </td>
                     <td className="px-4 py-4">
-                      <RolePopover member={m} onChange={changeRole} />
+                      <RolePopover member={m} isPrimaryOwner={isPrimaryOwner} onChange={changeRole} />
                     </td>
                     <td className="px-4 py-4">
                       <span className={`text-xs font-bold px-2.5 py-1 rounded-ax-badge border border-current ${m.is_banned ? 'bg-ax-danger-soft text-ax-danger' : 'bg-ax-success-soft text-ax-success'}`}>
