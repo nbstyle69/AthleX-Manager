@@ -3,8 +3,8 @@
  * pose `tournament_scores.division_id` à l'insertion, d'après la division de
  * l'athlète à cet instant ; le gérant peut la corriger, l'athlète non.
  *
- * Changer cette colonne ne relance PAS le recalcul des points de division :
- * le déclencheur de la base ne réagit qu'au statut et à la valeur du score.
+ * Changer cette colonne recalcule aussitôt les points de division : le
+ * déclencheur de la base surveille aussi `division_id` (athlex-app 20270140).
  */
 
 export interface DivisionOption { id: string; name: string }
@@ -21,8 +21,8 @@ export function scoreDivisionInfo(
   return { label, current: differs ? name(currentDivisionId) : null };
 }
 
-/** Quand les points bougent après une correction : au prochain recalcul de la base. */
-export const SCORE_DIVISION_NOTE = 'Les points de division seront recalculés au prochain score validé, rejeté ou corrigé du tournoi.';
+/** Quand les points bougent après une correction : tout de suite (athlex-app 20270140). */
+export const SCORE_DIVISION_NOTE = 'Les points des deux divisions sont recalculés immédiatement.';
 
 export function scoreDivisionBody(validated: boolean): string {
   return validated

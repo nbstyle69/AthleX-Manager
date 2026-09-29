@@ -82,11 +82,11 @@ describe('affichage', () => {
     expect(scoreDivisionInfo('dz', null, DIVS).label).toBe('Division supprimée');
   });
 
-  it('la boîte dit quand les points bougent (pas de recalcul immédiat)', () => {
-    expect(scoreDivisionBody(true)).toMatch(/^Ce score validé sera classé dans cette division/);
-    expect(scoreDivisionBody(false)).toMatch(/une fois validé/);
-    expect(scoreDivisionBody(true)).toContain(SCORE_DIVISION_NOTE);
-    expect(SCORE_DIVISION_NOTE).toMatch(/au prochain score validé, rejeté ou corrigé/);
+  it('la boîte dit que les points des deux divisions sont recalculés tout de suite (athlex-app 20270140)', () => {
+    expect(SCORE_DIVISION_NOTE).toBe('Les points des deux divisions sont recalculés immédiatement.');
+    expect(scoreDivisionBody(true)).toBe(`Ce score validé sera classé dans cette division, avec les athlètes qui y ont joué ce WOD. ${SCORE_DIVISION_NOTE}`);
+    expect(scoreDivisionBody(false)).toBe(`Ce score sera classé dans cette division une fois validé. ${SCORE_DIVISION_NOTE}`);
+    expect(scoreDivisionBody(true)).not.toMatch(/prochain score/);
   });
 
   it('écran Scores : bloc en ligue seulement, boîte de confirmation, action serveur', () => {
