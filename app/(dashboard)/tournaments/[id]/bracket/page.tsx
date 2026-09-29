@@ -3,13 +3,14 @@ import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { ChevronLeft, GitBranch } from 'lucide-react';
 import BracketManager from '@/components/tournaments/BracketManager';
+import { matchEloDeltas, type MatchEloRow } from '@/lib/tournaments/matchElo';
 
 export default async function BracketPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const { tournament: t, svc } = await getTournamentForActiveBox<Record<string, any>>(id);
   if (t.format !== 'bracket' && t.format !== 'swiss') redirect(`/tournaments/${id}`);
 
-  const [{ data: matches }, { data: participants }, { data: wods }, { data: scoreRows }] = await Promise.all([
+  const [{ data: matches }, { data: participants }, { data: wods }, { data: scoreRows }, { data: eloRows }] = await Promise.all([
     svc.from('tournament_bracket_matches').select('*').eq('tournament_id', id)
        .order('round', { ascending: true }).order('side').order('match_number'),
     svc.from('tournament_participants')
@@ -20,6 +21,8 @@ export default async function BracketPage({ params }: { params: Promise<{ id: st
        .select('athlete_id, tournament_wod_id, score_value, tiebreak_value, video_url, notes, status, submitted_at')
        .eq('tournament_id', id)
        .in('status', ['pending', 'validated']),
+    // Écart d'ELO appliqué par la base à chaque match terminé (affiché sur la carte).
+    svc.from('tournament_match_elo_history').select('match_id, athlete_id, elo_delta').eq('tournament_id', id),
   ]);
 
   // Profiles fetched separately (no FK embed — the relationship name is unreliable
@@ -81,6 +84,7 @@ export default async function BracketPage({ params }: { params: Promise<{ id: st
         participantsCount={(participants ?? []).length}
         wods={wodList}
         scoresByWod={scoresByWod}
+        eloDeltas={matchEloDeltas((eloRows ?? []) as MatchEloRow[])}
       />
     </div>
   );

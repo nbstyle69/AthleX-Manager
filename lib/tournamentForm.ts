@@ -25,7 +25,8 @@ export interface TournamentFormState {
   status: string;
   start_date: string;
   end_date: string;
-  max_participants: number;
+  /** Nul quand le champ est vide ou illisible : l'enregistrement est alors refusé. */
+  max_participants: number | null;
   prize: string;
   format: string;
   require_video_proof: boolean;
@@ -51,6 +52,27 @@ export function initialTournamentForm(initial: any, allowedFormats: string[]): T
     rules:               initial?.rules               ?? DEFAULT_RULES,
     registrations_open_during_tournament: initial?.registrations_open_during_tournament === true,
   };
+}
+
+/** Bornes de « Max participants » (la base exige une valeur : `NOT NULL`). */
+export const MAX_PARTICIPANTS_MIN = 2;
+export const MAX_PARTICIPANTS_MAX = 500;
+
+/** Lecture du champ « Max participants » : un entier, sinon nul (jamais NaN). */
+export function parseMaxParticipants(raw: string): number | null {
+  const t = raw.trim();
+  return /^\d+$/.test(t) ? Number(t) : null;
+}
+
+/**
+ * Refus de « Max participants » : vide, décimal ou hors bornes. Un tournoi a
+ * toujours un maximum (`tournaments.max_participants` est `NOT NULL`).
+ */
+export function maxParticipantsError(v: number | null): string | null {
+  if (v == null || !Number.isInteger(v) || v < MAX_PARTICIPANTS_MIN || v > MAX_PARTICIPANTS_MAX) {
+    return `Indique un nombre entier de participants entre ${MAX_PARTICIPANTS_MIN} et ${MAX_PARTICIPANTS_MAX}. Un tournoi a toujours un maximum.`;
+  }
+  return null;
 }
 
 /** Champs qu'une modification peut écrire tels quels (ni `format`, ni `status`). */

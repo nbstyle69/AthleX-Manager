@@ -5,6 +5,7 @@ import { Loader2, Lock, AlertTriangle, Zap } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
 import { countOf } from '@/lib/plural';
+import { tournamentRefusal } from '@/lib/tournaments/refusals';
 
 /** Ligne rendue par la RPC `finalize_tournament_elo` (une par participant). */
 interface FinalizedRow {
@@ -57,7 +58,8 @@ export default function CloseTournamentButton({ tournamentId, pendingCount, stat
       p_tournament_id: tournamentId,
     });
     if (rpcErr) {
-      setError(rpcErr.message);
+      // Refus de la base en français (TABLEAU_NON_TERMINE, SCORES_EN_ATTENTE…), jamais le code brut.
+      setError(tournamentRefusal(rpcErr.message, rpcErr.code));
       setClosing(false);
       return;
     }

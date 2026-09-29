@@ -5,7 +5,10 @@ import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { Loader2, Upload, ImageIcon, Trash2, Lock } from 'lucide-react';
 import { fromDateInput } from '@/lib/datetime';
-import { initialTournamentForm, statusEditable, tournamentUpdatePayload } from '@/lib/tournamentForm';
+import {
+  MAX_PARTICIPANTS_MAX, MAX_PARTICIPANTS_MIN, initialTournamentForm, maxParticipantsError, parseMaxParticipants,
+  statusEditable, tournamentUpdatePayload,
+} from '@/lib/tournamentForm';
 import { useConfirmDialog } from '@/components/ui/confirm-dialog';
 import { ERROR_TITLE, INPUT_TITLE } from '@/lib/confirmDialog';
 import { REGISTRATIONS_LABEL, START_DATE_HINT, registrationsHint } from '@/lib/tournaments/registrations';
@@ -65,6 +68,8 @@ export default function TournamentForm({ boxId, initial, allowedFormats = ['simp
   );
 
   const set = (k: string, v: any) => setForm(f => ({ ...f, [k]: v }));
+  const maxRef = useRef<HTMLInputElement>(null);
+  const maxError = maxParticipantsError(form.max_participants);
 
   // Statut en modification : la liste n'est proposée qu'à un tournoi ouvert
   // (ouvert → en cours). En cours ou clôturé : affiché en lecture seule ; la
@@ -110,6 +115,8 @@ export default function TournamentForm({ boxId, initial, allowedFormats = ['simp
 
   async function handleSubmit(e: React.FormEvent, publish = false) {
     e.preventDefault();
+    // Jamais de NaN ni de champ vide envoyé : la base exige un maximum.
+    if (maxError) { maxRef.current?.focus(); return; }
     setSaving(true);
     setError(null);
     const supabase = createClient();
@@ -293,8 +300,13 @@ export default function TournamentForm({ boxId, initial, allowedFormats = ['simp
         </div>
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className={lbl}>Max participants</label>
-            <input type="number" min={2} max={500} className={inp} value={form.max_participants} onChange={e => set('max_participants', parseInt(e.target.value))} />
+            <label htmlFor="max-participants" className={lbl}>Max participants</label>
+            <input id="max-participants" ref={maxRef} type="number" inputMode="numeric" step={1}
+              min={MAX_PARTICIPANTS_MIN} max={MAX_PARTICIPANTS_MAX} required className={inp}
+              value={form.max_participants ?? ''} onChange={e => set('max_participants', parseMaxParticipants(e.target.value))}
+              aria-invalid={!!maxError} aria-describedby={maxError ? 'erreur-max-participants' : undefined}
+              data-testid="max-participants" />
+            {maxError && <p id="erreur-max-participants" role="alert" className="text-xs text-ax-danger mt-1.5">{maxError}</p>}
           </div>
           <div>
             <label className={lbl}>Récompense (optionnel)</label>

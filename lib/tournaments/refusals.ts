@@ -21,6 +21,11 @@ const BY_CODE: Record<string, string> = {
   DIVISION_INDISPONIBLE: 'La ligue n’a pas de division ouverte aux inscriptions.',
   FORMAT_FIGE: 'Le format d’un tournoi ne change pas après sa création.',
   CLOTURE_DEDIEE: 'Un tournoi se clôture par sa clôture dédiée, qui calcule l’ELO final.',
+  TABLEAU_NON_TERMINE: 'Le tableau n’est pas terminé : décide les matchs restants, y compris le match décisif de la grande finale ou la petite finale s’ils existent, puis clôture.',
+  SCORES_EN_ATTENTE: 'Des scores sont encore en attente : valide-les ou rejette-les avant de clôturer.',
+  TOURNOI_DEJA_CLOTURE: 'Ce tournoi est déjà clôturé : son ELO a déjà été distribué.',
+  ELO_INCOHERENT: 'La clôture a été annulée par un contrôle de l’ELO : rien n’a changé. Contacte le support.',
+  FORMAT_INCONNU: 'Ce format de tournoi ne peut pas être clôturé. Contacte le support.',
 };
 
 const NOT_ALLOWED = 'Tu n’as pas les droits pour gérer ce tournoi.';
@@ -51,6 +56,15 @@ export function tournamentRefusal(message: string | null | undefined, code?: str
     return text.includes('terminé')
       ? 'Le tournoi est terminé : les inscriptions sont closes.'
       : 'Le tournoi a démarré : les inscriptions sont closes.';
+  }
+  // Clôture (`finalize_tournament_elo`) : la base donne un nombre, dit ici sans « (s) ».
+  const n = Number(/\d+/.exec(text)?.[0]);
+  if (c === 'TABLEAU_NON_TERMINE') {
+    const alive = Number.isFinite(n) ? `${countOf(n, 'athlète est', 'athlètes sont')} encore en lice. ` : '';
+    return `Le tableau n’est pas terminé : ${alive}Décide les matchs restants, y compris le match décisif de la grande finale ou la petite finale s’ils existent, puis clôture.`;
+  }
+  if (c === 'SCORES_EN_ATTENTE' && Number.isFinite(n)) {
+    return `${countOf(n, 'score est', 'scores sont')} encore en attente : valide-les ou rejette-les avant de clôturer.`;
   }
   if (BY_CODE[c]) return BY_CODE[c];
   // Code inconnu : le texte de la base, sans le code.
