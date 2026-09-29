@@ -4,8 +4,14 @@ import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { useConfirmDialog } from '@/components/ui/confirm-dialog';
-import { Loader2, UserPlus, ArrowUp, ArrowDown, X, AlertTriangle, Trophy, Plus, Crown, History, RefreshCw } from 'lucide-react';
+import { Loader2, UserPlus, ArrowUp, ArrowDown, X, AlertTriangle, Trophy, Plus, Crown, History, RefreshCw, Shuffle, Hand } from 'lucide-react';
 import { countOf } from '@/lib/plural';
+import { affecterDivisionsAction, endSeasonAction, setAutoPlacementAction } from '@/app/(dashboard)/tournaments/[id]/divisions/actions';
+import {
+  PLACEMENT_MANUAL_HINT, PLACEMENT_MANUAL_LABEL, affectationBody, affectationMessage, divisionFill, divisionRefusal,
+  endSeasonBody, parsePlaces, type Placement,
+} from '@/lib/tournaments/divisions';
+import { ERROR_TITLE } from '@/lib/confirmDialog';
 
 interface Division {
   id: string;
@@ -26,6 +32,8 @@ interface MemberRow {
   points: number;
   rank: number | null;
   joined_at: string;
+  /** auto : placé par la base ; manual : placé par le gérant, jamais déplacé par la répartition. */
+  placement?: Placement;
   athlete: Profile | Profile[];
 }
 
@@ -44,6 +52,10 @@ interface SeasonHistoryRow {
 interface Props {
   tournamentId: string;
   currentSeason: number;
+  /** La ligue a au moins un score validé : la répartition ne place plus que les nouveaux. */
+  hasValidatedScore: boolean;
+  /** Scores validés de la saison en cours : 0 → confirmation explicite avant la clôture. */
+  validatedThisSeason: number;
   initialDivisions: Division[];
   initialMembers: MemberRow[];
   unassigned: Profile[];
@@ -53,6 +65,8 @@ interface Props {
 export default function DivisionsManager({
   tournamentId,
   currentSeason,
+  hasValidatedScore,
+  validatedThisSeason,
   initialDivisions,
   initialMembers,
   unassigned: initialUnassigned,
@@ -60,7 +74,8 @@ export default function DivisionsManager({
 }: Props) {
   const router = useRouter();
   const supabase = createClient();
-  const { dialog, ask } = useConfirmDialog();
+  const { dialog, ask, inform } = useConfirmDialog();
+  const [info, setInfo] = useState<string | null>(null);
   const [divisions, setDivisions] = useState<Division[]>(initialDivisions);
   const [members, setMembers] = useState<MemberRow[]>(initialMembers);
   const [unassigned, setUnassigned] = useState<Profile[]>(initialUnassigned);
@@ -86,14 +101,23 @@ export default function DivisionsManager({
 
   async function addMember(divisionId: string, athleteId: string) {
     setBusy(`add-${athleteId}`); setError(null);
+    // Un athlète n'est jamais dans deux divisions du même tournoi : la liste
+    // affichée peut être périmée (autre onglet, répartition), on relit.
+    const { data: already } = await supabase.from('tournament_division_members')
+      .select('id').eq('athlete_id', athleteId).in('division_id', divisions.map(x => x.id)).limit(1);
+    if (already && already.length > 0) {
+      setBusy(null);
+      setError(divisionRefusal(null, '23505'));
+      return;
+    }
     const { data, error: err } = await supabase
       .from('tournament_division_members')
       .insert({ division_id: divisionId, athlete_id: athleteId, points: 0 })
       .select('*, athlete:profiles!tournament_division_members_athlete_id_fkey(id, username, level, elo)')
       .single();
     setBusy(null);
-    if (err) { setError(err.message); return; }
-    setMembers(prev => [...prev, data as any]);
+    if (err) { setError(divisionRefusal(err.message, err.code)); return; }
+    setMembers(prev => [...prev, { ...(data as any), placement: 'manual' }]);
     setUnassigned(prev => prev.filter(p => p.id !== athleteId));
     setAddingTo(null);
   }
@@ -113,7 +137,7 @@ export default function DivisionsManager({
     setBusy(`del-${memberRowId}`); setError(null);
     const { error: err } = await supabase.from('tournament_division_members').delete().eq('id', memberRowId);
     setBusy(null);
-    if (err) { setError(err.message); return; }
+    if (err) { setError(divisionRefusal(err.message, err.code)); return; }
     setMembers(prev => prev.filter(m => m.id !== memberRowId));
     setUnassigned(prev => [...prev, athlete]);
   }
@@ -124,8 +148,8 @@ export default function DivisionsManager({
       .update({ division_id: newDivisionId, points: 0, rank: null })
       .eq('id', memberRowId);
     setBusy(null);
-    if (err) { setError(err.message); return; }
-    setMembers(prev => prev.map(m => m.id === memberRowId ? { ...m, division_id: newDivisionId, points: 0, rank: null } : m));
+    if (err) { setError(divisionRefusal(err.message, err.code)); return; }
+    setMembers(prev => prev.map(m => m.id === memberRowId ? { ...m, division_id: newDivisionId, points: 0, rank: null, placement: 'manual' } : m));
   }
 
   async function updatePoints(memberRowId: string, points: number) {
@@ -133,28 +157,61 @@ export default function DivisionsManager({
     const { error: err } = await supabase.from('tournament_division_members')
       .update({ points }).eq('id', memberRowId);
     setBusy(null);
-    if (err) { setError(err.message); return; }
+    if (err) { setError(divisionRefusal(err.message, err.code)); return; }
     setMembers(prev => prev.map(m => m.id === memberRowId ? { ...m, points } : m));
   }
 
   function askEndSeason() {
     ask({
-      title: `Clôturer la saison ${currentSeason} ?`,
-      element: `${countOf(divisions.length, 'division', 'divisions')} · ${countOf(members.length, 'athlète', 'athlètes')} · la saison ${currentSeason + 1} commence ensuite`,
-      body: `Le classement final est archivé, les promus et relégués changent de division et tous les points repartent de 0. Les scores de la saison ${currentSeason} ne compteront plus. C’est définitif.`,
-      confirmLabel: 'Clôturer la saison',
+      title: validatedThisSeason === 0 ? `Clôturer la saison ${currentSeason} sans aucun score ?` : `Clôturer la saison ${currentSeason} ?`,
+      element: `${countOf(divisions.length, 'division', 'divisions')} · ${countOf(members.length, 'athlète', 'athlètes')} · ${countOf(validatedThisSeason, 'score validé', 'scores validés')} · la saison ${currentSeason + 1} commence ensuite`,
+      body: endSeasonBody(currentSeason, validatedThisSeason),
+      confirmLabel: validatedThisSeason === 0 ? 'Clôturer la saison vide' : 'Clôturer la saison',
       danger: true,
       run: endSeasonAndAdvance,
     });
   }
 
+  // Saison attendue passée à la base (#349) : si elle est déjà close, rien ne bouge.
   async function endSeasonAndAdvance() {
-    setBusy('promote'); setError(null);
-    const { error: err } = await supabase.rpc('end_season_and_advance', { p_tournament_id: tournamentId });
+    setBusy('promote'); setError(null); setInfo(null);
+    const res = await endSeasonAction(tournamentId, currentSeason);
     setBusy(null);
-    if (err) { setError(err.message); return; }
-    // Full page reload to refetch server-side data (local state from initialProps won't update with router.refresh)
+    if (!res.ok) { void inform({ kind: 'error', title: ERROR_TITLE, body: res.error }); return; }
+    if (!res.closed) {
+      await inform({ kind: 'info', title: 'Saison déjà close', body: res.message });
+    }
+    // Rechargement complet : l'état local vient des props initiales.
     window.location.reload();
+  }
+
+  // « Répartir par ELO » : la base place les athlètes (#357) ; les placements à la main ne bougent pas.
+  function askAffecter() {
+    ask({
+      title: 'Répartir les athlètes par ELO ?',
+      element: `${countOf(divisions.length, 'division', 'divisions')} · ${countOf(members.length + unassigned.length, 'inscrit', 'inscrits')} · ${countOf(unassigned.length, 'sans division', 'sans division')}`,
+      body: affectationBody(hasValidatedScore),
+      confirmLabel: 'Répartir par ELO',
+      run: affecter,
+    });
+  }
+
+  async function affecter() {
+    setBusy('affecter'); setError(null); setInfo(null);
+    const res = await affecterDivisionsAction(tournamentId);
+    setBusy(null);
+    if (!res.ok) { void inform({ kind: 'error', title: ERROR_TITLE, body: res.error }); return; }
+    if (res.placed === 0) { setInfo(affectationMessage(0)); return; }
+    window.location.reload();
+  }
+
+  // « Rendre à l'automatique » : la prochaine répartition pourra le déplacer.
+  async function setAuto(memberRowId: string) {
+    setBusy(`auto-${memberRowId}`); setError(null);
+    const res = await setAutoPlacementAction(tournamentId, memberRowId);
+    setBusy(null);
+    if (!res.ok) { setError(res.error); return; }
+    setMembers(prev => prev.map(m => (m.id === memberRowId ? { ...m, placement: 'auto' } : m)));
   }
 
   // Création avec un champ : « Annuler » ne crée rien (comme le prompt annulé).
@@ -180,7 +237,7 @@ export default function DivisionsManager({
       max_members: 16, promote_count: 3, relegate_count: 0,
     }).select().single();
     setBusy(null);
-    if (err) { setError(err.message); return; }
+    if (err) { setError(divisionRefusal(err.message, err.code)); return; }
     setDivisions(prev => [...prev, data as any]);
   }
 
@@ -188,7 +245,7 @@ export default function DivisionsManager({
     setBusy(`div-${id}`); setError(null);
     const { error: err } = await supabase.from('tournament_divisions').update(patch).eq('id', id);
     setBusy(null);
-    if (err) { setError(err.message); return; }
+    if (err) { setError(divisionRefusal(err.message, err.code)); return; }
     setDivisions(prev => prev.map(d => d.id === id ? { ...d, ...patch } : d));
   }
 
@@ -199,6 +256,10 @@ export default function DivisionsManager({
         <div className="bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3 text-sm text-red-400 flex items-center gap-2">
           <AlertTriangle size={14} /> {error}
         </div>
+      )}
+
+      {info && (
+        <div role="status" className="rounded-ax-control border border-ax-border bg-ax-surface px-4 py-3 text-sm text-ax-text">{info}</div>
       )}
 
       {/* Season banner */}
@@ -216,6 +277,12 @@ export default function DivisionsManager({
           <button onClick={() => window.location.reload()} title="Recharger les données"
             className="inline-flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold bg-white/5 hover:bg-white/10 text-white border border-white/10 transition-colors">
             <RefreshCw size={12} /> Rafraîchir
+          </button>
+          <button onClick={askAffecter} disabled={busy === 'affecter' || divisions.length === 0}
+            data-testid="repartir-elo"
+            className="inline-flex items-center gap-2 px-3 py-2 rounded-ax-control text-xs font-bold bg-ax-surface text-ax-text border border-ax-border hover:bg-ax-surface-secondary disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ax-focus transition-colors">
+            {busy === 'affecter' ? <Loader2 size={12} className="animate-spin" /> : <Shuffle size={12} />}
+            Répartir par ELO
           </button>
           <button onClick={askAddDivision} disabled={busy === 'add-div'}
             className="inline-flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold bg-white/5 hover:bg-white/10 text-white border border-white/10 transition-colors">
@@ -269,11 +336,19 @@ export default function DivisionsManager({
                     onChange={e => setDivisions(prev => prev.map(x => x.id === d.id ? { ...x, name: e.target.value } : x))}
                     onBlur={e => updateDivision(d.id, { name: e.target.value.trim() })}
                     className="text-sm font-bold text-white bg-transparent border-b border-transparent hover:border-white/10 focus:border-white outline-none px-1" />
-                  <div className="text-[10px] text-gray-500 mt-0.5">{rows.length} / {d.max_members} athlètes</div>
+                  {(() => {
+                    const fill = divisionFill(rows.length, d.max_members, isLast);
+                    return (
+                      <div className="mt-0.5">
+                        <div data-testid={`remplissage-${d.id}`} className={`text-[11px] ${fill.over ? 'text-ax-warning font-semibold' : 'text-ax-text-secondary'}`}>{fill.text}</div>
+                        {fill.note && <div className="text-[11px] text-ax-warning">{fill.note}</div>}
+                      </div>
+                    );
+                  })()}
                 </div>
               </div>
               <div className="flex items-center gap-3 flex-wrap">
-                <ConfigField label="Max" value={d.max_members} disabled={busy === `div-${d.id}`}
+                <PlacesField value={d.max_members} disabled={busy === `div-${d.id}`} divisionId={d.id}
                   onCommit={(n) => updateDivision(d.id, { max_members: n })} />
                 <ConfigField label="Promus ↑" value={d.promote_count} disabled={isFirst || busy === `div-${d.id}`}
                   onCommit={(n) => updateDivision(d.id, { promote_count: n })} />
@@ -332,6 +407,20 @@ export default function DivisionsManager({
                             <span className="text-[10px] text-gray-500 uppercase">{p?.level}</span>
                             {willPromote && <span className="text-[9px] font-black text-emerald-400 bg-emerald-500/15 px-1.5 py-0.5 rounded inline-flex items-center gap-0.5"><ArrowUp size={9} />PROMU</span>}
                             {willRelegate && <span className="text-[9px] font-black text-red-400 bg-red-500/15 px-1.5 py-0.5 rounded inline-flex items-center gap-0.5"><ArrowDown size={9} />RELÉG.</span>}
+                            {row.placement === 'manual' && (
+                              <span data-testid="placement-manuel" title={PLACEMENT_MANUAL_HINT}
+                                className="text-[10px] font-semibold text-ax-text bg-ax-surface border border-ax-border px-1.5 py-0.5 rounded-ax-control inline-flex items-center gap-1">
+                                <Hand size={10} aria-hidden="true" />{PLACEMENT_MANUAL_LABEL}
+                              </span>
+                            )}
+                            {row.placement === 'manual' && (
+                              <button type="button" onClick={() => setAuto(row.id)} disabled={busy === `auto-${row.id}`}
+                                data-testid="rendre-automatique"
+                                aria-label={`Rendre ${p?.username ?? 'cet athlète'} à la répartition automatique`}
+                                className="text-[11px] font-semibold text-ax-text-secondary underline underline-offset-2 hover:text-ax-text disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ax-focus rounded">
+                                Rendre à l’automatique
+                              </button>
+                            )}
                           </div>
                         </td>
                         <td className="px-5 py-3 text-xs text-yellow-500 font-bold">{p?.elo ?? 0}</td>
@@ -466,6 +555,30 @@ export default function DivisionsManager({
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+/**
+ * « Places » d'une division (`max_members`, obligatoire en base) : un entier
+ * ≥ 1 ; une saisie vide ou invalide n'est pas enregistrée et le dit.
+ */
+function PlacesField({ value, onCommit, disabled, divisionId }: {
+  value: number; onCommit: (n: number) => void; disabled?: boolean; divisionId: string;
+}) {
+  const [raw, setRaw] = useState(String(value));
+  const parsed = parsePlaces(raw);
+  const errId = `places-erreur-${divisionId}`;
+  return (
+    <div className="flex items-center gap-1.5">
+      <label htmlFor={`places-${divisionId}`} className="text-[10px] text-ax-text-secondary uppercase font-bold">Places</label>
+      <input id={`places-${divisionId}`} type="number" min={1} step={1} inputMode="numeric" value={raw} disabled={disabled}
+        onChange={e => setRaw(e.target.value)}
+        onBlur={() => { if (parsed != null && parsed !== value) onCommit(parsed); }}
+        aria-invalid={parsed == null} aria-describedby={parsed == null ? errId : undefined}
+        data-testid={`places-${divisionId}`}
+        className="w-14 bg-white/5 border border-white/10 rounded-lg px-2 py-1 text-xs text-white disabled:opacity-50" />
+      {parsed == null && <span id={errId} role="alert" className="text-[11px] text-ax-danger">Au moins 1 place</span>}
     </div>
   );
 }
