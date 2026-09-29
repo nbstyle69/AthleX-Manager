@@ -2,11 +2,11 @@
 
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Loader2, Play, Crown, ArrowRight, Trophy, AlertTriangle, RotateCcw, Pencil, Trash2, X, Save, Calendar, Zap, Youtube, FileText, Clock, CheckCircle2, MessageSquare, Dumbbell } from 'lucide-react';
+import { Loader2, Play, Crown, ArrowRight, Trophy, AlertTriangle, RotateCcw, Pencil, Trash2, X, Save, Calendar, Zap, Youtube, FileText, Clock, CheckCircle2, MessageSquare, Dumbbell, Flag, Medal } from 'lucide-react';
 import {
   generateRound1Action, advanceRoundAction, setMatchWinnerAction, decideRoundAction,
   setMatchWodAction, resetMatchAction, regenerateBracketAction, saveMatchEditAction, assignStageWodAction,
-  setLoserRoundWodAction,
+  setLoserRoundWodAction, forfeitMatchAction,
 } from '@/app/(dashboard)/tournaments/[id]/bracket/actions';
 import { formatAmrapScore, isRepsScoredType, parseMovementRow } from '@/lib/movements';
 import { useConfirmDialog } from '@/components/ui/confirm-dialog';
@@ -14,8 +14,9 @@ import { countOf } from '@/lib/plural';
 import { REGENERATE_BODY } from '@/lib/tournaments/refusals';
 import { ERROR_TITLE } from '@/lib/confirmDialog';
 import { MOTIF_TEXT, applyDecidedRows, decidedMessage, manualMotifs, type DecideMotif } from '@/lib/tournaments/bracketDecision';
+import { forfeitBody, isDecided } from '@/lib/tournaments/forfeit';
 import { eloDeltaDisplay, matchEloDelta, type MatchEloDeltas } from '@/lib/tournaments/matchElo';
-import { canAdvance, columnWod, decideRoundWodId, grandFinals, lastRound, loserColumnWodId, loserRoundTitle, matchPlace, matchWodId, stageWod } from '@/lib/tournaments/bracketRounds';
+import { THIRD_PLACE_TITLE, canAdvance, columnWod, decideRoundWodId, grandFinals, lastRound, loserColumnWodId, loserRoundTitle, matchPlace, matchWodId, stageWod } from '@/lib/tournaments/bracketRounds';
 
 /** A participant's submitted score for a match's WOD, resolved for display. */
 interface Submission { label: string; video: string | null; validated: boolean; }
@@ -45,13 +46,13 @@ interface Match {
   tournament_id: string;
   round: number;
   match_number: number;
-  side: 'winner' | 'loser' | 'grand_final';
+  side: 'winner' | 'loser' | 'grand_final' | 'third_place';
   participant1_id: string | null;
   participant2_id: string | null;
   winner_id: string | null;
   loser_id: string | null;
   wod_id: string | null;
-  status: 'pending' | 'active' | 'completed' | 'bye';
+  status: 'pending' | 'active' | 'completed' | 'bye' | 'forfeit';
   scheduled_at: string | null;
   completed_at: string | null;
   notes: string | null;
@@ -135,14 +136,16 @@ export default function BracketManager({
     const winnerByRound: Record<number, Match[]> = {};
     const loserByRound: Record<number, Match[]> = {};
     let grandFinal: Match | null = null;
+    let thirdPlace: Match | null = null;
     matches.forEach(m => {
       if (m.side === 'grand_final') grandFinal = m;
+      else if (m.side === 'third_place') thirdPlace = m;
       else if (m.side === 'winner') (winnerByRound[m.round] ??= []).push(m);
       else if (m.side === 'loser') (loserByRound[m.round] ??= []).push(m);
     });
     Object.values(winnerByRound).forEach(arr => arr.sort((a, b) => a.match_number - b.match_number));
     Object.values(loserByRound).forEach(arr => arr.sort((a, b) => a.match_number - b.match_number));
-    return { winnerByRound, loserByRound, grandFinal };
+    return { winnerByRound, loserByRound, grandFinal, thirdPlace: thirdPlace as Match | null };
   }, [matches]);
 
   const winnerRounds = Object.keys(grouped.winnerByRound).map(Number).sort((a, b) => a - b);
@@ -327,12 +330,47 @@ export default function BracketManager({
     setMatches(arr => arr.map(m => m.id === matchId ? { ...m, wod_id: wodId || null } : m));
   }
 
-  // Annule le vainqueur d'un match (le repasse en "à jouer").
-  function askResetMatch(match: Match) {
+  // Forfait (#355) : l'absent choisi perd, l'adversaire passe ; aucun ELO.
+  function askForfeit(match: Match) {
+    const p1 = match.participant1_id, p2 = match.participant2_id;
+    if (!p1 || !p2) return;
     ask({
-      title: 'Effacer le résultat de ce match ?',
-      element: `Round ${match.round}, match n° ${match.match_number} : ${pName(match.participant1_id)} contre ${pName(match.participant2_id)} · vainqueur actuel : ${pName(match.winner_id)}`,
-      body: 'Le match redevient « à jouer » et l’ELO gagné ou perdu sur ce match est rendu aux deux athlètes. Les tours suivants déjà générés ne changent pas : le vainqueur actuel y reste placé.',
+      title: 'Déclarer un forfait ?',
+      element: `${match.side === 'third_place' ? `${THIRD_PLACE_TITLE} · ` : `Round ${match.round}, `}match n° ${match.match_number} : ${pName(p1)} contre ${pName(p2)}${isDecided(match.status) ? ` · vainqueur actuel : ${pName(match.winner_id)}` : ''}`,
+      body: forfeitBody(isDecided(match.status)),
+      choices: [p1, p2].map(pid => ({
+        value: pid,
+        label: `${pName(pid)} est absent`,
+        description: `${pName(pid === p1 ? p2 : p1)} passe au tour suivant.`,
+        confirmLabel: `Forfait de ${pName(pid)}`,
+      })),
+      confirmLabel: 'Déclarer le forfait',
+      danger: true,
+      run: (_v, absent) => forfeit(match, absent ?? ''),
+    });
+  }
+
+  async function forfeit(match: Match, absentId: string) {
+    setBusy(match.id); setError(null);
+    const res = await forfeitMatchAction(tournamentId, match.id, absentId);
+    setBusy(null);
+    if (!res.ok) { void inform({ kind: 'error', title: ERROR_TITLE, body: res.error }); return; }
+    const winnerId = absentId === match.participant1_id ? match.participant2_id : match.participant1_id;
+    setMatches(arr => arr.map(m => (m.id === match.id
+      ? { ...m, status: 'forfeit', winner_id: winnerId, loser_id: absentId, completed_at: new Date().toISOString() }
+      : m)));
+    router.refresh(); // ELO éventuellement retiré par la base
+  }
+
+  // Annule le résultat d'un match, victoire ou forfait (le repasse en "à jouer").
+  function askResetMatch(match: Match) {
+    const wasForfeit = match.status === 'forfeit';
+    ask({
+      title: wasForfeit ? 'Annuler ce forfait ?' : 'Effacer le résultat de ce match ?',
+      element: `Round ${match.round}, match n° ${match.match_number} : ${pName(match.participant1_id)} contre ${pName(match.participant2_id)} · ${wasForfeit ? `forfait de ${pName(match.loser_id)}` : `vainqueur actuel : ${pName(match.winner_id)}`}`,
+      body: wasForfeit
+        ? 'Le match redevient « à jouer ». Un forfait n’avait donné aucun ELO : rien n’est rendu. Les tours suivants déjà générés ne changent pas : l’adversaire y reste placé.'
+        : 'Le match redevient « à jouer » et l’ELO gagné ou perdu sur ce match est rendu aux deux athlètes. Les tours suivants déjà générés ne changent pas : le vainqueur actuel y reste placé.',
       confirmLabel: 'Effacer le résultat',
       danger: true,
       run: () => resetMatch(match),
@@ -442,7 +480,7 @@ export default function BracketManager({
                 // Double élimination : le dernier tour, tous tableaux confondus (#352).
                 const lastR = lastRound(matches, format);
                 if (lastR == null) return null;
-                const lastMatches = matches.filter(m => m.round === lastR && (format === 'swiss' || m.side === 'winner'));
+                const lastMatches = matches.filter(m => m.round === lastR && (format === 'swiss' || m.side === 'winner' || m.side === 'third_place'));
                 const decidable = lastMatches.some(
                   m => m.status !== 'bye' && m.winner_id == null && m.participant1_id && m.participant2_id,
                 );
@@ -510,7 +548,23 @@ export default function BracketManager({
               submissionFor={submissionFor}
               onOpenSheet={openSheet}
               eloDeltaFor={eloDeltaFor}
+              onForfeit={askForfeit}
             />
+          </div>
+        </div>
+      )}
+
+      {/* Petite finale (élimination simple, #356) : créée par la base avec la finale. */}
+      {grouped.thirdPlace && (
+        <div className="bg-[#111111] border border-white/8 rounded-2xl p-6 space-y-3" data-testid="petite-finale">
+          <h2 className="text-sm font-bold text-ax-text uppercase tracking-wider flex items-center gap-2">
+            <Medal size={14} aria-hidden="true" /> {THIRD_PLACE_TITLE}
+          </h2>
+          <p className="text-[11px] text-ax-text-secondary">Entre les perdants des demi-finales. Elle se décide comme un match du dernier tour, et doit être jouée avant la clôture.</p>
+          <div className="w-64 max-w-full">
+            <MatchCard match={grouped.thirdPlace} onSelectWinner={setMatchWinner} busyId={busy} pName={pName}
+              onReset={askResetMatch} onEdit={setEditing} onForfeit={askForfeit}
+              submissionFor={submissionFor} onOpenSheet={openSheet} eloDeltaFor={eloDeltaFor} />
           </div>
         </div>
       )}
@@ -538,6 +592,8 @@ export default function BracketManager({
                   submissionFor={submissionFor}
                   onOpenSheet={openSheet}
                   eloDeltaFor={eloDeltaFor}
+                  onForfeit={askForfeit}
+                  onReset={askResetMatch}
                 />
               ))}
             </div>
@@ -562,6 +618,8 @@ export default function BracketManager({
               onSelectWinner={setMatchWinner}
               busyId={busy}
               eloDeltaFor={eloDeltaFor}
+              onForfeit={askForfeit}
+              onReset={askResetMatch}
             />
           ))}
         </div>
@@ -587,7 +645,7 @@ export default function BracketManager({
 /* ─────────────────────────────────────────────────────────── */
 
 function RoundColumn({
-  title, wodName, wodPicker, matches, onSelectWinner, busyId, pName, submissionFor, onOpenSheet, eloDeltaFor,
+  title, wodName, wodPicker, matches, onSelectWinner, busyId, pName, submissionFor, onOpenSheet, eloDeltaFor, onForfeit, onReset,
 }: {
   title: string;
   wodName?: string;
@@ -600,6 +658,8 @@ function RoundColumn({
   submissionFor: (m: Match, pid: string | null) => Submission | null;
   onOpenSheet: (m: Match, pid: string | null) => void;
   eloDeltaFor?: (m: Match, pid: string | null) => number | null;
+  onForfeit?: (m: Match) => void;
+  onReset?: (m: Match) => void;
 }) {
   return (
     <div className="w-64 shrink-0 space-y-3">
@@ -628,14 +688,14 @@ function RoundColumn({
         )}
       </div>
       {matches.map(m => (
-        <MatchCard key={m.id} match={m} onSelectWinner={onSelectWinner} busyId={busyId} pName={pName} submissionFor={submissionFor} onOpenSheet={onOpenSheet} eloDeltaFor={eloDeltaFor} />
+        <MatchCard key={m.id} match={m} onSelectWinner={onSelectWinner} busyId={busyId} pName={pName} submissionFor={submissionFor} onOpenSheet={onOpenSheet} eloDeltaFor={eloDeltaFor} onForfeit={onForfeit} onReset={onReset} />
       ))}
     </div>
   );
 }
 
 function MatchCard({
-  match, onSelectWinner, busyId, pName, onReset, onEdit, submissionFor, onOpenSheet, eloDeltaFor,
+  match, onSelectWinner, busyId, pName, onReset, onEdit, submissionFor, onOpenSheet, eloDeltaFor, onForfeit,
 }: {
   match: Match;
   onSelectWinner: (m: Match, winnerId: string) => void;
@@ -646,11 +706,16 @@ function MatchCard({
   submissionFor?: (m: Match, pid: string | null) => Submission | null;
   onOpenSheet?: (m: Match, pid: string | null) => void;
   eloDeltaFor?: (m: Match, pid: string | null) => number | null;
+  onForfeit?: (m: Match) => void;
 }) {
   const isBye = match.status === 'bye';
-  const completed = match.status === 'completed';
+  const isForfeit = match.status === 'forfeit';
+  // Décidé : victoire ou forfait. Pour corriger, on annule d'abord le résultat.
+  const completed = isDecided(match.status);
   const busy = busyId === match.id;
-  const canPickWinner = !completed && !isBye && !!match.participant1_id && !!match.participant2_id;
+  const twoPlayers = !!match.participant1_id && !!match.participant2_id;
+  const canPickWinner = !completed && !isBye && twoPlayers;
+  const canForfeit = !isBye && !isForfeit && twoPlayers;
 
   function row(pid: string | null, label: string) {
     if (!pid) return <div className="text-xs text-gray-600 italic px-3 py-2">{label}</div>;
@@ -720,11 +785,21 @@ function MatchCard({
         </span>
         <span className="flex items-center gap-1.5">
           {isBye && <span className="text-ax-warning font-bold">Exempté</span>}
-          {completed && !isBye && <span className="text-emerald-400 font-bold">✓</span>}
-          {/* Actions (hover) */}
-          <span className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+          {isForfeit && <span data-testid="badge-forfait" className="text-ax-warning font-bold">Forfait</span>}
+          {completed && !isBye && !isForfeit && <span className="text-emerald-400 font-bold">✓</span>}
+          {/* Actions (survol, ou focus clavier) */}
+          <span className="flex items-center gap-1 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity">
+            {onForfeit && canForfeit && (
+              <button type="button" title="Déclarer un forfait" aria-label={`Déclarer un forfait, match n° ${match.match_number}`}
+                disabled={busy}
+                onClick={() => onForfeit(match)}
+                data-testid="bouton-forfait"
+                className="text-gray-400 hover:text-ax-warning disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ax-focus rounded">
+                <Flag size={11} />
+              </button>
+            )}
             {onEdit && !isBye && (
-              <button type="button" title="Éditer (joueurs / date / notes)"
+              <button type="button" title="Éditer (joueurs / date / notes)" aria-label={`Éditer le match n° ${match.match_number}`}
                 disabled={busy}
                 onClick={() => onEdit(match)}
                 className="text-gray-400 hover:text-white disabled:opacity-40">
@@ -732,7 +807,8 @@ function MatchCard({
               </button>
             )}
             {onReset && completed && !isBye && (
-              <button type="button" title="Annuler le résultat"
+              <button type="button" title={isForfeit ? 'Annuler le forfait' : 'Annuler le résultat'}
+                aria-label={`${isForfeit ? 'Annuler le forfait' : 'Annuler le résultat'}, match n° ${match.match_number}`}
                 disabled={busy}
                 onClick={() => onReset(match)}
                 className="text-gray-400 hover:text-red-300 disabled:opacity-40">
@@ -752,7 +828,7 @@ function MatchCard({
 }
 
 function GrandFinalSection({
-  title, grandFinal, wodOptions, pName, onSetWodForFinal, onSelectWinner, busyId, eloDeltaFor,
+  title, grandFinal, wodOptions, pName, onSetWodForFinal, onSelectWinner, busyId, eloDeltaFor, onForfeit, onReset,
 }: {
   title: string;
   grandFinal: Match;
@@ -762,17 +838,34 @@ function GrandFinalSection({
   onSelectWinner: (m: Match, winnerId: string) => void;
   busyId: string | null;
   eloDeltaFor?: (m: Match, pid: string | null) => number | null;
+  onForfeit?: (m: Match) => void;
+  onReset?: (m: Match) => void;
 }) {
   // La base place l'invaincu en premier ; au match décisif aussi, c'est lui qui choisit le WOD.
   const players = [grandFinal.participant1_id, grandFinal.participant2_id].filter((p): p is string => !!p);
-  const done = grandFinal.status === 'completed';
+  const done = isDecided(grandFinal.status);
+  const isForfeit = grandFinal.status === 'forfeit';
   return (
     <div className="space-y-3" data-testid="grande-finale">
       <h2 className="text-sm font-bold text-ax-warning uppercase tracking-wider flex items-center gap-2">
         <Trophy size={14} /> {title}
       </h2>
       <div className="bg-white/[0.02] border border-yellow-500/20 rounded-xl p-3 space-y-2">
-        {done && <div className="text-[10px] text-ax-warning font-bold uppercase text-right">✓ Terminée</div>}
+        <div className="flex items-center justify-end gap-3 text-[11px]">
+          {done && <span className="text-ax-warning font-bold uppercase">{isForfeit ? 'Forfait' : '✓ Terminée'}</span>}
+          {onForfeit && !isForfeit && players.length === 2 && (
+            <button type="button" onClick={() => onForfeit(grandFinal)} disabled={busyId === grandFinal.id}
+              className="inline-flex items-center gap-1 font-semibold text-ax-text-secondary hover:text-ax-warning disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ax-focus rounded">
+              <Flag size={11} aria-hidden="true" /> Forfait
+            </button>
+          )}
+          {onReset && done && (
+            <button type="button" onClick={() => onReset(grandFinal)} disabled={busyId === grandFinal.id}
+              className="inline-flex items-center gap-1 font-semibold text-ax-text-secondary hover:text-ax-danger disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ax-focus rounded">
+              <RotateCcw size={11} aria-hidden="true" /> {isForfeit ? 'Annuler le forfait' : 'Annuler le résultat'}
+            </button>
+          )}
+        </div>
 
         <div className="text-xs text-gray-400">
           WOD choisi par <span className="font-bold text-yellow-300">{pName(grandFinal.participant1_id)}</span> :
@@ -826,7 +919,7 @@ function EloDelta({ delta }: { delta: number }) {
 /* ─── Bracket visuel (arbre connecté) ─────────────────────────── */
 
 function VisualBracket({
-  rounds, matchesByRound, wodForRound, onSelectWinner, onReset, onEdit, busyId, pName, submissionFor, onOpenSheet, eloDeltaFor,
+  rounds, matchesByRound, wodForRound, onSelectWinner, onReset, onEdit, busyId, pName, submissionFor, onOpenSheet, eloDeltaFor, onForfeit,
 }: {
   rounds: number[];
   matchesByRound: Record<number, Match[]>;
@@ -839,6 +932,7 @@ function VisualBracket({
   submissionFor: (m: Match, pid: string | null) => Submission | null;
   onOpenSheet: (m: Match, pid: string | null) => void;
   eloDeltaFor?: (m: Match, pid: string | null) => number | null;
+  onForfeit?: (m: Match) => void;
 }) {
   const CARD_H = 132;
   const COL_W = 240;
@@ -879,7 +973,7 @@ function VisualBracket({
                 {ms.map((m, k) => (
                   <div key={m.id} style={{ position: 'absolute', top: centers[k] - CARD_H / 2, width: COL_W }}>
                     <MatchCard match={m} onSelectWinner={onSelectWinner} busyId={busyId} pName={pName}
-                      onReset={onReset} onEdit={onEdit} submissionFor={submissionFor} onOpenSheet={onOpenSheet} eloDeltaFor={eloDeltaFor} />
+                      onReset={onReset} onEdit={onEdit} submissionFor={submissionFor} onOpenSheet={onOpenSheet} eloDeltaFor={eloDeltaFor} onForfeit={onForfeit} />
                   </div>
                 ))}
               </div>

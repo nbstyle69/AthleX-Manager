@@ -11,6 +11,7 @@ import { ARCHIVE_INSTEAD, deleteTournamentAndLeave } from '@/lib/tournaments/del
 import { archiveRequest, setTournamentArchived } from '@/lib/tournaments/archive';
 import { useConfirmDialog } from '@/components/ui/confirm-dialog';
 import { ERROR_TITLE } from '@/lib/confirmDialog';
+import { thirdPlaceLocked } from '@/lib/tournaments/bracketRounds';
 
 export default function EditTournamentPage() {
   const router = useRouter();
@@ -23,6 +24,7 @@ export default function EditTournamentPage() {
   const [deleting,   setDeleting]   = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [error,      setError]      = useState<string | null>(null);
+  const [lockThirdPlace, setLockThirdPlace] = useState(false);
   // Archivage (#371) : proposé quand la base refuse la suppression d'un tournoi qui a des résultats.
   const { dialog, ask, inform } = useConfirmDialog();
 
@@ -44,6 +46,11 @@ export default function EditTournamentPage() {
         .single();
 
       if (!t) { router.replace('/tournaments'); return; }
+      if (t.format === 'bracket') {
+        // Finale déjà créée (demi-finales avancées) : l'option « Petite finale » est figée.
+        const { data: ms } = await supabase.from('tournament_bracket_matches').select('round, side').eq('tournament_id', t.id);
+        setLockThirdPlace(thirdPlaceLocked(ms ?? []));
+      }
       setTournament(t);
       setBoxId(resolvedBoxId);
       setLoading(false);
@@ -132,7 +139,7 @@ export default function EditTournamentPage() {
       )}
 
       {/* Form */}
-      {boxId && <TournamentForm boxId={boxId} initial={tournament} />}
+      {boxId && <TournamentForm boxId={boxId} initial={tournament} thirdPlaceLocked={lockThirdPlace} />}
     </div>
   );
 }

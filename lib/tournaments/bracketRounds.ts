@@ -42,6 +42,24 @@ export function grandFinals<M extends RoundMatch>(matches: M[]): { match: M; tit
     .map((match, i) => ({ match, title: i === 0 ? 'Grande finale' : 'Grande finale — match décisif' }));
 }
 
+/** Petite finale (athlex-app #356) : créée par la base avec la finale, en élimination simple. */
+export const THIRD_PLACE_TITLE = 'Petite finale (3e place)';
+
+/**
+ * Option « Petite finale » verrouillée : la base la lit en créant la finale,
+ * à l'avancée des demi-finales. Dès que la finale (dernier tour du tableau
+ * des gagnants à un seul match, après le premier tour) ou la petite finale
+ * existe, changer l'option n'aurait plus d'effet.
+ */
+export function thirdPlaceLocked(matches: { round: number; side: string | null }[]): boolean {
+  if (matches.some(m => m.side === 'third_place')) return true;
+  const perRound: Record<number, number> = {};
+  for (const m of matches) if ((m.side ?? 'winner') === 'winner') perRound[m.round] = (perRound[m.round] ?? 0) + 1;
+  return Object.entries(perRound).some(([r, n]) => Number(r) > 1 && n === 1);
+}
+
+export const THIRD_PLACE_LOCKED_HINT = 'Les demi-finales sont avancées : la finale est créée, cette option ne peut plus changer.';
+
 /** Colonne du tableau des perdants, numérotée depuis 1 (son premier tour est le tour 2 de la base). */
 export function loserRoundTitle(index: number): string {
   return `Tour ${index + 1} des perdants`;
@@ -78,6 +96,8 @@ export function decideRoundWodId(format: string, stageWodId: string | null): str
  * sa colonne pour un match des perdants ou une grande finale, rien sinon.
  */
 export function matchPlace<M extends RoundMatch & { id: string }>(match: M, matches: M[], format: string): string | null {
+  // Petite finale : même tour et même numéro que la finale, à distinguer.
+  if (match.side === 'third_place') return THIRD_PLACE_TITLE;
   if (format !== 'swiss' || match.side === 'winner') return null;
   if (match.side === 'grand_final') return grandFinals(matches).find(g => g.match.id === match.id)?.title ?? null;
   if (match.side === 'loser') {

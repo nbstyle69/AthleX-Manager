@@ -96,7 +96,7 @@ describe('affichage', () => {
     const bm = read('components/tournaments/BracketManager.tsx');
     // « Décider » et « Tour suivant » : le même dernier tour, tous tableaux confondus en double élimination.
     expect(bm.match(/const lastR = lastRound\(matches, format\);/g)).toHaveLength(2);
-    expect(bm).toContain("const lastMatches = matches.filter(m => m.round === lastR && (format === 'swiss' || m.side === 'winner'));");
+    expect(bm).toContain("const lastMatches = matches.filter(m => m.round === lastR && (format === 'swiss' || m.side === 'winner' || m.side === 'third_place'));");
     expect(bm).toContain('if (lastR == null || !canAdvance(matches, format)) return null;');
     expect(bm).toContain('<button onClick={() => advanceRound(lastR)}');
     expect(bm).toContain('<RoundColumn key={`l-${r}`} title={loserRoundTitle(i)}');
