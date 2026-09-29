@@ -14,6 +14,7 @@ import { countOf } from '@/lib/plural';
 import { REGENERATE_BODY } from '@/lib/tournaments/refusals';
 import { ERROR_TITLE } from '@/lib/confirmDialog';
 import { MOTIF_TEXT, applyDecidedRows, decidedMessage, manualMotifs, type DecideMotif } from '@/lib/tournaments/bracketDecision';
+import { eloDeltaDisplay, matchEloDelta, type MatchEloDeltas } from '@/lib/tournaments/matchElo';
 import { canAdvance, columnWod, decideRoundWodId, grandFinals, lastRound, loserColumnWodId, loserRoundTitle, matchPlace, matchWodId, stageWod } from '@/lib/tournaments/bracketRounds';
 
 /** A participant's submitted score for a match's WOD, resolved for display. */
@@ -96,11 +97,13 @@ interface Props {
     value: string; tiebreak?: string | null; video: string | null;
     notes?: string | null; status: string; submittedAt?: string | null;
   }>>;
+  /** Écart d'ELO appliqué par la base, par match puis athlète (`tournament_match_elo_history`). */
+  eloDeltas?: MatchEloDeltas;
 }
 
 export default function BracketManager({
   tournamentId, format, requireVideoProof, finalWodPool,
-  initialMatches, profilesById, participantsCount, wods, scoresByWod = {},
+  initialMatches, profilesById, participantsCount, wods, scoresByWod = {}, eloDeltas = {},
 }: Props) {
   const router = useRouter();
   const { dialog, ask, inform } = useConfirmDialog();
@@ -221,6 +224,11 @@ export default function BracketManager({
     };
   }
 
+  // Écart d'ELO d'un athlète sur un match terminé, tel que la base l'a appliqué.
+  function eloDeltaFor(match: Match, pid: string | null): number | null {
+    return matchEloDelta(eloDeltas, match, pid);
+  }
+
   function openSheet(match: Match, pid: string | null) {
     const s = buildSheet(match, pid);
     if (s) setSheet(s);
@@ -255,6 +263,7 @@ export default function BracketManager({
     if (!res.ok) { void inform({ kind: 'error', title: ERROR_TITLE, body: res.error }); return; }
     setMatches(arr => applyDecidedRows(arr, res.rows, new Date().toISOString()));
     setDecision({ message: decidedMessage(res.rows), motifs: manualMotifs(res.rows) });
+    router.refresh(); // écarts d'ELO appliqués par la base
   }
 
   function askGenerateRound1() {
@@ -284,6 +293,7 @@ export default function BracketManager({
     setMatches(arr => arr.map(m => m.id === match.id
       ? { ...m, winner_id: winnerId, loser_id: loserId, status: 'completed', completed_at: new Date().toISOString() }
       : m));
+    router.refresh(); // écart d'ELO appliqué par la base
   }
 
   async function advanceRound(round: number) {
@@ -337,6 +347,7 @@ export default function BracketManager({
     setMatches(arr => arr.map(m => m.id === match.id
       ? { ...m, winner_id: null, loser_id: null, status: 'active', completed_at: null }
       : m));
+    router.refresh();
   }
 
   // Régénère le round 1 (tirage aléatoire) par la base, qui vide le tableau et
@@ -498,6 +509,7 @@ export default function BracketManager({
               pName={pName}
               submissionFor={submissionFor}
               onOpenSheet={openSheet}
+              eloDeltaFor={eloDeltaFor}
             />
           </div>
         </div>
@@ -525,6 +537,7 @@ export default function BracketManager({
                   pName={pName}
                   submissionFor={submissionFor}
                   onOpenSheet={openSheet}
+                  eloDeltaFor={eloDeltaFor}
                 />
               ))}
             </div>
@@ -548,6 +561,7 @@ export default function BracketManager({
               onSetWodForFinal={setMatchWod}
               onSelectWinner={setMatchWinner}
               busyId={busy}
+              eloDeltaFor={eloDeltaFor}
             />
           ))}
         </div>
@@ -573,7 +587,7 @@ export default function BracketManager({
 /* ─────────────────────────────────────────────────────────── */
 
 function RoundColumn({
-  title, wodName, wodPicker, matches, onSelectWinner, busyId, pName, submissionFor, onOpenSheet,
+  title, wodName, wodPicker, matches, onSelectWinner, busyId, pName, submissionFor, onOpenSheet, eloDeltaFor,
 }: {
   title: string;
   wodName?: string;
@@ -585,6 +599,7 @@ function RoundColumn({
   pName: (id: string | null) => string;
   submissionFor: (m: Match, pid: string | null) => Submission | null;
   onOpenSheet: (m: Match, pid: string | null) => void;
+  eloDeltaFor?: (m: Match, pid: string | null) => number | null;
 }) {
   return (
     <div className="w-64 shrink-0 space-y-3">
@@ -613,14 +628,14 @@ function RoundColumn({
         )}
       </div>
       {matches.map(m => (
-        <MatchCard key={m.id} match={m} onSelectWinner={onSelectWinner} busyId={busyId} pName={pName} submissionFor={submissionFor} onOpenSheet={onOpenSheet} />
+        <MatchCard key={m.id} match={m} onSelectWinner={onSelectWinner} busyId={busyId} pName={pName} submissionFor={submissionFor} onOpenSheet={onOpenSheet} eloDeltaFor={eloDeltaFor} />
       ))}
     </div>
   );
 }
 
 function MatchCard({
-  match, onSelectWinner, busyId, pName, onReset, onEdit, submissionFor, onOpenSheet,
+  match, onSelectWinner, busyId, pName, onReset, onEdit, submissionFor, onOpenSheet, eloDeltaFor,
 }: {
   match: Match;
   onSelectWinner: (m: Match, winnerId: string) => void;
@@ -630,6 +645,7 @@ function MatchCard({
   onEdit?: (m: Match) => void;
   submissionFor?: (m: Match, pid: string | null) => Submission | null;
   onOpenSheet?: (m: Match, pid: string | null) => void;
+  eloDeltaFor?: (m: Match, pid: string | null) => number | null;
 }) {
   const isBye = match.status === 'bye';
   const completed = match.status === 'completed';
@@ -641,6 +657,7 @@ function MatchCard({
     const isWinner = match.winner_id === pid;
     const isLoser = match.loser_id === pid;
     const sub = submissionFor?.(match, pid) ?? null;
+    const elo = eloDeltaFor?.(match, pid) ?? null;
     return (
       <div className="space-y-0.5">
         <div className="flex items-stretch gap-1">
@@ -662,6 +679,7 @@ function MatchCard({
                   {sub.label}{!sub.validated && ' *'}
                 </span>
               )}
+              {elo != null && <EloDelta delta={elo} />}
               {isWinner && <Crown size={12} className="text-yellow-400" />}
             </span>
           </button>
@@ -734,7 +752,7 @@ function MatchCard({
 }
 
 function GrandFinalSection({
-  title, grandFinal, wodOptions, pName, onSetWodForFinal, onSelectWinner, busyId,
+  title, grandFinal, wodOptions, pName, onSetWodForFinal, onSelectWinner, busyId, eloDeltaFor,
 }: {
   title: string;
   grandFinal: Match;
@@ -743,6 +761,7 @@ function GrandFinalSection({
   onSetWodForFinal: (matchId: string, wodId: string) => void;
   onSelectWinner: (m: Match, winnerId: string) => void;
   busyId: string | null;
+  eloDeltaFor?: (m: Match, pid: string | null) => number | null;
 }) {
   // La base place l'invaincu en premier ; au match décisif aussi, c'est lui qui choisit le WOD.
   const players = [grandFinal.participant1_id, grandFinal.participant2_id].filter((p): p is string => !!p);
@@ -780,6 +799,7 @@ function GrandFinalSection({
                   : 'bg-white/[0.04] text-white hover:bg-white/[0.08] border border-white/5 disabled:opacity-50'}`}
             >
               {pName(pid)}
+              {(() => { const d = eloDeltaFor?.(grandFinal, pid); return d != null ? <> <EloDelta delta={d} /></> : null; })()}
             </button>
           ))}
         </div>
@@ -788,10 +808,25 @@ function GrandFinalSection({
   );
 }
 
+/**
+ * Écart d'ELO d'un athlète sur un match terminé : gain en succès, perte en
+ * danger. `inline-block` : la ligne barrée du perdant ne le barre pas.
+ */
+function EloDelta({ delta }: { delta: number }) {
+  const { text, tone } = eloDeltaDisplay(delta);
+  const color = tone === 'success' ? 'text-ax-success' : tone === 'danger' ? 'text-ax-danger' : 'text-ax-text-secondary';
+  return (
+    <span data-testid="elo-match" title="ELO gagné ou perdu sur ce match" aria-label={`ELO du match : ${text}`}
+      className={`inline-block no-underline text-[10px] font-bold tabular-nums ${color}`}>
+      {text}
+    </span>
+  );
+}
+
 /* ─── Bracket visuel (arbre connecté) ─────────────────────────── */
 
 function VisualBracket({
-  rounds, matchesByRound, wodForRound, onSelectWinner, onReset, onEdit, busyId, pName, submissionFor, onOpenSheet,
+  rounds, matchesByRound, wodForRound, onSelectWinner, onReset, onEdit, busyId, pName, submissionFor, onOpenSheet, eloDeltaFor,
 }: {
   rounds: number[];
   matchesByRound: Record<number, Match[]>;
@@ -803,6 +838,7 @@ function VisualBracket({
   pName: (id: string | null) => string;
   submissionFor: (m: Match, pid: string | null) => Submission | null;
   onOpenSheet: (m: Match, pid: string | null) => void;
+  eloDeltaFor?: (m: Match, pid: string | null) => number | null;
 }) {
   const CARD_H = 132;
   const COL_W = 240;
@@ -843,7 +879,7 @@ function VisualBracket({
                 {ms.map((m, k) => (
                   <div key={m.id} style={{ position: 'absolute', top: centers[k] - CARD_H / 2, width: COL_W }}>
                     <MatchCard match={m} onSelectWinner={onSelectWinner} busyId={busyId} pName={pName}
-                      onReset={onReset} onEdit={onEdit} submissionFor={submissionFor} onOpenSheet={onOpenSheet} />
+                      onReset={onReset} onEdit={onEdit} submissionFor={submissionFor} onOpenSheet={onOpenSheet} eloDeltaFor={eloDeltaFor} />
                   </div>
                 ))}
               </div>
