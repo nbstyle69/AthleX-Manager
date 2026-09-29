@@ -1,6 +1,7 @@
 'use server';
 
-import { createClient, getActiveBox } from '@/lib/supabase/server';
+import { authorizeTournament } from '@/lib/tournaments/authorizeTournament';
+import { forfeitPatch, forfeitRefusal } from '@/lib/tournaments/forfeit';
 import { tournamentRefusal } from '@/lib/tournaments/refusals';
 import type { DecideRow } from '@/lib/tournaments/bracketDecision';
 
@@ -8,43 +9,21 @@ type Result = { ok: true } | { ok: false; error: string };
 type AdvanceResult = { ok: true; created: number } | { ok: false; error: string };
 
 /**
- * The back-office authenticates only via the HttpOnly `sb-access-token` cookie,
- * which the browser Supabase client cannot read — so client-side writes run
- * anonymously and are silently dropped by RLS. All bracket mutations therefore
- * go through these server actions, which use the authenticated server client
- * (RLS + `is_tournament_manager` see `auth.uid()`), guarded by `is_box_admin`.
+ * Toutes les écritures du tableau passent par ces actions serveur, avec le
+ * client authentifié de l'appelant (RLS et `is_tournament_manager` voient
+ * `auth.uid()`), après la garde commune des tournois : tournoi de la BOX
+ * ACTIVE, puis `is_box_admin` (`lib/tournaments/authorizeTournament.ts`).
  */
-async function authorize(tournamentId: string) {
-  const supabase = await createClient();
-
-  // Le tournoi doit appartenir à la BOX ACTIVE, et pas seulement à une box
-  // que l'appelant administre : un gérant de plusieurs box écrirait sinon sur
-  // l'une pendant qu'il travaille dans l'autre, sans que l'écran le dise.
-  // C'est aussi le contrôle que font les pages (`getTournamentForActiveBox`) ;
-  // il est refait ici parce qu'une page n'est pas une garde.
-  const box = await getActiveBox(supabase);
-  if (!box) return { supabase, error: 'Aucune box active.' as const };
-
-  const { data: t } = await supabase
-    .from('tournaments').select('box_id').eq('id', tournamentId).eq('box_id', box.id).maybeSingle();
-  if (!t) return { supabase, error: 'Tournoi introuvable.' as const };
-
-  // `is_box_admin` reste : la box active dit SUR QUOI on travaille, le rôle
-  // dit si on a le droit d'y écrire. Les deux sont nécessaires.
-  const { data: allowed } = await supabase.rpc('is_box_admin', { p_box_id: t.box_id });
-  if (!allowed) return { supabase, error: 'Non autorisé : réservé à l’owner/coach de la box.' as const };
-  return { supabase, error: null };
-}
 
 export async function generateRound1Action(tournamentId: string): Promise<Result> {
-  const { supabase, error } = await authorize(tournamentId);
+  const { supabase, error } = await authorizeTournament(tournamentId);
   if (error) return { ok: false, error };
   const { error: err } = await supabase.rpc('generate_bracket_round_1', { p_tournament_id: tournamentId });
   return err ? { ok: false, error: tournamentRefusal(err.message, err.code) } : { ok: true };
 }
 
 export async function advanceRoundAction(tournamentId: string, completedRound: number): Promise<AdvanceResult> {
-  const { supabase, error } = await authorize(tournamentId);
+  const { supabase, error } = await authorizeTournament(tournamentId);
   if (error) return { ok: false, error };
   const { data, error: err } = await supabase.rpc('advance_bracket_round', {
     p_tournament_id: tournamentId, p_completed_round: completedRound,
@@ -56,13 +35,13 @@ export async function advanceRoundAction(tournamentId: string, completedRound: n
 export async function setMatchWinnerAction(
   tournamentId: string, matchId: string, winnerId: string, loserId: string | null,
 ): Promise<Result> {
-  const { supabase, error } = await authorize(tournamentId);
+  const { supabase, error } = await authorizeTournament(tournamentId);
   if (error) return { ok: false, error };
   const { error: err } = await supabase
     .from('tournament_bracket_matches')
     .update({ winner_id: winnerId, loser_id: loserId, status: 'completed', completed_at: new Date().toISOString() })
     .eq('id', matchId).eq('tournament_id', tournamentId);
-  return err ? { ok: false, error: err.message } : { ok: true };
+  return err ? { ok: false, error: tournamentRefusal(err.message, err.code) } : { ok: true };
 }
 
 /**
@@ -74,7 +53,7 @@ export async function setMatchWinnerAction(
 export async function decideRoundAction(
   tournamentId: string, round: number, wodId: string | null,
 ): Promise<{ ok: true; rows: DecideRow[] } | { ok: false; error: string }> {
-  const { supabase, error } = await authorize(tournamentId);
+  const { supabase, error } = await authorizeTournament(tournamentId);
   if (error) return { ok: false, error };
   const { data, error: err } = await supabase.rpc('decide_bracket_round', {
     p_tournament_id: tournamentId, p_round: round, p_wod_id: wodId,
@@ -86,13 +65,13 @@ export async function decideRoundAction(
 export async function setMatchWodAction(
   tournamentId: string, matchId: string, wodId: string | null,
 ): Promise<Result> {
-  const { supabase, error } = await authorize(tournamentId);
+  const { supabase, error } = await authorizeTournament(tournamentId);
   if (error) return { ok: false, error };
   const { error: err } = await supabase
     .from('tournament_bracket_matches')
     .update({ wod_id: wodId || null })
     .eq('id', matchId).eq('tournament_id', tournamentId);
-  return err ? { ok: false, error: err.message } : { ok: true };
+  return err ? { ok: false, error: tournamentRefusal(err.message, err.code) } : { ok: true };
 }
 
 /**
@@ -102,7 +81,7 @@ export async function setMatchWodAction(
  * de tour qui s'appliquerait aussi aux perdants.
  */
 export async function assignStageWodAction(tournamentId: string, round: number, wodId: string): Promise<Result> {
-  const { supabase, error } = await authorize(tournamentId);
+  const { supabase, error } = await authorizeTournament(tournamentId);
   if (error) return { ok: false, error };
   const { error: err } = await supabase
     .from('tournament_bracket_matches')
@@ -119,7 +98,7 @@ export async function assignStageWodAction(tournamentId: string, round: number, 
  * utilise ensuite le WOD propre de chaque match.
  */
 export async function setLoserRoundWodAction(tournamentId: string, round: number, wodId: string | null): Promise<Result> {
-  const { supabase, error } = await authorize(tournamentId);
+  const { supabase, error } = await authorizeTournament(tournamentId);
   if (error) return { ok: false, error };
   const { error: err } = await supabase
     .from('tournament_bracket_matches')
@@ -129,18 +108,43 @@ export async function setLoserRoundWodAction(tournamentId: string, round: number
   return err ? { ok: false, error: tournamentRefusal(err.message, err.code) } : { ok: true };
 }
 
+/**
+ * Forfait (athlex-app #355) : écrit directement sur le match, comme un
+ * vainqueur. Le match est relu en base : l'autre athlète gagne, l'absent perd.
+ * Possible sur un match déjà terminé (correction : son ELO est retiré par la
+ * base). Aucun ELO pour un forfait.
+ */
+export async function forfeitMatchAction(tournamentId: string, matchId: string, absentId: string): Promise<Result> {
+  const { supabase, error } = await authorizeTournament(tournamentId);
+  if (error) return { ok: false, error };
+  const { data: match } = await supabase
+    .from('tournament_bracket_matches').select('participant1_id, participant2_id, status')
+    .eq('id', matchId).eq('tournament_id', tournamentId).maybeSingle();
+  if (!match) return { ok: false, error: 'Match introuvable.' };
+  const patch = forfeitPatch(match, absentId);
+  if ('error' in patch) return { ok: false, error: patch.error };
+  const { data, error: err } = await supabase
+    .from('tournament_bracket_matches')
+    .update({ ...patch, completed_at: new Date().toISOString() })
+    .eq('id', matchId).eq('tournament_id', tournamentId)
+    .select('id');
+  if (err) return { ok: false, error: forfeitRefusal(err.message, err.code) ?? tournamentRefusal(err.message, err.code) };
+  if (!data || data.length === 0) return { ok: false, error: tournamentRefusal('Not authorized') };
+  return { ok: true };
+}
+
 export async function resetMatchAction(tournamentId: string, matchId: string): Promise<Result> {
-  const { supabase, error } = await authorize(tournamentId);
+  const { supabase, error } = await authorizeTournament(tournamentId);
   if (error) return { ok: false, error };
   const { error: err } = await supabase
     .from('tournament_bracket_matches')
     .update({ winner_id: null, loser_id: null, status: 'active', completed_at: null })
     .eq('id', matchId).eq('tournament_id', tournamentId);
-  return err ? { ok: false, error: err.message } : { ok: true };
+  return err ? { ok: false, error: tournamentRefusal(err.message, err.code) } : { ok: true };
 }
 
 export async function regenerateBracketAction(tournamentId: string): Promise<Result> {
-  const { supabase, error } = await authorize(tournamentId);
+  const { supabase, error } = await authorizeTournament(tournamentId);
   if (error) return { ok: false, error };
   // La base vide et retire le tableau elle-même, et refuse un tableau déjà
   // joué (athlex-app #371) : le Manager ne supprime plus aucun match.
@@ -156,11 +160,11 @@ export async function saveMatchEditAction(
   matchId: string,
   patch: { participant1_id: string | null; participant2_id: string | null; scheduled_at: string | null; notes: string | null },
 ): Promise<Result> {
-  const { supabase, error } = await authorize(tournamentId);
+  const { supabase, error } = await authorizeTournament(tournamentId);
   if (error) return { ok: false, error };
   const { error: err } = await supabase
     .from('tournament_bracket_matches')
     .update(patch)
     .eq('id', matchId).eq('tournament_id', tournamentId);
-  return err ? { ok: false, error: err.message } : { ok: true };
+  return err ? { ok: false, error: tournamentRefusal(err.message, err.code) } : { ok: true };
 }

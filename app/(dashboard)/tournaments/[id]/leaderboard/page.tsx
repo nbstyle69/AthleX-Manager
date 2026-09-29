@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { ArrowLeft, Trophy } from 'lucide-react';
 import LeaderboardClient from './LeaderboardClient';
 import { computeBracketStandings, type BracketMatchRow } from '@/lib/bracket';
-import { SCALE_NOTE, generalFromBase, requestedSeason, seasonOptions, wodRankingsFromBase, type StandingRow, type WodRankRow } from '@/lib/tournaments/standings';
+import { SCALE_NOTE, generalFromBase, generalFromBracket, requestedSeason, seasonOptions, wodRankingsFromBase, type BracketStandingRow, type StandingRow, type WodRankRow } from '@/lib/tournaments/standings';
 import { GENERIC_REFUSAL } from '@/lib/tournaments/refusals';
 import type { ParticipantRow, WodRanking, DivisionRanking } from './types';
 
@@ -47,7 +47,8 @@ export default async function LeaderboardPage({ params, searchParams }: { params
   // le Manager n'a plus de barème (athlex-app #359 à #365).
   const [{ data: standingsRaw, error: standingsError }, { data: wodRanksRaw, error: wodRanksError }] = await Promise.all([
     isBracket
-      ? Promise.resolve({ data: [] as StandingRow[], error: null })
+      // Tableau : rang de la base (même fonction que la clôture), petite finale comprise.
+      ? svc.rpc('tournament_bracket_standings', { p_tournament_id: tournamentId })
       : isLeague
         ? svc.rpc('tournament_ligue_standings', { p_tournament_id: tournamentId, p_season: season })
         : svc.rpc('tournament_classique_standings', { p_tournament_id: tournamentId }),
@@ -66,21 +67,18 @@ export default async function LeaderboardPage({ params, searchParams }: { params
     (profs ?? []).forEach((p: any) => { profileMap[p.id] = { username: p.username, level: p.level, elo: p.elo }; });
   }
 
-  const bracketStandings = isBracket
-    ? computeBracketStandings((bracketMatches ?? []) as BracketMatchRow[], format === 'swiss')
-    : [];
+  // Libellé du tour d'élimination (« Quart de finaliste »…), déduit des matchs :
+  // la base ne le donne pas. Le rang, lui, vient de la base.
+  const roundLabels: Record<string, string> = {};
+  if (isBracket) {
+    for (const r of computeBracketStandings((bracketMatches ?? []) as BracketMatchRow[], format === 'swiss')) {
+      roundLabels[r.athlete_id] = r.placement;
+    }
+  }
+  const thirdPlaceDecided = (bracketMatches ?? []).some((m: any) => m.side === 'third_place' && m.winner_id);
 
-  const general: ParticipantRow[] = bracketStandings.length > 0
-    ? bracketStandings.map(s => ({
-        rank:        s.rank,
-        athlete_id:  s.athlete_id,
-        total_score: 0,
-        username:    profileMap[s.athlete_id]?.username ?? null,
-        level:       profileMap[s.athlete_id]?.level    ?? null,
-        elo:         profileMap[s.athlete_id]?.elo       ?? null,
-        placement:   s.placement,
-        elo_change:  eloChangeById[s.athlete_id] ?? null,
-      }))
+  const general: ParticipantRow[] = isBracket
+    ? generalFromBracket((standingsRaw ?? []) as BracketStandingRow[], profileMap, eloChangeById, roundLabels, thirdPlaceDecided)
     : generalFromBase((standingsRaw ?? []) as StandingRow[], profileMap, eloChangeById);
 
   const wodRankings: WodRanking[] = wodRankingsFromBase(

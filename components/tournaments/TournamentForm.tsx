@@ -13,6 +13,7 @@ import { useConfirmDialog } from '@/components/ui/confirm-dialog';
 import { ERROR_TITLE, INPUT_TITLE } from '@/lib/confirmDialog';
 import { REGISTRATIONS_LABEL, START_DATE_HINT, registrationsHint } from '@/lib/tournaments/registrations';
 import { tournamentRefusal } from '@/lib/tournaments/refusals';
+import { THIRD_PLACE_LOCKED_HINT } from '@/lib/tournaments/bracketRounds';
 
 const LEVELS = ['scaled','inter','rx','rx+','gx','pro'];
 // Must stay aligned with tournaments_status_check (open | active | completed).
@@ -36,9 +37,11 @@ interface Props {
   boxId: string;
   initial?: any;
   allowedFormats?: string[];
+  /** Modification : demi-finales avancées, l'option « Petite finale » ne change plus. */
+  thirdPlaceLocked?: boolean;
 }
 
-export default function TournamentForm({ boxId, initial, allowedFormats = ['simple'] }: Props) {
+export default function TournamentForm({ boxId, initial, allowedFormats = ['simple'], thirdPlaceLocked = false }: Props) {
   const { dialog, inform } = useConfirmDialog();
   const router = useRouter();
   const fileRef = useRef<HTMLInputElement>(null);
@@ -137,6 +140,8 @@ export default function TournamentForm({ boxId, initial, allowedFormats = ['simp
       ...form,
       box_id:     boxId,
       status:     publish ? 'open' : form.status,
+      // La petite finale n'existe qu'en élimination simple.
+      third_place_match: form.format === 'bracket' && form.third_place_match,
       banner_url: bannerUrl,
       // Empty date fields must be sent as null: '' is rejected by Postgres and
       // takes the whole UPDATE down with it (status included).
@@ -330,6 +335,23 @@ export default function TournamentForm({ boxId, initial, allowedFormats = ['simp
           </label>
           <p id="aide-inscriptions" className="text-xs text-ax-text-secondary mt-1.5 ml-7">{registrationsHint(initial?.format ?? form.format)}</p>
         </div>
+        {/* Petite finale (athlex-app #356) : élimination simple seulement ; figée dès la finale créée. */}
+        {(initial?.format ?? form.format) === 'bracket' && (
+          <div>
+            <label className={`flex items-center gap-3 ${thirdPlaceLocked ? 'cursor-not-allowed' : 'cursor-pointer'}`}>
+              <input type="checkbox" checked={form.third_place_match} disabled={thirdPlaceLocked}
+                onChange={e => set('third_place_match', e.target.checked)}
+                aria-describedby="aide-petite-finale" data-testid="case-petite-finale"
+                className="w-4 h-4 accent-white disabled:opacity-50" />
+              <span className="text-sm text-ax-text">Petite finale (3e place)</span>
+            </label>
+            <p id="aide-petite-finale" className="text-xs text-ax-text-secondary mt-1.5 ml-7">
+              {thirdPlaceLocked
+                ? THIRD_PLACE_LOCKED_HINT
+                : 'Les deux perdants des demi-finales jouent pour la 3e place. Le match est créé avec la finale, et doit être joué avant la clôture.'}
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Divisions (league_div uniquement) */}
