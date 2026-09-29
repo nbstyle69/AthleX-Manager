@@ -77,3 +77,6 @@ export function tournamentRefusal(message: string | null | undefined, code?: str
  * nouveau, et refuse un tableau déjà joué. Plus aucun résultat ni ELO effacé.
  */
 export const REGENERATE_BODY = 'Les matchs du tableau seront effacés, puis un nouveau premier tour sera tiré au sort. Les scores envoyés sur les WOD sont conservés. Un tableau où un match est déjà joué ne peut pas être refait : pour corriger un résultat, remets le match à jouer ou choisis le vainqueur.';
+
+/** Écriture d'un score sans ligne modifiée : score supprimé, ou refusé par la RLS. */
+export const SCORE_NOT_UPDATED = 'Ce score n’a pas été modifié : il n’existe plus, ou tu n’as pas les droits pour le modifier.';

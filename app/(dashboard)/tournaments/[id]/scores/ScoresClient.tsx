@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { createClient } from '@/lib/supabase/client';
 import {
   CheckCircle, XCircle, ExternalLink, Loader2, Clock,
   Youtube, FileText, Pencil, Send, MessageSquare, RotateCcw,
@@ -13,7 +12,7 @@ import { useConfirmDialog } from '@/components/ui/confirm-dialog';
 import { INPUT_TITLE } from '@/lib/confirmDialog';
 import { countOf } from '@/lib/plural';
 import { scoreDivisionBody, scoreDivisionInfo, type DivisionOption } from '@/lib/tournaments/scoreDivision';
-import { setScoreDivisionAction } from './actions';
+import { setAdminMessageAction, setScoreDivisionAction, setScoreStatusAction, setScoreValueAction } from './actions';
 
 export interface ScoreRow {
   id: string;
@@ -55,7 +54,6 @@ interface Props {
 
 export default function ScoresClient({ tournamentId, initialScores, requireVideoProof = false, divisions, currentDivisionByAthlete = {} }: Props) {
   const { dialog, ask, inform } = useConfirmDialog();
-  const supabase = createClient();
   const router = useRouter();
   const [scores,      setScores]      = useState<ScoreRow[]>(initialScores);
   const [processing,  setProcessing]  = useState<string | null>(null);
@@ -65,6 +63,14 @@ export default function ScoresClient({ tournamentId, initialScores, requireVideo
   const [savingScore,   setSavingScore]   = useState<string | null>(null);
   const [savingMsg,     setSavingMsg]     = useState<string | null>(null);
   const [divisionError, setDivisionError] = useState<Record<string, string>>({});
+  // Échec d'une écriture, dit sous l'élément concerné : clé `${champ}-${scoreId}`.
+  const [writeError,    setWriteError]    = useState<Record<string, string>>({});
+
+  /** Retient ou efface l'échec ; vrai si l'écriture a réussi. */
+  function settle(key: string, res: { ok: true } | { ok: false; error: string }): boolean {
+    setWriteError(prev => ({ ...prev, [key]: res.ok ? '' : res.error }));
+    return res.ok;
+  }
 
   // Le classement est calculé par la base (athlex-app #361) : plus rien à
   // recalculer ni à écrire ici. Un score validé, rejeté ou corrigé change le
@@ -82,9 +88,8 @@ export default function ScoresClient({ tournamentId, initialScores, requireVideo
       }
     }
     setProcessing(scoreId);
-    const payload: any = { status: newStatus };
-    if (newStatus === 'validated') payload.validated_at = new Date().toISOString();
-    await supabase.from('tournament_scores').update(payload).eq('id', scoreId);
+    const res = await setScoreStatusAction(tournamentId, scoreId, newStatus);
+    if (!settle(`status-${scoreId}`, res)) { setProcessing(null); return; }
     setScores(prev => prev.map(s => s.id === scoreId ? { ...s, status: newStatus } : s));
     setProcessing(null);
     // Validé comme rejeté : le classement de la base change.
@@ -106,7 +111,8 @@ export default function ScoresClient({ tournamentId, initialScores, requireVideo
       newVal = String(seconds);
     }
     setSavingScore(scoreId);
-    await supabase.from('tournament_scores').update({ score_value: newVal }).eq('id', scoreId);
+    const res = await setScoreValueAction(tournamentId, scoreId, newVal);
+    if (!settle(`value-${scoreId}`, res)) { setSavingScore(null); return; }
     setScores(prev => prev.map(s => s.id === scoreId ? { ...s, score_value: newVal } : s));
     setEditingScore(prev => { const n = { ...prev }; delete n[scoreId]; return n; });
     setSavingScore(null);
@@ -116,7 +122,8 @@ export default function ScoresClient({ tournamentId, initialScores, requireVideo
   async function saveAdminMessage(scoreId: string) {
     const msg = editingMsg[scoreId] ?? '';
     setSavingMsg(scoreId);
-    await supabase.from('tournament_scores').update({ admin_message: msg || null }).eq('id', scoreId);
+    const res = await setAdminMessageAction(tournamentId, scoreId, msg || null);
+    if (!settle(`message-${scoreId}`, res)) { setSavingMsg(null); return; }
     setScores(prev => prev.map(s => s.id === scoreId ? { ...s, admin_message: msg || null } : s));
     setEditingMsg(prev => { const n = { ...prev }; delete n[scoreId]; return n; });
     setSavingMsg(null);
@@ -233,7 +240,7 @@ export default function ScoresClient({ tournamentId, initialScores, requireVideo
                           className="p-1.5 rounded-lg bg-white/20 text-white hover:bg-white/30 transition-colors disabled:opacity-50">
                           {savingScore === score.id ? <Loader2 size={12} className="animate-spin" /> : <CheckCircle size={12} />}
                         </button>
-                        <button onClick={() => setEditingScore(prev => { const n = { ...prev }; delete n[score.id]; return n; })}
+                        <button onClick={() => { setEditingScore(prev => { const n = { ...prev }; delete n[score.id]; return n; }); settle(`value-${score.id}`, { ok: true }); }}
                           className="p-1.5 rounded-lg bg-white/5 text-gray-400 hover:text-white transition-colors">
                           <XCircle size={12} />
                         </button>
@@ -252,6 +259,9 @@ export default function ScoresClient({ tournamentId, initialScores, requireVideo
                           <p className="text-xs text-gray-500 text-right mt-0.5">{amrapRecap(score)}</p>
                         )}
                       </div>
+                    )}
+                    {writeError[`value-${score.id}`] && (
+                      <p role="alert" className="mt-1 text-xs text-ax-danger">{writeError[`value-${score.id}`]}</p>
                     )}
                     <div className="flex items-center gap-1 justify-end mt-1">
                       <Clock size={10} className="text-gray-600" />
@@ -344,7 +354,7 @@ export default function ScoresClient({ tournamentId, initialScores, requireVideo
                         className="w-full text-xs bg-white/5 border border-white/15 rounded-xl px-3 py-2.5 text-white placeholder-gray-600 outline-none focus:border-blue-500/40 resize-none"
                       />
                       <div className="flex gap-2 justify-end">
-                        <button onClick={() => setEditingMsg(prev => { const n = { ...prev }; delete n[score.id]; return n; })}
+                        <button onClick={() => { setEditingMsg(prev => { const n = { ...prev }; delete n[score.id]; return n; }); settle(`message-${score.id}`, { ok: true }); }}
                           className="px-3 py-1.5 text-xs font-bold text-gray-400 border border-white/10 rounded-xl hover:border-white/20 transition-colors">
                           Annuler
                         </button>
@@ -354,6 +364,9 @@ export default function ScoresClient({ tournamentId, initialScores, requireVideo
                           Envoyer
                         </button>
                       </div>
+                      {writeError[`message-${score.id}`] && (
+                        <p role="alert" className="text-right text-xs text-ax-danger">{writeError[`message-${score.id}`]}</p>
+                      )}
                     </div>
                   ) : (
                     !score.admin_message && (
@@ -398,6 +411,9 @@ export default function ScoresClient({ tournamentId, initialScores, requireVideo
                     </>
                   )}
                 </div>
+                {writeError[`status-${score.id}`] && (
+                  <p role="alert" className="text-right text-xs text-ax-danger">{writeError[`status-${score.id}`]}</p>
+                )}
               </div>
             );
           })}
