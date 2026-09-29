@@ -12,6 +12,8 @@ import { parseScoreVal } from '@/lib/tournamentScoring';
 import { useConfirmDialog } from '@/components/ui/confirm-dialog';
 import { INPUT_TITLE } from '@/lib/confirmDialog';
 import { countOf } from '@/lib/plural';
+import { scoreDivisionBody, scoreDivisionInfo, type DivisionOption } from '@/lib/tournaments/scoreDivision';
+import { setScoreDivisionAction } from './actions';
 
 export interface ScoreRow {
   id: string;
@@ -23,6 +25,8 @@ export interface ScoreRow {
   admin_message: string | null;
   athlete_id: string;
   tournament_wod_id: string;
+  /** Ligue : division de l'athlète au moment du score (posée par la base, #350). */
+  division_id: string | null;
   username: string | null;
   level: string | null;
   wod_title: string | null;
@@ -44,10 +48,13 @@ interface Props {
   tournamentId: string;
   initialScores: ScoreRow[];
   requireVideoProof?: boolean;
+  /** Ligue seulement : divisions du tournoi (sinon, pas de bloc « Division de ce score »). */
+  divisions?: DivisionOption[];
+  currentDivisionByAthlete?: Record<string, string>;
 }
 
-export default function ScoresClient({ tournamentId, initialScores, requireVideoProof = false }: Props) {
-  const { dialog, inform } = useConfirmDialog();
+export default function ScoresClient({ tournamentId, initialScores, requireVideoProof = false, divisions, currentDivisionByAthlete = {} }: Props) {
+  const { dialog, ask, inform } = useConfirmDialog();
   const supabase = createClient();
   const router = useRouter();
   const [scores,      setScores]      = useState<ScoreRow[]>(initialScores);
@@ -57,6 +64,7 @@ export default function ScoresClient({ tournamentId, initialScores, requireVideo
   const [editingMsg,    setEditingMsg]    = useState<Record<string, string>>({});
   const [savingScore,   setSavingScore]   = useState<string | null>(null);
   const [savingMsg,     setSavingMsg]     = useState<string | null>(null);
+  const [divisionError, setDivisionError] = useState<Record<string, string>>({});
 
   // Le classement est calculé par la base (athlex-app #361) : plus rien à
   // recalculer ni à écrire ici. Un score validé, rejeté ou corrigé change le
@@ -112,6 +120,28 @@ export default function ScoresClient({ tournamentId, initialScores, requireVideo
     setScores(prev => prev.map(s => s.id === scoreId ? { ...s, admin_message: msg || null } : s));
     setEditingMsg(prev => { const n = { ...prev }; delete n[scoreId]; return n; });
     setSavingMsg(null);
+  }
+
+  // « Division de ce score » : correction du gérant, par l'action serveur, après confirmation.
+  function askScoreDivision(score: ScoreRow, divisionId: string) {
+    const target = divisions?.find(d => d.id === divisionId);
+    if (!target || divisionId === score.division_id) return;
+    ask({
+      title: 'Changer la division de ce score ?',
+      element: `${score.username ?? '?'} · ${score.wod_title ?? 'WOD'} : ${scoreDivisionInfo(score.division_id, null, divisions ?? []).label} → ${target.name}`,
+      body: scoreDivisionBody(score.status === 'validated'),
+      confirmLabel: `Classer dans ${target.name}`,
+      run: () => saveScoreDivision(score.id, divisionId),
+    });
+  }
+
+  async function saveScoreDivision(scoreId: string, divisionId: string) {
+    setProcessing(scoreId);
+    const res = await setScoreDivisionAction(tournamentId, scoreId, divisionId);
+    setProcessing(null);
+    setDivisionError(prev => ({ ...prev, [scoreId]: res.ok ? '' : res.error }));
+    if (!res.ok) return;
+    setScores(prev => prev.map(s => (s.id === scoreId ? { ...s, division_id: divisionId } : s)));
   }
 
   const filtered       = filter === 'all' ? scores : scores.filter(s => s.status === filter);
@@ -233,6 +263,31 @@ export default function ScoresClient({ tournamentId, initialScores, requireVideo
                     </div>
                   </div>
                 </div>
+
+                {/* Division figée du score (ligue, #350) */}
+                {divisions && (() => {
+                  const info = scoreDivisionInfo(score.division_id, currentDivisionByAthlete[score.athlete_id] ?? null, divisions);
+                  return (
+                    <div className="flex flex-wrap items-center gap-2 text-xs" data-testid={`division-score-${score.id}`}>
+                      <label htmlFor={`division-score-${score.id}`} className="font-semibold text-ax-text-secondary">Division de ce score</label>
+                      <select id={`division-score-${score.id}`} value={score.division_id ?? ''} disabled={processing === score.id}
+                        onChange={e => askScoreDivision(score, e.target.value)}
+                        aria-describedby={info.current ? `division-actuelle-${score.id}` : undefined}
+                        className="rounded-ax-control border border-ax-border bg-ax-surface px-2 py-1 text-xs text-ax-text disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ax-focus">
+                        {!score.division_id && <option value="" disabled>{info.label}</option>}
+                        {divisions.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+                      </select>
+                      {info.current && (
+                        <span id={`division-actuelle-${score.id}`} className="text-ax-warning">
+                          Division actuelle de l’athlète : {info.current}
+                        </span>
+                      )}
+                      {divisionError[score.id] && (
+                        <p role="alert" className="basis-full text-ax-danger">{divisionError[score.id]}</p>
+                      )}
+                    </div>
+                  );
+                })()}
 
                 {/* Notes athlète */}
                 {score.notes && (
