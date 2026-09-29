@@ -13,11 +13,11 @@ export default async function DivisionsPage({ params }: { params: Promise<{ id: 
   // divisions de CE tournoi, au lieu d'une lecture de toute la table.
   const divisionIds = await divisionIdsOf(svc, id);
 
-  const [{ data: divisions }, { data: members }, { data: participants }, { data: history }] = await Promise.all([
+  const [{ data: divisions }, { data: members }, { data: participants }, { data: history }, { data: seasonWods }, { data: validated }] = await Promise.all([
     svc.from('tournament_divisions').select('*').eq('tournament_id', id).order('level'),
     divisionIds.length > 0
       ? svc.from('tournament_division_members')
-           .select('id, division_id, athlete_id, points, rank, joined_at')
+           .select('id, division_id, athlete_id, points, rank, joined_at, placement')
            .in('division_id', divisionIds)
            .order('points', { ascending: false })
       : Promise.resolve({ data: [] as any[] }),
@@ -30,7 +30,13 @@ export default async function DivisionsPage({ params }: { params: Promise<{ id: 
        .order('season_number', { ascending: false })
        .order('division_level', { ascending: true })
        .order('final_rank', { ascending: true }),
+    // Scores validés : la répartition par ELO et la clôture d'une saison vide en dépendent.
+    svc.from('tournament_wods').select('id, season_number').eq('tournament_id', id),
+    svc.from('tournament_scores').select('tournament_wod_id').eq('tournament_id', id).eq('status', 'validated'),
   ]);
+  const currentSeason = t.current_season ?? 1;
+  const seasonWodIds = new Set((seasonWods ?? []).filter((w: any) => w.season_number === currentSeason).map((w: any) => w.id));
+  const validatedThisSeason = (validated ?? []).filter((s: any) => seasonWodIds.has(s.tournament_wod_id)).length;
 
   // Déjà bornés par `divisionIds` côté base : plus de filtrage en mémoire.
   const tournamentMembers = members ?? [];
@@ -81,7 +87,9 @@ export default async function DivisionsPage({ params }: { params: Promise<{ id: 
 
       <DivisionsManager
         tournamentId={id}
-        currentSeason={t.current_season ?? 1}
+        currentSeason={currentSeason}
+        hasValidatedScore={(validated ?? []).length > 0}
+        validatedThisSeason={validatedThisSeason}
         initialDivisions={(divisions ?? []) as any}
         initialMembers={tournamentMembersWithProfile as any}
         unassigned={unassigned as any}
