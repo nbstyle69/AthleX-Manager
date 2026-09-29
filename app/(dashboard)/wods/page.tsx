@@ -146,6 +146,12 @@ export default function WODsPage() {
   /** Programmation automatique de la box (lot J2), lue côté serveur. */
   const [auto, setAuto] = useState<{ enabled: boolean; tracks: Track[]; reveal: RevealSettings; runs: AutoRun[] }>(
     { enabled: false, tracks: [], reveal: DEFAULT_REVEAL, runs: [] });
+  /**
+   * Vente sur le Marketplace (copier vers une offre) : gérant ou co-gérant,
+   * comme les routes Marketplace (`isBoxOwnerAdmin`) et les RPC d'offre
+   * (`assert_offer_editor`). Le coach ne voit ni ses offres ni la copie.
+   */
+  const [canSell, setCanSell] = useState(false);
   const [offers, setOffers] = useState<WodEditorOffer[]>([]);
   /** programming_id → provenance, pour les cartes reçues d'une autre box. */
   const [receivedMap, setReceivedMap] = useState<Record<string, ReceivedInfo>>({});
@@ -195,7 +201,9 @@ export default function WODsPage() {
         setGroups(g ?? []);
         const { data: progs } = await supabase.from('programs').select('id, title, type').eq('box_id', box.id).eq('is_active', true).order('title');
         setBoxPrograms((progs ?? []) as any[]);
-        await loadMarketplace(box.id);
+        const sell = box.my_role === 'owner';
+        setCanSell(sell);
+        await loadMarketplace(box.id, sell);
         await loadAuto(box.id);
         // Choix d'onglet mémorisé pour CETTE box : deux box n'ont pas les
         // mêmes pistes, une clé globale aurait proposé un onglet absent.
@@ -214,10 +222,12 @@ export default function WODsPage() {
   }
 
   /** Abonnements actifs (bannière, provenance, couleur) et offres publiées par la box (copie depuis le formulaire). */
-  async function loadMarketplace(bid: string) {
+  async function loadMarketplace(bid: string, sell = canSell) {
     const [subs, offs] = await Promise.all([
       supabase.rpc('list_applicable_programmings', { p_box_id: bid }),
-      supabase.from('box_programming').select('id, title, weeks_count').eq('publisher_box_id', bid).eq('is_template', false).order('created_at', { ascending: false }),
+      sell
+        ? supabase.from('box_programming').select('id, title, weeks_count').eq('publisher_box_id', bid).eq('is_template', false).order('created_at', { ascending: false })
+        : Promise.resolve({ data: [] }),
     ]);
     const rows = ((subs.data ?? []) as RawApplicable[]).map(r => {
       const n = Math.max(r.weeks_count ?? 1, 1);
@@ -343,7 +353,11 @@ export default function WODsPage() {
     const gIds = await loadWodGroups(wod.id);
     const [{ data: pRows }, { data: copies }] = await Promise.all([
       supabase.from('wod_program_access').select('program_id').eq('wod_id', wod.id),
-      supabase.from('box_programming_wods').select('programming_id, week_number').eq('origin_box_wod_id', wod.id),
+      // Coach : aucune copie lue, donc aucun sync/unsync d'offre à l'enregistrement
+      // (les RPC le refuseraient et l'enregistrement s'afficherait en échec partiel).
+      canSell
+        ? supabase.from('box_programming_wods').select('programming_id, week_number').eq('origin_box_wod_id', wod.id)
+        : Promise.resolve({ data: [] }),
     ]);
     const pIds = (pRows ?? []).map((r: any) => r.program_id);
     const offerWeeks: Record<string, number> = {};
@@ -813,16 +827,18 @@ export default function WODsPage() {
           >
             <BookmarkPlus size={13} /> Enregistrer comme semaine type
           </Button>
-          <Button
-            variant="ax-outline"
-            size="ax-compact"
-            onClick={() => boxId && setCopySource({ kind: 'whiteboard', boxId, monday: toISO(weekDates[0]) })}
-            disabled={!wods.length || offers.length === 0}
-            title={offers.length === 0 ? 'Crée d’abord une offre dans Marketplace → Mes offres' : 'Copier la semaine affichée dans une semaine d’une de tes offres Marketplace'}
-            className={TOOLBAR_BTN}
-          >
-            <Copy size={13} /> Copier vers une offre
-          </Button>
+          {canSell && (
+            <Button
+              variant="ax-outline"
+              size="ax-compact"
+              onClick={() => boxId && setCopySource({ kind: 'whiteboard', boxId, monday: toISO(weekDates[0]) })}
+              disabled={!wods.length || offers.length === 0}
+              title={offers.length === 0 ? 'Crée d’abord une offre dans Marketplace → Mes offres' : 'Copier la semaine affichée dans une semaine d’une de tes offres Marketplace'}
+              className={TOOLBAR_BTN}
+            >
+              <Copy size={13} /> Copier vers une offre
+            </Button>
+          )}
           <Button variant="ax-white" size="ax-compact" onClick={() => openCreate(todayISO)} className="h-auto px-4 py-2 text-sm">
             <Plus size={15} /> Nouveau WOD
           </Button>
