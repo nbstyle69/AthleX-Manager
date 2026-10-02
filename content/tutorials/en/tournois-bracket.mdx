@@ -1,10 +1,10 @@
 ---
 slug: tournois-bracket
 title: Run an elimination bracket
-summary: Draw the first round, decide matches from the scores, handle the Loser Bracket and the grand final.
+summary: Draw the first round, decide matches from the scores, declare a forfeit, handle the third-place match, the Loser Bracket and the grand final.
 role: owner
 pages: [tournaments]
-tags: [tournament, bracket, elimination, round, match, winner, loser bracket, grand final, double elimination]
+tags: [forfeit, third place, petite finale, tournament, bracket, elimination, round, match, winner, loser bracket, grand final, double elimination]
 order: 62
 ---
 
@@ -24,16 +24,29 @@ The **Tableau du bracket** opens from the record of a **Bracket (élimination si
 3. Click **Décider selon les scores**. The « Décider les matchs d’après les scores validés ? » window explains the rule: a finished For Time beats a CAP, between two CAPs the most reps wins, then the tie-break. Both athletes' ELO is updated right away. Click **Décider les matchs**. <Screenshot src="/tutorials/tournois-bracket/2.png" alt="Decide matches from validated scores window, with the round and the WOD" />
 4. The summary shows how many matches were decided and, for each match left to you, the reason. For those, click the **crown** (**Désigner vainqueur**) on the right side. Clicking an athlete's name opens their submission sheet (score, tie-break, video). <Screenshot src="/tutorials/tournois-bracket/3.png" alt="Decision summary with one match left to decide by hand for a perfect tie" />
 5. When every match of the round has a winner, click **Round suivant**: « Round suivant généré (… matchs). Décide ses vainqueurs pour continuer. » (next round generated).
-6. Hovering a card shows the **Éditer (joueurs / date / notes)** pencil, which changes the players, date or notes of the match.
+6. On each finished match, the ELO won (green) or lost (red) by each athlete shows next to their name, as the database applied it.
+7. Hovering a card shows the **Éditer (joueurs / date / notes)** pencil, which changes the players, date or notes of the match.
+
+## Declare a forfeit
+
+1. An athlete does not show up: hover the match card and click the **Déclarer un forfait** icon (declare a forfeit; on the grand final, the **Forfait** link under the match).
+2. The « Déclarer un forfait ? » window has you pick the absent athlete: they lose the match and their opponent moves to the next round. A forfeit gives or takes no ELO; if the match already had a result, that result's ELO is returned to both athletes. Confirm with **Déclarer le forfait**. <Screenshot src="/tutorials/tournois-bracket/5.png" alt="Déclarer un forfait ? window with the choice of the absent athlete" />
+3. The match is marked **Forfait**. **Annuler le forfait** (cancel the forfeit) puts it back « to be played », like cancelling a result.
+
+## Third-place match
+
+1. In single elimination, the **Petite finale (3e place)** box of the tournament form (creation or **Modifier**) has the two semi-final losers play each other. It is unticked by default and can no longer change once the final is created.
+2. The database creates the third-place match together with the final. It shows in its own block, is decided like a last-round match (scores, crown or forfeit) and must be played before closing. <Screenshot src="/tutorials/tournois-bracket/6.png" alt="Bracket with a won match (ELO changes), a match lost by forfeit and the Petite finale (3e place) block" />
+3. The bracket **Classement** then shows Champion, Finaliste, 3e place and 4e place; athletes still qualified are marked « en lice » (still in).
 
 ## Double elimination
 
 1. In **Swiss**, the loser of a winners' match drops into the **Loser Bracket**. Its columns « Tour 1 des perdants », « Tour 2 des perdants »… each have a **WOD de ce tour** list (WOD of this round).
-2. The **Round suivant** button also creates the **Grande finale**, then, if due, the « Grande finale — match décisif » (deciding match). The Winner Bracket champion picks the grand final WOD: set it in « — Sélectionner un WOD — ». The two finalists' buttons then become active. <Screenshot src="/tutorials/tournois-bracket/4.png" alt="Swiss bracket with Winner Bracket, Loser Bracket and grand final" />
+2. The **Round suivant** button also creates the **Grande finale**, then, if due, the deciding match of the grand final. The Winner Bracket champion picks the grand final WOD: set it in the **Sélectionner un WOD** list. The two finalists' buttons then become active. <Screenshot src="/tutorials/tournois-bracket/4.png" alt="Swiss bracket with Winner Bracket, Loser Bracket and grand final" />
 
 ## Correct a result
 
-1. On a finished match, the **Annuler le résultat** button opens « Effacer le résultat de ce match ? »: the match goes back to « to be played » and the ELO won or lost is returned to both athletes. Later rounds already generated do not change: correct before clicking **Round suivant**. Confirm with **Effacer le résultat**.
+1. On a finished match, the **Annuler le résultat** (or **Annuler le forfait**) button opens « Effacer le résultat de ce match ? »: the match goes back to « to be played » and the ELO won or lost is returned to both athletes. Later rounds already generated do not change: correct before clicking **Round suivant**. Confirm with **Effacer le résultat**.
 2. **Régénérer** opens « Refaire tout le tableau ? » (redo the whole bracket): matches are wiped and a new first round is drawn, as long as no match has been played.
 
 ## Common mistakes
@@ -42,6 +55,7 @@ The **Tableau du bracket** opens from the record of a **Bracket (élimination si
 - **« À décider à la main : égalité parfaite (scores et tie-breaks). » (perfect tie).** The database does not settle it → pick the winner yourself.
 - **« À décider à la main : aucun WOD pour ce match. » (no WOD for this match).** Neither the match nor its stage has a WOD → give the WOD an **Étape du tournoi**, or pick the WOD of the losers' round.
 - **« Le tour … a encore … matchs à décider. » (round still has matches to decide).** A match of the round has no winner → decide it before **Round suivant**.
+- **« Le tableau n’est pas terminé… »** (the bracket is not finished) when closing. A match still has no winner, often the grand final deciding match or the third-place match → decide it, then close.
 - **« Il faut au moins 2 participants pour tirer le tableau. » (at least 2 participants needed).** Not enough entrants → wait for registrations.
 - **« Le tableau ne peut plus être régénéré : un match est déjà joué. » (bracket can no longer be regenerated).** → correct the match concerned instead of redoing everything.
 

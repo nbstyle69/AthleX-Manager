@@ -16,7 +16,8 @@ Everything happens in **Membres** (Communauté → Membres), one row per member,
 
 1. In the **Rôle** column, click the member's button (**Membre**, **Coach** or **Owner**) and pick the new role. **Owner** means co-owner.
 2. To **Coach**: the « Changer le rôle de … ? » window says « Il pourra gérer le planning et les WOD, mais pas l’argent. » (they can manage the schedule and the WODs, not the money). Confirm with **Changer le rôle**. To **Membre**, the text becomes « Il perd les accès de gestion. » (they lose management access).
-3. To **Owner**: « Nommer … co-gérant ? » warns « Il aura les mêmes accès que toi, facturation comprise. » (same access as you, billing included). There is one co-owner at a time: if someone already is, the window adds that they go back to plain member. Confirm with **Nommer co-gérant**. <Screenshot src="/tutorials/gerer-un-membre/1.png" alt="Nommer Karim Benali co-gérant ? window with the Coach to Owner change" />
+3. To **Owner**: « Nommer … co-gérant ? » warns « Il aura les mêmes accès que toi, facturation comprise. » (same access as you, billing included). There is one co-owner at a time: if someone already is, the window adds that they go back to plain member. Confirm with **Nommer co-gérant**.
+4. Only the main owner (the box owner) appoints or removes a co-owner. Signed in as co-owner, you change the **Membre** and **Coach** roles, but **Owner** is not offered and the co-owner's button is greyed out. <Screenshot src="/tutorials/gerer-un-membre/1.png" alt="Nommer Karim Benali co-gérant ? window with the Coach to Owner change" />
 
 ## Ban or reactivate
 
@@ -38,7 +39,8 @@ Everything happens in **Membres** (Communauté → Membres), one row per member,
 
 ## Common mistakes
 
-- **The Rôle button is greyed out.** The member is banned → click **Débannir** first.
+- **The Rôle button is greyed out.** The member is banned → click **Débannir** first. If they are co-owner and you are co-owner yourself, only the main owner can change their role.
+- **« Seul le gérant principal de la box peut nommer ou retirer un co-gérant. »** (only the main owner can appoint or remove a co-owner) The database refused the change → ask the main owner.
 - **« Réactivation impossible ».** A Stripe subscription is still running for this member → stop it in **Abonnés**, then unban.
 - **« Compte de paiement de la box introuvable. »** The member pays through Stripe but the box no longer has a linked payment account → check **Réglages** → Paiements; nothing was stopped or banned.
 - **« Membre banni »: the email did not go out.** The ban is done, but the member did not get the email → tell them directly.

@@ -4,7 +4,7 @@ title: Ligue, classement, clôture et archivage d'un tournoi
 summary: Gère les divisions et les saisons d'une ligue, lis le classement, puis clôture, archive ou supprime un tournoi.
 role: owner
 pages: [tournaments]
-tags: [tournoi, ligue, divisions, saison, promotion, relegation, classement, cloturer, terminer, elo, archiver, desarchiver, supprimer]
+tags: [tournoi, ligue, divisions, saison, répartir par elo, placé à la main, places, promotion, relegation, classement, cloturer, terminer, elo, archiver, desarchiver, supprimer]
 order: 63
 ---
 
@@ -15,9 +15,11 @@ Ces actions se font sur la fiche d'un tournoi (Animation → Tournois → le tou
 ## Gérer les divisions d'une ligue
 
 1. Ouvre **Divisions**. L'en-tête affiche la **Saison** en cours. **Division** ouvre « Créer une nouvelle division ? » : saisis le **Nom de la division**, puis **Créer la division** (16 places, 3 promus, aucun relégué, modifiables ensuite).
-2. Sur chaque division, règle **Max**, **Promus ↑** et **Relég. ↓**. Dans le tableau, « PROMU » et « RELÉG. » marquent les athlètes qui changeront de division en fin de saison.
-3. **Ajouter** place un athlète de la liste « Athlètes inscrits non assignés ». La liste de chaque ligne le déplace (« Changer … de division ? », **Déplacer**) ; l'icône de retrait ouvre « Retirer … de sa division ? ». <Screenshot src="/tutorials/tournois-ligue-classement-et-cloture/1.png" alt="Page Divisions avec deux divisions et les marques PROMU et RELÉG." />
-4. En fin de saison, clique **Clôturer saison N → N+1**. La fenêtre « Clôturer la saison N ? » prévient : le classement final est archivé, les promus et relégués changent de division, tous les points repartent de 0. C'est définitif. Confirme avec **Clôturer la saison**. La saison rejoint l'« Historique des saisons clôturées ».
+2. Sur chaque division, règle **Places** (au moins 1), **Promus ↑** et **Relég. ↓**. Sous le nom de la division, « n / places » montre son remplissage ; un dépassement est signalé en orange (la dernière division prend le reste à la répartition). Dans le tableau, « PROMU » et « RELÉG. » marquent les athlètes qui changeront de division en fin de saison. <Screenshot src="/tutorials/tournois-ligue-classement-et-cloture/5.png" alt="Divisions avec le remplissage n / places, un dépassement signalé en orange et des pastilles Placé à la main" />
+3. **Répartir par ELO** ouvre « Répartir les athlètes par ELO ? » : sans score validé, les athlètes sont répartis par ELO décroissant, de la division du haut vers le bas, selon les places de chaque division. Si la ligue a déjà des scores validés, seuls les inscrits sans division sont placés, et personne d'autre ne bouge. Confirme avec **Répartir par ELO**. <Screenshot src="/tutorials/tournois-ligue-classement-et-cloture/6.png" alt="Fenêtre Répartir les athlètes par ELO ?" />
+4. **Ajouter** place un athlète de la liste « Athlètes inscrits non assignés ». La liste de chaque ligne le déplace (« Changer … de division ? », **Déplacer**) ; ses points repartent de 0 jusqu'au prochain score et ses scores déjà envoyés restent classés dans son ancienne division. L'icône de retrait ouvre « Retirer … de sa division ? ».
+5. Un athlète ajouté ou déplacé à la main porte la pastille **Placé à la main** : la répartition par ELO ne le déplace jamais. **Rendre à l’automatique** retire la pastille, pour que la prochaine répartition puisse le déplacer. <Screenshot src="/tutorials/tournois-ligue-classement-et-cloture/1.png" alt="Page Divisions avec deux divisions et les marques PROMU et RELÉG." />
+6. En fin de saison, clique **Clôturer saison N → N+1**. La fenêtre « Clôturer la saison N ? » prévient : le classement final est archivé, les promus et relégués changent de division, tous les points repartent de 0. C'est définitif. Confirme avec **Clôturer la saison**. Sans aucun score validé dans la saison, la fenêtre devient « Clôturer la saison N sans aucun score ? » et le bouton **Clôturer la saison vide**. La saison rejoint l'« Historique des saisons clôturées ».
 
 ## Lire le classement
 
@@ -43,8 +45,10 @@ La clôture de saison et la distribution de l'ELO ne s'annulent pas. Vérifie le
 
 ## Erreurs fréquentes
 
-- **« ⚠️ N scores encore en attente — valide ou rejette-les avant de distribuer l’ELO. »** Le bouton **Distribuer l'ELO** reste grisé → traite-les dans **Scores à valider**.
-- **« … est pleine (n/max). »** La division cible est complète → augmente son **Max** ou déplace quelqu'un d'autre.
+- **« ⚠️ N scores encore en attente » : valide ou rejette-les avant de distribuer l’ELO.** Le bouton **Distribuer l'ELO** reste grisé → traite-les dans **Scores à valider**.
+- **« … est pleine (n/max). »** La division cible est complète → augmente ses **Places** ou déplace quelqu'un d'autre.
+- **« Saison déjà close ».** La saison a été clôturée entre-temps (autre onglet, autre gérant) : la fenêtre donne la saison en cours, rien n'a changé → recharge la page.
+- **« Des scores sont encore en attente : valide-les ou rejette-les avant de clôturer. »** La clôture du tournoi est refusée → traite-les dans **Scores à valider**. Les autres refus de clôture (tableau pas terminé, tournoi déjà clôturé) sont aussi dits en clair dans la fenêtre.
 - **« Aucun score validé ».** Le classement attend les premières validations → valide des scores.
 - **Après Confirmer la suppression, c'est « Archiver ce tournoi ? » qui s'ouvre.** La base a trouvé un résultat validé : un tournoi joué ne se supprime plus → archive-le.
 - **« Tournoi clôturé » remplace le bouton de clôture.** L'ELO est déjà distribué : il ne se distribue pas deux fois → rien à faire, ou archive le tournoi.

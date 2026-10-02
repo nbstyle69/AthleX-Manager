@@ -10,7 +10,7 @@ order: 27
 
 ## Before you start
 
-The **Whiteboard** toolbar (Entraînement → Whiteboard) acts on the week shown. The owner and the coaches have the same buttons; only **Copier vers une offre** (copy to an offer) is reserved for the owner or co-owner, and the server refuses it to a coach.
+The **Whiteboard** toolbar (Entraînement → Whiteboard) acts on the week shown. The owner and the coaches have the same buttons; only **Copier vers une offre** (copy to an offer) is reserved for the owner or co-owner: a coach does not see this button.
 
 ## Select and assign several WODs
 
@@ -22,7 +22,7 @@ The **Whiteboard** toolbar (Entraînement → Whiteboard) acts on the week shown
 
 1. **Template CSV** downloads `template_wods.csv`: columns `date,title,type,description,timecap,rounds,notes,block,published,rank,groups`, with sample rows. In `groups`, separate group names with `|`; left empty, the WOD is visible to everybody.
 2. Click **Importer** (import) and pick your CSV or JSON file (a PDF opens the PDF import). You can also drop the file onto the page.
-3. A result card shows, for example « ✅ 4 WODs posés — ⚠️ 1 erreur » (4 WODs laid, 1 error), with the detail line by line. The imported WODs are already selected: click **Assigner à…** to give them programs. <Screenshot src="/tutorials/whiteboard-selection-import-export/3.png" alt="Import result card with four WODs laid and one line error" />
+3. A result card shows, for example « ✅ 4 WODs posés » et « ⚠️ 1 erreur » (4 WODs laid, 1 error), with the detail line by line. The imported WODs are already selected: click **Assigner à…** to give them programs. <Screenshot src="/tutorials/whiteboard-selection-import-export/3.png" alt="Import result card with four WODs laid and one line error" />
 4. **Exporter** (export) downloads the week shown (`wods_semaine_AAAA-MM-JJ.csv`, dated with the Monday) with the date, title, type, movements, time cap, rounds, notes and publication.
 
 ## Arrange the cards
@@ -49,7 +49,7 @@ Both deletions are final: export the week first if you want to keep a record.
 - **A move or the eye seems to do nothing.** These actions show no message when they fail → reload the page to see the real state.
 - **An AUTO card becomes AUTO · MODIFIÉE after a move.** That is on purpose: regeneration will keep that day.
 - **Re-importing an export does not bring the groups back.** The export has neither a `block` nor a `groups` column → start from the **Template CSV** to prepare a full import.
-- **« Accès refusé : gérant ou co-gérant de la box éditrice requis ».** (access denied: owner or co-owner required) A coach clicked **Copier vers une offre** → the owner makes the copy.
+- **A coach cannot find Copier vers une offre.** The button is shown only to the owner and co-owner → they make the copy.
 
 ## Go there
 

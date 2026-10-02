@@ -1,10 +1,10 @@
 ---
 slug: tournois-bracket
 title: Faire vivre un tableau à élimination (bracket)
-summary: Tire le premier tour, décide les matchs selon les scores, gère le Loser Bracket et la grande finale.
+summary: Tire le premier tour, décide les matchs selon les scores, déclare un forfait, gère la petite finale, le Loser Bracket et la grande finale.
 role: owner
 pages: [tournaments]
-tags: [tournoi, bracket, tableau, elimination, round, match, vainqueur, loser bracket, grande finale, double elimination]
+tags: [tournoi, bracket, tableau, elimination, round, match, vainqueur, loser bracket, grande finale, double elimination, forfait, petite finale, 3e place]
 order: 62
 ---
 
@@ -24,16 +24,29 @@ Le **Tableau du bracket** s'ouvre depuis la fiche d'un tournoi au format **Brack
 3. Clique **Décider selon les scores**. La fenêtre « Décider les matchs d’après les scores validés ? » explique la règle : un For Time terminé bat un CAP, entre deux CAP le plus de reps gagne, puis le tie-break. L'ELO des deux athlètes est mis à jour tout de suite. Clique **Décider les matchs**. <Screenshot src="/tutorials/tournois-bracket/2.png" alt="Fenêtre Décider les matchs d’après les scores validés, avec le round et le WOD" />
 4. Le bilan affiche le nombre de matchs décidés, et pour chaque match laissé à la main sa raison. Pour ceux-là, clique la **couronne** (**Désigner vainqueur**) du bon côté. Cliquer le nom d'un athlète ouvre sa fiche de soumission (score, tie-break, vidéo). <Screenshot src="/tutorials/tournois-bracket/3.png" alt="Bilan de décision avec un match à décider à la main pour égalité parfaite" />
 5. Quand tous les matchs du tour ont un vainqueur, clique **Round suivant** : « Round suivant généré (… matchs). Décide ses vainqueurs pour continuer. »
-6. Au survol d'une carte, le crayon **Éditer (joueurs / date / notes)** change les joueurs, la date ou les notes du match.
+6. Sur chaque match terminé, l'ELO gagné (en vert) ou perdu (en rouge) par chaque athlète s'affiche à côté de son nom, tel que la base l'a appliqué.
+7. Au survol d'une carte, le crayon **Éditer (joueurs / date / notes)** change les joueurs, la date ou les notes du match.
+
+## Déclarer un forfait
+
+1. Un athlète ne se présente pas : au survol de la carte du match, clique l'icône **Déclarer un forfait** (sur la grande finale, le lien **Forfait** sous le match).
+2. La fenêtre « Déclarer un forfait ? » te fait choisir l'athlète absent : il perd le match et son adversaire passe au tour suivant. Un forfait ne donne ni ne retire aucun point ELO ; si le match avait déjà un résultat, l'ELO de ce résultat est rendu aux deux athlètes. Confirme avec **Déclarer le forfait**. <Screenshot src="/tutorials/tournois-bracket/5.png" alt="Fenêtre Déclarer un forfait ? avec le choix de l’athlète absent" />
+3. Le match porte la mention **Forfait**. **Annuler le forfait** le remet « à jouer », comme l'annulation d'un résultat.
+
+## Petite finale
+
+1. En élimination simple, la case **Petite finale (3e place)** du formulaire du tournoi (création ou **Modifier**) fait jouer les deux perdants des demi-finales. Elle est décochée par défaut et ne change plus dès que la finale est créée.
+2. La base crée la petite finale avec la finale. Elle s'affiche dans son propre bloc, se décide comme un match du dernier tour (scores, couronne ou forfait) et doit être jouée avant la clôture. <Screenshot src="/tutorials/tournois-bracket/6.png" alt="Tableau avec un match gagné (écarts d’ELO), un match perdu par forfait et le bloc Petite finale (3e place)" />
+3. Le **Classement** du tableau affiche alors Champion, Finaliste, 3e place et 4e place ; les athlètes encore qualifiés sont marqués « en lice ».
 
 ## Double élimination
 
 1. En **Swiss**, le perdant d'un match des gagnants descend dans le **Loser Bracket**. Ses colonnes « Tour 1 des perdants », « Tour 2 des perdants »… ont chacune une liste **WOD de ce tour**.
-2. Le bouton **Round suivant** crée aussi la **Grande finale**, puis, si elle est due, la « Grande finale — match décisif ». Le champion du Winner Bracket choisit le WOD de la grande finale : reporte-le dans « — Sélectionner un WOD — ». Les boutons des deux finalistes s'activent ensuite. <Screenshot src="/tutorials/tournois-bracket/4.png" alt="Tableau Swiss avec Winner Bracket, Loser Bracket et Grande finale" />
+2. Le bouton **Round suivant** crée aussi la **Grande finale**, puis, si elle est due, le match décisif de la grande finale. Le champion du Winner Bracket choisit le WOD de la grande finale : reporte-le dans la liste **Sélectionner un WOD**. Les boutons des deux finalistes s'activent ensuite. <Screenshot src="/tutorials/tournois-bracket/4.png" alt="Tableau Swiss avec Winner Bracket, Loser Bracket et Grande finale" />
 
 ## Corriger un résultat
 
-1. Sur un match terminé, le bouton **Annuler le résultat** ouvre « Effacer le résultat de ce match ? » : le match redevient « à jouer » et l'ELO gagné ou perdu est rendu aux deux athlètes. Les tours suivants déjà générés ne changent pas : corrige avant de cliquer **Round suivant**. Confirme avec **Effacer le résultat**.
+1. Sur un match terminé, le bouton **Annuler le résultat** (ou **Annuler le forfait**) ouvre « Effacer le résultat de ce match ? » : le match redevient « à jouer » et l'ELO gagné ou perdu est rendu aux deux athlètes. Les tours suivants déjà générés ne changent pas : corrige avant de cliquer **Round suivant**. Confirme avec **Effacer le résultat**.
 2. **Régénérer** ouvre « Refaire tout le tableau ? » : les matchs sont effacés et un nouveau premier tour est tiré, tant qu'aucun match n'est joué.
 
 ## Erreurs fréquentes
@@ -42,6 +55,7 @@ Le **Tableau du bracket** s'ouvre depuis la fiche d'un tournoi au format **Brack
 - **« À décider à la main : égalité parfaite (scores et tie-breaks). »** La base ne tranche pas → désigne le vainqueur toi-même.
 - **« À décider à la main : aucun WOD pour ce match. »** Ni le match ni son étape n'ont de WOD → assigne une **Étape du tournoi** au WOD, ou choisis le WOD du tour des perdants.
 - **« Le tour … a encore … matchs à décider. »** Un match du tour n'a pas de vainqueur → décide-le avant **Round suivant**.
+- **« Le tableau n’est pas terminé… »** à la clôture. Un match reste sans vainqueur, souvent le match décisif de la grande finale ou la petite finale → décide-le, puis clôture.
 - **« Il faut au moins 2 participants pour tirer le tableau. »** Pas assez d'inscrits → attends les inscriptions.
 - **« Le tableau ne peut plus être régénéré : un match est déjà joué. »** → corrige le match concerné au lieu de tout refaire.
 
