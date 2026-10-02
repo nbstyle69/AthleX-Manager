@@ -4,7 +4,7 @@ title: League, ranking, closing and archiving a tournament
 summary: Manage a league's divisions and seasons, read the ranking, then close, archive or delete a tournament.
 role: owner
 pages: [tournaments]
-tags: [tournament, league, divisions, season, promotion, relegation, ranking, close, finish, elo, archive, unarchive, delete]
+tags: [split by elo, placed by hand, seats, tournament, league, divisions, season, promotion, relegation, ranking, close, finish, elo, archive, unarchive, delete]
 order: 63
 ---
 
@@ -15,9 +15,11 @@ These actions happen on a tournament's record (Animation → Tournois → the to
 ## Manage a league's divisions
 
 1. Open **Divisions**. The header shows the current **Saison** (season). **Division** opens « Créer une nouvelle division ? »: type the **Nom de la division**, then **Créer la division** (16 seats, 3 promoted, no relegation, editable later).
-2. On each division, set **Max**, **Promus ↑** and **Relég. ↓**. In the table, « PROMU » and « RELÉG. » mark the athletes who will change division at season end.
-3. **Ajouter** places an athlete from the « Athlètes inscrits non assignés » list (unassigned entrants). Each row's list moves them (« Changer … de division ? », **Déplacer**); the remove icon opens « Retirer … de sa division ? ». <Screenshot src="/tutorials/tournois-ligue-classement-et-cloture/1.png" alt="Divisions page with two divisions and the PROMU and RELÉG. marks" />
-4. At season end, click **Clôturer saison N → N+1**. The « Clôturer la saison N ? » window warns: the final ranking is archived, promoted and relegated athletes change division, all points go back to 0. It is final. Confirm with **Clôturer la saison**. The season joins the « Historique des saisons clôturées » (closed seasons history).
+2. On each division, set **Places** (seats, at least 1), **Promus ↑** and **Relég. ↓**. Under the division name, « n / places » shows how full it is; going over is flagged in orange (the last division takes the rest when splitting). In the table, « PROMU » and « RELÉG. » mark the athletes who will change division at season end.
+3. **Répartir par ELO** (split by ELO) opens « Répartir les athlètes par ELO ? »: with no validated score, athletes are spread by decreasing ELO, from the top division down, according to each division's seats. If the league already has validated scores, only entrants without a division are placed, and nobody else moves. Confirm with **Répartir par ELO**.
+4. **Ajouter** places an athlete from the « Athlètes inscrits non assignés » list (unassigned entrants). Each row's list moves them (« Changer … de division ? », **Déplacer**); their points go back to 0 until the next score and the scores already sent stay ranked in their former division. The remove icon opens « Retirer … de sa division ? ».
+5. An athlete added or moved by hand carries the **Placé à la main** badge (placed by hand): splitting by ELO never moves them. **Rendre à l’automatique** (back to automatic) removes the badge, so the next split can move them. <Screenshot src="/tutorials/tournois-ligue-classement-et-cloture/1.png" alt="Divisions page with two divisions and the PROMU and RELÉG. marks" />
+6. At season end, click **Clôturer saison N → N+1**. The « Clôturer la saison N ? » window warns: the final ranking is archived, promoted and relegated athletes change division, all points go back to 0. It is final. Confirm with **Clôturer la saison**. With no validated score in the season, the window becomes « Clôturer la saison N sans aucun score ? » (close the season with no score) and the button **Clôturer la saison vide**. The season joins the « Historique des saisons clôturées » (closed seasons history).
 
 ## Read the ranking
 
@@ -44,7 +46,9 @@ Closing a season and distributing ELO cannot be undone. Check the scores first.
 ## Common mistakes
 
 - **« ⚠️ N scores encore en attente — valide ou rejette-les avant de distribuer l’ELO. » (scores still pending).** The **Distribuer l'ELO** button stays greyed → handle them in **Scores à valider**.
-- **« … est pleine (n/max). » (division is full).** The target division is full → raise its **Max** or move someone else.
+- **« … est pleine (n/max). » (division is full).** The target division is full → raise its **Places** or move someone else.
+- **« Saison déjà close » (season already closed).** The season was closed in the meantime (another tab, another manager): the window gives the current season, nothing changed → reload the page.
+- **« Des scores sont encore en attente : valide-les ou rejette-les avant de clôturer. » (scores still pending).** Closing the tournament is refused → handle them in **Scores à valider**. The other closing refusals (bracket not finished, tournament already closed) are also spelled out in the window.
 - **« Aucun score validé » (no validated score).** The ranking waits for the first validations → validate scores.
 - **After Confirmer la suppression, « Archiver ce tournoi ? » opens instead.** The database found a validated result: a played tournament can no longer be deleted → archive it.
 - **« Tournoi clôturé » replaces the closing button.** ELO is already distributed: it is not distributed twice → nothing to do, or archive the tournament.

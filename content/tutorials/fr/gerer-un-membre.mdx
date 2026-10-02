@@ -16,7 +16,8 @@ Tout se passe dans **Membres** (Communauté → Membres), une ligne par membre, 
 
 1. Dans la colonne **Rôle**, clique le bouton du membre (**Membre**, **Coach** ou **Owner**) et choisis le nouveau rôle. **Owner** correspond au co-gérant.
 2. Vers **Coach** : la fenêtre « Changer le rôle de … ? » indique « Il pourra gérer le planning et les WOD, mais pas l’argent. » Confirme avec **Changer le rôle**. Vers **Membre**, le texte devient « Il perd les accès de gestion. »
-3. Vers **Owner** : « Nommer … co-gérant ? » prévient « Il aura les mêmes accès que toi, facturation comprise. » Il n'y a qu'un co-gérant à la fois : si quelqu'un l'est déjà, la fenêtre ajoute qu'il redeviendra simple membre. Confirme avec **Nommer co-gérant**. <Screenshot src="/tutorials/gerer-un-membre/1.png" alt="Fenêtre Nommer Karim Benali co-gérant ? avec le passage Coach vers Owner" />
+3. Vers **Owner** : « Nommer … co-gérant ? » prévient « Il aura les mêmes accès que toi, facturation comprise. » Il n'y a qu'un co-gérant à la fois : si quelqu'un l'est déjà, la fenêtre ajoute qu'il redeviendra simple membre. Confirme avec **Nommer co-gérant**.
+4. Seul le gérant principal (le propriétaire de la box) nomme ou retire un co-gérant. Connecté en co-gérant, tu changes les rôles **Membre** et **Coach**, mais **Owner** n'est pas proposé et le bouton du co-gérant est grisé. <Screenshot src="/tutorials/gerer-un-membre/1.png" alt="Fenêtre Nommer Karim Benali co-gérant ? avec le passage Coach vers Owner" />
 
 ## Bannir ou réactiver
 
@@ -38,7 +39,8 @@ Tout se passe dans **Membres** (Communauté → Membres), une ligne par membre, 
 
 ## Erreurs fréquentes
 
-- **Le bouton Rôle est grisé.** Le membre est banni → clique **Débannir** d'abord.
+- **Le bouton Rôle est grisé.** Le membre est banni → clique **Débannir** d'abord. S'il est co-gérant et que tu es toi-même co-gérant, seul le gérant principal peut changer son rôle.
+- **« Seul le gérant principal de la box peut nommer ou retirer un co-gérant. »** La base a refusé le changement → demande-le au gérant principal.
 - **« Réactivation impossible ».** Un abonnement Stripe est encore en cours pour ce membre → arrête-le dans **Abonnés**, puis débannis.
 - **« Compte de paiement de la box introuvable. »** Le membre paie par Stripe mais la box n'a plus de compte de paiement relié → vérifie **Réglages** → Paiements ; rien n'a été arrêté ni banni.
 - **« Membre banni » : l'e-mail n'est pas parti.** Le bannissement est fait, mais le membre n'a pas reçu l'e-mail → préviens-le directement.

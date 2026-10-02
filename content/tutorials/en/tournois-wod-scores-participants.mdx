@@ -30,7 +30,9 @@ Everything happens in **Tournois** (Animation → Tournois), on a tournament's r
 
 1. Open **Scores à valider**. The **En attente**, **Validés**, **Rejetés** and **Tous** filters sort what was sent in.
 2. Each card shows the athlete, the WOD, the value, the athlete's note and « Vidéo YouTube soumise » or « Aucune vidéo soumise » (video sent or not). Click **Valider** or **Rejeter**. A rejected score keeps **Valider quand même** (validate anyway).
-3. The **Modifier le score** pencil corrects the value (a time in mm:ss or a number). **Envoyer un message à l'athlète** leaves a note visible in the app. <Screenshot src="/tutorials/tournois-wod-scores-participants/4.png" alt="Scores page, pending filter, a score with its video and the Rejeter and Valider buttons" />
+3. The **Modifier le score** pencil corrects the value (a time in mm:ss or a number). **Envoyer un message à l'athlète** leaves a note visible in the app. If the database refuses an action (validate, reject, correct, message), the message shows in red under the element concerned and the card does not change. <Screenshot src="/tutorials/tournois-wod-scores-participants/4.png" alt="Scores page, pending filter, a score with its video and the Rejeter and Valider buttons" />
+
+4. In a league, each card shows **Division de ce score** (division of this score): the division the score is ranked in, set when it was sent, and the athlete's current division if it changed since. To correct it, pick another division in the list, then confirm « Changer la division de ce score ? »: the points of both divisions are recomputed immediately.
 
 ## Remove an entrant
 
@@ -39,6 +41,7 @@ Everything happens in **Tournois** (Animation → Tournois), on a tournament's r
 
 ## Common mistakes
 
+- **« Ce score n’a pas été modifié : il n’existe plus, ou tu n’as pas les droits pour le modifier. » (score not changed).** The score was deleted in the meantime, or your account does not run this box → reload the page.
 - **« Preuve vidéo requise » (video proof required).** The tournament requires a video and the score has none → ask the athlete for the video, or reject the score.
 - **« Score illisible : « … ». Saisis un temps en mm:ss ou un nombre. » (unreadable score).** The correction is mistyped → type 9:30 or 120.
 - **« Un WOD est déjà prévu pour cette étape. » (a WOD is already planned for this stage).** A stage has only one WOD → edit the existing WOD, or pick another stage.

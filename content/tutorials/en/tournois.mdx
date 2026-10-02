@@ -15,7 +15,7 @@ order: 60
 ## Steps
 
 1. Open **Tournois** and click **Créer un tournoi**. <Screenshot src="/tutorials/tournois/1.png" alt="Tournament list of the box" />
-2. Pick the **Format du tournoi**, then fill in name, dates, level, maximum number of participants and, if needed, **Inscriptions ouvertes pendant le tournoi**. The format cannot be changed afterwards. Click **Publier** to open registrations, or **Enregistrer**. The tournament starts on its own on its start date (00:00, Paris time). <Screenshot src="/tutorials/tournois/2.png" alt="Tournament creation form" />
+2. Pick the **Format du tournoi**, then fill in name, dates, level, **Max participants** (a whole number between 2 and 500, required) and, if needed, **Inscriptions ouvertes pendant le tournoi**. In **Bracket (élimination simple)**, tick **Petite finale (3e place)** (third-place match) so the semi-final losers play for 3rd place. The format cannot be changed afterwards. Click **Publier** to open registrations, or **Enregistrer**. The tournament starts on its own on its start date (00:00, Paris time). <Screenshot src="/tutorials/tournois/2.png" alt="Tournament creation form" />
 3. After creation you land on **Programme des WODs**: click **Ajouter un WOD** for each event. Athletes register themselves in the app; the **Participants** tile of the record lists them, and **Exclure** removes an entrant.
 4. During the tournament, athletes send their scores from the app: validate them in **Scores à valider** (**Valider**, **Rejeter**, or correct the value). The **Classement** is recomputed on each validation. For a bracket, decide the matches in **Tableau du bracket** (**Décider selon les scores**, then **Round suivant**).
 5. To finish, click **Terminer le tournoi** (WODs close, the tournament becomes « En révision »), validate the last scores, then **Distribuer l'ELO et clôturer**. Once closed, it moves to the **Historique** and its results stay visible.
@@ -24,6 +24,7 @@ order: 60
 
 - **"Aucun tournoi" (no tournament).** Nothing has been created in this box yet → click **Créer un tournoi**.
 - **An athlete cannot register.** The tournament started without **Inscriptions ouvertes pendant le tournoi**, the bracket is already drawn, the tournament is full or archived → tick the box in **Modifier**, raise **Max participants**, or unarchive the tournament.
+- **« Indique un nombre entier de participants entre 2 et 500. »** (enter a whole number between 2 and 500) The **Max participants** field is empty or out of range: saving stays blocked → type a whole number between 2 and 500.
 - **The ranking looks frozen.** Some scores are still pending: only validated scores count → validate them in **Scores à valider**.
 - **A past tournament clutters the list.** Close it (**Distribuer l'ELO et clôturer**) to move it to the **Historique**, or **Archiver** to take it out of the lists: its results, rankings and ELO are kept, and **Désarchiver** brings it back.
 
