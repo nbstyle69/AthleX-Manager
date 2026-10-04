@@ -4,6 +4,7 @@ import { parseStrengthLine } from '@/lib/pdfImport/strength';
 import { entryToBoxWod, serializeImportMovement, serializeImportStrength } from '@/lib/pdfImport/serialize';
 import { kplusPerf } from '@/lib/pdfImport/profiles/kplus-perf';
 import { gymPrLabel } from '@/lib/gymMovements';
+import { parseStrengthLine as parseStrengthLineEditor } from '@/lib/strengthBlock';
 import type { ImportEntry, ParsedStrength } from '@/lib/pdfImport/types';
 
 /**
@@ -148,10 +149,34 @@ describe('correctifs de mise en forme', () => {
   });
 });
 
-describe('RPE : inchangé (décision en attente)', () => {
-  it.each(['- 3X5 Front Squat @RPE8', '- 6X5 Toes-to-Bar @RPE8'])('%s → non structurée', line => {
-    const out = serializeImportStrength([parseStrengthLine(line, opts)!]);
+describe('RPE en section de force : charge notée (décision de Nab, option A)', () => {
+  it('Back Squat 5×3 RPE 8 → « Back Squat — 5 × 3 — charge RPE 8 », relue avec loadNote', () => {
+    const out = serializeImportStrength([parseStrengthLine('- 5X3 Back Squat RPE 8', opts)!]);
+    expect(out.lines).toEqual(['Back Squat — 5 × 3 — charge RPE 8']);
+    expect(out.unstructured).toEqual([]);
+    expect(parseStrengthLineEditor(out.lines[0])).toMatchObject({ name: 'Back Squat', sets: 5, reps: 3, load: null, loadNote: 'RPE 8' });
+  });
+  it.each([
+    ['- 3X5 Front Squat @RPE 7/8', 'Front Squat — 3 × 5 — charge RPE 7/8'],
+    ['- 4X2 Deadlift (RPE 8-9)', 'Deadlift — 4 × 2 — charge RPE 8-9'],
+  ])('fourchette reprise telle quelle : %s', (src, line) => {
+    expect(serializeImportStrength([parseStrengthLine(src, opts)!]).lines).toEqual([line]);
+  });
+  it('gymnastique avec RPE → reps seules, RPE dans les notes du WOD, jamais de « charge »', () => {
+    const out = serializeImportStrength([parseStrengthLine('- 6X5 Toes-to-Bar @RPE8', opts)!]);
+    expect(out.lines).toEqual(['Toes-to-Bar — 6 × 5']);
+    expect(out.gymNotes).toEqual(['Toes-to-Bar : RPE 8']);
+    const entry = { ...gymDay("BMU (technique)\nEMOM 7' :\n- 20% BMU")[0], musculation: [parseStrengthLine('- 6X5 Toes-to-Bar @RPE8', opts)!] };
+    expect(row(entry).notes).toContain('Toes-to-Bar : RPE 8');
+  });
+  it('séries ou reps introuvables → toujours non structurée (carte orange)', () => {
+    const out = serializeImportStrength([parseStrengthLine('- 8 Hip Thrust @RPE10', opts)!]);
     expect(out.lines).toEqual([]);
-    expect(out.unstructured[0]).toMatch(/RPE 8/);
+    expect(out.unstructured).toEqual(['8 Hip Thrust RPE 10']);
+  });
+  it('les autres lignes non structurées restent orange (décision C)', () => {
+    const out = serializeImportStrength([parseStrengthLine('- 2X5 Back Squat @-20%', opts)!]);
+    expect(out.lines).toEqual([]);
+    expect(out.unstructured).toHaveLength(1);
   });
 });

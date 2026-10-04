@@ -11,8 +11,11 @@ import { gymPrLabel } from '@/lib/gymMovements';
  *
  * Règles arrêtées (réponse reco, décision C) :
  * - fourchette `85-90%` → charge structurée = borne haute, fourchette en notes ;
- * - RPE / RM du jour / charge relative → pas de ligne structurée, ligne
- *   complète en notes sous `Musculation (non structurée) :`, carte orange.
+ * - RM du jour / charge relative → pas de ligne structurée, ligne complète en
+ *   notes sous `Musculation (non structurée) :`, carte orange ;
+ * - RPE (décision de Nab, option A) : `Mvt — S × R — charge RPE N`, la
+ *   fourchette telle quelle (`charge RPE 7/8`) ; sur de la gymnastique, les reps
+ *   seules et le RPE en notes. Sans séries ou reps : non structurée, comme avant.
  * - gymnastique (11 mouvements de `lib/gymMovements.ts`, retour R2) : jamais de
  *   %1RM ni de `charge`. Un % sans reps → `Mvt — S × P % du max` (sans séries
  *   connues : non structurée) ; des reps écrites gagnent → `Mvt — N × M` et le
@@ -126,8 +129,7 @@ export function serializeImportStrength(items: ParsedStrength[]): StrengthSerial
     const setsNote = !!s.charge_note && /^\d+ à \d+ séries$/.test(s.charge_note);
     const pctOfMax = gym && s.reps == null && s.percent != null ? s.percent : null;
     const structurable = s.sets != null && (s.reps != null || pctOfMax != null) && s.exercise
-      && !s.rpe
-      && (pctOfMax != null || s.percent != null || range != null || !s.charge_note || setsNote);
+      && (pctOfMax != null || !!s.rpe || s.percent != null || range != null || !s.charge_note || setsNote);
     if (!structurable) { out.unstructured.push(describeStrength(s)); continue; }
     const entry: StrengthEntry = {
       name: s.exercise,
@@ -138,12 +140,14 @@ export function serializeImportStrength(items: ParsedStrength[]): StrengthSerial
       restSec: restToSeconds(s.rest),
       tempo: s.tempo,
       ...(pctOfMax != null ? { pctOfMax } : {}),
+      ...(!gym && s.rpe ? { loadNote: `RPE ${s.rpe}` } : {}),
     };
     const line = serializeStrength(entry);
     if (!line) { out.unstructured.push(describeStrength(s)); continue; }
     out.lines.push(line);
     if (gym) {
       if (pctOfMax == null && s.percent != null) out.gymNotes.push(`${s.exercise} : ${s.percent} % du max`);
+      if (s.rpe) out.gymNotes.push(`${s.exercise} : RPE ${s.rpe}`);
       if (range) out.gymNotes.push(`${s.exercise} : ${range[1]}-${range[2]} % du max`);
       else if (s.charge_note && !setsNote) out.gymNotes.push(`${s.exercise} : ${s.charge_note}`);
     } else if (range) out.chargeNotes.push(`${s.exercise} ${s.sets}×${s.reps} : ${range[1]}-${range[2]} %`);
