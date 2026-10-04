@@ -162,7 +162,8 @@ export const kplusPerf: SourceProfile = {
     'ww': 'Wall Walk',
     'wall walk': 'Wall Walk',
     'ubk t2b': 'Toes-to-Bar',
-    'strict hspu': 'Handstand Push-ups',
+    // Strict et kipping ont chacun leur record (page Records, lib/gymMovements.ts).
+    'strict hspu': 'Strict Handstand Push-Ups',
     'kipping hspu': 'Handstand Push-ups',
     'strict pull-ups': 'Pull-ups',
     'strict pull ups': 'Pull-ups',

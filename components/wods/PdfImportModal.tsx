@@ -17,6 +17,7 @@ import { RestDay, estJourRepos, rattacherAuProgramme } from '@/lib/programConten
 import { softVar } from '@/lib/colorVars';
 import { programColor } from '@/components/wods/RestrictionBadges';
 import { countOf } from '@/lib/plural';
+import { gymPrLabel } from '@/lib/gymMovements';
 
 /**
  * Import PDF de programmation hebdo (spec v2) : le PDF est analysé côté
@@ -435,7 +436,7 @@ export default function PdfImportModal({ file, boxId, userId, target, onClose, o
                         <input value={s.sets ?? ''} onChange={ev => patchStrength(e.key, i, { sets: ev.target.value ? parseInt(ev.target.value, 10) : null })} className={`${INPUT} w-12`} placeholder="Sér." />
                         <span className="text-ax-text-muted text-xs">×</span>
                         <input value={s.reps ?? ''} onChange={ev => patchStrength(e.key, i, { reps: ev.target.value ? parseInt(ev.target.value, 10) : null })} className={`${INPUT} w-12`} placeholder="Reps" />
-                        <input value={s.percent ?? ''} onChange={ev => patchStrength(e.key, i, { percent: ev.target.value ? parseFloat(ev.target.value) : null })} className={`${INPUT} w-14`} placeholder="%1RM" />
+                        <input value={s.percent ?? ''} onChange={ev => patchStrength(e.key, i, { percent: ev.target.value ? parseFloat(ev.target.value) : null })} className={`${INPUT} w-14`} placeholder={gymPrLabel(s.exercise) ? '% max' : '%1RM'} />
                         <input value={s.rpe ?? s.charge_note ?? ''} onChange={ev => patchStrength(e.key, i, { charge_note: ev.target.value || null, rpe: null })} className={`${INPUT} w-24`} placeholder="RPE / note" />
                         <button onClick={() => patchStrength(e.key, i, null)} className="text-ax-text-muted hover:text-ax-danger"><Trash2 size={12} /></button>
                       </div>

@@ -269,7 +269,7 @@ export function parseMovementLine(rawLine: string, opts: MovementParseOptions): 
   else return null;
 
   // `3 Rounds de :`, `5 Rounds For Time`, `2 Rounds` : entête de format, pas un mouvement.
-  if (/^(?:rounds?|tours?|rds?)\b/i.test(name)) return null;
+  if (/^(?:rounds?|tours?|rds?)\b/i.test(name) || /^s[ée]ries?\s*(?:de\s*)?:?$/i.test(name)) return null;
 
   // « … sur deux Row en relais libre » : le nom s'arrête au premier mot de liaison
   const tail = name.match(/^(.+?)\s+(sur|avec|en|puis|then|same time)\s+(.+)$/i);

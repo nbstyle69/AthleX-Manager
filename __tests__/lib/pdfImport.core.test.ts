@@ -278,7 +278,7 @@ describe('sérialisation (§5, décision C)', () => {
     expect(line).toBe('21 Thruster (43/30 kg)');
     expect(line).not.toMatch('@');
   });
-  it('force : 85-90% → borne haute structurée + fourchette en notes ; RPE → non structuré', () => {
+  it('force : 85-90% → borne haute structurée + fourchette en notes ; RPE → charge notée (option A)', () => {
     const out = serializeImportStrength([
       { exercise: 'Front Squat', resolved: true, sets: 4, reps: 2, percent: null, rpe: null, charge_note: '85-90%', tempo: null, rest: null },
       { exercise: 'Back Squat', resolved: true, sets: 5, reps: 3, percent: 88, rpe: null, charge_note: null, tempo: null, rest: "2'" },
@@ -287,8 +287,8 @@ describe('sérialisation (§5, décision C)', () => {
     expect(out.lines[0]).toMatch(/^Front Squat — 4 × 2 @ 90 %1RM/);
     expect(out.lines[1]).toMatch(/^Back Squat — 5 × 3 @ 88 %1RM — repos 2:00/);
     expect(out.chargeNotes[0]).toMatch(/85-90 %/);
-    expect(out.unstructured).toHaveLength(1);
-    expect(out.unstructured[0]).toMatch(/Zercher Squat.*RPE 9/);
+    expect(out.lines[2]).toBe('Zercher Squat — 3 × 5 — charge RPE 9');
+    expect(out.unstructured).toEqual([]);
   });
 
   const base: ImportEntry = {
