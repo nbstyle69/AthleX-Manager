@@ -809,7 +809,8 @@ export default function MembersPage() {
       )}
 
       {sheetMemberId && (
-        <AthleteSheet memberId={sheetMemberId} onClose={() => setSheetMemberId(null)} />
+        <AthleteSheet memberId={sheetMemberId} onClose={() => setSheetMemberId(null)}
+          notifiable={members.some(m => m.id === sheetMemberId && !m.is_banned)} />
       )}
     </div>
   );

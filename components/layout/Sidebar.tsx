@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { Users, FolderOpen, MessageSquare, LayoutDashboard, LogOut, Dumbbell, Sun, Moon, CalendarClock, CalendarDays, Newspaper, BarChart3, Trophy, Settings, Tag, CreditCard, CircleHelp, LifeBuoy, Inbox, Store, UserPlus, MailPlus, ChevronDown, UserCircle } from 'lucide-react';
+import { Users, FolderOpen, MessageSquare, LayoutDashboard, LogOut, Dumbbell, Sun, Moon, CalendarClock, CalendarDays, Newspaper, BarChart3, Trophy, Settings, Tag, CreditCard, CircleHelp, LifeBuoy, Inbox, Store, UserPlus, MailPlus, ChevronDown, UserCircle, Bell } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { cn } from '@/lib/utils';
 import { useTheme } from '@/components/ThemeProvider';
@@ -51,6 +51,8 @@ const GROUPS: NavGroup[] = [
       { href: '/tournaments', label: 'Tournois',   icon: Trophy },
       { href: '/articles',    label: 'Actualités', icon: Newspaper },
       { href: '/messages',    label: 'Messages',   icon: MessageSquare },
+      // Gérant et co-gérants seulement : hors `COACH_HREFS`, donc filtrée pour le coach.
+      { href: '/notifications', label: 'Notifications', icon: Bell },
     ],
   },
   {

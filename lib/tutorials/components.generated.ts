@@ -15,6 +15,7 @@ import Mdx_fr_creer_un_wod from './generated/fr/creer-un-wod';
 import Mdx_fr_creneaux_et_reservations from './generated/fr/creneaux-et-reservations';
 import Mdx_fr_dashboard_code_d_invitation_et_support from './generated/fr/dashboard-code-d-invitation-et-support';
 import Mdx_fr_editeur_wod_formats_et_publication from './generated/fr/editeur-wod-formats-et-publication';
+import Mdx_fr_envoyer_une_notification from './generated/fr/envoyer-une-notification';
 import Mdx_fr_essai_gratuit_et_reservation from './generated/fr/essai-gratuit-et-reservation';
 import Mdx_fr_formules_d_acces_a_la_salle from './generated/fr/formules-d-acces-a-la-salle';
 import Mdx_fr_gerer_un_membre from './generated/fr/gerer-un-membre';
@@ -57,6 +58,7 @@ import Mdx_en_creer_un_wod from './generated/en/creer-un-wod';
 import Mdx_en_creneaux_et_reservations from './generated/en/creneaux-et-reservations';
 import Mdx_en_dashboard_code_d_invitation_et_support from './generated/en/dashboard-code-d-invitation-et-support';
 import Mdx_en_editeur_wod_formats_et_publication from './generated/en/editeur-wod-formats-et-publication';
+import Mdx_en_envoyer_une_notification from './generated/en/envoyer-une-notification';
 import Mdx_en_essai_gratuit_et_reservation from './generated/en/essai-gratuit-et-reservation';
 import Mdx_en_formules_d_acces_a_la_salle from './generated/en/formules-d-acces-a-la-salle';
 import Mdx_en_gerer_un_membre from './generated/en/gerer-un-membre';
@@ -105,6 +107,7 @@ export const TUTORIAL_COMPONENTS: Record<Locale, Record<string, TutorialComponen
     "creneaux-et-reservations": Mdx_fr_creneaux_et_reservations,
     "dashboard-code-d-invitation-et-support": Mdx_fr_dashboard_code_d_invitation_et_support,
     "editeur-wod-formats-et-publication": Mdx_fr_editeur_wod_formats_et_publication,
+    "envoyer-une-notification": Mdx_fr_envoyer_une_notification,
     "essai-gratuit-et-reservation": Mdx_fr_essai_gratuit_et_reservation,
     "formules-d-acces-a-la-salle": Mdx_fr_formules_d_acces_a_la_salle,
     "gerer-un-membre": Mdx_fr_gerer_un_membre,
@@ -149,6 +152,7 @@ export const TUTORIAL_COMPONENTS: Record<Locale, Record<string, TutorialComponen
     "creneaux-et-reservations": Mdx_en_creneaux_et_reservations,
     "dashboard-code-d-invitation-et-support": Mdx_en_dashboard_code_d_invitation_et_support,
     "editeur-wod-formats-et-publication": Mdx_en_editeur_wod_formats_et_publication,
+    "envoyer-une-notification": Mdx_en_envoyer_une_notification,
     "essai-gratuit-et-reservation": Mdx_en_essai_gratuit_et_reservation,
     "formules-d-acces-a-la-salle": Mdx_en_formules_d_acces_a_la_salle,
     "gerer-un-membre": Mdx_en_gerer_un_membre,
