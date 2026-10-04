@@ -2,7 +2,10 @@
 
 import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { Loader2, X, Dumbbell } from 'lucide-react';
+import Link from 'next/link';
+import { Loader2, X, Dumbbell, Bell } from 'lucide-react';
+import { buttonVariants } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 import {
   groupStrengthSessions,
   readWeightliftingRecords,
@@ -37,7 +40,13 @@ const SOURCE_LABEL: Record<string, string> = {
   program: 'Programme',
 };
 
-export default function AthleteSheet({ memberId, onClose }: { memberId: string; onClose: () => void }) {
+/**
+ * `notifiable` : la fiche est ouverte depuis Membres, route réservée au gérant
+ * et aux co-gérants (`requireOwnerAdminRoute`) ; l'appelant le pose pour un
+ * membre actif. /notifications revérifie le paramètre (membre actif de la box
+ * active) et l'ignore sinon.
+ */
+export default function AthleteSheet({ memberId, onClose, notifiable = false }: { memberId: string; onClose: () => void; notifiable?: boolean }) {
   const supabase = createClient();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -86,6 +95,16 @@ export default function AthleteSheet({ memberId, onClose }: { memberId: string; 
             <X size={16} />
           </button>
         </div>
+
+        {notifiable && (
+          <div className="px-5 pt-5">
+            <Link href={`/notifications?membre=${encodeURIComponent(memberId)}`}
+              className={cn(buttonVariants({ variant: 'ax-outline' }), 'w-full')}>
+              <Bell size={16} className="text-ax-accent-text" aria-hidden />
+              Envoyer une notification
+            </Link>
+          </div>
+        )}
 
         {loading ? (
           <div className="flex items-center justify-center py-20"><Loader2 size={24} className="animate-spin text-ax-text" /></div>

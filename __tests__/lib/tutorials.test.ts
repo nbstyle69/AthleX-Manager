@@ -59,6 +59,8 @@ const EXPECTED_SLUGS = [
   'tournois-ligue-classement-et-cloture',
   'arret-d-abonnement-et-impayes',
   'suivi-apres-l-essai',
+  // D4b
+  'envoyer-une-notification',
 ];
 
 const BANNED = [/crossfit/i, /hyrox/i, /thehub/i];
@@ -285,7 +287,8 @@ describe('navigation', () => {
     expect(neighbours('fr', 'tournois').next?.slug).toBe('tournois-wod-scores-participants');
     expect(neighbours('fr', 'tournois-ligue-classement-et-cloture').next?.slug).toBe('parcours-d-un-nouveau-membre');
     expect(neighbours('fr', 'reglages-de-la-box').next?.slug).toBe('arret-d-abonnement-et-impayes');
-    expect(neighbours('fr', 'suivi-apres-l-essai').next).toBeNull();
+    expect(neighbours('fr', 'suivi-apres-l-essai').next?.slug).toBe('envoyer-une-notification');
+    expect(neighbours('fr', 'envoyer-une-notification').next).toBeNull();
   });
 
   it('rend null sur un slug inconnu', () => {
