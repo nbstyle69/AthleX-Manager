@@ -22,18 +22,23 @@ import {
 import {
   EMPTY_STRENGTH_ENTRY,
   StrengthEntry,
-  StrengthLoadUnit,
   isStrengthLine,
 } from '@/lib/strengthBlock';
 import { BLOCKS, DAY_LABELS, WOD_TYPES, WodFormState } from '@/lib/wodFields';
 import {
   CardioRow,
+  STRENGTH_UNIT_LABEL,
   StrengthRow,
+  StrengthUnitChoice,
   cardioRowsFromLines,
+  changeStrengthUnit,
   composeMovements,
   serializeCardioRow,
   serializeStrengthRow,
+  strengthRowError,
   strengthRowsFromLines,
+  strengthUnitChoice,
+  strengthUnitChoices,
   updateCardioRow,
   updateStrengthRow,
 } from '@/lib/wodEditorLines';
@@ -144,6 +149,8 @@ export default function WodEditor({
   const removeStrength = (i: number) => setStrength(strengthRows.filter((_, idx) => idx !== i));
   const updateStrength = (i: number, patch: Partial<StrengthEntry>) =>
     setStrength(updateStrengthRow(strengthRows, i, patch));
+  const setStrengthUnit = (i: number, choice: StrengthUnitChoice) =>
+    setStrength(changeStrengthUnit(strengthRows, i, choice));
 
   const setCardio = (rows: CardioRow[]) => {
     setCardioRows(rows);
@@ -159,7 +166,8 @@ export default function WodEditor({
 
   const audienceChosen = !isWhiteboard || form.audience !== '';
   const groupsChosen = !isWhiteboard || form.audience !== 'groups' || form.groupIds.length > 0;
-  const canSubmit = !!form.title.trim() && !saving && (!isWhiteboard || !!form.date) && audienceChosen && groupsChosen;
+  const strengthValid = strengthRows.every(r => !strengthRowError(r));
+  const canSubmit = !!form.title.trim() && !saving && (!isWhiteboard || !!form.date) && audienceChosen && groupsChosen && strengthValid;
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-ax-overlay backdrop-blur-ax-glass p-4">
@@ -441,7 +449,7 @@ export default function WodEditor({
             </div>
           </div>
 
-          {/* Bloc Musculation — séries × reps × charge (kg ou %1RM) */}
+          {/* Bloc Musculation — séries × reps × charge (kg ou %1RM), ou séries × % du max (gymnastique) */}
           <div>
             <div className="flex items-center justify-between mb-1.5">
               <label className="block text-xs font-semibold text-ax-text-secondary uppercase tracking-wider flex items-center gap-1.5">
@@ -452,7 +460,11 @@ export default function WodEditor({
               </button>
             </div>
             <div className="space-y-2">
-              {strengthRows.map((e, i) => (
+              {strengthRows.map((e, i) => {
+                const choice = strengthUnitChoice(e);
+                const pct = choice === 'pctOfMax';
+                const unitError = strengthRowError(e);
+                return (
                 <div key={i} className="bg-ax-surface-secondary border border-ax-border rounded-ax-control p-3 space-y-2">
                   <div className="flex gap-2 items-center">
                     <input list="box-movement-catalog"
@@ -471,24 +483,42 @@ export default function WodEditor({
                       onChange={ev => updateStrength(i, { sets: parseInt(ev.target.value, 10) || 1 })}
                       placeholder="5" aria-label="Séries" />
                     <span className="text-ax-text-muted text-sm">×</span>
-                    <input type="number" min={1} inputMode="numeric"
-                      className={`${inp} !w-20 shrink-0 text-center !px-2`}
-                      value={e.reps}
-                      onChange={ev => updateStrength(i, { reps: parseInt(ev.target.value, 10) || 1 })}
-                      placeholder="3" aria-label="Répétitions par série" />
-                    <span className="text-ax-text-muted text-sm">@</span>
-                    <input type="number" min={0} step={0.5} inputMode="decimal"
-                      className={`${inp} !w-24 shrink-0 text-center !px-2`}
-                      value={e.load ?? ''}
-                      onChange={ev => updateStrength(i, { load: ev.target.value === '' ? null : parseFloat(ev.target.value) })}
-                      placeholder="Charge" aria-label="Charge par série" />
-                    <select className={`${inp} !w-24 shrink-0 !px-2`} value={e.unit}
-                      onChange={ev => updateStrength(i, { unit: ev.target.value as StrengthLoadUnit })}
-                      aria-label="Unité de charge">
-                      <option value="kg" className="text-ax-text bg-ax-surface">kg</option>
-                      <option value="%1RM" className="text-ax-text bg-ax-surface">%1RM</option>
+                    {pct ? (
+                      // « % du max » : pas de reps (elles viennent du record de
+                      // l'athlète), le champ chiffré porte le pourcentage.
+                      <input type="number" min={1} step={1} inputMode="decimal"
+                        className={`${inp} !w-20 shrink-0 text-center !px-2`}
+                        value={e.pctOfMax}
+                        onChange={ev => updateStrength(i, { pctOfMax: parseFloat(ev.target.value) || 1 })}
+                        placeholder="15" aria-label="Pourcentage du max" />
+                    ) : (
+                      <>
+                        <input type="number" min={1} inputMode="numeric"
+                          className={`${inp} !w-20 shrink-0 text-center !px-2`}
+                          value={e.reps}
+                          onChange={ev => updateStrength(i, { reps: parseInt(ev.target.value, 10) || 1 })}
+                          placeholder="3" aria-label="Répétitions par série" />
+                        <span className="text-ax-text-muted text-sm">@</span>
+                        <input type="number" min={0} step={0.5} inputMode="decimal"
+                          className={`${inp} !w-24 shrink-0 text-center !px-2`}
+                          value={e.load ?? ''}
+                          onChange={ev => updateStrength(i, { load: ev.target.value === '' ? null : parseFloat(ev.target.value) })}
+                          placeholder="Charge" aria-label="Charge par série" />
+                      </>
+                    )}
+                    <select className={`${inp} ${pct ? '!w-32' : '!w-24'} shrink-0 !px-2`} value={choice}
+                      onChange={ev => setStrengthUnit(i, ev.target.value as StrengthUnitChoice)}
+                      aria-label="Unité de charge"
+                      aria-invalid={unitError ? true : undefined}
+                      aria-describedby={unitError ? `strength-unit-error-${i}` : undefined}>
+                      {strengthUnitChoices(e).map(u => (
+                        <option key={u} value={u} className="text-ax-text bg-ax-surface">{STRENGTH_UNIT_LABEL[u]}</option>
+                      ))}
                     </select>
                   </div>
+                  {unitError && (
+                    <p id={`strength-unit-error-${i}`} className="text-[11px] text-ax-danger">{unitError}</p>
+                  )}
                   <div className="flex flex-wrap gap-2 items-center">
                     <input type="text"
                       className={`${inp} flex-1 min-w-[8rem]`}
@@ -508,7 +538,8 @@ export default function WodEditor({
                   </div>
                   <p className="text-[11px] text-ax-text-muted break-words">{serializeStrengthRow(e) || 'Nomme l’exercice pour enregistrer cette série.'}</p>
                 </div>
-              ))}
+                );
+              })}
               {strengthRows.length === 0 && (
                 <button type="button" onClick={addStrength}
                   className="w-full py-3 rounded-ax-control border border-dashed border-ax-border text-xs text-ax-text-muted hover:border-ax-input-border hover:text-ax-text-secondary transition-colors">
@@ -517,6 +548,7 @@ export default function WodEditor({
               )}
               <p className="text-[11px] text-ax-text-muted pt-1">
                 Une charge en %1RM s’affiche en kilos chez l’athlète, calculée sur son propre 1RM.
+                Un % du max (mouvements de gymnastique) s’affiche en reps, calculé sur son record.
                 Ces séries ne comptent pas de reps de badge : ce n’est pas du metcon.
               </p>
             </div>

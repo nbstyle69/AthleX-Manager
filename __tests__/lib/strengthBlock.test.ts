@@ -61,10 +61,10 @@ describe('cohabitation dans la même description', () => {
 });
 
 describe('strengthBlock — charge libre', () => {
-  it('sérialise `charge …` après le tempo et le relit', () => {
+  it('sérialise `charge …` avant le repos (ordre de l’app) et le relit', () => {
     const e = { name: 'Back Squat', sets: 5, reps: 3, load: null, unit: 'kg' as const, restSec: 120, tempo: null, loadNote: 'RPE 9' };
     const line = serializeStrength(e);
-    expect(line).toBe('Back Squat — 5 × 3 — repos 2:00 — charge RPE 9');
+    expect(line).toBe('Back Squat — 5 × 3 — charge RPE 9 — repos 2:00');
     expect(parseStrengthLine(line)).toMatchObject({ name: 'Back Squat', sets: 5, reps: 3, load: null, loadNote: 'RPE 9' });
   });
 
@@ -75,11 +75,24 @@ describe('strengthBlock — charge libre', () => {
 
   it('charge numérique et charge libre coexistent', () => {
     const line = serializeStrength({ name: 'Bench', sets: 4, reps: 6, load: 80, unit: '%1RM', restSec: null, tempo: '30X1', loadNote: 'ou RPE 8' });
-    expect(line).toBe('Bench — 4 × 6 @ 80 %1RM — tempo 30X1 — charge ou RPE 8');
+    expect(line).toBe('Bench — 4 × 6 @ 80 %1RM — charge ou RPE 8 — tempo 30X1');
     expect(parseStrengthLine(line)).toMatchObject({ load: 80, unit: '%1RM', tempo: '30X1', loadNote: 'ou RPE 8' });
   });
 
   it('sans charge libre, la ligne parsée ne porte pas de clé loadNote', () => {
     expect(parseStrengthLine('Back Squat — 5 × 3 @ 80 %1RM')).not.toHaveProperty('loadNote');
+  });
+});
+
+describe('strengthBlock — ordre des segments', () => {
+  it('une ligne écrite avant (repos, tempo, puis charge) se relit sans perte', () => {
+    const old = 'Bench — 4 × 6 @ 80 %1RM — repos 1:30 — tempo 30X1 — charge ou RPE 8';
+    const fresh = 'Bench — 4 × 6 @ 80 %1RM — charge ou RPE 8 — repos 1:30 — tempo 30X1';
+    const e = parseStrengthLine(old);
+    expect(e).toEqual({
+      name: 'Bench', sets: 4, reps: 6, load: 80, unit: '%1RM', restSec: 90, tempo: '30X1', loadNote: 'ou RPE 8',
+    });
+    expect(parseStrengthLine(fresh)).toEqual(e);
+    expect(serializeStrength(e!)).toBe(fresh);
   });
 });
