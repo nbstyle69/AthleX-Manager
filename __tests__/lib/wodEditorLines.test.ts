@@ -61,7 +61,8 @@ describe('WodEditor — une autre ligne modifiée, les lignes intactes le resten
   it('modifier une ligne de musculation ne touche que celle-là', () => {
     const { strength, cardio, wod } = ouvrir(SEANCE);
     const out = composeMovements(wod, updateStrengthRow(strength, 3, { sets: 6 }), cardio);
-    expect(out[3]).toBe('Front Squat — 6 × 3 @ 82 %1RM — repos 3:00 — tempo 2-1-X-1 — charge 80-85 %');
+    // Ligne modifiée : réécrite dans l'ordre de l'app (charge, repos, tempo).
+    expect(out[3]).toBe('Front Squat — 6 × 3 @ 82 %1RM — charge 80-85 % — repos 3:00 — tempo 2-1-X-1');
     expect(out.filter((_, i) => i !== 3)).toEqual(SEANCE.filter((_, i) => i !== 3));
   });
 

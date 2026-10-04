@@ -6,6 +6,7 @@
  * écrit « nom d'abord » :
  *
  *   Back Squat — 5 × 3 @ 80 %1RM — repos 2:00 — tempo 30X1
+ *   Ring Muscle-up — 3 × 15 % du max — repos 1:30   (gymnastique seulement)
  *
  * L'absence de chiffre en tête est ce qui le rend invisible au crédit : les
  * parseurs de l'app déjà installée rendent `null` sur cette ligne, donc un bloc
@@ -13,6 +14,8 @@
  * `serializeStrength` garantit cette propriété (le nom est nettoyé de tout
  * chiffre de tête). Miroir de `src/utils/strengthBlock.ts` côté app.
  */
+
+import { gymPrLabel } from '@/lib/gymMovements';
 
 export type StrengthLoadUnit = 'kg' | '%1RM';
 
@@ -31,6 +34,12 @@ export interface StrengthEntry {
    * reste un bloc de force.
    */
   loadNote?: string | null;
+  /**
+   * Mouvement de gymnastique prescrit en % du record (max unbroken) :
+   * « Ring Muscle-up — 3 × 15 % du max ». Les reps viennent du record de
+   * l'athlète, côté app ; `reps` vaut alors 0 (inconnues ici).
+   */
+  pctOfMax?: number;
 }
 
 export const EMPTY_STRENGTH_ENTRY: StrengthEntry = {
@@ -66,13 +75,17 @@ export function serializeStrength(e: StrengthEntry): string {
   if (!name) return '';
   const sets = Math.max(1, Math.round(e.sets));
   const reps = Math.max(1, Math.round(e.reps));
-  let out = `${name}${SEP}${sets} × ${reps}`;
-  if (e.load != null && e.load > 0) out += ` @ ${e.load} ${e.unit}`;
+  // Ordre de l'app (contrat partagé) : charge, repos, tempo. Le parseur lit
+  // tous les ordres, y compris les lignes écrites avant (« … — tempo — charge »).
+  let out = e.pctOfMax != null
+    ? `${name}${SEP}${sets} × ${e.pctOfMax} % du max`
+    : `${name}${SEP}${sets} × ${reps}`;
+  if (e.pctOfMax == null && e.load != null && e.load > 0) out += ` @ ${e.load} ${e.unit}`;
+  const loadNote = (e.loadNote ?? '').trim().replace(/\s+[—–-]\s+/g, ' ');
+  if (loadNote) out += `${SEP}charge ${loadNote}`;
   if (e.restSec != null && e.restSec > 0) out += `${SEP}repos ${formatRest(e.restSec)}`;
   const tempo = (e.tempo ?? '').trim();
   if (tempo) out += `${SEP}tempo ${tempo}`;
-  const loadNote = (e.loadNote ?? '').trim().replace(/\s+[—–-]\s+/g, ' ');
-  if (loadNote) out += `${SEP}charge ${loadNote}`;
   return out;
 }
 
@@ -85,10 +98,13 @@ export function parseStrengthLine(line: string): StrengthEntry | null {
   if (!name) return null;
 
   const m = parts[1].match(/^(\d+)\s*[x×]\s*(\d+)(?:\s*@\s*(\d+(?:[.,]\d+)?)\s*(kg|%\s*1rm|%))?$/i);
-  if (!m) return null;
+  // « 3 × 15 % du max » / « 3 × 15 % » : seulement pour un mouvement de
+  // gymnastique (un % de son record). Un mouvement chargé reste non reconnu.
+  const pm = m ? null : parts[1].match(/^(\d+)\s*[x×]\s*(\d+(?:[.,]\d+)?)\s*%(?:\s*du\s+max)?$/i);
+  if (!m && !(pm && gymPrLabel(name))) return null;
 
-  const load = m[3] != null ? parseFloat(m[3].replace(',', '.')) : null;
-  const unit: StrengthLoadUnit = m[4] != null && m[4].toLowerCase().startsWith('kg') ? 'kg' : '%1RM';
+  const load = m?.[3] != null ? parseFloat(m[3].replace(',', '.')) : null;
+  const unit: StrengthLoadUnit = m?.[4] != null && m[4].toLowerCase().startsWith('kg') ? 'kg' : '%1RM';
 
   let restSec: number | null = null;
   let tempo: string | null = null;
@@ -104,13 +120,14 @@ export function parseStrengthLine(line: string): StrengthEntry | null {
 
   return {
     name,
-    sets: parseInt(m[1], 10),
-    reps: parseInt(m[2], 10),
+    sets: parseInt((m ?? pm)![1], 10),
+    reps: m ? parseInt(m[2], 10) : 0,
     load,
     unit: load == null ? 'kg' : unit,
     restSec,
     tempo,
     ...(loadNote ? { loadNote } : {}),
+    ...(pm ? { pctOfMax: parseFloat(pm[2].replace(',', '.')) } : {}),
   };
 }
 

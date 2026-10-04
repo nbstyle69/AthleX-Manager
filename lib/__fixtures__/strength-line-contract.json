@@ -1,0 +1,31 @@
+{
+  "version": 1,
+  "description": "Contrat de format des lignes de bloc musculation, partagé entre athlex-app (src/__tests__/fixtures) et AthleX-Manager (lib/__fixtures__) : fichiers identiques octet pour octet. Champs vérifiés : name, sets, reps, pctOfMax, restSec. Un champ absent de expected doit être absent du résultat (non défini ou null) ; des reps à 0 (inconnues, % du max) comptent comme absentes. expected null : ligne non reconnue. serialize vrai : expected se sérialise exactement en line.",
+  "cases": [
+    {
+      "line": "Back Squat — 5 × 3 @ 80 %1RM — repos 2:00",
+      "expected": { "name": "Back Squat", "sets": 5, "reps": 3, "restSec": 120 },
+      "serialize": false
+    },
+    {
+      "line": "Ring Muscle-up — 3 × 15 % du max — repos 1:30",
+      "expected": { "name": "Ring Muscle-up", "sets": 3, "pctOfMax": 15, "restSec": 90 },
+      "serialize": true
+    },
+    {
+      "line": "Toes To Bar — 2 × 60 % du max",
+      "expected": { "name": "Toes To Bar", "sets": 2, "pctOfMax": 60 },
+      "serialize": false
+    },
+    {
+      "line": "Back Squat — 3 × 15 % du max",
+      "expected": null,
+      "serialize": false
+    },
+    {
+      "line": "Pull-ups — 4 × 8",
+      "expected": { "name": "Pull-ups", "sets": 4, "reps": 8 },
+      "serialize": false
+    }
+  ]
+}
