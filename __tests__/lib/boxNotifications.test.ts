@@ -91,6 +91,12 @@ describe('historique', () => {
     expect(dateHistorique('2026-10-03T13:09:00Z')).toBe('03/10 · 15:09');
   });
 
+  it('sous 640 px : liste empilée ; au-dessus : la Table', () => {
+    const src = read('app', '(dashboard)', 'notifications', 'NotificationsClient.tsx');
+    expect(src).toMatch(/<ul data-testid="notif-historique-liste"[^>]*className="sm:hidden /);
+    expect(src).toMatch(/<div className="hidden sm:block">\s*<Table aria-label="Historique des notifications">/);
+  });
+
   it('lit les 20 dernières de la box active', () => {
     const src = read('app', '(dashboard)', 'notifications', 'NotificationsClient.tsx');
     expect(src).toMatch(/from\('box_notifications'\)[\s\S]*?\.eq\('box_id', id\)[\s\S]*?\.order\('created_at', \{ ascending: false \}\)[\s\S]*?\.limit\(20\)/);

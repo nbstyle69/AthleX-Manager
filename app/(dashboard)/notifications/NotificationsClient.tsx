@@ -215,42 +215,68 @@ export default function NotificationsClient({ membreParam }: { membreParam: stri
                   <Bell size={16} aria-hidden /> Aucune notification envoyée.
                 </p>
               ) : (
-                <Table aria-label="Historique des notifications">
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="px-3">Date</TableHead>
-                      <TableHead className="px-3">Titre</TableHead>
-                      <TableHead className="px-3">Destinataire</TableHead>
-                      <TableHead className="px-3">Résultat</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
+                <>
+                  {/* Sous 640 px : liste empilée, deux lignes par notification, sans défilement horizontal. */}
+                  <ul data-testid="notif-historique-liste" aria-label="Historique des notifications"
+                    className="sm:hidden divide-y divide-ax-border rounded-ax-card border border-ax-border">
                     {historique.map((n) => {
                       const r = resultatHistorique(n.delivered_count);
                       return (
-                        <TableRow key={n.id} data-testid={`notif-ligne-${n.id}`}>
-                          <TableCell className="px-3 whitespace-nowrap text-[13px] text-ax-text-secondary">{dateHistorique(n.created_at)}</TableCell>
-                          <TableCell className="px-3 font-semibold break-words min-w-[8rem]">{n.title}</TableCell>
-                          <TableCell className="px-3 text-[13px] text-ax-text-secondary">{libelleDestinataire(n.target, membres)}</TableCell>
-                          <TableCell className="px-3 whitespace-nowrap">
-                            {r && (
-                              <span className={cn('inline-flex items-center gap-1.5 text-xs font-semibold', TON_TEXTE[r.ton])}>
-                                {r.ton === 'success' ? <Bell size={14} aria-hidden /> : <BellOff size={14} aria-hidden />}
-                                {r.texte}
-                              </span>
-                            )}
-                          </TableCell>
-                        </TableRow>
+                        <li key={n.id} data-testid={`notif-item-${n.id}`} className="px-3 py-2.5 text-[13px]">
+                          <p className="flex gap-2">
+                            <span className="shrink-0 text-ax-text-secondary">{dateHistorique(n.created_at)}</span>
+                            <span className="min-w-0 break-words text-sm font-semibold text-ax-text">{n.title}</span>
+                          </p>
+                          <p className="mt-1 flex flex-wrap items-center gap-x-1.5 text-ax-text-secondary">
+                            <span className="min-w-0 break-words">{libelleDestinataire(n.target, membres)}</span>
+                            {r && <><span aria-hidden>·</span><ResultatHistorique r={r} /></>}
+                          </p>
+                        </li>
                       );
                     })}
-                  </TableBody>
-                </Table>
+                  </ul>
+                  <div className="hidden sm:block">
+                    <Table aria-label="Historique des notifications">
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="px-3">Date</TableHead>
+                          <TableHead className="px-3">Titre</TableHead>
+                          <TableHead className="px-3">Destinataire</TableHead>
+                          <TableHead className="px-3">Résultat</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {historique.map((n) => {
+                          const r = resultatHistorique(n.delivered_count);
+                          return (
+                            <TableRow key={n.id} data-testid={`notif-ligne-${n.id}`}>
+                              <TableCell className="px-3 whitespace-nowrap text-[13px] text-ax-text-secondary">{dateHistorique(n.created_at)}</TableCell>
+                              <TableCell className="px-3 font-semibold break-words min-w-[8rem]">{n.title}</TableCell>
+                              <TableCell className="px-3 text-[13px] text-ax-text-secondary">{libelleDestinataire(n.target, membres)}</TableCell>
+                              <TableCell className="px-3 whitespace-nowrap">{r && <ResultatHistorique r={r} />}</TableCell>
+                            </TableRow>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </>
               )}
             </CardContent>
           </Card>
         </div>
       )}
     </div>
+  );
+}
+
+/** « N appareils » en vert, « Non reçue » en orange. */
+function ResultatHistorique({ r }: { r: { ton: Ton; texte: string } }) {
+  return (
+    <span data-testid="notif-resultat-historique" className={cn('inline-flex items-center gap-1.5 whitespace-nowrap text-xs font-semibold', TON_TEXTE[r.ton])}>
+      {r.ton === 'success' ? <Bell size={14} aria-hidden /> : <BellOff size={14} aria-hidden />}
+      {r.texte}
+    </span>
   );
 }
 
