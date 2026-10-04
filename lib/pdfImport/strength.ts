@@ -19,9 +19,10 @@ const LINE_PREFIX = /^\s*[-•·*]\s*/;
 
 function parseTempo(s: string): { rest: string; tempo: string | null } {
   // `3" pause ras le sol`, `2" pause sous la parallèle`, `tempo 30X1`
-  const m = s.match(/(\d+"\s*pause(?:\s+[a-zà-ü]+)*|tempo\s+[\dXx]+)/i);
+  // `tempo 30X1` → `30X1` : `serializeStrength` remet le mot (sinon « tempo tempo 30X1 »).
+  const m = s.match(/(\d+"\s*pause(?:\s+[a-zà-ü]+)*)|tempo\s+([\dXx]+)/i);
   if (!m) return { rest: s, tempo: null };
-  return { rest: s.replace(m[0], ' ').replace(/\s+/g, ' ').trim(), tempo: m[1].trim() };
+  return { rest: s.replace(m[0], ' ').replace(/\s+/g, ' ').trim(), tempo: (m[1] ?? m[2]).trim() };
 }
 
 function parseRest(s: string): { rest: string; restNote: string | null } {

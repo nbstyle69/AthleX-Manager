@@ -171,29 +171,31 @@
       "block": "skill-gym",
       "type": "custom",
       "title": "GYM — HSPU X T2B (résistance)",
-      "movements": [
+      "movements": [],
+      "musculation": [
         {
-          "name": "Toes-to-Bar",
+          "exercise": "Toes-to-Bar",
           "resolved": true,
-          "reps": "25% du max UBK",
-          "charge_h": null,
-          "charge_f": null,
-          "reps_h": null,
-          "reps_f": null,
-          "note": "Min 1/3/5/7/9/11 · CAP à 12"
+          "sets": 6,
+          "reps": null,
+          "percent": 25,
+          "rpe": null,
+          "charge_note": "max UBK · Min 1/3/5/7/9/11 · CAP à 12",
+          "tempo": null,
+          "rest": null
         },
         {
-          "name": "Handstand Push-ups",
+          "exercise": "Strict Handstand Push-Ups",
           "resolved": true,
-          "reps": "15% du max UBK",
-          "charge_h": null,
-          "charge_f": null,
-          "reps_h": null,
-          "reps_f": null,
-          "note": "Min 2/4/6/8/10/12 · Arrondir à l'entier inférieur · CAP à 4 · 2\" pause tête ras le sol*"
+          "sets": 6,
+          "reps": null,
+          "percent": 15,
+          "rpe": null,
+          "charge_note": "max UBK · Min 2/4/6/8/10/12 · Arrondir à l'entier inférieur · CAP à 4 · 2\" pause tête ras le sol*",
+          "tempo": null,
+          "rest": null
         }
       ],
-      "musculation": [],
       "timecap": "12:00",
       "rounds": null,
       "emom_interval_minutes": null,
@@ -560,19 +562,20 @@
       "block": "skill-gym",
       "type": "custom",
       "title": "GYM — C2B (technique) (Every 1'30 × 4)",
-      "movements": [
+      "movements": [],
+      "musculation": [
         {
-          "name": "Chest-to-Bar",
+          "exercise": "Chest-to-Bar",
           "resolved": true,
-          "reps": "28% du max UBK",
-          "charge_h": null,
-          "charge_f": null,
-          "reps_h": null,
-          "reps_f": null,
-          "note": "CAP à 14"
+          "sets": 4,
+          "reps": null,
+          "percent": 28,
+          "rpe": null,
+          "charge_note": "max UBK · CAP à 14",
+          "tempo": null,
+          "rest": null
         }
       ],
-      "musculation": [],
       "timecap": "06:00",
       "rounds": 4,
       "emom_interval_minutes": null,
@@ -815,19 +818,20 @@
       "block": "skill-gym",
       "type": "emom",
       "title": "GYM — RMU (résistance) (EMOM 5')",
-      "movements": [
+      "movements": [],
+      "musculation": [
         {
-          "name": "Ring Muscle-ups",
+          "exercise": "Ring Muscle-ups",
           "resolved": true,
-          "reps": "30%",
-          "charge_h": null,
-          "charge_f": null,
-          "reps_h": null,
-          "reps_f": null,
-          "note": null
+          "sets": 5,
+          "reps": null,
+          "percent": 30,
+          "rpe": null,
+          "charge_note": null,
+          "tempo": null,
+          "rest": null
         }
       ],
-      "musculation": [],
       "timecap": "05:00",
       "rounds": null,
       "emom_interval_minutes": 1,
@@ -850,19 +854,20 @@
       "block": "skill-gym",
       "type": "emom",
       "title": "GYM — BMU (technique) (EMOM 10')",
-      "movements": [
+      "movements": [],
+      "musculation": [
         {
-          "name": "Bar Muscle-ups",
+          "exercise": "Bar Muscle-ups",
           "resolved": true,
-          "reps": "15% du max UBK",
-          "charge_h": null,
-          "charge_f": null,
-          "reps_h": null,
-          "reps_f": null,
-          "note": "CAP à 5"
+          "sets": 10,
+          "reps": null,
+          "percent": 15,
+          "rpe": null,
+          "charge_note": "max UBK · CAP à 5",
+          "tempo": null,
+          "rest": null
         }
       ],
-      "musculation": [],
       "timecap": "10:00",
       "rounds": null,
       "emom_interval_minutes": 1,
@@ -885,19 +890,20 @@
       "block": "skill-gym",
       "type": "emom",
       "title": "GYM — T2B (technique) (EMOM 10')",
-      "movements": [
+      "movements": [],
+      "musculation": [
         {
-          "name": "Toes-to-Bar",
+          "exercise": "Toes-to-Bar",
           "resolved": true,
-          "reps": "15% du max UBK",
-          "charge_h": null,
-          "charge_f": null,
-          "reps_h": null,
-          "reps_f": null,
-          "note": "Cap à 6"
+          "sets": 10,
+          "reps": null,
+          "percent": 15,
+          "rpe": null,
+          "charge_note": "max UBK · Cap à 6",
+          "tempo": null,
+          "rest": null
         }
       ],
-      "musculation": [],
       "timecap": "10:00",
       "rounds": null,
       "emom_interval_minutes": 1,
@@ -1258,19 +1264,20 @@
       "block": "skill-gym",
       "type": "emom",
       "title": "GYM — HSPU (technique) (EMOM 10')",
-      "movements": [
+      "movements": [],
+      "musculation": [
         {
-          "name": "Handstand Push-ups",
+          "exercise": "Handstand Push-ups",
           "resolved": true,
-          "reps": "15%",
-          "charge_h": null,
-          "charge_f": null,
-          "reps_h": null,
-          "reps_f": null,
-          "note": "Série KHSPU Max UBK · CAP 6"
+          "sets": 10,
+          "reps": null,
+          "percent": 15,
+          "rpe": null,
+          "charge_note": "Série KHSPU Max UBK · CAP 6",
+          "tempo": null,
+          "rest": null
         }
       ],
-      "musculation": [],
       "timecap": "10:00",
       "rounds": null,
       "emom_interval_minutes": 1,
@@ -1293,49 +1300,53 @@
       "block": "skill-gym",
       "type": "custom",
       "title": "GYM — BMU X C2B (résistance)",
-      "movements": [
+      "movements": [],
+      "musculation": [
         {
-          "name": "Bar Muscle-ups",
+          "exercise": "Bar Muscle-ups",
           "resolved": true,
-          "reps": "20%",
-          "charge_h": null,
-          "charge_f": null,
-          "reps_h": null,
-          "reps_f": null,
-          "note": null
+          "sets": 3,
+          "reps": null,
+          "percent": 20,
+          "rpe": null,
+          "charge_note": null,
+          "tempo": null,
+          "rest": null
         },
         {
-          "name": "Chest-to-Bar",
+          "exercise": "Chest-to-Bar",
           "resolved": true,
-          "reps": "20%",
-          "charge_h": null,
-          "charge_f": null,
-          "reps_h": null,
-          "reps_f": null,
-          "note": null
+          "sets": 3,
+          "reps": null,
+          "percent": 20,
+          "rpe": null,
+          "charge_note": null,
+          "tempo": null,
+          "rest": null
         },
         {
-          "name": "Bar Muscle-ups",
+          "exercise": "Bar Muscle-ups",
           "resolved": true,
-          "reps": "20%",
-          "charge_h": null,
-          "charge_f": null,
-          "reps_h": null,
-          "reps_f": null,
-          "note": null
+          "sets": 3,
+          "reps": null,
+          "percent": 20,
+          "rpe": null,
+          "charge_note": null,
+          "tempo": null,
+          "rest": null
         },
         {
-          "name": "Chest-to-Bar",
+          "exercise": "Chest-to-Bar",
           "resolved": true,
-          "reps": "20%",
-          "charge_h": null,
-          "charge_f": null,
-          "reps_h": null,
-          "reps_f": null,
-          "note": null
+          "sets": 3,
+          "reps": null,
+          "percent": 20,
+          "rpe": null,
+          "charge_note": null,
+          "tempo": null,
+          "rest": null
         }
       ],
-      "musculation": [],
       "timecap": null,
       "rounds": 3,
       "emom_interval_minutes": null,

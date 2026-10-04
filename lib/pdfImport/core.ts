@@ -7,6 +7,7 @@ import { detectFormat, timecapOf, type FormatDetection } from './formats';
 import { looksLikeMovementLine, parseMovementLine, resolveMovementName } from './movements';
 import { parseStrengthLine } from './strength';
 import { serializeImportStrength } from './serialize';
+import { gymPrLabel } from '@/lib/gymMovements';
 import { applyTypoFixes, normKey, normalizeQuotes, removeArtefacts, secondsToTimecap, stripEmojis, toLines } from './text';
 
 /**
@@ -218,6 +219,55 @@ function splitComplexLine(line: string): { parts: string[]; tail: string } | nul
 /** `- Min 1/3/5 : 25% T2B (…)` → mouvement `25% T2B` annoté `Min 1/3/5`. */
 const MINUTE_PREFIX_RE = /^\s*[-•·*]?\s*(min(?:ute)?s?\s+[\d\/,\-\s]+?)\s*:\s*(.+)$/i;
 
+/** `3 Rounds de :`, `4 séries :` : nombre de séries explicite des lignes qui suivent. */
+const SETS_HEADER_RE = /^\s*[-•·*]?\s*(\d+)\s*(?:rounds?|tours?|rds?|s[ée]ries?)\b/i;
+const REST_LINE_RE = /^\s*[-•·*]?\s*\d+(?:'\d{0,2}|")\s*(?:de\s+)?(?:rest|repos)\b/i;
+
+/**
+ * Séries d'une ligne de gymnastique en % du max, seulement quand la source les
+ * donne sans ambiguïté : liste de minutes (`Min 1/3/5`, au moins deux), entête
+ * `N rounds` / `N séries` au-dessus, rounds du format (`Every 1'30 X 4`,
+ * `E2MOM X 5`), ou EMOM de N minutes à une seule ligne de travail. Sinon
+ * `null` : la ligne reste non structurée, jamais de série inventée.
+ */
+function gymSets(minuteNote: string | null, header: number | null, format: FormatDetection, workLines: number): number | null {
+  if (minuteNote) {
+    const mins = minuteNote.replace(/^min(?:ute)?s?\s+/i, '').split(/\s*[\/,]\s*/);
+    return mins.length >= 2 && mins.every(n => /^\d+$/.test(n)) ? mins.length : null;
+  }
+  if (header != null) return header;
+  if (format.type === 'tabata') return null; // 8 rounds par défaut quand rien n'est écrit
+  if (format.rounds != null) return format.rounds;
+  const emomMinutes = format.type === 'emom' && format.emomIntervalMin === 1 && format.intervalNote == null
+    && format.timecapSec != null && format.timecapSec % 60 === 0 ? format.timecapSec / 60 : null;
+  return emomMinutes != null && workLines === 1 ? emomMinutes : null;
+}
+
+/**
+ * `35% T2B` sur un des 11 mouvements de gymnastique → ligne de force en % du max
+ * (`Toes-to-Bar — 6 × 35 % du max`), plus jamais une ligne de metcon. Une charge
+ * sur la ligne (incohérente avec un % du max) la laisse non structurée.
+ */
+function gymPercentStrength(m: ParsedMovement, sets: number | null): ParsedStrength | null {
+  if (!gymPrLabel(m.name)) return null;
+  // `35% du max UBK` : le qualificatif de la série max (`UBK`) reste en note.
+  const pct = m.reps?.match(/^(\d+(?:[.,]\d+)?)\s*%(?:\s*du max\b\s*(.*))?$/i);
+  if (!pct) return null;
+  const charge = m.charge_h ?? m.charge_f;
+  const notes = [pct[2] ? `max ${pct[2]}` : null, m.note, charge ? `charge ${charge}` : null].filter(Boolean);
+  return {
+    exercise: m.name,
+    resolved: m.resolved,
+    sets: charge ? null : sets,
+    reps: null,
+    percent: parseFloat(pct[1].replace(',', '.')),
+    rpe: null,
+    charge_note: notes.length ? notes.join(' · ') : null,
+    tempo: null,
+    rest: null,
+  };
+}
+
 /**
  * Recolle les retours à la ligne du PDF : parenthèse ouverte non fermée, ou ligne suivante
  * qui commence en minuscule / par une parenthèse sans être une puce.
@@ -371,10 +421,14 @@ export function buildEntry(draft: EntryDraft, profile: SourceProfile, weekStart:
   }
 
   const explicitLevel = section.levelLines ?? [];
+  const workLines = lines.filter(l => looksLikeMovementLine(l) && !SETS_HEADER_RE.test(l) && !REST_LINE_RE.test(normalizeQuotes(l))).length;
+  let setsHeader: number | null = null;
   for (const [idx, raw] of allLines.entries()) {
     if (idx === rmIdx || idx === footIdx) continue;
     let line = normalizeQuotes(raw).trim();
     if (!line) continue;
+    const header = line.match(SETS_HEADER_RE);
+    if (header) setsHeader = parseInt(header[1], 10);
 
     // `- 15 à 25' Mobilité` : durée + activité hors catalogue → time cap + texte en notes.
     const dur = line.match(DURATION_ACTIVITY_RE);
@@ -460,10 +514,12 @@ export function buildEntry(draft: EntryDraft, profile: SourceProfile, weekStart:
       if (mv) {
         if (mv.chargeAmbiguous) chargeAmbiguous = true;
         if (minuteNote) mv.movement.note = mv.movement.note ? `${minuteNote} · ${mv.movement.note}` : minuteNote;
+        const gym = gymPercentStrength(mv.movement, gymSets(minuteNote, setsHeader, format, workLines));
+        if (gym) { musculation.push(gym); continue; }
         movements.push(mv.movement);
         continue;
       }
-      if (/^\d+\s*(?:rounds?|tours?|rds?)\b/i.test(line.replace(/^[-•·*]\s*/, ''))) continue; // entête `3 Rounds de :`
+      if (/^\d+\s*(?:(?:rounds?|tours?|rds?)\b|s[ée]ries?\s*(?:de\s*)?:?$)/i.test(line.replace(/^[-•·*]\s*/, ''))) continue; // entête `3 Rounds de :`, `4 séries :`
     }
     if (/^[-•·*]/.test(line)) { paragraphs.push(line.replace(/^[-•·*]\s*/, '')); continue; }
     if (SUBBLOCK_STRICT_RE.test(line)) continue;

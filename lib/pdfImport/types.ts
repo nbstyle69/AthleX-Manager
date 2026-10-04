@@ -72,6 +72,7 @@ export interface ParsedStrength {
   resolved: boolean;
   sets: number | null;
   reps: number | null;
+  /** %1RM ; sur un mouvement de gymnastique sans `reps`, % du max (« 3 × 15 % du max »). */
   percent: number | null;
   rpe: string | null;
   charge_note: string | null;

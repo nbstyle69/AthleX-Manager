@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { serializeStrength, type StrengthEntry } from '@/lib/strengthBlock';
 import type { ImportEntry, ParsedMovement, ParsedStrength } from './types';
 import { timecapToSeconds } from './text';
+import { gymPrLabel } from '@/lib/gymMovements';
 
 /**
  * Passage d'une entrée de preview à une ligne `box_wods`. Les mouvements sont
@@ -12,6 +13,10 @@ import { timecapToSeconds } from './text';
  * - fourchette `85-90%` → charge structurée = borne haute, fourchette en notes ;
  * - RPE / RM du jour / charge relative → pas de ligne structurée, ligne
  *   complète en notes sous `Musculation (non structurée) :`, carte orange.
+ * - gymnastique (11 mouvements de `lib/gymMovements.ts`, retour R2) : jamais de
+ *   %1RM ni de `charge`. Un % sans reps → `Mvt — S × P % du max` (sans séries
+ *   connues : non structurée) ; des reps écrites gagnent → `Mvt — N × M` et le
+ *   % passe en notes (`Mvt : P % du max`).
  */
 
 const TIMECAP_RE = /^\d{2}:\d{2}$/;
@@ -70,7 +75,7 @@ export function serializeImportMovement(m: ParsedMovement): string {
   if (setsReps) head = `${setsReps[1]}×${setsReps[2]} ${m.name}`;
   else if (m.reps_h && m.reps_f) head = `${m.reps_h}/${m.reps_f} ${m.name}`;
   else if (n != null && /^\d+$/.test(reps)) head = `${reps} ${m.name}`;
-  else if (n != null) head = `${reps.replace(/\s+/, '')} ${m.name}`;
+  else if (n != null) head = `${reps.replace(/^(\d+)\s+/, '$1')} ${m.name}`;
   else head = reps ? `${m.name} (${reps})` : m.name;
   parts.push(head + chargeSuffix(m));
   const extras: string[] = [];
@@ -88,6 +93,8 @@ export interface StrengthSerialization {
   chargeNotes: string[];
   /** Lignes impossibles à structurer, conservées telles quelles. */
   unstructured: string[];
+  /** Gymnastique : % du max et consignes (`Toes-to-Bar : 35 % du max`), une ligne chacune. */
+  gymNotes: string[];
 }
 
 function describeStrength(s: ParsedStrength): string {
@@ -95,7 +102,7 @@ function describeStrength(s: ParsedStrength): string {
   if (s.sets != null && s.reps != null) bits.push(`${s.sets}×${s.reps}`);
   else if (s.reps != null) bits.push(`${s.reps}`);
   bits.push(s.exercise);
-  if (s.percent != null) bits.push(`@ ${s.percent} %`);
+  if (s.percent != null) bits.push(gymPrLabel(s.exercise) ? `${s.percent} % du max` : `@ ${s.percent} %`);
   if (s.rpe) bits.push(`RPE ${s.rpe}`);
   if (s.charge_note) bits.push(`(${s.charge_note})`);
   if (s.tempo) bits.push(`tempo ${s.tempo}`);
@@ -112,28 +119,35 @@ function restToSeconds(rest: string | null): number | null {
 }
 
 export function serializeImportStrength(items: ParsedStrength[]): StrengthSerialization {
-  const out: StrengthSerialization = { lines: [], chargeNotes: [], unstructured: [] };
+  const out: StrengthSerialization = { lines: [], chargeNotes: [], unstructured: [], gymNotes: [] };
   for (const s of items) {
+    const gym = gymPrLabel(s.exercise) != null;
     const range = s.charge_note?.match(/(\d+)-(\d+)%/);
-    const structurable = s.sets != null && s.reps != null && s.exercise
+    const setsNote = !!s.charge_note && /^\d+ à \d+ séries$/.test(s.charge_note);
+    const pctOfMax = gym && s.reps == null && s.percent != null ? s.percent : null;
+    const structurable = s.sets != null && (s.reps != null || pctOfMax != null) && s.exercise
       && !s.rpe
-      && (s.percent != null || range != null || !s.charge_note || /^\d+ à \d+ séries$/.test(s.charge_note));
+      && (pctOfMax != null || s.percent != null || range != null || !s.charge_note || setsNote);
     if (!structurable) { out.unstructured.push(describeStrength(s)); continue; }
-    const load = s.percent ?? (range ? parseInt(range[2], 10) : null);
     const entry: StrengthEntry = {
       name: s.exercise,
       sets: s.sets as number,
-      reps: s.reps as number,
-      load,
+      reps: s.reps ?? 0,
+      load: gym ? null : s.percent ?? (range ? parseInt(range[2], 10) : null),
       unit: '%1RM',
       restSec: restToSeconds(s.rest),
       tempo: s.tempo,
+      ...(pctOfMax != null ? { pctOfMax } : {}),
     };
     const line = serializeStrength(entry);
     if (!line) { out.unstructured.push(describeStrength(s)); continue; }
     out.lines.push(line);
-    if (range) out.chargeNotes.push(`${s.exercise} ${s.sets}×${s.reps} : ${range[1]}-${range[2]} %`);
-    else if (s.charge_note && !/^\d+ à \d+ séries$/.test(s.charge_note)) out.chargeNotes.push(`${s.exercise} : ${s.charge_note}`);
+    if (gym) {
+      if (pctOfMax == null && s.percent != null) out.gymNotes.push(`${s.exercise} : ${s.percent} % du max`);
+      if (range) out.gymNotes.push(`${s.exercise} : ${range[1]}-${range[2]} % du max`);
+      else if (s.charge_note && !setsNote) out.gymNotes.push(`${s.exercise} : ${s.charge_note}`);
+    } else if (range) out.chargeNotes.push(`${s.exercise} ${s.sets}×${s.reps} : ${range[1]}-${range[2]} %`);
+    else if (s.charge_note && !setsNote) out.chargeNotes.push(`${s.exercise} : ${s.charge_note}`);
   }
   return out;
 }
@@ -174,6 +188,7 @@ export function entryToBoxWod(
   const notes: string[] = [];
   if (entry.notes_coach.trim()) notes.push(entry.notes_coach.trim());
   if (strength.chargeNotes.length) notes.push(`Charges : ${strength.chargeNotes.join(' ; ')}`);
+  if (strength.gymNotes.length) notes.push(strength.gymNotes.join('\n'));
   if (strength.unstructured.length) notes.push(`Musculation (non structurée) :\n${strength.unstructured.map(l => `- ${l}`).join('\n')}`);
 
   return {
