@@ -218,10 +218,10 @@ export default function NotificationsClient({ membreParam }: { membreParam: stri
                 <Table aria-label="Historique des notifications">
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Date</TableHead>
-                      <TableHead>Titre</TableHead>
-                      <TableHead>Destinataire</TableHead>
-                      <TableHead>Résultat</TableHead>
+                      <TableHead className="px-3">Date</TableHead>
+                      <TableHead className="px-3">Titre</TableHead>
+                      <TableHead className="px-3">Destinataire</TableHead>
+                      <TableHead className="px-3">Résultat</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -229,10 +229,10 @@ export default function NotificationsClient({ membreParam }: { membreParam: stri
                       const r = resultatHistorique(n.delivered_count);
                       return (
                         <TableRow key={n.id} data-testid={`notif-ligne-${n.id}`}>
-                          <TableCell className="whitespace-nowrap text-[13px] text-ax-text-secondary">{dateHistorique(n.created_at)}</TableCell>
-                          <TableCell className="font-semibold break-words min-w-[10rem]">{n.title}</TableCell>
-                          <TableCell className="text-[13px] text-ax-text-secondary">{libelleDestinataire(n.target, membres)}</TableCell>
-                          <TableCell className="whitespace-nowrap">
+                          <TableCell className="px-3 whitespace-nowrap text-[13px] text-ax-text-secondary">{dateHistorique(n.created_at)}</TableCell>
+                          <TableCell className="px-3 font-semibold break-words min-w-[8rem]">{n.title}</TableCell>
+                          <TableCell className="px-3 text-[13px] text-ax-text-secondary">{libelleDestinataire(n.target, membres)}</TableCell>
+                          <TableCell className="px-3 whitespace-nowrap">
                             {r && (
                               <span className={cn('inline-flex items-center gap-1.5 text-xs font-semibold', TON_TEXTE[r.ton])}>
                                 {r.ton === 'success' ? <Bell size={14} aria-hidden /> : <BellOff size={14} aria-hidden />}
