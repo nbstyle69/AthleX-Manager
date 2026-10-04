@@ -72,7 +72,8 @@ export function readWeightliftingRecords(
     out.push({
       movement,
       value: String(raw),
-      date: typeof date === 'string' ? date : null,
+      // Date prête à afficher : « 2026-09-12 » (écrite par le serveur) → « 12/09/2026 ».
+      date: typeof date === 'string' ? recordDate(date) : null,
       sourceId: typeof src === 'string' ? src : null,
     });
   }

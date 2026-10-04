@@ -39,6 +39,12 @@ describe('readWeightliftingRecords', () => {
     ]);
   });
 
+  it('date écrite par le serveur (AAAA-MM-JJ) rendue en JJ/MM/AAAA, comme les records de gymnastique', () => {
+    expect(readWeightliftingRecords({
+      'weightlifting_Deadlift': '200', 'weightlifting_Deadlift_date': '2026-09-12',
+    })[0].date).toBe('12/09/2026');
+  });
+
   it("n'affiche jamais un uuid de provenance comme une charge", () => {
     // Le bug évité : `_src` traité comme une valeur afficherait « abc-123 kg ».
     const recs = readWeightliftingRecords({
