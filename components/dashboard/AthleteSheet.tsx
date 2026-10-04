@@ -8,7 +8,12 @@ import { buttonVariants } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import {
   groupStrengthSessions,
+  readGymRecords,
   readWeightliftingRecords,
+  recordDate,
+  repsLabel,
+  sessionBlocks,
+  setPerformance,
   type StrengthSet,
 } from '@/lib/athleteStrength';
 
@@ -79,6 +84,7 @@ export default function AthleteSheet({ memberId, onClose, notifiable = false }: 
   }, [memberId]);
 
   const records = readWeightliftingRecords(profile?.personal_records ?? null);
+  const gymRecords = readGymRecords(profile?.personal_records ?? null);
   const sessions = groupStrengthSessions(sets);
   const prSetIds = new Set(records.map(r => r.sourceId).filter((v): v is string => v !== null));
 
@@ -147,6 +153,24 @@ export default function AthleteSheet({ memberId, onClose, notifiable = false }: 
               )}
             </section>
 
+            {gymRecords.length > 0 && (
+              <section>
+                <h3 className="text-sm font-bold text-ax-text mb-2">Records de gymnastique</h3>
+                <div className="bg-ax-surface border border-ax-border rounded-ax-control divide-y divide-ax-border">
+                  {gymRecords.map(r => (
+                    <div key={r.movement} className="flex flex-wrap items-center gap-x-3 gap-y-1 px-4 py-2.5">
+                      <span className="text-sm text-ax-text font-semibold flex-1 min-w-[8rem] break-words">{r.movement}</span>
+                      <span className="text-sm font-mono text-ax-text">{repsLabel(r.reps)}</span>
+                      {r.date && <span className="text-[11px] text-ax-text-muted">{recordDate(r.date)}</span>}
+                      <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-ax-badge ${r.sourceId ? 'bg-ax-surface-secondary text-ax-text-secondary' : 'bg-ax-surface-secondary text-ax-text-muted'}`}>
+                        {r.sourceId ? 'série tracée' : 'saisi à la main'}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
+
             <section>
               <h3 className="text-sm font-bold text-ax-text mb-2 flex items-center gap-2">
                 <Dumbbell size={14} /> Séries réalisées
@@ -158,7 +182,9 @@ export default function AthleteSheet({ memberId, onClose, notifiable = false }: 
                 </p>
               ) : (
                 <div className="space-y-3">
-                  {sessions.map(s => (
+                  {sessions.map(s => {
+                    const { blocks, unloadedTotal } = sessionBlocks(s.sets);
+                    return (
                     <div key={s.key} className="bg-ax-surface border border-ax-border rounded-ax-control overflow-hidden">
                       <div className="flex flex-wrap items-center gap-2 px-4 py-2.5 border-b border-ax-border">
                         <span className="text-sm font-bold text-ax-text flex-1 min-w-[8rem] break-words">{s.title}</span>
@@ -168,34 +194,48 @@ export default function AthleteSheet({ memberId, onClose, notifiable = false }: 
                         <span className="text-[11px] text-ax-text-muted">{fmtDate(s.performedAt)}</span>
                       </div>
                       <div className="divide-y divide-ax-border">
-                        {s.sets.map(set => {
-                          // Le prescrit ne s'affiche que s'il diffère du réalisé : c'est
-                          // l'écart qui porte l'information, et c'est lui qui rend le 1RM juste.
-                          const drift = set.prescribed_reps != null && set.prescribed_reps !== set.reps;
-                          return (
-                            <div key={set.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 px-4 py-2 text-xs">
-                              <span className="text-ax-text-muted w-14 shrink-0">Série {set.set_index}</span>
-                              <span className="text-ax-text font-semibold flex-1 min-w-[8rem] break-words">
-                                {set.movement_label ?? set.movement}
-                              </span>
-                              <span className="font-mono text-ax-text">
-                                {set.reps} × {set.load_kg != null ? `${set.load_kg} kg` : '—'}
-                              </span>
-                              {drift && (
-                                <span className="text-[10px] text-ax-text-muted">
-                                  prescrit : {set.prescribed_reps}
-                                  {set.prescribed_load_kg != null ? ` × ${set.prescribed_load_kg} kg` : ''}
+                        {blocks.flatMap(b => [
+                          ...b.sets.map(set => {
+                            // Le prescrit ne s'affiche que s'il diffère du réalisé : c'est
+                            // l'écart qui porte l'information, et c'est lui qui rend le 1RM juste.
+                            const drift = set.prescribed_reps != null && set.prescribed_reps !== set.reps;
+                            return (
+                              <div key={set.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 px-4 py-2 text-xs">
+                                <span className="text-ax-text-muted w-14 shrink-0">Série {set.set_index}</span>
+                                <span className="text-ax-text font-semibold flex-1 min-w-[8rem] break-words">
+                                  {set.movement_label ?? set.movement}
                                 </span>
-                              )}
-                              {prSetIds.has(set.id) && (
-                                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-ax-badge bg-ax-surface-secondary text-ax-text">1RM</span>
-                              )}
-                            </div>
-                          );
-                        })}
+                                <span className="font-mono text-ax-text">{setPerformance(set)}</span>
+                                {drift && (
+                                  <span className="text-[10px] text-ax-text-muted">
+                                    prescrit : {set.prescribed_reps}
+                                    {set.prescribed_load_kg != null ? ` × ${set.prescribed_load_kg} kg` : ''}
+                                  </span>
+                                )}
+                                {set.is_added && <span className="text-[10px] text-ax-text-muted">ajoutée</span>}
+                                {prSetIds.has(set.id) && (
+                                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-ax-badge bg-ax-surface-secondary text-ax-text">1RM</span>
+                                )}
+                              </div>
+                            );
+                          }),
+                          ...(b.unloadedTotal != null ? [
+                            <div key={`${b.key}|total`} className="flex flex-wrap items-center gap-x-3 gap-y-1 px-4 py-2 text-xs">
+                              <span className="text-ax-text-muted flex-1 min-w-[8rem] break-words">Total {b.label}</span>
+                              <span className="font-mono font-bold text-ax-text">{repsLabel(b.unloadedTotal)}</span>
+                            </div>,
+                          ] : []),
+                        ])}
+                        {unloadedTotal != null && (
+                          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 px-4 py-2.5 text-xs">
+                            <span className="text-ax-text font-bold flex-1 min-w-[8rem]">Reps totales</span>
+                            <span className="font-mono font-bold text-ax-text">{repsLabel(unloadedTotal)}</span>
+                          </div>
+                        )}
                       </div>
                     </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </section>
