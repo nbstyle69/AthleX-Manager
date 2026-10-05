@@ -463,7 +463,7 @@ export const translations = {
     hero: {
       eyebrow: "FUNCTIONAL · HYBRID · STRENGTH",
       welcome: "WELCOME TO YOUR NEW GYM",
-      title: "The platform built for athletes, coaches, owners and gyms.",
+      title: "One platform built for everyone.",
       subtitle: "The app to train. The console to run it.",
       intro: "One platform. Your entire world.",
       choice: "CHOOSE YOUR ENTRANCE. LET US SHOW YOU AROUND.",
