@@ -75,7 +75,8 @@ export const translations = {
       app: "L’APP ATHLEX",
       manager: "ATHLEX MANAGER",
       demo: "Aperçu illustratif",
-      screenshot: "Aperçu de l’interface AthleX",
+      appScreen: "Écran de l’app",
+      managerScreen: "Écran du Manager",
       scene: "Station de la salle en trois dimensions",
       express: "WOD express",
       after: "Après ma classe",
@@ -171,7 +172,7 @@ export const translations = {
       {
         label: "La zone Functional",
         title: "Ton prochain WOD. Pas le même qu’hier.",
-        copy: "Un générateur, trois disciplines, plus de 300 mouvements. Une séance express ou le complément idéal après ta classe : à toi de choisir.",
+        copy: "Un générateur, trois disciplines, un catalogue de plus de 300 mouvements et exercices. Une séance express ou le complément idéal après ta classe : à toi de choisir.",
         features: [
           "Functional, Hybrid et Musculation",
           "WOD express pour une séance complète",
@@ -185,22 +186,22 @@ export const translations = {
         title: "Cours. Enchaîne. Va au bout.",
         copy: "Passe de la piste aux stations. Le générateur Hybrid compose des séances qui préparent ton corps à tous les efforts.",
         features: [
-          "Séances de course à pied",
-          "Enchaînements de stations",
-          "Simulations de course",
-          "Un timer adapté à chaque séance",
+          "Sept formats : AMRAP, For time, EMOM, Chipper, Stations, Intervalles ou Surprends-moi",
+          "Cinq intentions : Interval, Engine, Aerobic, Run, Core",
+          "Avec ou sans gilet lesté",
+          "Durée estimée et mouvements détaillés avant de lancer",
         ],
         action: "Explorer le Hybrid",
       },
       {
         label: "Le plateau Musculation",
         title: "La bonne charge. Le bon progrès.",
-        copy: "173 exercices et trois objectifs : prise de muscle, force ou tonification. Une séance ajustée à ton corps, ton matériel et ton niveau.",
+        copy: "Plus de 230 exercices et trois objectifs : prise de muscle, force ou tonification. Une séance ajustée à ton corps, ton matériel et ton niveau.",
         features: [
-          "Cible les groupes musculaires de ton choix",
-          "Sans matériel, en box ou en salle complète",
-          "Charges calculées sur ton 1RM ou guidées par RPE",
-          "Calculateur 1RM et pourcentages ; timer préréglé, envoi au tableau en un geste et score enregistré",
+          "Trois objectifs : prise de muscle, force, tonification",
+          "Charges calculées sur ton 1RM ou guidées au RPE",
+          "Saisie série par série : charge, répétitions, tonnage de la séance",
+          "Calculateur 1RM intégré avec les pourcentages de travail",
         ],
         action: "Construire ma séance",
       },
@@ -221,10 +222,10 @@ export const translations = {
         title: "L’effort est personnel. Le défi se partage.",
         copy: "Entre dans l’arène. Quatre formats de tournois et un classement ELO qui évolue avec chacun de tes résultats.",
         features: [
-          "Compétition classique et élimination simple",
-          "Élimination double et ligue par divisions",
-          "Compare-toi aux athlètes de ta box",
-          "Mesure-toi à toute la communauté",
+          "Tournois en quatre formats : classique, élimination simple, double élimination, ligue par divisions",
+          "Mini-tournois entre amis, inter-box et compétitions physiques",
+          "Le WOD du jour en défi, avec le nombre d’athlètes en lice",
+          "Chaque résultat fait bouger ton ELO : compare-toi à ta box et à toute la communauté",
         ],
         action: "Voir le classement",
       },
@@ -233,9 +234,10 @@ export const translations = {
         title: "Tes efforts méritent leur place au mur.",
         copy: "Chaque répétition, chaque mètre, chaque calorie compte. Tes records et tes badges racontent le chemin parcouru.",
         features: [
-          "Records personnels par mouvement",
-          "Badges débloqués grâce à tes efforts cumulés",
-          "Une carte et une notification pour célébrer chaque étape",
+          "Tes records personnels (PR) par mouvement",
+          "Des badges par famille : régularité, compétition, communauté, entraînement, classement ELO",
+          "Des séries hebdomadaires pour tenir le rythme",
+          "Épingle tes trois badges préférés sur ton profil public",
         ],
         action: "Commencer ma collection",
       },
@@ -278,7 +280,7 @@ export const translations = {
         title: "Moins d’administratif. Plus de terrain.",
         copy: "AthleX Manager rassemble tout ce qui fait tourner ta box. Une vision claire, des outils simples, et du temps pour ce qui compte.",
         features: [
-          "Membres, rôles, statuts, historique et abonnements",
+          "Membres, contrats, groupes et rôles, avec recherche et filtres",
           "Actualités, annonces et messagerie intégrée",
           "Statistiques avancées et export",
           "Un onglet Aide pour te guider sur chaque écran",
@@ -498,7 +500,8 @@ export const translations = {
       app: "THE ATHLEX APP",
       manager: "ATHLEX MANAGER",
       demo: "Illustrative preview",
-      screenshot: "AthleX interface preview",
+      appScreen: "App screen",
+      managerScreen: "Manager screen",
       scene: "Three-dimensional gym station",
       express: "Express WOD",
       after: "After my class",
@@ -594,7 +597,7 @@ export const translations = {
       {
         label: "The Functional zone",
         title: "Your next WOD. Not yesterday’s.",
-        copy: "One generator, three disciplines, over 300 movements. A quick workout or the ideal addition after class: you choose.",
+        copy: "One generator, three disciplines, a catalog of more than 300 movements and exercises. A quick workout or the ideal addition after class: you choose.",
         features: [
           "Functional, Hybrid and Strength",
           "Express WOD for a complete session",
@@ -608,22 +611,22 @@ export const translations = {
         title: "Run. Transition. Finish strong.",
         copy: "Move from the track to the stations. The Hybrid generator creates sessions that prepare your body for every challenge.",
         features: [
-          "Running sessions",
-          "Station combinations",
-          "Race simulations",
-          "A preset timer for every session",
+          "Seven formats: AMRAP, For time, EMOM, Chipper, Stations, Intervals or Surprise me",
+          "Five focuses: Interval, Engine, Aerobic, Run, Core",
+          "With or without a weighted vest",
+          "Estimated time and detailed movements before you start",
         ],
         action: "Explore Hybrid",
       },
       {
         label: "The Strength floor",
         title: "The right load. Real progress.",
-        copy: "173 exercises and three goals: muscle gain, strength or toning. Training adapted to your body, equipment and level.",
+        copy: "More than 230 exercises and three goals: muscle gain, strength or toning. Training adapted to your body, equipment and level.",
         features: [
-          "Target your preferred muscle groups",
-          "No equipment, gym box or full gym",
-          "Loads based on your 1RM or guided by RPE",
-          "1RM calculator and percentages; preset timer, one-tap whiteboard sharing and score logging",
+          "Three goals: muscle gain, strength, toning",
+          "Loads calculated from your 1RM or guided by RPE",
+          "Set-by-set logging: load, reps, session volume",
+          "Built-in 1RM calculator with working percentages",
         ],
         action: "Build my session",
       },
@@ -644,10 +647,10 @@ export const translations = {
         title: "The effort is yours. The challenge is shared.",
         copy: "Step into the arena. Four tournament formats and an ELO rating that evolves with every result.",
         features: [
-          "Classic competition and single elimination",
-          "Double elimination and division league",
-          "Compare yourself with your gym",
-          "Challenge the entire community",
+          "Tournaments in four formats: classic, single elimination, double elimination, division league",
+          "Mini-tournaments with friends, inter-box and in-person competitions",
+          "The workout of the day as a challenge, with the number of athletes competing",
+          "Every result moves your ELO: compare yourself with your box and the whole community",
         ],
         action: "View leaderboard",
       },
@@ -656,9 +659,10 @@ export const translations = {
         title: "Your hard work deserves a place on the wall.",
         copy: "Every rep, every meter, every calorie counts. Your records and badges tell the story of your progress.",
         features: [
-          "Personal records for each movement",
-          "Badges earned through cumulative effort",
-          "A card and notification to celebrate every milestone",
+          "Your personal records (PR) for each movement",
+          "Badges by family: consistency, competition, community, training, ELO ranking",
+          "Weekly streaks to keep the pace",
+          "Pin your three favorite badges on your public profile",
         ],
         action: "Start my collection",
       },
@@ -701,7 +705,7 @@ export const translations = {
         title: "Less admin. More time on the floor.",
         copy: "AthleX Manager brings together everything that runs your gym. A clear overview, simple tools and time for what matters.",
         features: [
-          "Members, roles, statuses, history and memberships",
+          "Members, contracts, groups and roles, with search and filters",
           "News, announcements and built-in messaging",
           "Advanced analytics and export",
           "A Help tab to guide you through every screen",
@@ -876,8 +880,17 @@ export type Station = {
   sides: Profile[];
   mockups: Partial<Record<Profile, number>>;
   featured?: boolean;
-  screenshots?: Partial<Record<Profile, string>>;
+  // Vrais écrans exportés de Figma (public/landing/app/landing-<name>-<locale>.webp).
+  // Deux écrans au plus : le premier est l'écran principal.
+  screens?: Partial<Record<Profile, StationScreen[]>>;
 };
+export type StationScreen = { name: string; alt: Record<Locale, string> };
+export const screenSrc = (name: string, locale: Locale) =>
+  `/landing/app/landing-${name}-${locale}.webp`;
+const screen = (name: string, fr: string, en: string): StationScreen => ({
+  name,
+  alt: { fr, en },
+});
 export const tourOrder: Record<Profile, number[]> = {
   athlete: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
   pro: [0, 1, 10, 2, 11, 7, 9],
@@ -935,6 +948,14 @@ export const stations: Station[] = [
     target: [-8, 1.3, 12],
     sides: ["athlete", "pro"],
     mockups: { athlete: 1, pro: 13 },
+    screens: {
+      athlete: [
+        screen("accueil-athlete", "Écran Rejoindre une box de l’app AthleX", "AthleX app Join a gym screen"),
+      ],
+      pro: [
+        screen("accueil-pro", "Écran Invitations d’AthleX Manager", "AthleX Manager Invitations screen"),
+      ],
+    },
   },
   {
     id: 2,
@@ -944,6 +965,11 @@ export const stations: Station[] = [
     target: [-11.3, 1.8, 5],
     sides: ["athlete", "pro"],
     mockups: { athlete: 2, pro: 10 },
+    screens: {
+      athlete: [
+        screen("whiteboard-athlete", "Écran Ma Box de l’app AthleX, avec la séance du jour", "AthleX app My Gym screen with today’s workout"),
+      ],
+    },
     featured: true,
   },
   {
@@ -953,6 +979,11 @@ export const stations: Station[] = [
     target: [-8, 1.6, -2],
     sides: ["athlete"],
     mockups: { athlete: 3 },
+    screens: {
+      athlete: [
+        screen("rig-functional", "Écran Générateur de WOD de l’app AthleX", "AthleX app WOD generator screen"),
+      ],
+    },
     featured: true,
   },
   {
@@ -962,6 +993,11 @@ export const stations: Station[] = [
     target: [-8, 1, -8],
     sides: ["athlete"],
     mockups: { athlete: 4 },
+    screens: {
+      athlete: [
+        screen("piste-hybrid", "Écran d’un WOD Hybrid généré dans l’app AthleX", "AthleX app generated Hybrid workout screen"),
+      ],
+    },
   },
   {
     id: 5,
@@ -970,6 +1006,11 @@ export const stations: Station[] = [
     target: [-8, 1.2, -14],
     sides: ["athlete"],
     mockups: { athlete: 5 },
+    screens: {
+      athlete: [
+        screen("plateau-muscu", "Écran de séance de musculation de l’app AthleX", "AthleX app strength session screen"),
+      ],
+    },
   },
   {
     id: 6,
@@ -978,6 +1019,12 @@ export const stations: Station[] = [
     target: [-3, 2.4, -18.7],
     sides: ["athlete"],
     mockups: { athlete: 6 },
+    screens: {
+      athlete: [
+        screen("horloge-chrono", "Écran du minuteur de l’app AthleX en cours de séance", "AthleX app timer screen during a workout"),
+        screen("horloge-camera", "Écran du minuteur en mode vidéo de l’app AthleX", "AthleX app timer screen in video mode"),
+      ],
+    },
   },
   {
     id: 7,
@@ -986,6 +1033,11 @@ export const stations: Station[] = [
     target: [6, 1.3, -10],
     sides: ["athlete", "pro"],
     mockups: { athlete: 7, pro: 14 },
+    screens: {
+      athlete: [
+        screen("arene-athlete", "Écran Compétitions de l’app AthleX", "AthleX app Competitions screen"),
+      ],
+    },
   },
   {
     id: 8,
@@ -994,6 +1046,11 @@ export const stations: Station[] = [
     target: [7, 2, -18.6],
     sides: ["athlete"],
     mockups: { athlete: 8 },
+    screens: {
+      athlete: [
+        screen("trophees", "Écran Badges du profil de l’app AthleX", "AthleX app profile Badges screen"),
+      ],
+    },
   },
   {
     id: 9,
@@ -1003,6 +1060,11 @@ export const stations: Station[] = [
     target: [10, 1.1, 10],
     sides: ["athlete", "pro"],
     mockups: { athlete: 9, pro: 15 },
+    screens: {
+      athlete: [
+        screen("lounge-athlete", "Écran Programmes des boxs de l’app AthleX", "AthleX app gym programs screen"),
+      ],
+    },
   },
   {
     id: 10,
@@ -1012,6 +1074,11 @@ export const stations: Station[] = [
     target: [9, 1.5, 16.7],
     sides: ["pro"],
     mockups: { pro: 12 },
+    screens: {
+      pro: [
+        screen("bureau-vitre", "Écran Membres d’AthleX Manager", "AthleX Manager Members screen"),
+      ],
+    },
   },
   {
     id: 11,
@@ -1021,6 +1088,11 @@ export const stations: Station[] = [
     target: [9, 1.2, 4],
     sides: ["pro"],
     mockups: { pro: 16 },
+    screens: {
+      pro: [
+        screen("comptoir", "Écran Abonnés d’AthleX Manager", "AthleX Manager Subscribers screen"),
+      ],
+    },
   },
 ];
 export const gymTranslations = {
@@ -1090,10 +1162,10 @@ export const gymTranslations = {
     proReceptionCopy:
       "Crée ta box, invite tes membres avec un code et gère tout au même endroit. Les créneaux, capacités et réservations sont gérés automatiquement.",
     proReceptionFeatures: [
-      "Crée ta box en quelques étapes",
-      "Invite tes membres avec un code",
-      "Créneaux et capacités centralisés",
-      "Réservations automatiques",
+      "Invite chaque adhérent par son nom, avec sa formule déjà attribuée",
+      "Importe tous tes adhérents d’un coup depuis un fichier CSV",
+      "Lien et QR code d’invitation à partager",
+      "Paiement déjà encaissé à la box ou prélèvement Stripe, au choix",
     ],
     programmingCopy:
       "Trois disciplines à activer par box. Générées chaque samedi, révélées à l’heure de ton choix : ou programme à la main et importe tes WODs depuis un PDF.",
@@ -1104,22 +1176,21 @@ export const gymTranslations = {
       "Générer / Régénérer, historique et import PDF",
     ],
     generatorFeatures: [
-      "Functional, Hybrid et Musculation · 300+ mouvements",
+      "Functional, Hybrid et Musculation : un catalogue de plus de 300 mouvements et exercices",
       "WOD express ou Après ma classe",
       "Timer préréglé et envoi au tableau en un geste",
       "Enregistre ton score après chaque séance",
     ],
-    strengthFeature: "Calculateur 1RM intégré et pourcentages de travail",
     loungeFeature:
       "Achète les programmes des coachs en toute sécurité avec Stripe",
     coachFeature: "Vends tes programmes avec les paiements Stripe",
     cashCopy:
       "Abonnements de salle facturés automatiquement et ventes de programmes via Stripe. Les paiements arrivent directement sur ton propre compte.",
     cashFeatures: [
-      "Abonnements et programmes payés via Stripe",
-      "Hébergement européen",
-      "Isolation stricte par box",
-      "Conformité RGPD",
+      "Abonnements de la salle et ventes de programmes, versés directement sur ton compte Stripe",
+      "Impayés suivis automatiquement : tentatives, relances, motif du refus",
+      "Réservations suspendues après ton délai de grâce, rétablies dès le paiement",
+      "Demandes de résiliation à approuver ou refuser",
     ],
   },
   en: {
@@ -1187,10 +1258,10 @@ export const gymTranslations = {
     proReceptionCopy:
       "Create your gym, invite members with a code and manage everything in one place. Time slots, capacities and bookings are handled automatically.",
     proReceptionFeatures: [
-      "Create your gym in a few steps",
-      "Invite members with a code",
-      "Time slots and capacities in one place",
-      "Automatic class bookings",
+      "Invite each member by name, with their plan already assigned",
+      "Import all your members at once from a CSV file",
+      "Invitation link and QR code to share",
+      "Payment already collected at the box or Stripe billing, your choice",
     ],
     programmingCopy:
       "Switch on three tracks per gym. Generated every Saturday, revealed when you choose — or program manually and import workouts from a PDF.",
@@ -1201,21 +1272,20 @@ export const gymTranslations = {
       "Generate / Regenerate, generation log and PDF import",
     ],
     generatorFeatures: [
-      "Functional, Hybrid and Strength · 300+ movements",
+      "Functional, Hybrid and Strength: a catalog of more than 300 movements and exercises",
       "Express WOD or After my class",
       "Preset timer and one tap to send to the whiteboard",
       "Log your score after every session",
     ],
-    strengthFeature: "Built-in 1RM calculator and working percentages",
     loungeFeature: "Buy coaches’ programs securely with Stripe",
     coachFeature: "Sell your programs with Stripe payments",
     cashCopy:
       "Automatic gym membership billing and program sales through Stripe. Payments go directly into your own account.",
     cashFeatures: [
-      "Memberships and programs paid through Stripe",
-      "European hosting",
-      "Strict isolation per gym",
-      "GDPR compliant",
+      "Gym memberships and program sales, paid directly into your Stripe account",
+      "Unpaid dues tracked automatically: attempts, reminders, decline reason",
+      "Bookings suspended after your grace period, restored as soon as payment is made",
+      "Cancellation requests to approve or decline",
     ],
   },
 };
@@ -1353,8 +1423,6 @@ export function getStationCopy(
     result.features = g.programmingFeatures;
   }
   if (id === 3) result.features = g.generatorFeatures;
-  if (id === 5)
-    result.features = [...result.features.slice(0, 3), g.strengthFeature];
   if (id === 9)
     result.features =
       side === "pro"

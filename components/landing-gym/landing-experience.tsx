@@ -14,11 +14,9 @@ import { ExitDoor } from "./final-cta";
 export function LandingPage({
   initialLocale = "fr",
   initialProfile = null,
-  screenshots = {},
 }: {
   initialLocale?: Locale;
   initialProfile?: Profile | null;
-  screenshots?: Partial<Record<number, string>>;
 }) {
   const [locale, setLocale] = useState<Locale>(initialLocale),
     [profile, setProfile] = useState<Profile | null>(initialProfile),
@@ -80,7 +78,6 @@ export function LandingPage({
             profile={profile ?? "athlete"}
             tourKey={tourKey}
             autoWalk={autoWalk}
-            screenshots={screenshots}
           />
           <div className="practical-screen">
             <Testimonials locale={locale} />

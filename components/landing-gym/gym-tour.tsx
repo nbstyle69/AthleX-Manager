@@ -22,6 +22,7 @@ import { useReducedMotion } from "@/hooks/use-reduced-motion";
 import { GymMap } from "./gym-map";
 import { GymFallback } from "./gym-fallback";
 import { StationPanel } from "./station-panel";
+import { preloadScreens } from "./product-mockup";
 
 const Scene = dynamic(() => import("./gym-3d/Scene"), { ssr: false });
 class SceneBoundary extends Component<
@@ -45,13 +46,11 @@ export function GymTour({
   profile,
   tourKey,
   autoWalk,
-  screenshots,
 }: {
   locale: Locale;
   profile: Profile;
   tourKey: number;
   autoWalk: boolean;
-  screenshots: Partial<Record<number, string>>;
 }) {
   const section = useRef<HTMLElement>(null);
   const nextButton = useRef<HTMLButtonElement>(null);
@@ -106,6 +105,22 @@ export function GymTour({
     else nextButton.current?.focus({ preventScroll: true });
   }, [pause, setClosed]);
   const onError = useCallback(() => setWebgl(false), []);
+  // Visite guidée : les écrans de la station suivante sont préchargés pendant
+  // que le panneau courant est ouvert (côté retenu comme le fera `move`).
+  const upcoming =
+    mode === "guided" && active !== 0
+      ? stations.find(
+          (s) => s.id === tour.path[Math.max(tour.path.indexOf(active), 0) + 1],
+        )
+      : undefined;
+  const upcomingSide = upcoming?.sides.includes(tour.selectedProfile)
+    ? tour.selectedProfile
+    : upcoming?.sides[0];
+  const upcomingScreens = upcomingSide && upcoming?.screens?.[upcomingSide];
+  useEffect(() => {
+    if (upcomingScreens)
+      preloadScreens(upcomingScreens, locale, upcomingSide === "pro");
+  }, [upcomingScreens, upcomingSide, locale]);
   useEffect(() => {
     const el = section.current;
     if (!el) return;
@@ -337,7 +352,6 @@ export function GymTour({
           }
           onClose={close}
           onNext={() => advance(1)}
-          screenshotSrc={screenshots[active]}
         />
       )}
       {visible && !fallback && (
