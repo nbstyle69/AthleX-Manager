@@ -40,8 +40,7 @@ export const translations = {
     hero: {
       eyebrow: "FUNCTIONAL · HYBRID · MUSCULATION",
       welcome: "BIENVENUE DANS TA NOUVELLE BOX",
-      title:
-        "La plateforme conçue pour les athlètes, les coachs, les owners et les salles.",
+      title: "Une plateforme unique conçue pour tous.",
       subtitle: "L’app pour t’entraîner, la console pour la piloter.",
       intro: "Une seule plateforme. Tout ton univers.",
       choice: "CHOISIS TON ENTRÉE. ON TE FAIT VISITER.",
@@ -464,7 +463,7 @@ export const translations = {
     hero: {
       eyebrow: "FUNCTIONAL · HYBRID · STRENGTH",
       welcome: "WELCOME TO YOUR NEW GYM",
-      title: "The platform built for athletes, coaches, owners and gyms.",
+      title: "One platform built for everyone.",
       subtitle: "The app to train. The console to run it.",
       intro: "One platform. Your entire world.",
       choice: "CHOOSE YOUR ENTRANCE. LET US SHOW YOU AROUND.",
