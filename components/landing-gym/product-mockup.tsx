@@ -63,12 +63,14 @@ function BrowserChrome() {
 }
 // Largeur affichée de chaque écran : cadre de la carte au bureau, demi-largeur
 // (deux écrans) ou pleine largeur dans la feuille mobile et le plan 2D.
+// Au bureau, tailles maximales sur grand écran (téléphone de 780 px de haut,
+// carte Box & coach agrandie 1,33 fois).
 const screenSizes = (pro: boolean, count: number) =>
   pro
-    ? "(max-width: 1023px) 100vw, 420px"
+    ? "(max-width: 1023px) 100vw, 560px"
     : count > 1
-      ? "(max-width: 1023px) 50vw, 200px"
-      : "(max-width: 1023px) 100vw, 270px";
+      ? "(max-width: 1023px) 50vw, 360px"
+      : "(max-width: 1023px) 100vw, 360px";
 const screenImage = (
   screen: StationScreen,
   locale: Locale,
