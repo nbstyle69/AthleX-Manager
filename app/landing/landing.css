@@ -1409,6 +1409,99 @@
 .athlex-landing .mobile-app-preview .mockup-wrap.phone-wrap.screen-pair {
   max-width: 100%;
 }
+/* Visite au bureau (1024 px et plus) : le téléphone et le panneau grandissent
+   avec la fenêtre, sans jamais rétrécir sous leur taille d'origine. Le
+   téléphone vise 62vh (584 à 780 px) mais la hauteur disponible l'emporte :
+   180 px = légende, marges de la carte et commandes du bas. Le panneau suit une taille de texte --lp-panel-fs (14 à 18 px) dont
+   dérivent les espacements et les icônes, dans les proportions d'origine. */
+@media (min-width: 1024px) {
+  .athlex-landing .station-mockup {
+    --lp-phone-h: min(
+      clamp(584px, 62vh, 780px),
+      calc(100svh - var(--lp-header-height) - 180px)
+    );
+    width: auto;
+  }
+  .athlex-landing .station-mockup .mockup-wrap.phone-wrap.has-screens {
+    width: calc(var(--lp-phone-h) * 390 / 844);
+    max-width: none;
+  }
+  .athlex-landing .station-mockup .mockup-wrap.phone-wrap.screen-pair {
+    width: calc(var(--lp-phone-h) / 1.3);
+  }
+  .athlex-landing .station-mockup .has-screens .phone-mockup {
+    border-width: calc(var(--lp-phone-h) * 4 / 584);
+    border-radius: calc(var(--lp-phone-h) * 30 / 584);
+  }
+  .athlex-landing .station-mockup .mockup-caption {
+    font-size: clamp(14px, 1vw, 18px);
+  }
+  .athlex-landing .station-panel {
+    --lp-panel-fs: clamp(14px, 1vw, 18px);
+    width: clamp(430px, 26vw, 540px);
+    max-height: calc(100svh - var(--lp-header-height) - 180px);
+  }
+  .athlex-landing .station-panel-body {
+    min-height: 0;
+    overflow-y: auto;
+    padding: calc(var(--lp-panel-fs) * 16 / 14) calc(var(--lp-panel-fs) * 20 / 14);
+    gap: var(--lp-panel-fs);
+  }
+  .athlex-landing .station-panel-heading {
+    padding-inline: calc(var(--lp-panel-fs) * 16 / 14);
+  }
+  .athlex-landing .station-panel-heading svg {
+    width: calc(var(--lp-panel-fs) * 20 / 14);
+    height: calc(var(--lp-panel-fs) * 20 / 14);
+  }
+  .athlex-landing :is(.station-sign, .station-tabs button, .station-text > p, .station-text > ul > li, .station-action, .station-continue) {
+    font-size: var(--lp-panel-fs);
+  }
+  .athlex-landing .station-copy > h3 {
+    font-size: clamp(28px, 2.2vw, 44px);
+  }
+  .athlex-landing .station-copy {
+    gap: calc(var(--lp-panel-fs) * 18 / 14);
+  }
+  .athlex-landing .station-text {
+    gap: var(--lp-panel-fs);
+  }
+  .athlex-landing .station-text > ul {
+    gap: calc(var(--lp-panel-fs) * 12 / 14);
+  }
+  .athlex-landing .station-text > ul > li {
+    gap: calc(var(--lp-panel-fs) * 10 / 14);
+  }
+  .athlex-landing :is(.station-text > ul, .station-action) svg {
+    width: calc(var(--lp-panel-fs) * 16 / 14);
+    height: calc(var(--lp-panel-fs) * 16 / 14);
+  }
+  .athlex-landing .station-text > ul svg {
+    margin-top: calc(var(--lp-panel-fs) * 3 / 14);
+  }
+  .athlex-landing .station-continue {
+    padding: calc(var(--lp-panel-fs) * 16 / 14) calc(var(--lp-panel-fs) * 22 / 14);
+  }
+  .athlex-landing .station-continue svg {
+    width: calc(var(--lp-panel-fs) * 18 / 14);
+    height: calc(var(--lp-panel-fs) * 18 / 14);
+  }
+}
+/* Côté Box & coach (aperçus illustratifs et écrans du Manager) : la carte
+   grandit d'autant que le téléphone (taille d'origine pour un téléphone de
+   584 px). ponytail: paliers de hauteur, car zoom n'accepte qu'un nombre ;
+   passer à calc(var(--lp-phone-h) / 584px) quand l'arithmétique typée sera
+   partout. */
+@media (min-width: 1024px) and (min-height: 1000px) {
+  .athlex-landing .station-mockup.pro-preview {
+    zoom: 1.15;
+  }
+}
+@media (min-width: 1024px) and (min-height: 1300px) {
+  .athlex-landing .station-mockup.pro-preview {
+    zoom: 1.33;
+  }
+}
 .athlex-landing .clock-preview,
 .athlex-landing .badge-preview,
 .athlex-landing .arena-preview,
