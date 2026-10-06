@@ -1310,7 +1310,7 @@ const panelDescriptions: Record<
     },
     4: {
       athlete:
-        "Course, stations et simulations. Prépare ton prochain défi Hybrid.",
+        "Course, stations et enchaînements course + station. Prépare ton prochain défi Hybrid.",
     },
     5: {
       athlete:
@@ -1358,7 +1358,7 @@ const panelDescriptions: Record<
     },
     4: {
       athlete:
-        "Running, stations and simulations. Get ready for your next Hybrid challenge.",
+        "Running, stations and run + station combos. Get ready for your next Hybrid challenge.",
     },
     5: {
       athlete:
