@@ -18,7 +18,6 @@ export function StationPanel({
   onSide,
   onClose,
   onNext,
-  screenshotSrc,
   onInteract,
   progress,
 }: {
@@ -28,7 +27,6 @@ export function StationPanel({
   onSide: (side: Profile) => void;
   onClose: () => void;
   onNext: () => void;
-  screenshotSrc?: string;
   onInteract: () => void;
   progress?: number;
 }) {
@@ -48,7 +46,7 @@ export function StationPanel({
       key={`${station.id}-${side}`}
       locale={locale}
       zone={station.mockups[side] ?? 1}
-      screenshotSrc={screenshotSrc ?? station.screenshots?.[side]}
+      screens={station.screens?.[side]}
     />
   );
   return (
