@@ -1,4 +1,17 @@
-import { EMPTY_WOD_FORM, formatCap, parseCap, sharedWodColumns } from '@/lib/wodFields';
+import { EMPTY_WOD_FORM, TYPE_COLOR, formatCap, parseCap, sharedWodColumns } from '@/lib/wodFields';
+
+describe('TYPE_COLOR', () => {
+  it('reprend les couleurs des types de séance de l’app', () => {
+    expect(TYPE_COLOR).toEqual({
+      'for-time': '#EAB308',
+      amrap: '#3B82F6',
+      emom: '#8B5CF6',
+      tabata: '#22C55E',
+      strength: '#9AE6D2',
+      custom: '#6B7280',
+    });
+  });
+});
 
 describe('time cap mm:ss', () => {
   it('formate les secondes en mm:ss', () => {

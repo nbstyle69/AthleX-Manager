@@ -8,11 +8,11 @@ import type { Audience } from '@/lib/audience';
 export type WodType = 'for-time' | 'amrap' | 'emom' | 'tabata' | 'strength' | 'custom';
 
 export const WOD_TYPES: { value: WodType; label: string; color: string }[] = [
-  { value: 'for-time', label: 'For Time', color: '#EF4444' },
+  { value: 'for-time', label: 'For Time', color: '#EAB308' },
   { value: 'amrap',    label: 'AMRAP',    color: '#3B82F6' },
   { value: 'emom',     label: 'EMOM',     color: '#8B5CF6' },
-  { value: 'tabata',   label: 'Tabata',   color: '#F59E0B' },
-  { value: 'strength', label: 'Force',    color: '#16A34A' },
+  { value: 'tabata',   label: 'Tabata',   color: '#22C55E' },
+  { value: 'strength', label: 'Force',    color: '#9AE6D2' },
   { value: 'custom',   label: 'Custom',   color: '#6B7280' },
 ];
 

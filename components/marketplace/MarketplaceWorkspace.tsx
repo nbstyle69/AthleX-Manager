@@ -15,7 +15,7 @@ import {
   WodFormState, formatCap, movementLines, sharedWodColumns,
 } from '@/lib/wodFields';
 import { disciplineLabel } from '@/lib/disciplines';
-import { softVar } from '@/lib/colorVars';
+import { softVar, textTint } from '@/lib/colorVars';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -1061,7 +1061,7 @@ function OfferEditor({ offer, publisherBoxId, onClose, onSaved }: {
                     )}
                     {w.wod_type && (
                       <span className="text-[10px] font-black uppercase px-1.5 py-0.5 rounded-ax-badge"
-                        style={{ backgroundColor: softVar(TYPE_COLOR[w.wod_type], 0.125), color: TYPE_COLOR[w.wod_type] }}>
+                        style={{ backgroundColor: softVar(TYPE_COLOR[w.wod_type], 0.125), color: textTint(TYPE_COLOR[w.wod_type]) }}>
                         {w.wod_type}
                       </span>
                     )}
