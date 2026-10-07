@@ -10,7 +10,7 @@ import WodEditor from '@/components/wods/WodEditor';
 import PdfImportModal from '@/components/wods/PdfImportModal';
 import { downloadWodCsvTemplate, parseWodImportFile } from '@/lib/wodImport';
 import { messageErreur } from '@/lib/erreurs';
-import { softVar } from '@/lib/colorVars';
+import { softVar, textTint } from '@/lib/colorVars';
 import { programColor } from '@/components/wods/RestrictionBadges';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -326,7 +326,7 @@ export default function ProgramSessionsEditor({ program, userId, onClose, onChan
         {wt && (
           <>
             <div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: color }} />
-            <span className="text-[9px] font-black tracking-wider" style={{ color }}>{wt.toUpperCase()}</span>
+            <span className="text-[9px] font-black tracking-wider" style={{ color: textTint(color) }}>{wt.toUpperCase()}</span>
           </>
         )}
         {w.video_url && <Video size={9} className="text-ax-danger shrink-0" />}

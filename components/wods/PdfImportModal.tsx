@@ -14,7 +14,7 @@ import {
 import type { ImportEntry, ImportResult, ImportWarning, ParsedMovement, ParsedStrength } from '@/lib/pdfImport/types';
 import { assignRestrictions, libelleAssignation } from '@/lib/wodAssignment';
 import { RestDay, estJourRepos, rattacherAuProgramme } from '@/lib/programContent';
-import { softVar } from '@/lib/colorVars';
+import { softVar, textTint } from '@/lib/colorVars';
 import { programColor } from '@/components/wods/RestrictionBadges';
 import { countOf } from '@/lib/plural';
 import { gymPrLabel } from '@/lib/gymMovements';
@@ -397,7 +397,7 @@ export default function PdfImportModal({ file, boxId, userId, target, onClose, o
                     <option value="">Block…</option>
                     {BLOCKS.map(b => <option key={b.value} value={b.value}>{b.label}</option>)}
                   </select>
-                  <select value={e.type ?? ''} onChange={ev => patch(e.key, { type: (ev.target.value || null) as ImportEntry['type'] })} className={INPUT} style={{ color: TYPE_COLOR[e.type ?? ''] }}>
+                  <select value={e.type ?? ''} onChange={ev => patch(e.key, { type: (ev.target.value || null) as ImportEntry['type'] })} className={INPUT} style={{ color: textTint(TYPE_COLOR[e.type ?? ''] ?? 'var(--ax-neutral)') }}>
                     <option value="">Type…</option>
                     {WOD_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
                   </select>
