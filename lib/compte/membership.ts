@@ -23,17 +23,19 @@ export interface MembershipBillingRow {
 
 const STRIPE_VIVANT = ['active', 'trialing', 'past_due'];
 
-export interface MembershipSelection {
-  membership: MembershipBillingRow | null;
+export interface MembershipSelection<T = MembershipBillingRow> {
+  membership: T | null;
   /** L'adhésion affichée est portée par un abonnement Stripe. */
   stripeBacked: boolean;
   /** Un changement de formule en ligne est possible. */
   canManage: boolean;
 }
 
-export function selectMembership(
-  rows: MembershipBillingRow[],
-): MembershipSelection {
+type Selectable = Pick<MembershipBillingRow, 'status' | 'subscription_status' | 'joined_at'>;
+
+export function selectMembership<T extends Selectable = MembershipBillingRow>(
+  rows: T[],
+): MembershipSelection<T> {
   const retenues = rows
     .filter((m) => m.status === 'active' || m.subscription_status != null)
     .sort((a, b) => (b.joined_at ?? '').localeCompare(a.joined_at ?? ''));

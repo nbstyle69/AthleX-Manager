@@ -5,6 +5,7 @@ import { X, Loader2, CheckCircle2, Settings2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { entryRefusalFrom, entryRefusalInfo } from '@/lib/entryRefusalView';
 import { useConfirmDialog } from '@/components/ui/confirm-dialog';
+import { planChangeDoneMessage } from '@/lib/membership/planChange';
 
 interface Plan {
   id: string;
@@ -45,7 +46,7 @@ export default function MembershipManageButton({ plans }: Props) {
         throw new Error('Connecte-toi à ton compte AthleX pour changer de formule.');
       }
       if (!res.ok) throw new Error(data.error ?? 'Erreur');
-      setDone(data.plan_name ?? '');
+      setDone(planChangeDoneMessage(data));
       setLoading(false);
     } catch (e: any) {
       setError(e.message);
@@ -83,11 +84,8 @@ export default function MembershipManageButton({ plans }: Props) {
             {done !== null ? (
               <div className="text-center py-4">
                 <CheckCircle2 size={40} className="text-ax-success mx-auto mb-4" />
-                <h3 className="text-lg font-black mb-1">Formule changée 🎉</h3>
-                <p className="text-xs text-ax-text-muted">
-                  Tu es maintenant sur la formule <span className="text-ax-text font-semibold">{done}</span>.
-                  Le prorata a été appliqué immédiatement et la facturation reste ancrée au 1er du mois.
-                </p>
+                <h3 className="text-lg font-black mb-1">C&apos;est noté</h3>
+                <p className="text-xs text-ax-text-muted">{done}</p>
                 <Button onClick={close} variant="ax-white" className="mt-6 w-full">
                   Fermer
                 </Button>
@@ -96,8 +94,8 @@ export default function MembershipManageButton({ plans }: Props) {
               <>
                 <h3 className="text-lg font-black mb-1">Changer de formule</h3>
                 <p className="text-xs text-ax-text-muted mb-5">
-                  Tu dois être connecté à ton compte AthleX. Le changement est immédiat, avec
-                  prorata Stripe (crédit du temps non consommé), sans changer ta date de facturation.
+                  Tu dois être connecté à ton compte AthleX. La nouvelle formule commence à ta
+                  prochaine échéance, sans prorata : rien n&apos;est facturé aujourd&apos;hui.
                 </p>
                 <div className="space-y-2 mb-4">
                   {plans.map(pl => (

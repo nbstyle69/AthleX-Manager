@@ -43,6 +43,46 @@ export function membershipStopPush(o: { mode: StopMode; boxName: string; periodE
 export async function sendMembershipStoppedPush(o: {
   userId: string; boxId: string; mode: StopMode; boxName: string; periodEnd: string | null;
 }): Promise<boolean> {
+  return sendMemberPush('membership_stopped', {
+    user_id: o.userId,
+    ...membershipStopPush(o),
+    data: { type: 'membership_stopped', box_id: o.boxId },
+  });
+}
+
+/**
+ * Décision du gérant sur une demande de changement de formule au comptoir.
+ * Rangée sous « annonces de la box » (le réglage du membre s'applique) ;
+ * `data.type` inconnu de l'app : le toucher ouvre simplement l'app.
+ */
+export function planChangeDecisionPush(o: { accepted: boolean; planName: string | null }) {
+  const plan = o.planName ?? 'ta nouvelle formule';
+  const planEn = o.planName ?? 'your new plan';
+  return o.accepted
+    ? {
+        title: 'Changement de formule accepté',
+        body: `Ta box a accepté ton passage à ${plan}.`,
+        en: { title: 'Plan change accepted', body: `Your box accepted your switch to ${planEn}.` },
+      }
+    : {
+        title: 'Changement de formule refusé',
+        body: 'Ta box a refusé ta demande de changement de formule.',
+        en: { title: 'Plan change declined', body: 'Your box declined your plan change request.' },
+      };
+}
+
+export async function sendPlanChangeDecisionPush(o: {
+  userId: string; boxId: string; accepted: boolean; planName: string | null;
+}): Promise<boolean> {
+  return sendMemberPush('box_announcements', {
+    user_id: o.userId,
+    ...planChangeDecisionPush(o),
+    data: { type: 'membership_plan_change', box_id: o.boxId },
+  });
+}
+
+/** Un push au membre par send-push, chemin serveur (`x-cron-secret`). Ne lève jamais. */
+async function sendMemberPush(category: string, recipient: Record<string, unknown>): Promise<boolean> {
   const secret = process.env.CRON_SECRET;
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -58,14 +98,7 @@ export async function sendMembershipStoppedPush(o: {
         'x-cron-secret': secret,
         ...(anon ? { apikey: anon, Authorization: `Bearer ${anon}` } : {}),
       },
-      body: JSON.stringify({
-        category: 'membership_stopped',
-        recipients: [{
-          user_id: o.userId,
-          ...membershipStopPush(o),
-          data: { type: 'membership_stopped', box_id: o.boxId },
-        }],
-      }),
+      body: JSON.stringify({ category, recipients: [recipient] }),
       // Une fonction lente ne retient pas l'arrêt.
       signal: AbortSignal.timeout(5000),
     });

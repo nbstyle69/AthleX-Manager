@@ -617,10 +617,16 @@ export async function POST(req: NextRequest) {
         // Sync du plan après un changement de formule : on retrouve la formule
         // via le prix Stripe courant (ou la metadata plan_id) et on met à jour box_members.
         const planPatch: { plan_id?: string; amount_cents?: number } = {};
-        const metaPlanId = sub.metadata?.plan_id as string | undefined;
-        const currentPriceId = sub.items?.data?.[0]?.price?.id as string | undefined;
+        const item = sub.items?.data?.[0];
+        // La formule d'un changement programmé arrive par la metadata de la
+        // phase, recopiée sur l'abonnement à la bascule (ou sur l'item).
+        const metaPlanId = (sub.metadata?.plan_id ?? item?.metadata?.plan_id) as string | undefined;
+        const currentPriceId = item?.price?.id as string | undefined;
         if (metaPlanId) {
           planPatch.plan_id = metaPlanId;
+          // Le prix réellement prélevé : sans lui, l'ancien montant restait affiché.
+          const unit = item?.price?.unit_amount;
+          if (typeof unit === 'number') planPatch.amount_cents = unit * (item?.quantity ?? 1);
         } else if (currentPriceId) {
           const { data: matchedPlan } = await supabase.from('membership_plans')
             .select('id, price_cents')
@@ -654,6 +660,15 @@ export async function POST(req: NextRequest) {
           .eq('stripe_subscription_id', sub.id);
         if (subUpdErr) {
           console.error(`box_members subscription update failed for ${sub.id}:`, subUpdErr.message);
+        }
+        // Bascule d'un changement programmé : la formule écrite est celle qui
+        // était attendue, il n'y a plus rien de programmé. Conditionnel :
+        // un autre changement programmé entre-temps n'est pas effacé.
+        if (memberStatus !== 'cancelled' && planPatch.plan_id) {
+          await supabase.from('box_members')
+            .update({ scheduled_plan_id: null, scheduled_change_at: null, stripe_schedule_id: null })
+            .eq('stripe_subscription_id', sub.id)
+            .eq('scheduled_plan_id', planPatch.plan_id);
         }
         // Ancre l'impayé si l'événement d'abonnement arrive avant
         // invoice.payment_failed. `.is(null)` garantit l'idempotence : la date
@@ -753,6 +768,21 @@ export async function POST(req: NextRequest) {
             .update({ status: 'refunded' })
             .eq('stripe_payment_intent', paymentIntent);
         }
+        break;
+      }
+
+      // ── Changement de formule programmé : l'échéancier n'existe plus ─────
+      // Relâché (annulation par le membre, ou fin), annulé ou terminé : plus
+      // rien n'est programmé. Conditionnel sur l'identifiant de l'échéancier :
+      // idempotent, et sans effet si aucune ligne ne le porte.
+      case 'subscription_schedule.released':
+      case 'subscription_schedule.canceled':
+      case 'subscription_schedule.completed': {
+        const schedule = event.data.object as { id: string };
+        const { error } = await supabase.from('box_members')
+          .update({ scheduled_plan_id: null, scheduled_change_at: null, stripe_schedule_id: null })
+          .eq('stripe_schedule_id', schedule.id);
+        if (error) throw new Error(error.message);
         break;
       }
 

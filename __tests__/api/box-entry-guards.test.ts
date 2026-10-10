@@ -133,7 +133,8 @@ describe('box ouverte : la garde laisse passer', () => {
   it.each(ROUTES)('%s', async (_n, route, body) => {
     setup('open');
     const res = await route(req(body));
-    expect(res._data?.code).toBeUndefined();
+    // Un refus métier propre à la route (PLAN_CHANGE_…) n'est pas la garde.
+    expect(res._data?.code ?? '').not.toMatch(/^BOX_/);
   });
 });
 
