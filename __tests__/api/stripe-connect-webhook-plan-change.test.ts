@@ -6,9 +6,10 @@ process.env.STRIPE_SECRET_KEY = 'sk_test_dummy';
 process.env.STRIPE_WEBHOOK_SECRET = 'whsec_dummy';
 
 const mockConstructEvent = jest.fn();
+const mockSchedules = { release: jest.fn(), retrieve: jest.fn() };
 jest.mock('stripe', () => ({
   __esModule: true,
-  default: jest.fn().mockImplementation(() => ({ webhooks: { constructEvent: mockConstructEvent } })),
+  default: jest.fn().mockImplementation(() => ({ webhooks: { constructEvent: mockConstructEvent }, subscriptionSchedules: mockSchedules })),
 }));
 jest.mock('@/lib/supabase/server', () => ({ createServiceClient: jest.fn() }));
 
@@ -35,7 +36,7 @@ function monde(...lignes: Record<string, unknown>[]) {
 
 const req = (): any => ({ headers: { get: (k: string) => (k === 'stripe-signature' ? 'sig' : null) }, text: jest.fn().mockResolvedValue('{}') });
 function evenement(type: string, object: unknown) {
-  mockConstructEvent.mockReturnValue({ id: `evt_${type}`, type, data: { object } });
+  mockConstructEvent.mockReturnValue({ id: `evt_${type}`, type, account: 'acct_1', data: { object } });
   return POST(req()) as any;
 }
 
@@ -87,6 +88,36 @@ describe('customer.subscription.updated : bascule d’un changement programmé',
     const apres = { ...db.tables.box_members[0] };
     await evenement('customer.subscription.updated', abonnement());
     expect(db.tables.box_members[0]).toEqual(apres);
+  });
+});
+
+describe('bascule : l’échéancier est relâché tout de suite', () => {
+  it('formule programmée écrite : relâche avec la clé de bascule, sur le compte de l’événement', async () => {
+    monde(SCHEDULED);
+    mockSchedules.release.mockResolvedValue({ id: 'sub_sched_1', status: 'released' });
+    await evenement('customer.subscription.updated', abonnement({ schedule: 'sub_sched_1' }));
+    expect(mockSchedules.release).toHaveBeenCalledWith(
+      'sub_sched_1', {}, { stripeAccount: 'acct_1', idempotencyKey: 'plan-change:release:sub_sched_1:bascule' },
+    );
+  });
+
+  it('pas une bascule (rien de programmé, ou autre formule programmée) : rien relâché', async () => {
+    monde();
+    await evenement('customer.subscription.updated', abonnement({ schedule: 'sub_sched_1' }));
+    monde({ ...SCHEDULED, scheduled_plan_id: 'premium' });
+    await evenement('customer.subscription.updated', abonnement({ schedule: 'sub_sched_1' }));
+    expect(mockSchedules.release).not.toHaveBeenCalled();
+  });
+
+  it('déjà relâché ou relâche en échec : 200, colonnes vidées quand même', async () => {
+    monde(SCHEDULED);
+    mockSchedules.release.mockRejectedValue(new Error('already released'));
+    mockSchedules.retrieve.mockResolvedValue({ id: 'sub_sched_1', status: 'released' });
+    expect((await evenement('customer.subscription.updated', abonnement({ schedule: 'sub_sched_1' })))._status).toBe(200);
+    mockSchedules.retrieve.mockRejectedValue(new Error('stripe down'));
+    monde(SCHEDULED);
+    expect((await evenement('customer.subscription.updated', abonnement({ schedule: 'sub_sched_1' })))._status).toBe(200);
+    expect(db.tables.box_members[0]).toMatchObject({ plan_id: 'illimite', ...VIDE });
   });
 });
 

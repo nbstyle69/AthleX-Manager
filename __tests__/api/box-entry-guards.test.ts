@@ -159,7 +159,9 @@ describe('pause : seule la reprise est refusée', () => {
     setup('scheduled');
     const res: any = await pause(req({ box_member_id: 'bm1', action: 'pause' }));
     expect(res._data?.code).toBeUndefined();
-    expect(mockStripeCalls).toEqual(['stripe.subscriptions.update']);
+    // Lecture d'abord : un changement de formule programmé (échéancier) est
+    // annulé par la pause (detachPlanChange) ; ici, aucun échéancier.
+    expect(mockStripeCalls).toEqual(['stripe.subscriptions.retrieve', 'stripe.subscriptions.update']);
   });
 });
 

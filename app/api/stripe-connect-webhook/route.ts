@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { createServiceClient } from '@/lib/supabase/server';
 import { isBillingDay, commitmentEndIso, type BillingPlanDeferred } from '@/lib/membershipBilling';
+import { releaseSchedule } from '@/lib/membership/server';
 
 function getStripe() {
   return new Stripe(process.env.STRIPE_SECRET_KEY!, {
@@ -665,10 +666,21 @@ export async function POST(req: NextRequest) {
         // était attendue, il n'y a plus rien de programmé. Conditionnel :
         // un autre changement programmé entre-temps n'est pas effacé.
         if (memberStatus !== 'cancelled' && planPatch.plan_id) {
-          await supabase.from('box_members')
+          const { data: bascule } = await supabase.from('box_members')
             .update({ scheduled_plan_id: null, scheduled_change_at: null, stripe_schedule_id: null })
             .eq('stripe_subscription_id', sub.id)
-            .eq('scheduled_plan_id', planPatch.plan_id);
+            .eq('scheduled_plan_id', planPatch.plan_id)
+            .select('id');
+          // L'échéancier a fait son œuvre : relâché tout de suite, pour qu'il ne
+          // reste pas attaché un mois (idempotent ; déjà relâché ou absent : rien).
+          const scheduleId = typeof sub.schedule === 'string' ? sub.schedule : sub.schedule?.id;
+          if ((bascule ?? []).length > 0 && scheduleId && event.account) {
+            try {
+              await releaseSchedule(stripe, scheduleId, 'bascule', event.account);
+            } catch (err: any) {
+              console.error(`schedule release after switch failed for ${sub.id}:`, err?.message);
+            }
+          }
         }
         // Ancre l'impayé si l'événement d'abonnement arrive avant
         // invoice.payment_failed. `.is(null)` garantit l'idempotence : la date

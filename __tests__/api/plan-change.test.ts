@@ -87,10 +87,12 @@ function stripeParDefaut() {
     current_period_end: PERIOD_END, default_payment_method: null,
     items: { data: [{ id: 'si_1', quantity: 1, price: { id: 'price_mensuel', unit_amount: 5000 } }] },
   });
-  mockStripe.subscriptionSchedules.create.mockResolvedValue({
-    id: 'sub_sched_1', metadata: {}, current_phase: { start_date: 1790856000, end_date: PERIOD_END },
+  const cree = {
+    id: 'sub_sched_1', status: 'active', metadata: {}, current_phase: { start_date: 1790856000, end_date: PERIOD_END },
     phases: [{ start_date: 1790856000, end_date: PERIOD_END, items: [{ price: 'price_mensuel', quantity: 1 }] }],
-  });
+  };
+  mockStripe.subscriptionSchedules.create.mockResolvedValue(cree);
+  mockStripe.subscriptionSchedules.retrieve.mockResolvedValue(cree);
   mockStripe.subscriptionSchedules.update.mockImplementation(async (id: string) => ({ id, phases: [], metadata: {} }));
   mockStripe.subscriptionSchedules.release.mockResolvedValue({ id: 'sub_sched_1', status: 'released' });
   mockStripe.billingPortal.configurations.create.mockResolvedValue({ id: 'bpc_1' });
@@ -454,5 +456,79 @@ describe('GET /api/membership/overview', () => {
       pending_request: { plan: { id: 'illimite', name: 'illimite' }, at: '2026-10-09T08:00:00Z' },
     });
     expect(mockStripe.subscriptions.retrieve).not.toHaveBeenCalled();
+  });
+});
+
+describe('idempotence : clés dérivées de l’état (faux Stripe qui rejoue une clé déjà vue)', () => {
+  let effectifs: string[];
+  let schedules: Record<string, any>;
+  let attache: string | null;
+
+  /** Comme Stripe : une clé déjà vue rend la réponse d'alors, sans rien exécuter. */
+  function idem<T>(cles: Map<string, T>, cle: string, run: () => T): T {
+    if (!cles.has(cle)) cles.set(cle, run());
+    return JSON.parse(JSON.stringify(cles.get(cle)));
+  }
+
+  beforeEach(() => {
+    effectifs = [];
+    schedules = {};
+    attache = null;
+    let n = 0;
+    const cles = new Map<string, any>();
+    db.tables.membership_plans.push(plan('premium', { price_cents: 9000 }));
+    mockStripe.subscriptions.retrieve.mockImplementation(async () => ({
+      id: 'sub_1', customer: 'cus_1', schedule: attache, metadata: { plan_id: 'mensuel', box_id: 'box-1' },
+      current_period_end: PERIOD_END, items: { data: [{ quantity: 1, price: { id: 'price_mensuel' } }] },
+    }));
+    mockStripe.subscriptionSchedules.create.mockImplementation(async (params: any, o: any) => idem(cles, o.idempotencyKey, () => {
+      const id = `sub_sched_${++n}`;
+      effectifs.push(`create ${id}`);
+      schedules[id] = { id, status: 'active', metadata: params.metadata, current_phase: { start_date: 1790856000 }, phases: [{ start_date: 1790856000, end_date: PERIOD_END, items: [] }] };
+      attache = id;
+      return schedules[id];
+    }));
+    mockStripe.subscriptionSchedules.retrieve.mockImplementation(async (id: string) => JSON.parse(JSON.stringify(schedules[id])));
+    mockStripe.subscriptionSchedules.update.mockImplementation(async (id: string, params: any, o: any) => idem(cles, o.idempotencyKey, () => {
+      const prix = params.phases[1].items[0].price;
+      effectifs.push(`phase2 ${id} ${prix}`);
+      schedules[id].phase2 = prix;
+      return { ...schedules[id] };
+    }));
+    mockStripe.subscriptionSchedules.release.mockImplementation(async (id: string, _p: any, o: any) => idem(cles, o.idempotencyKey, () => {
+      effectifs.push(`release ${id}`);
+      schedules[id].status = 'released';
+      attache = null;
+      return { ...schedules[id] };
+    }));
+  });
+
+  it('B → C → B : Stripe et la base finissent sur B', async () => {
+    for (const choix of ['illimite', 'premium', 'illimite']) {
+      expect(((await changer(req({ new_plan_id: choix }))) as any)._status).toBe(200);
+    }
+    expect(effectifs).toEqual([
+      'create sub_sched_1', 'phase2 sub_sched_1 price_illimite', 'phase2 sub_sched_1 price_premium', 'phase2 sub_sched_1 price_illimite',
+    ]);
+    expect(schedules.sub_sched_1.phase2).toBe('price_illimite');
+    expect(db.tables.box_members[0]).toMatchObject({ scheduled_plan_id: 'illimite', stripe_schedule_id: 'sub_sched_1' });
+  });
+
+  it('double clic (deux envois simultanés) : un seul appel effectif chez Stripe', async () => {
+    const [a, b] = await Promise.all([changer(req({ new_plan_id: 'illimite' })), changer(req({ new_plan_id: 'illimite' }))]) as any[];
+    expect([a._status, b._status]).toEqual([200, 200]);
+    expect(effectifs).toEqual(['create sub_sched_1', 'phase2 sub_sched_1 price_illimite']);
+    expect(db.tables.box_members[0]).toMatchObject({ scheduled_plan_id: 'illimite', stripe_schedule_id: 'sub_sched_1' });
+  });
+
+  it('annuler puis refaire le même choix : nouvel échéancier, pas la réponse rejouée de l’ancien', async () => {
+    await changer(req({ new_plan_id: 'illimite' }));
+    expect(((await annuler(req())) as any)._status).toBe(200);
+    expect(((await changer(req({ new_plan_id: 'illimite' }))) as any)._status).toBe(200);
+    expect(effectifs).toEqual([
+      'create sub_sched_1', 'phase2 sub_sched_1 price_illimite', 'release sub_sched_1',
+      'create sub_sched_2', 'phase2 sub_sched_2 price_illimite',
+    ]);
+    expect(db.tables.box_members[0]).toMatchObject({ scheduled_plan_id: 'illimite', stripe_schedule_id: 'sub_sched_2' });
   });
 });

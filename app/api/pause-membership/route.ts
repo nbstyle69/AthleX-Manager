@@ -3,6 +3,7 @@ import Stripe from 'stripe';
 import { createServiceClient, getServerUser } from '@/lib/supabase/server';
 import { isBoxOwnerAdmin } from '@/lib/isBoxOwnerAdmin';
 import { refuseClosedBox } from '@/lib/boxEntryGuard';
+import { detachPlanChange } from '@/lib/membership/server';
 
 function getStripe() {
   return new Stripe(process.env.STRIPE_SECRET_KEY!, {
@@ -74,6 +75,8 @@ export async function POST(req: NextRequest) {
     const now = new Date().toISOString();
 
     if (action === 'pause') {
+      // Mettre en pause annule le changement de formule programmé.
+      await detachPlanChange({ stripeAccount, subscriptionId: member.stripe_subscription_id, motif: 'pause' });
       const resumesUnix = resumes_at ? Math.floor(new Date(resumes_at).getTime() / 1000) : undefined;
       await stripe.subscriptions.update(
         member.stripe_subscription_id,

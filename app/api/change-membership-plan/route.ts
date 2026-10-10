@@ -6,7 +6,7 @@ import { refuseClosedBox } from '@/lib/boxEntryGuard';
 import { SCHEDULE_MARK, codeFromDbError, modeOf, planRefusal, type PlanLite } from '@/lib/membership/planChange';
 import {
   blockError, connectAccount, getConnectStripe, idempotencyKey, loadBlockReason, loadMember, periodEndEpoch,
-  planChangeError,
+  planChangeError, releaseSchedule,
 } from '@/lib/membership/server';
 
 /**
@@ -115,10 +115,19 @@ export async function POST(req: NextRequest) {
         || (schedule.metadata?.[SCHEDULE_MARK] === '1' && schedule.metadata?.member_id === userId);
       if (!ours) return planChangeError('PLAN_CHANGE_FOREIGN_SCHEDULE');
     } else {
-      schedule = await stripe.subscriptionSchedules.create(
+      // Clé : l'abonnement, l'échéancier enregistré au moment de l'appel, la formule visée.
+      const creer = (suffixe?: string) => stripe.subscriptionSchedules.create(
         { from_subscription: sub.id, metadata: mark } as any,
-        { stripeAccount, idempotencyKey: idempotencyKey('schedule', sub.id) },
+        { stripeAccount, idempotencyKey: idempotencyKey('schedule', sub.id, m.stripe_schedule_id, p.id, suffixe ?? '') },
       );
+      schedule = await creer();
+      // Même état et même choix qu'avant une annulation (moins de 24 h) : Stripe
+      // rejoue la réponse d'alors, et cet échéancier est relâché depuis. Seule
+      // une relecture le dit (la réponse rejouée garde son ancien statut).
+      schedule = await stripe.subscriptionSchedules.retrieve(schedule.id, {}, { stripeAccount });
+      if (!['not_started', 'active'].includes(schedule.status)) {
+        schedule = await creer(`apres-${schedule.id}`);
+      }
     }
 
     const current = schedule.phases.find((ph) => ph.start_date === schedule.current_phase?.start_date) ?? schedule.phases[0];
@@ -141,7 +150,8 @@ export async function POST(req: NextRequest) {
           },
         ],
       } as any,
-      { stripeAccount, idempotencyKey: idempotencyKey('phases', schedule.id, p.id) },
+      // Clé : l'échéancier, sa phase en cours, la formule programmée avant l'appel, la formule visée.
+      { stripeAccount, idempotencyKey: idempotencyKey('phases', schedule.id, current.start_date, m.scheduled_plan_id, p.id) },
     );
 
     const effectiveAt = new Date(periodEnd * 1000).toISOString();
@@ -153,9 +163,7 @@ export async function POST(req: NextRequest) {
     if (writeErr || !written || written.length !== 1) {
       // Pas d'état à moitié : sans trace en base, l'échéancier est relâché
       // (l'abonnement continue tel quel, rien n'est programmé).
-      await stripe.subscriptionSchedules.release(
-        schedule.id, {}, { stripeAccount, idempotencyKey: idempotencyKey('release', schedule.id) },
-      );
+      await releaseSchedule(stripe, schedule.id, 'echec-base', stripeAccount);
       console.error('change-membership-plan: write failed after Stripe, schedule released');
       return NextResponse.json({ error: "Le changement n'a pas pu être enregistré. Réessaie." }, { status: 500 });
     }

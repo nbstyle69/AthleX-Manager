@@ -2,10 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/server';
 import { getRequestUser } from '@/lib/auth/requestUser';
 import {
-  connectAccount, getConnectStripe, idempotencyKey, loadMember, planChangeError,
+  connectAccount, getConnectStripe, loadMember, planChangeError, releaseSchedule,
 } from '@/lib/membership/server';
-
-const FINI = ['released', 'canceled', 'completed'];
 
 /**
  * Annule le changement de formule de l'appelant tant qu'il n'a pas eu lieu
@@ -31,15 +29,8 @@ export async function POST(req: NextRequest) {
       const stripe = getConnectStripe();
       const stripeAccount = box.stripe_account_id;
       const scheduleId = m.stripe_schedule_id;
-      try {
-        await stripe.subscriptionSchedules.release(
-          scheduleId, {}, { stripeAccount, idempotencyKey: idempotencyKey('release', scheduleId) },
-        );
-      } catch (err) {
-        // Déjà relâché ou terminé (webhook en retard) : il ne reste qu'à nettoyer.
-        const s = await stripe.subscriptionSchedules.retrieve(scheduleId, {}, { stripeAccount });
-        if (!FINI.includes(s.status)) throw err;
-      }
+      // Déjà relâché ou terminé (webhook en retard) : il ne reste qu'à nettoyer.
+      await releaseSchedule(stripe, scheduleId, 'annulation', stripeAccount);
       await supabase.from('box_members')
         .update({ scheduled_plan_id: null, scheduled_change_at: null, stripe_schedule_id: null })
         .eq('id', m.id)

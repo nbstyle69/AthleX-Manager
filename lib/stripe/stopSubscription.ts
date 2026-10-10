@@ -1,4 +1,5 @@
 import Stripe from 'stripe';
+import { detachPlanChange } from '@/lib/membership/server';
 
 /**
  * Arrêt d'un abonnement Stripe : sur le compte connecté d'une box, ou sur le
@@ -61,15 +62,21 @@ export async function stopSubscription({
 }: StopSubscriptionParams): Promise<Stripe.Subscription> {
   const stripe = getStripe();
   if (mode === 'period_end') {
+    // Arrêter annule le changement de formule programmé, et Stripe refuse de
+    // modifier l'annulation d'un abonnement piloté par un échéancier.
+    await detachPlanChange({ stripeAccount, subscriptionId, motif: 'arret' });
     return stripe.subscriptions.update(
       subscriptionId,
       { cancel_at_period_end: true },
       { ...onAccount(stripeAccount), idempotencyKey },
     );
   }
-  return stripe.subscriptions.cancel(
+  const cancelled = await stripe.subscriptions.cancel(
     subscriptionId,
     { prorate: false, invoice_now: false },
     { ...onAccount(stripeAccount), idempotencyKey },
   );
+  // Annulation immédiate : Stripe l'accepte avec un échéancier ; reste à vider les colonnes.
+  await detachPlanChange({ stripeAccount, subscriptionId, motif: 'arret', release: false });
+  return cancelled;
 }

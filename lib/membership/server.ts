@@ -3,8 +3,9 @@ import Stripe from 'stripe';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { boxEntryRefusal } from '@/lib/boxEntryGuard';
 import { selectMembership } from '@/lib/compte/membership';
+import { createServiceClient } from '@/lib/supabase/server';
 import {
-  BLOCK_CODE, MEMBER_BILLING_COLUMNS, PLAN_CHANGE_MESSAGES, blockReason,
+  BLOCK_CODE, MEMBER_BILLING_COLUMNS, PLAN_CHANGE_MESSAGES, SCHEDULE_MARK, blockReason,
   type BlockReason, type MemberBilling, type PlanChangeCode,
 } from './planChange';
 
@@ -14,13 +15,78 @@ export function getConnectStripe() {
 }
 
 /**
- * Clé d'idempotence Stripe : un double clic ou une nouvelle tentative du
- * réseau dans la même minute ne crée ni ne modifie rien deux fois.
- * ponytail: fenêtre d'une minute ; passer une clé par demande depuis le
- * client si un renvoi plus tardif doit être couvert.
+ * Clé d'idempotence Stripe, dérivée de l'état et jamais de l'heure : un
+ * double clic (même état, même choix) rend la même clé et ne s'exécute qu'une
+ * fois ; un nouveau choix, ou le même choix depuis un autre état, rend une clé
+ * différente et s'exécute.
  */
-export function idempotencyKey(...parts: (string | number)[]) {
-  return ['plan-change', ...parts, Math.floor(Date.now() / 60_000)].join(':');
+export function idempotencyKey(...parts: (string | number | null | undefined)[]) {
+  return ['plan-change', ...parts.map((p) => p ?? 'aucun')].join(':');
+}
+
+const SCHEDULE_FINI = ['released', 'canceled', 'completed'];
+
+/** Relâche un échéancier ; déjà relâché, annulé ou terminé : rien à faire. */
+export async function releaseSchedule(stripe: Stripe, scheduleId: string, motif: string, stripeAccount: string) {
+  try {
+    await stripe.subscriptionSchedules.release(
+      scheduleId, {}, { stripeAccount, idempotencyKey: idempotencyKey('release', scheduleId, motif) },
+    );
+  } catch (err) {
+    const s = await stripe.subscriptionSchedules.retrieve(scheduleId, {}, { stripeAccount });
+    if (!SCHEDULE_FINI.includes(s.status)) throw err;
+  }
+}
+
+/**
+ * Résilier, arrêter ou mettre en pause annule le changement de formule
+ * programmé. Stripe refuse de modifier l'annulation d'un abonnement piloté
+ * par un échéancier : avant ces opérations, notre échéancier (enregistré dans
+ * `stripe_schedule_id`, ou marqué à notre nom) est relâché, puis les colonnes
+ * `scheduled_*` vidées par écriture conditionnelle. `release: false`
+ * (annulation immédiate, que Stripe accepte) : seulement vider les colonnes.
+ * Échéancier étranger, ou abonnement qui n'est pas celui d'un membre : rien.
+ * Ne lève jamais : l'opération suit ensuite son chemin habituel.
+ */
+export async function detachPlanChange(o: {
+  stripeAccount?: string | null; subscriptionId: string; motif: string; release?: boolean;
+}): Promise<void> {
+  if (!o.stripeAccount) return; // abonnement de la box à AthleX : jamais d'échéancier à nous
+  try {
+    const service = createServiceClient();
+    const { data } = await service.from('box_members')
+      .select('id, member_id, scheduled_plan_id, scheduled_change_at, stripe_schedule_id')
+      .eq('stripe_subscription_id', o.subscriptionId).maybeSingle();
+    const row = data as {
+      id: string; member_id: string; scheduled_plan_id: string | null;
+      scheduled_change_at: string | null; stripe_schedule_id: string | null;
+    } | null;
+    if (!row) return;
+
+    if (o.release !== false) {
+      const stripe = getConnectStripe();
+      const sub: any = await stripe.subscriptions.retrieve(o.subscriptionId, {}, { stripeAccount: o.stripeAccount });
+      const sid: string | null = typeof sub?.schedule === 'string' ? sub.schedule : sub?.schedule?.id ?? null;
+      if (sid) {
+        let ours = sid === row.stripe_schedule_id;
+        if (!ours) {
+          const s = await stripe.subscriptionSchedules.retrieve(sid, {}, { stripeAccount: o.stripeAccount });
+          ours = s.metadata?.[SCHEDULE_MARK] === '1' && s.metadata?.member_id === row.member_id;
+        }
+        if (!ours) return; // étranger : on n'y touche pas
+        await releaseSchedule(stripe, sid, o.motif, o.stripeAccount);
+      }
+    }
+
+    if (row.scheduled_plan_id || row.scheduled_change_at || row.stripe_schedule_id) {
+      const q = service.from('box_members')
+        .update({ scheduled_plan_id: null, scheduled_change_at: null, stripe_schedule_id: null })
+        .eq('id', row.id);
+      await (row.stripe_schedule_id ? q.eq('stripe_schedule_id', row.stripe_schedule_id) : q.is('stripe_schedule_id', null));
+    }
+  } catch (err) {
+    console.error('detachPlanChange failed:', err instanceof Error ? err.message : 'error');
+  }
 }
 
 /** Refus nommé : `{ error, code }`, 409 par défaut. */
