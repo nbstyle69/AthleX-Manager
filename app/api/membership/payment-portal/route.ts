@@ -3,7 +3,9 @@ import { createServiceClient } from '@/lib/supabase/server';
 import { getRequestUser } from '@/lib/auth/requestUser';
 import { SITE_URL } from '@/lib/site-url';
 import { modeOf } from '@/lib/membership/planChange';
-import { connectAccount, getConnectStripe, loadMember, planChangeError, portalConfiguration } from '@/lib/membership/server';
+import {
+  connectAccount, getConnectStripe, loadMember, logStripeError, planChangeError, portalConfiguration,
+} from '@/lib/membership/server';
 
 /**
  * Ouvre le portail Stripe du membre (cookie du site ou Bearer de l'app) sur
@@ -39,7 +41,7 @@ export async function POST(req: NextRequest) {
     );
     return NextResponse.json({ url: session.url });
   } catch (err: any) {
-    console.error('membership/payment-portal error:', err?.message ?? err);
+    logStripeError('membership/payment-portal', 'portail', err);
     return NextResponse.json({ error: "Le portail de paiement n'a pas pu s'ouvrir." }, { status: 500 });
   }
 }

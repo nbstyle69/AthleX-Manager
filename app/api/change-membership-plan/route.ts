@@ -5,8 +5,8 @@ import { getRequestUser } from '@/lib/auth/requestUser';
 import { refuseClosedBox } from '@/lib/boxEntryGuard';
 import { SCHEDULE_MARK, codeFromDbError, modeOf, planRefusal, type PlanLite } from '@/lib/membership/planChange';
 import {
-  blockError, connectAccount, getConnectStripe, idempotencyKey, loadBlockReason, loadMember, periodEndEpoch,
-  planChangeError, releaseSchedule,
+  blockError, connectAccount, getConnectStripe, idempotencyKey, loadBlockReason, loadMember, logStripeError,
+  periodEndEpoch, planChangeError, releaseSchedule, stripeErrorCode, subscriptionRefusal,
 } from '@/lib/membership/server';
 
 /**
@@ -21,6 +21,8 @@ import {
  * Refus nommés (409, codes PLAN_CHANGE_*). Réponse `{ ok, mode, effective_at? }`.
  */
 export async function POST(req: NextRequest) {
+  // Étape en cours, journalisée en cas d'échec : le diagnostic dit où la route s'est arrêtée.
+  let etape = 'debut';
   try {
     const user = await getRequestUser(req);
     if (!user?.id) return NextResponse.json({ error: 'Non authentifié.' }, { status: 401 });
@@ -80,6 +82,7 @@ export async function POST(req: NextRequest) {
     // Prix de la nouvelle formule sur le compte connecté (créé une fois, puis réutilisé).
     let priceId = p.stripe_price_id;
     if (!priceId) {
+      etape = 'prix';
       const product = p.stripe_product_id
         ? { id: p.stripe_product_id }
         : await stripe.products.create(
@@ -96,7 +99,12 @@ export async function POST(req: NextRequest) {
         .eq('id', p.id);
     }
 
+    etape = 'lecture-abonnement';
     const sub: any = await stripe.subscriptions.retrieve(m.stripe_subscription_id!, {}, { stripeAccount });
+    // L'état réel chez Stripe prime sur la base, qui peut être en retard
+    // (fin programmée par `cancel_at` non recopiée, par exemple).
+    const refusStripe = subscriptionRefusal(sub);
+    if (refusStripe) return planChangeError(refusStripe);
     const periodEnd = periodEndEpoch(sub);
     const items: { price: string; quantity: number }[] = (sub.items?.data ?? [])
       .map((it: any) => ({ price: it.price?.id, quantity: it.quantity ?? 1 }));
@@ -107,34 +115,44 @@ export async function POST(req: NextRequest) {
     // Échéancier : le nôtre (enregistré, ou marqué à notre nom) est repris ;
     // tout autre est étranger, on n'y touche pas.
     let schedule: Stripe.SubscriptionSchedule;
+    let cree: string | null = null;
     const existing = typeof sub.schedule === 'string' ? sub.schedule : sub.schedule?.id ?? null;
     const mark = { [SCHEDULE_MARK]: '1', member_id: userId, box_id: p.box_id };
     if (existing) {
+      etape = 'lecture-echeancier';
       schedule = await stripe.subscriptionSchedules.retrieve(existing, {}, { stripeAccount });
       const ours = existing === m.stripe_schedule_id
         || (schedule.metadata?.[SCHEDULE_MARK] === '1' && schedule.metadata?.member_id === userId);
       if (!ours) return planChangeError('PLAN_CHANGE_FOREIGN_SCHEDULE');
     } else {
+      // Stripe n'accepte que `from_subscription` à la création (« You cannot set
+      // `metadata` if `from_subscription` is set ») : la marque est posée par la
+      // mise à jour des phases, juste après.
       // Clé : l'abonnement, l'échéancier enregistré au moment de l'appel, la formule visée.
+      etape = 'creation-echeancier';
       const creer = (suffixe?: string) => stripe.subscriptionSchedules.create(
-        { from_subscription: sub.id, metadata: mark } as any,
+        { from_subscription: sub.id },
         { stripeAccount, idempotencyKey: idempotencyKey('schedule', sub.id, m.stripe_schedule_id, p.id, suffixe ?? '') },
       );
       schedule = await creer();
       // Même état et même choix qu'avant une annulation (moins de 24 h) : Stripe
       // rejoue la réponse d'alors, et cet échéancier est relâché depuis. Seule
       // une relecture le dit (la réponse rejouée garde son ancien statut).
+      etape = 'relecture-echeancier';
       schedule = await stripe.subscriptionSchedules.retrieve(schedule.id, {}, { stripeAccount });
       if (!['not_started', 'active'].includes(schedule.status)) {
+        etape = 'creation-echeancier';
         schedule = await creer(`apres-${schedule.id}`);
       }
+      cree = schedule.id;
     }
 
     const current = schedule.phases.find((ph) => ph.start_date === schedule.current_phase?.start_date) ?? schedule.phases[0];
     const metadata = { ...(sub.metadata ?? {}) } as Record<string, string>;
     // Phase 1 : la formule actuelle jusqu'à la fin de la période. Phase 2
     // (remplace toute phase future) : la nouvelle formule, sans prorata.
-    schedule = await stripe.subscriptionSchedules.update(
+    etape = 'phases';
+    const phases = stripe.subscriptionSchedules.update(
       schedule.id,
       {
         end_behavior: 'release',
@@ -153,7 +171,16 @@ export async function POST(req: NextRequest) {
       // Clé : l'échéancier, sa phase en cours, la formule programmée avant l'appel, la formule visée.
       { stripeAccount, idempotencyKey: idempotencyKey('phases', schedule.id, current.start_date, m.scheduled_plan_id, p.id) },
     );
+    try {
+      schedule = await phases;
+    } catch (err) {
+      // Un échéancier que nous venons de créer, sans marque ni phases : relâché,
+      // sinon il resterait attaché et passerait ensuite pour étranger.
+      if (cree) await releaseSchedule(stripe, cree, 'echec-phases', stripeAccount).catch(() => {});
+      throw err;
+    }
 
+    etape = 'ecriture-base';
     const effectiveAt = new Date(periodEnd * 1000).toISOString();
     const { data: written, error: writeErr } = await supabase.from('box_members')
       .update({ scheduled_plan_id: p.id, scheduled_change_at: effectiveAt, stripe_schedule_id: schedule.id })
@@ -170,7 +197,9 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ ok: true, mode: 'online', effective_at: effectiveAt, plan_name: p.name });
   } catch (err: any) {
-    console.error('change-membership-plan error:', err?.message ?? err);
+    logStripeError('change-membership-plan', etape, err);
+    const code = stripeErrorCode(err);
+    if (code) return planChangeError(code);
     return NextResponse.json({ error: 'Le changement de formule a échoué.' }, { status: 500 });
   }
 }

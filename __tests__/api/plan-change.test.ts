@@ -532,3 +532,83 @@ describe('idempotence : clés dérivées de l’état (faux Stripe qui rejoue un
     expect(db.tables.box_members[0]).toMatchObject({ scheduled_plan_id: 'illimite', stripe_schedule_id: 'sub_sched_2' });
   });
 });
+
+describe('preview 7a128cb : refus de Stripe et état réel de l’abonnement', () => {
+  /** Erreur au format du SDK Stripe (requête invalide). */
+  const refusStripe = (message: string, extra: Record<string, unknown> = {}) =>
+    Object.assign(new Error(message), { type: 'StripeInvalidRequestError', code: 'parameter_invalid', param: 'metadata', statusCode: 400, ...extra });
+
+  it('création de l’échéancier : seulement from_subscription (Stripe refuse une metadata) ; la marque vient avec les phases', async () => {
+    mockStripe.subscriptionSchedules.create.mockImplementation(async (params: any) => {
+      if (Object.keys(params).some((k) => k !== 'from_subscription')) {
+        throw refusStripe('You cannot set `metadata` if `from_subscription` is set.');
+      }
+      return { id: 'sub_sched_1', status: 'active', metadata: {}, current_phase: { start_date: 1790856000 }, phases: [{ start_date: 1790856000, end_date: PERIOD_END, items: [] }] };
+    });
+    const res = (await changer(req({ new_plan_id: 'illimite' }))) as any;
+    expect(res._status).toBe(200);
+    expect(mockStripe.subscriptionSchedules.create.mock.calls[0][0]).toEqual({ from_subscription: 'sub_1' });
+    expect(mockStripe.subscriptionSchedules.update.mock.calls[0][1].metadata).toEqual({ athlex_plan_change: '1', member_id: 'ath-1', box_id: 'box-1' });
+  });
+
+  it.each([
+    ['fin à une date (cancel_at, arrêt automatique du sandbox)', { cancel_at: 1799000000 }, 'PLAN_CHANGE_CANCEL_SCHEDULED'],
+    ['fin de période', { cancel_at_period_end: true }, 'PLAN_CHANGE_CANCEL_SCHEDULED'],
+    ['pause', { pause_collection: { behavior: 'void' } }, 'PLAN_CHANGE_PAUSED'],
+    ['impayé', { status: 'past_due' }, 'PLAN_CHANGE_PAST_DUE'],
+  ])('Stripe dit %s alors que la base l’ignore : 409 %s, aucun échéancier', async (_l, patch, code) => {
+    mockStripe.subscriptions.retrieve.mockResolvedValue({ ...(await mockStripe.subscriptions.retrieve()), ...patch });
+    const res = (await changer(req({ new_plan_id: 'illimite' }))) as any;
+    expect([res._status, res._data.code]).toEqual([409, code]);
+    expect(mockStripe.subscriptionSchedules.create).not.toHaveBeenCalled();
+    expect(ecritures('box_members')).toEqual([]);
+  });
+
+  it.each([
+    ['annulation', 'The subscription is managed by the subscription schedule and updating any cancelation behavior directly is not allowed.', 'PLAN_CHANGE_CANCEL_SCHEDULED'],
+    ['pause', 'Cannot schedule a subscription with pause_collection set.', 'PLAN_CHANGE_PAUSED'],
+    ['échéancier', 'This subscription is already attached to a subscription schedule.', 'PLAN_CHANGE_FOREIGN_SCHEDULE'],
+  ])('refus Stripe connu (%s) : 409 nommé, pas 500', async (_l, message, code) => {
+    mockStripe.subscriptionSchedules.create.mockRejectedValue(refusStripe(message));
+    const res = (await changer(req({ new_plan_id: 'illimite' }))) as any;
+    expect([res._status, res._data.code]).toEqual([409, code]);
+  });
+
+  it('erreur Stripe d’un autre type (réseau, API) : 500, jamais traduite', async () => {
+    mockStripe.subscriptionSchedules.create.mockRejectedValue(Object.assign(new Error('Request was retried but cancel failed'), { type: 'StripeConnectionError' }));
+    expect(((await changer(req({ new_plan_id: 'illimite' }))) as any)._status).toBe(500);
+  });
+
+  it('erreur inconnue : 500, et le journal dit l’étape et le code Stripe sans aucun identifiant', async () => {
+    const journal = console.error as jest.Mock;
+    mockStripe.subscriptionSchedules.create.mockRejectedValue(
+      refusStripe("You cannot set `metadata` if `from_subscription` is set. (sub_1A2b3C4d5E6f, cus_9Z8y7X6w5V, client@exemple.fr, 00000000-0000-4000-a000-000000000001)"),
+    );
+    const res = (await changer(req({ new_plan_id: 'illimite' }))) as any;
+    expect(res._status).toBe(500);
+    const ligne = journal.mock.calls.find((c) => c[0] === 'change-membership-plan error');
+    expect(JSON.parse(ligne[1])).toEqual({
+      etape: 'creation-echeancier', type: 'StripeInvalidRequestError', code: 'parameter_invalid', param: 'metadata', statusCode: 400,
+      message: 'You cannot set `metadata` if `from_subscription` is set. (<id>, <id>, <e-mail>, <uuid>)',
+    });
+  });
+
+  it('phases refusées juste après la création : l’échéancier créé est relâché', async () => {
+    mockStripe.subscriptionSchedules.update.mockRejectedValue(refusStripe('Invalid phases.', { param: 'phases' }));
+    const res = (await changer(req({ new_plan_id: 'illimite' }))) as any;
+    expect(res._status).toBe(500);
+    expect(mockStripe.subscriptionSchedules.release).toHaveBeenCalledWith(
+      'sub_sched_1', {}, { stripeAccount: 'acct_1', idempotencyKey: 'plan-change:release:sub_sched_1:echec-phases' },
+    );
+    expect(ecritures('box_members')).toEqual([]);
+  });
+
+  it('phases refusées sur un échéancier repris : il n’est pas relâché (le changement déjà programmé reste)', async () => {
+    monde({ ...ENLIGNE, scheduled_plan_id: 'illimite', stripe_schedule_id: 'sub_sched_1' });
+    mockStripe.subscriptions.retrieve.mockResolvedValue({ ...(await mockStripe.subscriptions.retrieve()), schedule: 'sub_sched_1' });
+    db.tables.membership_plans.push(plan('premium', { price_cents: 9000 }));
+    mockStripe.subscriptionSchedules.update.mockRejectedValue(refusStripe('Invalid phases.', { param: 'phases' }));
+    expect(((await changer(req({ new_plan_id: 'premium' }))) as any)._status).toBe(500);
+    expect(mockStripe.subscriptionSchedules.release).not.toHaveBeenCalled();
+  });
+});

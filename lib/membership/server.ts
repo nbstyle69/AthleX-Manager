@@ -89,6 +89,53 @@ export async function detachPlanChange(o: {
   }
 }
 
+/**
+ * Refus d'après l'état réel de l'abonnement chez Stripe, qui prime sur la
+ * base (elle peut être en retard) : impayé, pause, fin programmée (à la fin
+ * de la période ou à une date, `cancel_at`).
+ */
+export function subscriptionRefusal(sub: any): PlanChangeCode | null {
+  if (sub?.status === 'past_due' || sub?.status === 'unpaid') return 'PLAN_CHANGE_PAST_DUE';
+  if (sub?.pause_collection) return 'PLAN_CHANGE_PAUSED';
+  if (sub?.cancel_at_period_end || sub?.cancel_at != null) return 'PLAN_CHANGE_CANCEL_SCHEDULED';
+  return null;
+}
+
+/**
+ * Refus de Stripe que l'on sait nommer (requête invalide sur un abonnement qui
+ * s'arrête, en pause, ou piloté par un échéancier qui n'est pas le nôtre) ;
+ * null pour tout le reste, qui reste une erreur 500.
+ */
+export function stripeErrorCode(err: any): PlanChangeCode | null {
+  if (err?.type !== 'StripeInvalidRequestError') return null;
+  const m = String(err?.message ?? '');
+  if (/cancel/i.test(m)) return 'PLAN_CHANGE_CANCEL_SCHEDULED';
+  if (/pause/i.test(m)) return 'PLAN_CHANGE_PAUSED';
+  if (/subscription schedule/i.test(m)) return 'PLAN_CHANGE_FOREIGN_SCHEDULE';
+  return null;
+}
+
+/** Message sans identifiant Stripe, e-mail ni identifiant de base. */
+function sansDonnees(message: string) {
+  return message
+    // Identifiant Stripe : préfixe, puis au moins un chiffre (un nom de paramètre n'en a pas).
+    .replace(/\b[a-z]{2,10}_(?=[A-Za-z0-9]*\d)[A-Za-z0-9]{8,}\b/g, '<id>')
+    .replace(/[^\s@'"`,;()<>]+@[^\s@'"`,;()<>]+/g, '<e-mail>')
+    .replace(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi, '<uuid>');
+}
+
+/** Journal d'un échec : étape et erreur Stripe (type, code, param, statut), sans donnée personnelle. */
+export function logStripeError(route: string, etape: string, err: any) {
+  console.error(`${route} error`, JSON.stringify({
+    etape,
+    type: err?.type ?? null,
+    code: err?.code ?? null,
+    param: err?.param ?? null,
+    statusCode: err?.statusCode ?? null,
+    message: sansDonnees(String(err?.message ?? err ?? '')),
+  }));
+}
+
 /** Refus nommé : `{ error, code }`, 409 par défaut. */
 export function planChangeError(code: PlanChangeCode, status = 409) {
   return NextResponse.json({ error: PLAN_CHANGE_MESSAGES[code], code }, { status });

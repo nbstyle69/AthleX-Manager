@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/server';
 import { getRequestUser } from '@/lib/auth/requestUser';
 import {
-  connectAccount, getConnectStripe, loadMember, planChangeError, releaseSchedule,
+  connectAccount, getConnectStripe, loadMember, logStripeError, planChangeError, releaseSchedule,
 } from '@/lib/membership/server';
 
 /**
@@ -45,7 +45,7 @@ export async function POST(req: NextRequest) {
     if (data !== true) return planChangeError('PLAN_CHANGE_NOTHING_TO_CANCEL');
     return NextResponse.json({ ok: true, mode: 'counter' });
   } catch (err: any) {
-    console.error('change-membership-plan/cancel error:', err?.message ?? err);
+    logStripeError('change-membership-plan/cancel', 'annulation', err);
     return NextResponse.json({ error: "L'annulation a échoué." }, { status: 500 });
   }
 }
