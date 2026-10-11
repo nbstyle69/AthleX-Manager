@@ -20,7 +20,8 @@ order: 77
 4. Member paying hand to hand: click **Encaissement reçu** (payment received), then **Enregistrer le paiement**. The amount is not typed, it is read from the member's plan; the entry is **final** (an append-only log, never edited) and the membership goes back to « actif ». <Screenshot src="/tutorials/abonnes-et-facturation/2.png" alt="“Enregistrer un paiement au comptoir ?” confirmation" />
 5. Injury, absence, holiday: **Geler** suspends the Stripe subscription, **Reprendre** restarts it. The athlete sees the pause in their account but cannot trigger it themselves.
 6. Handle the **Demandes de résiliation** (cancellation requests) at the top of the page: the reason, the message, the **Justificatif** to open, then **Approuver** or **Refuser** (with an optional refusal reason). Those requests come from athletes still under commitment.
-7. A finished subscription drops into **Anciens membres** (former members), with its status (**Annulé**, **Remboursé**) and its end date.
+7. Handle the **Demandes de changement de formule** (plan change requests) just below: they come from members who pay at the front desk. **Accepter** applies the new plan right away and the member pays the difference at the desk; **Refuser** leaves it unchanged. The member is notified either way. A member who pays online changes on their own, from their account: the switch is scheduled for their next billing date, with no proration, and their row shows the new plan and its date (« → … le … »).
+8. A finished subscription drops into **Anciens membres** (former members), with its status (**Annulé**, **Remboursé**) and its end date.
 
 <Callout>
 **On gym access subscriptions AthleX takes no commission: you keep 100 % of the amount.** Stripe fees still apply, and programs sold on the Marketplace follow their own commission rule.

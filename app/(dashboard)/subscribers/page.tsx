@@ -8,9 +8,11 @@ import { CreditCard, Loader2, Search, Users, BookOpen, Pause, Play, FileText, Ch
 import { getMyBox } from '@/lib/getMyBox';
 import { getMemberEmails } from '@/lib/memberEmails';
 import UnpaidPanel from '@/components/UnpaidPanel';
+import PlanChangeRequestsPanel, { type PlanChangeRequest } from '@/components/PlanChangeRequestsPanel';
+import { decidePlanChange, scheduledRowLabel } from '@/lib/membership/screens';
 import { Badge } from '@/components/ui/badge';
 import { useConfirmDialog } from '@/components/ui/confirm-dialog';
-import { fullDate, type ConfirmChoice } from '@/lib/confirmDialog';
+import { ERROR_TITLE, fullDate, type ConfirmChoice } from '@/lib/confirmDialog';
 import { paymentMethodLabel } from '@/lib/paymentMethodLabel';
 import { entryRefusalFrom, entryRefusalInfo } from '@/lib/entryRefusalView';
 import { parisDate } from '@/lib/datetime';
@@ -41,6 +43,9 @@ interface Row {
   pauseResumesAt: string | null;
   commitmentEndDate: string | null;
   joinedAt: string | null;
+  /** Changement de formule programmé (en ligne) : formule et date de bascule. */
+  scheduledPlan: string | null;
+  scheduledAt: string | null;
 }
 
 const REASON_LABEL: Record<string, string> = {
@@ -97,6 +102,9 @@ interface BillingRow {
   has_stripe_sub: boolean | null;
   /** Pas encore servi par la RPC : migration athlex-app décrite dans la PR S4. */
   payment_method_type?: string | null;
+  /** Pas encore servis par la RPC : migration athlex-app décrite dans la PR (changement de formule, écrans). */
+  scheduled_plan_id?: string | null;
+  scheduled_change_at?: string | null;
 }
 
 /** Une ligne du journal comptoir : montant réellement encaissé en espèces. */
@@ -146,6 +154,7 @@ export default function SubscribersPage() {
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<'all' | Kind>('all');
   const [cancelReqs, setCancelReqs] = useState<CancelRequest[]>([]);
+  const [planReqs, setPlanReqs] = useState<PlanChangeRequest[]>([]);
   const [actionBusy, setActionBusy] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [boxId, setBoxId] = useState<string | null>(null);
@@ -170,7 +179,7 @@ export default function SubscribersPage() {
     if (billingError) setActionError(`Abonnements indisponibles : ${billingError.message}`);
     const memberRows = ((billingRaw ?? []) as BillingRow[]).filter((b) => b.subscription_status != null);
 
-    const planIds = Array.from(new Set(memberRows.map((b) => b.plan_id).filter((id): id is string => !!id)));
+    const planIds = Array.from(new Set(memberRows.flatMap((b) => [b.plan_id, b.scheduled_plan_id]).filter((id): id is string => !!id)));
     const planById: Record<string, { name: string | null; color: string | null; price_cents: number | null }> = {};
     if (planIds.length > 0) {
       const { data: planRows } = await supabase
@@ -216,6 +225,28 @@ export default function SubscribersPage() {
       username: (Array.isArray(r.requester) ? r.requester[0] : r.requester)?.username ?? '?',
     })));
 
+    // Demandes de changement de formule (membres au comptoir) : gérant et
+    // co-gérants seulement, comme la décision (la RLS dit la même chose).
+    if (box.my_role === 'owner') {
+      const { data: planReqRows, error: planReqError } = await supabase
+        .from('box_plan_change_requests')
+        .select('id, created_at, requester:profiles!box_plan_change_requests_member_id_fkey(username), from:membership_plans!box_plan_change_requests_from_plan_id_fkey(name), to:membership_plans!box_plan_change_requests_to_plan_id_fkey(name)')
+        .eq('box_id', box.id)
+        .eq('status', 'pending')
+        .order('created_at', { ascending: true });
+      if (planReqError) setActionError(`Demandes de changement de formule indisponibles : ${planReqError.message}`);
+      const one = (v: any) => (Array.isArray(v) ? v[0] : v) ?? null;
+      setPlanReqs((planReqRows ?? []).map((r: any) => ({
+        id: r.id,
+        username: one(r.requester)?.username ?? '?',
+        fromPlan: one(r.from)?.name ?? null,
+        toPlan: one(r.to)?.name ?? 'Formule',
+        createdAt: r.created_at,
+      })));
+    } else {
+      setPlanReqs([]);
+    }
+
     // Achats de programmes. `program_members.user_id` référence auth.users et non
     // profiles : PostgREST refuse l'embed, donc les acheteurs sont résolus par une
     // seconde requête sur profiles.
@@ -256,6 +287,8 @@ export default function SubscribersPage() {
         pauseResumesAt: r.pause_resumes_at ?? null,
         commitmentEndDate: r.commitment_end_date ?? null,
         joinedAt: r.joined_at ?? null,
+        scheduledPlan: r.scheduled_plan_id ? planById[r.scheduled_plan_id]?.name ?? null : null,
+        scheduledAt: r.scheduled_change_at ?? null,
       };
     });
 
@@ -281,6 +314,8 @@ export default function SubscribersPage() {
         pauseResumesAt: null,
         commitmentEndDate: null,
         joinedAt: r.purchased_at ?? null,
+        scheduledPlan: null,
+        scheduledAt: null,
       };
     });
 
@@ -453,6 +488,39 @@ export default function SubscribersPage() {
     }
   }
 
+  // Changement de formule demandé au comptoir : la base décide (jamais le
+  // coach, une demande décidée ne bouge plus), le membre est prévenu.
+  function askDecidePlanChange(req: PlanChangeRequest, accept: boolean) {
+    const element = `${req.username} · ${req.fromPlan ?? 'Sans formule'} → ${req.toPlan}`;
+    ask(accept
+      ? {
+          title: 'Accepter le changement de formule ?',
+          element,
+          body: `La formule de ${req.username} passe à « ${req.toPlan} » dès maintenant. Il règle la différence au comptoir. Il est prévenu par une notification.`,
+          confirmLabel: 'Accepter le changement',
+          run: () => decidePlanChangeRequest(req, true),
+        }
+      : {
+          title: 'Refuser le changement de formule ?',
+          element,
+          body: `Sa formule reste « ${req.fromPlan ?? 'inchangée'} ». Il est prévenu par une notification.`,
+          confirmLabel: 'Refuser la demande',
+          run: () => decidePlanChangeRequest(req, false),
+        });
+  }
+
+  async function decidePlanChangeRequest(req: PlanChangeRequest, accept: boolean) {
+    setActionBusy(req.id);
+    try {
+      await decidePlanChange(req.id, accept);
+      await load({ silent: true });
+    } catch (e) {
+      void inform({ kind: 'error', title: ERROR_TITLE, body: e instanceof Error ? e.message : 'Erreur' });
+    } finally {
+      setActionBusy(null);
+    }
+  }
+
   async function viewDoc(id: string) {
     try {
       const res = await fetch(`/api/cancellation-doc?request_id=${id}`);
@@ -560,6 +628,9 @@ export default function SubscribersPage() {
         </div>
       )}
 
+      {/* Demandes de changement de formule (membres au comptoir) */}
+      <PlanChangeRequestsPanel requests={planReqs} busyId={actionBusy} onDecide={askDecidePlanChange} />
+
       {/* Filters */}
       <div className="flex items-center gap-3 flex-wrap">
         <div className="relative flex-1 min-w-[200px]">
@@ -610,11 +681,16 @@ export default function SubscribersPage() {
                       {r.kind === 'membership' ? 'Salle' : 'Programme'}
                     </span>
                   </td>
-                  <td className="px-4 py-3 min-w-[11rem]">
+                  <td className="relative px-4 py-3 min-w-[11rem]">
                     <span className="inline-flex items-center gap-2 text-ax-text font-semibold">
                       <span className="w-2.5 h-2.5 rounded-full shrink-0 border border-ax-border" style={{ backgroundColor: r.color }} />
                       {r.label}
                     </span>
+                    {r.scheduledPlan && (
+                      <span className="block mt-1 text-xs font-semibold text-ax-accent" data-testid="changement-programme">
+                        <span className="sr-only">Changement programmé </span>{scheduledRowLabel(r.scheduledPlan, r.scheduledAt)}
+                      </span>
+                    )}
                   </td>
                   <td className="px-4 py-3 text-xs text-ax-text-secondary whitespace-nowrap">{fmtDate(r.joinedAt)}</td>
                   <td className="px-4 py-3 font-bold text-ax-text whitespace-nowrap">

@@ -131,7 +131,6 @@ describe('Refus dans une boîte d’information (point 3)', () => {
   const SCREENS = [
     'app/(dashboard)/invitations/page.tsx',
     'app/(dashboard)/subscribers/page.tsx',
-    'app/box/[slug]/MembershipManageButton.tsx',
     'app/box/[slug]/MembershipSubscribeButton.tsx',
     'app/box/[slug]/ProgramBuyButton.tsx',
     'app/box/[slug]/TrialBookingCta.tsx',
@@ -159,7 +158,6 @@ describe('Refus dans une boîte d’information (point 3)', () => {
   });
 
   it.each([
-    'app/box/[slug]/MembershipManageButton.tsx',
     'app/box/[slug]/MembershipSubscribeButton.tsx',
     'app/box/[slug]/ProgramBuyButton.tsx',
     'app/box/[slug]/TrialBookingCta.tsx',
