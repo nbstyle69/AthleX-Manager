@@ -5,6 +5,7 @@ import { Loader2, Settings2, XCircle, FileUp, PauseCircle, FileText } from 'luci
 import { entryRefusalFrom, entryRefusalInfo } from '@/lib/entryRefusalView';
 import { useConfirmDialog } from '@/components/ui/confirm-dialog';
 import { parisDate } from '@/lib/datetime';
+import { planChangeDoneMessage } from '@/lib/membership/planChange';
 
 interface Plan { id: string; name: string; price_cents: number }
 
@@ -68,7 +69,7 @@ export default function ManageSubscription({
       const refusal = entryRefusalFrom(data);
       if (refusal) { setLoading(false); void inform(entryRefusalInfo(refusal)); return; }
       if (!res.ok) throw new Error(data.error ?? 'Erreur');
-      setMessage(`Formule changée pour « ${data.plan_name} ». La page se recharge…`);
+      setMessage(`${planChangeDoneMessage(data)} La page se recharge…`);
       setTimeout(() => window.location.reload(), 1500);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Erreur');
@@ -170,7 +171,7 @@ export default function ManageSubscription({
         </div>
       ) : mode === 'change' ? (
         <div className="space-y-3">
-          <p className="text-xs text-gray-400 font-semibold">Nouvelle formule (prorata immédiat)</p>
+          <p className="text-xs text-gray-400 font-semibold">Nouvelle formule (à ta prochaine échéance, sans prorata)</p>
           <div className="grid gap-2">
             {otherPlans.map(p => (
               <label key={p.id} className={`flex items-center justify-between border rounded-xl px-3 py-2.5 cursor-pointer transition-all ${planId === p.id ? 'border-emerald-500 bg-emerald-500/10' : 'border-white/10 hover:border-white/20'}`}>

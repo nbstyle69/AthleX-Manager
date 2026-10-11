@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { createServiceClient, getServerUser } from '@/lib/supabase/server';
+import { detachPlanChange } from '@/lib/membership/server';
 
 function getStripe() {
   return new Stripe(process.env.STRIPE_SECRET_KEY!, {
@@ -64,6 +65,9 @@ export async function POST() {
       return NextResponse.json({ error: 'Compte de paiement de la box introuvable.' }, { status: 409 });
     }
 
+    // Résilier annule le changement de formule programmé (et Stripe refuse de
+    // modifier l'annulation d'un abonnement piloté par un échéancier).
+    await detachPlanChange({ stripeAccount, subscriptionId: m.stripe_subscription_id, motif: 'resiliation' });
     await stripe.subscriptions.update(
       m.stripe_subscription_id,
       { cancel_at_period_end: true },

@@ -20,8 +20,8 @@ export async function getAccessToken(): Promise<string | null> {
   return cookieStore.get('sb-access-token')?.value ?? null;
 }
 
-export const getServerUser = cache(async () => {
-  const accessToken = await getAccessToken();
+/** L'utilisateur d'un jeton de session, vérifié par GoTrue ; null si absent, invalide ou expiré. */
+export async function userFromAccessToken(accessToken: string | null) {
   if (!accessToken) return null;
   const res = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
     headers: { Authorization: `Bearer ${accessToken}`, apikey: SUPABASE_ANON_KEY },
@@ -30,7 +30,9 @@ export const getServerUser = cache(async () => {
   if (!res.ok) return null;
   const user = await res.json();
   return user?.id ? user : null;
-});
+}
+
+export const getServerUser = cache(async () => userFromAccessToken(await getAccessToken()));
 
 export async function createClient() {
   const accessToken = await getAccessToken();

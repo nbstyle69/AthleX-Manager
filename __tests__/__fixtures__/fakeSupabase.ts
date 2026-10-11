@@ -53,6 +53,10 @@ export function fakeSupabase(tables: Record<string, Row[]>, rpcs: Record<string,
       neq: (k: string, v: any) => { match[`${k}!=`] = v; filters.push(r => r[k] !== v); return c; },
       in: (k: string, v: any[]) => { match[`${k} in`] = v; filters.push(r => v.includes(r[k])); return c; },
       is: (k: string, v: any) => { match[`${k} is`] = v; filters.push(r => (r[k] ?? null) === v); return c; },
+      not: (k: string, op: string, v: any) => {
+        if (op !== 'is') throw new Error(`faux Supabase : not(${op}) non pris en charge`);
+        match[`${k} is not`] = v; filters.push(r => (r[k] ?? null) !== v); return c;
+      },
       order: () => c,
       limit: () => c,
       maybeSingle: () => { one = true; return Promise.resolve(run()); },

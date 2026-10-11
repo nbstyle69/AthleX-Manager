@@ -133,7 +133,8 @@ describe('box ouverte : la garde laisse passer', () => {
   it.each(ROUTES)('%s', async (_n, route, body) => {
     setup('open');
     const res = await route(req(body));
-    expect(res._data?.code).toBeUndefined();
+    // Un refus métier propre à la route (PLAN_CHANGE_…) n'est pas la garde.
+    expect(res._data?.code ?? '').not.toMatch(/^BOX_/);
   });
 });
 
@@ -158,7 +159,9 @@ describe('pause : seule la reprise est refusée', () => {
     setup('scheduled');
     const res: any = await pause(req({ box_member_id: 'bm1', action: 'pause' }));
     expect(res._data?.code).toBeUndefined();
-    expect(mockStripeCalls).toEqual(['stripe.subscriptions.update']);
+    // Lecture d'abord : un changement de formule programmé (échéancier) est
+    // annulé par la pause (detachPlanChange) ; ici, aucun échéancier.
+    expect(mockStripeCalls).toEqual(['stripe.subscriptions.retrieve', 'stripe.subscriptions.update']);
   });
 });
 

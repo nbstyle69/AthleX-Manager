@@ -76,6 +76,13 @@ const CLASSIFICATION: Record<string, Classe> = {
   'cancellation-request': 'self_service',
   'cancellation-request/review': 'owner_admin',
   'change-membership-plan': 'self_service',
+  // Changement de formule (« Mon abonnement ») : le membre pour lui-même,
+  // cookie du site ou Bearer de l'app (`getRequestUser`).
+  'change-membership-plan/cancel': 'self_service',
+  'membership/overview': 'self_service',
+  'membership/payment-portal': 'self_service',
+  // Décision du gérant sur une demande au comptoir : gérant ou co-gérant.
+  'members/plan-change-requests/decide': 'owner_admin',
   'connect/onboard': 'primary_owner',
   'connect/status': 'primary_owner',
   'create-box': 'auth',
@@ -225,7 +232,7 @@ describe('gardes des routes d’API (inventaire dérivé du disque)', () => {
     if (Array.isArray(jeton)) expect(jeton.some((j) => code.includes(j))).toBe(true);
     else if (jeton) expect(code).toContain(jeton);
     if (SESSION_REQUISE.includes(classe)) {
-      expect(code).toMatch(/getServerUser|auth\.getUser/);
+      expect(code).toMatch(/getServerUser|getRequestUser|auth\.getUser/);
     }
     if (classe === 'self_service') {
       expect(SELF_SCOPE.some((s) => code.includes(s))).toBe(true);
