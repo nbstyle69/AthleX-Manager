@@ -17,7 +17,7 @@ export function paymentMethodText(pm: { type?: string | null; card?: { last4?: s
 
 export interface MembershipOverview {
   box: { id: string; name: string | null };
-  plan: { id: string; name: string } | null;
+  plan: { id: string; name: string; description: string | null } | null;
   price_cents: number | null;
   status: string | null;
   mode: Mode;
@@ -25,7 +25,7 @@ export interface MembershipOverview {
   payment_method: string | null;
   scheduled_change: { plan: { id: string; name: string }; at: string | null } | null;
   pending_request: { plan: { id: string; name: string }; at: string } | null;
-  available_plans: { id: string; name: string; price_cents: number }[];
+  available_plans: { id: string; name: string; price_cents: number; description: string | null }[];
   block_reason: BlockReason | null;
   /** En impayé seulement : la page Stripe de la dernière facture ouverte. */
   unpaid_invoice_url: string | null;
@@ -35,7 +35,7 @@ export interface MembershipOverview {
 export function buildOverview(i: {
   member: MemberBilling;
   box: { id: string; name: string | null };
-  plans: PlanLite[];
+  plans: (PlanLite & { description?: string | null })[];
   pendingRequest: { to_plan_id: string; created_at: string } | null;
   paymentMethod: string | null;
   block: BlockReason | null;
@@ -52,7 +52,7 @@ export function buildOverview(i: {
   const pending = i.pendingRequest ? ref(i.pendingRequest.to_plan_id) : null;
   return {
     box: i.box,
-    plan: ref(m.plan_id),
+    plan: current ? { id: current.id, name: current.name, description: current.description ?? null } : null,
     price_cents: m.amount_cents ?? current?.price_cents ?? null,
     status: m.subscription_status ?? m.status,
     mode: modeOf(m),
@@ -63,7 +63,7 @@ export function buildOverview(i: {
     available_plans: i.plans
       .filter((p) => planRefusal(p, m) === null)
       .sort((a, b) => a.price_cents - b.price_cents)
-      .map((p) => ({ id: p.id, name: p.name, price_cents: p.price_cents })),
+      .map((p) => ({ id: p.id, name: p.name, price_cents: p.price_cents, description: p.description ?? null })),
     block_reason: i.block,
     unpaid_invoice_url: i.block === 'past_due' ? i.unpaidInvoiceUrl : null,
   };
@@ -76,7 +76,7 @@ export async function readOverview(service: SupabaseClient, stripe: Stripe, user
 
   const [box, plansRes, pendingRes, block] = await Promise.all([
     connectAccount(service, m.box_id),
-    service.from('membership_plans').select('id, box_id, name, price_cents, is_active, plan_type').eq('box_id', m.box_id),
+    service.from('membership_plans').select('id, box_id, name, price_cents, is_active, plan_type, description').eq('box_id', m.box_id),
     service.from('box_plan_change_requests').select('to_plan_id, created_at')
       .eq('box_id', m.box_id).eq('member_id', userId).eq('status', 'pending').maybeSingle(),
     loadBlockReason(service, m),
@@ -107,7 +107,7 @@ export async function readOverview(service: SupabaseClient, stripe: Stripe, user
   return buildOverview({
     member: m,
     box: { id: m.box_id, name: box?.name ?? null },
-    plans: (plansRes.data ?? []) as PlanLite[],
+    plans: (plansRes.data ?? []) as (PlanLite & { description: string | null })[],
     pendingRequest: (pendingRes.data ?? null) as { to_plan_id: string; created_at: string } | null,
     paymentMethod,
     block,

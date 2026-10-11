@@ -23,14 +23,14 @@ const read = (p: string) => readFileSync(join(process.cwd(), p), 'utf8');
 const text = (html: string) => html.replace(/<[^>]+>/g, ' ').replace(/&#x27;|&#39;/g, "'").replace(/\s+/g, ' ').trim();
 
 const PLANS = [
-  { id: 'p35', name: '3 séances / semaine', price_cents: 3500 },
-  { id: 'p39', name: 'Mensuel étudiant', price_cents: 3900 },
+  { id: 'p35', name: '3 séances / semaine', price_cents: 3500, description: null },
+  { id: 'p39', name: 'Mensuel étudiant', price_cents: 3900, description: null },
 ];
 
 function ov(o: Partial<MembershipOverview> = {}): MembershipOverview {
   return {
     box: { id: 'box', name: 'AthleX Fitness' },
-    plan: { id: 'p49', name: 'Mensuel illimité' },
+    plan: { id: 'p49', name: 'Mensuel illimité', description: null },
     price_cents: 4900,
     status: 'active',
     mode: 'online',
