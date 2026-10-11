@@ -254,13 +254,7 @@ export function BoxPublicView({
                   {p.membershipsSubtitle.replace('{box}', b.name)}
                 </p>
                 {plans.length > 1 && (
-                  <MembershipManageButton
-                    plans={plans.map((pl) => ({
-                      id: pl.id,
-                      name: pl.name,
-                      priceLabel: `${formatPrice(pl.price_cents)}${p.perMonth}`,
-                    }))}
-                  />
+                  <MembershipManageButton boxId={b.id} />
                 )}
               </div>
               <div className="grid gap-4 sm:grid-cols-2">

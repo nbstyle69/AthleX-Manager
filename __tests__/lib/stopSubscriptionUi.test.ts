@@ -120,8 +120,8 @@ describe('ConfirmDialog — choix exclusif', () => {
 
 describe('/compte du membre', () => {
   it('« Résiliation programmée le {date} » et bouton Résilier masqué', () => {
-    expect(manage).toMatch(/\{cancelAtPeriodEnd && \([\s\S]{0,300}Résiliation programmée\{periodEnd \? ` le \$\{fmtDate\(periodEnd\)\}` : ''\}/);
-    expect(manage).toMatch(/\{!cancelAtPeriodEnd && \(\s*\n\s*<button\s*\n\s*onClick=\{\(\) => setMode\(engaged \? 'request' : 'cancel'\)\}/);
+    expect(manage).toMatch(/\{online && cancelAtPeriodEnd && \([\s\S]{0,300}Résiliation programmée\{periodEnd \? ` le \$\{fmtDate\(periodEnd\)\}` : ''\}/);
+    expect(manage).toMatch(/const resilierButton = online && !cancelAtPeriodEnd && \(\s*\n\s*<button onClick=\{\(\) => setMode\(engaged \? 'request' : 'cancel'\)\}/);
   });
 
   it('la page passe l’état de résiliation à ManageSubscription', () => {

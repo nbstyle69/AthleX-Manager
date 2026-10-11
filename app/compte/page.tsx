@@ -1,11 +1,13 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { createClient, getAdminBoxes, getServerUser } from '@/lib/supabase/server';
+import { createClient, createServiceClient, getAdminBoxes, getServerUser } from '@/lib/supabase/server';
 import { CreditCard, Ticket, Dumbbell, CalendarClock, Search, Building2 } from 'lucide-react';
 import AccountProfileForm from './AccountProfileForm';
 import ManageSubscription from './ManageSubscription';
 import { selectMembership, type MembershipBillingRow } from '@/lib/compte/membership';
 import { parisDate } from '@/lib/datetime';
+import { readOverview, type MembershipOverview } from '@/lib/membership/overview';
+import { getConnectStripe } from '@/lib/membership/server';
 
 export const dynamic = 'force-dynamic';
 
@@ -71,9 +73,21 @@ export default async function AccountPage() {
   // amount_cents) ne sont plus lisibles en direct (Lot 6). La RPC filtre sur
   // auth.uid() côté serveur — l'appelant ne choisit pas de qui il lit.
   const { data: billingRaw } = await supabase.rpc('get_my_membership_billing');
-  const { membership: activeSub, stripeBacked, canManage } = selectMembership(
-    (billingRaw ?? []) as MembershipBillingRow[],
+  const { membership: activeSub, stripeBacked } = selectMembership(
+    (billingRaw ?? []) as (MembershipBillingRow & { past_due_since?: string | null })[],
   );
+
+  // « Mon abonnement » : la même lecture serveur que /api/membership/overview
+  // (formules proposables, changement programmé, demande en attente, motif de
+  // blocage, moyen de paiement). Indisponible : la section reste lisible, sans actions.
+  let overview: MembershipOverview | null = null;
+  if (activeSub?.status === 'active') {
+    try {
+      overview = await readOverview(createServiceClient(), getConnectStripe(), user.id);
+    } catch (err) {
+      console.error('compte: overview indisponible', err instanceof Error ? err.message : 'error');
+    }
+  }
 
   // La formule et la box se lisent à la clé de l'adhérent : `member_see_plans`
   // sert aussi une formule désactivée, et les colonnes publiques de `boxes`
@@ -104,20 +118,6 @@ export default async function AccountPage() {
     .eq('user_id', user.id)
     .order('purchased_at', { ascending: false });
   const programs = (programRaw ?? []) as ProgramRow[];
-
-  // Formules d'abonnement disponibles sur la box active (pour changer de formule)
-  let boxPlans: { id: string; name: string; price_cents: number }[] = [];
-  if (activeSub?.box_id) {
-    const { data: plansRaw } = await supabase
-      .from('membership_plans')
-      .select('id, name, price_cents, plan_type, is_active')
-      .eq('box_id', activeSub.box_id)
-      .eq('is_active', true)
-      .eq('plan_type', 'subscription')
-      .gt('price_cents', 0)
-      .order('price_cents', { ascending: true });
-    boxPlans = ((plansRaw ?? []) as { id: string; name: string; price_cents: number }[]).map(p => ({ id: p.id, name: p.name, price_cents: p.price_cents }));
-  }
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-10 space-y-8">
@@ -170,10 +170,15 @@ export default async function AccountPage() {
                 ? <>Prochaine échéance : {fmtDate(activeSub.subscription_current_period_end)}</>
                 : <>Sans abonnement en ligne — formule attribuée ou payée à la box{activeSub.joined_at ? ` depuis le ${fmtDate(activeSub.joined_at)}` : ''}</>}
             </div>
+            {overview?.mode === 'online' && overview.payment_method && (
+              <div className="flex items-center gap-1.5 text-xs text-gray-500" data-testid="moyen-de-paiement">
+                <CreditCard size={13} /> Moyen de paiement : {overview.payment_method}
+              </div>
+            )}
+            {overview && (
             <ManageSubscription
-              currentPlanId={activeSub.plan_id}
-              plans={boxPlans}
-              canManage={canManage}
+              overview={overview}
+              pastDueSince={activeSub.past_due_since ?? null}
               boxId={activeSub.box_id}
               commitmentEndDate={activeSub.commitment_end_date}
               cancelAtPeriodEnd={!!activeSub.subscription_cancel_at_period_end}
@@ -182,6 +187,7 @@ export default async function AccountPage() {
               pauseResumesAt={activeSub.pause_resumes_at}
               termsPdfUrl={subBox?.terms_pdf_url ?? null}
             />
+            )}
           </div>
         ) : (
           <div className="space-y-3">
