@@ -6,6 +6,8 @@ import {
 } from '@/lib/membership/planChange';
 import { buildOverview, paymentMethodText } from '@/lib/membership/overview';
 import { planChangeDecisionPush } from '@/lib/members/membershipPush';
+import { readFileSync } from 'fs';
+import { join } from 'path';
 
 const base = { subscription_status: 'active', past_due_since: null, subscription_paused: false, subscription_cancel_at_period_end: false };
 const ouvert = { boxClosed: false, cancellationPending: false };
@@ -82,6 +84,40 @@ describe('overview', () => {
   const o = (m: Record<string, unknown> = {}, x: Record<string, unknown> = {}) => buildOverview({
     member: { ...membre, ...m } as any, box: { id: 'b', name: 'Box' }, plans, pendingRequest: null,
     paymentMethod: null, block: null, unpaidInvoiceUrl: 'https://invoice', ...x,
+  });
+
+  describe('description des formules', () => {
+    const avecDesc = plans.map((p) => ({
+      ...p, description: p.id === 'p2' ? 'Accès à tous les cours, sans limite.' : p.id === 'p1' ? 'Trois cours par semaine.' : null,
+    }));
+    const od = (m: Record<string, unknown> = {}) => o(m, { plans: avecDesc });
+
+    it('formule en cours : id, nom, description, rien d’autre', () => {
+      expect(od().plan).toEqual({ id: 'p1', name: 'Mensuel', description: 'Trois cours par semaine.' });
+      expect(od({ plan_id: 'p3' }).plan).toEqual({ id: 'p3', name: 'Premium', description: null });
+      expect(od({ plan_id: null }).plan).toBeNull();
+    });
+    it('formules proposables : description présente ou nulle, champs inchangés', () => {
+      expect(od().available_plans).toEqual([
+        { id: 'p2', name: 'Illimité', price_cents: 7000, description: 'Accès à tous les cours, sans limite.' },
+        { id: 'p3', name: 'Premium', price_cents: 9000, description: null },
+      ]);
+    });
+    it('formule sans colonne description : null, pas undefined', () => {
+      expect(o().plan).toEqual({ id: 'p1', name: 'Mensuel', description: null });
+      expect(o().available_plans[0]).toEqual({ id: 'p2', name: 'Illimité', price_cents: 7000, description: null });
+    });
+    it('changement programmé et demande en attente : sans description', () => {
+      const x = o({ scheduled_plan_id: 'p2', scheduled_change_at: '2026-11-01' }, {
+        plans: avecDesc, pendingRequest: { to_plan_id: 'p3', created_at: '2026-10-10' },
+      });
+      expect(x.scheduled_change).toEqual({ plan: { id: 'p2', name: 'Illimité' }, at: '2026-11-01' });
+      expect(x.pending_request).toEqual({ plan: { id: 'p3', name: 'Premium' }, at: '2026-10-10' });
+    });
+    it('la lecture serveur demande la colonne description', () => {
+      const src = readFileSync(join(process.cwd(), 'lib/membership/overview.ts'), 'utf8');
+      expect(src).toContain(".select('id, box_id, name, price_cents, is_active, plan_type, description')");
+    });
   });
 
   it('prix : amount_cents sinon le prix de la formule', () => {
