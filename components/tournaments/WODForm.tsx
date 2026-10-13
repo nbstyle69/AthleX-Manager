@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/client';
 import { Plus, Trash2, Loader2, X, Sparkles, ChevronDown, ChevronUp, Timer } from 'lucide-react';
 import { useMovementCatalog } from '@/lib/useMovementCatalog';
 import { boGenerateFunctional, boGenerateHybrid } from '@/lib/wod/boAdapter';
-import { isWeightedMovement, editMovementLine, parseMovementRow, repsPerRoundFromMovements, hasDistanceLine, isRepsScoredType, type MovementUnit } from '@/lib/movements';
+import { isWeightedMovement, editMovementLine, parseMovementRow, repsPerRoundFromMovements, repsPerRoundToSave, hasDistanceLine, isRepsScoredType, REPS_PER_ROUND_MIN, isRepsPerRoundInputValid, distanceRoundNotice, type MovementUnit } from '@/lib/movements';
 import MovementUnitSelect from '@/components/wods/MovementUnitSelect';
 import { buildMovementLines, generatedForTimeRounds, parseForTimeRounds } from '@/lib/tournaments/movementLines';
 import { toDatetimeLocal, fromDatetimeLocal, isScheduledAhead } from '@/lib/datetime';
@@ -203,6 +203,11 @@ export default function WODForm({ tournamentId, divisions = [], isLeague = false
       setError('Nombre de tours : un entier supérieur ou égal à 1, ou vide pour un seul tour.');
       return;
     }
+    // Le navigateur refuse déjà une valeur négative (min) ; garde en plus de lui.
+    if (isRepsScoredType(form.type) && !isRepsPerRoundInputValid(form.reps_per_round)) {
+      setError('Reps par tour : un entier positif ou 0, ou vide pour le calcul automatique.');
+      return;
+    }
     setSaving(true);
     const supabase = createClient();
 
@@ -237,9 +242,7 @@ export default function WODForm({ tournamentId, divisions = [], isLeague = false
       division_id:      isLeague ? (form.division_id || null) : null,
       // Les deux colonnes ensemble ; liste des étapes illisible : l'étape du WOD n'est pas touchée.
       ...(!isBracket ? { bracket_board: null, bracket_stage: null } : stagesUnavailable ? {} : parseStageKey(form.bracket_stage)),
-      reps_per_round:   isRepsScoredType(form.type)
-        ? (form.reps_per_round === '' ? (repsPerRoundFromMovements(movements.filter(Boolean)) || null) : Number(form.reps_per_round))
-        : null,
+      reps_per_round:   repsPerRoundToSave(form.type, form.reps_per_round, movements.filter(Boolean)),
     };
 
     let err;
@@ -628,15 +631,15 @@ export default function WODForm({ tournamentId, divisions = [], isLeague = false
             <label className={lbl}>Reps par tour</label>
             <input
               type="number"
-              min={1}
+              min={REPS_PER_ROUND_MIN}
               className={inp}
               value={form.reps_per_round}
               onChange={e => set('reps_per_round', e.target.value)}
               placeholder={hasDistanceLine(movements) ? '' : `auto : ${repsPerRoundFromMovements(movements.filter(Boolean)) || '—'} (somme des mouvements)`}
             />
-            {hasDistanceLine(movements) ? (
+            {distanceRoundNotice(movements) ? (
               <p className="text-[11px] text-amber-400/90 pt-1">
-                Ce tour contient une distance : indique combien de reps compte un tour complet, ou laisse vide si le score se saisit en total.
+                {distanceRoundNotice(movements)}
               </p>
             ) : (
               <p className="text-[11px] text-gray-600 pt-1">

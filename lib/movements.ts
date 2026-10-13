@@ -206,10 +206,8 @@ export function parseMovementRow(line: string): ParsedMovementRow {
 // decide stay coherent whether the athlete entered "rounds + reps" or a raw
 // total. reps_per_round converts between the two representations.
 
-// Un tour qui contient une distance (« 200 m Run ») n'a pas de somme
-// automatique : 200 m + 10 burpees ne font pas « 210 reps ». Le gérant
-// déclare lui-même le tour, ou laisse vide (score saisi en total). Les
-// calories, elles, restent comptées comme des reps.
+// Un tour qui contient une distance (« 200 m Run ») : sert au message de
+// l'éditeur sous le champ « Reps par tour ».
 export function hasDistanceLine(movements: string[] | null | undefined): boolean {
   return Array.isArray(movements) && movements.some(l => {
     const p = parseMovementRow(l);
@@ -217,14 +215,99 @@ export function hasDistanceLine(movements: string[] | null | undefined): boolean
   });
 }
 
-// Sum of leading rep counts across the movement lines (one full round).
-// Returns 0 when no rep-based movement is found, or when a line is a distance.
+// Même règle que l'app (athlex-app `src/utils/movementParser.ts`, #513) ; cas
+// attendus partagés : `lib/__fixtures__/wod_header_cases.json`.
+
+/** `40% Ring Muscle-ups` : un pourcentage du max, jamais une quantité de reps. */
+export function isPercentLine(line: string): boolean {
+  return /^\d+(?:[.,]\d+)?(?:\s*\/\s*\d+(?:[.,]\d+)?)?\s*%/.test(line.trim());
+}
+
+/** En-têtes de format (« 5 rounds for time », « 12 min AMRAP », « 21-15-9 ») : aucune rep. */
+const HEADER_PATTERNS: readonly RegExp[] = [
+  /^(\d+)\s*(?:rounds?|rds?|tours?|rft)\b/i,                    // 5 rounds, 5 rds, 3 tours, 5 RFT
+  /^\d+\s*(?:min(?:utes?)?|mn|['’′])(?!\w)/i,                   // 12 min AMRAP, 12' AMRAP
+  /^\d+\s*(?:amrap|emom|for\s*time|tabata|chipper|ladder)\b/i,  // 12 AMRAP, 20 EMOM
+  /^\d+(?:\s*[-–]\s*\d+)+/,                                     // 21-15-9
+  /:$/,                                                         // 5 Rounds For Time :
+  /^(?:amrap|emom|e\d+mom|for\s*time|tabata|pyramide|ladder|chipper|death\s*by|every|en continu|min\s+\d|time\s*cap|cap\b|rest|repos|⚡|──)/i,
+  /⟨.*⟩/,                                                       // libellés de format d'équipe
+];
+
+export function isFormatHeaderLine(line: string): boolean {
+  const s = (line ?? '').trim();
+  return HEADER_PATTERNS.some(re => re.test(s));
+}
+
+const DURATION_LINE = /^\d+(?:\s*\/\s*\d+)?\s*(?:s|sec|secs|sec\.|")\s+\S/i;
+const DISTANCE_LINE = /^(\d+(?:[.,]\d+)?)(?:\s*\/\s*\d+(?:[.,]\d+)?)?\s*(m|km|mi|miles?|yds?|yards?|meters?|metres?|mètres?)\b/i;
+const METERS_PER_UNIT: Record<string, number> = {
+  km: 1000, mi: 1609.344, mile: 1609.344, miles: 1609.344, yd: 0.9144, yds: 0.9144, yard: 0.9144, yards: 0.9144,
+};
+const SHUTTLE_RUN = /\bshuttle[\s-]*runs?\b/i;
+
+/**
+ * Points d'une distance : 1 par tranche COMPLÈTE de 100 m ; un shuttle run, 1
+ * par aller de 7,62 m. En centimètres entiers (30 m / 7,62 m sans erreur flottante).
+ */
+function distancePoints(meters: number, line: string): number {
+  return Math.floor(Math.round(meters * 100) / (SHUTTLE_RUN.test(line) ? 762 : 10000));
+}
+
+// Reps d'un tour (somme des lignes), pour convertir « tours + reps » en total.
+// Toute ligne de reps compte, même hors catalogue ; calories = reps ; distance
+// en points ; en-têtes et pourcentages : 0. Une ligne en durée rend le tour
+// hétérogène : 0 (rien n'est enregistré, l'athlète saisit un total).
 export function repsPerRoundFromMovements(movements: string[] | null | undefined): number {
-  if (!Array.isArray(movements) || hasDistanceLine(movements)) return 0;
-  return movements.reduce((acc, line) => {
-    const { reps } = parseMovementRow(line);
-    return acc + (reps ?? 0);
-  }, 0);
+  if (!Array.isArray(movements)) return 0;
+  let sum = 0;
+  for (const raw of movements) {
+    const line = (raw ?? '').trim();
+    if (!line || isFormatHeaderLine(line) || isPercentLine(line)) continue;
+    if (DURATION_LINE.test(line)) return 0;
+    const d = line.match(DISTANCE_LINE);
+    if (d) {
+      sum += distancePoints(parseFloat(d[1].replace(',', '.')) * (METERS_PER_UNIT[d[2].toLowerCase()] ?? 1), line);
+      continue;
+    }
+    const { reps, unit } = parseMovementRow(line);
+    if (reps == null) continue;
+    // Sans unité écrite, un shuttle run se compte en allers, même si le
+    // catalogue le mesure en mètres (« 10 shuttle run » = 10).
+    sum += unit === 'm' && !SHUTTLE_RUN.test(line) ? distancePoints(reps, line) : reps;
+  }
+  return sum;
+}
+
+/**
+ * `tournament_wods.reps_per_round` à l'enregistrement : la valeur saisie par le
+ * gérant telle quelle ; champ vide, la somme des lignes, `null` si elle vaut 0
+ * (ligne en durée, aucune ligne de reps). `null` hors AMRAP / Max Reps.
+ */
+export function repsPerRoundToSave(
+  type: string | null | undefined,
+  input: string,
+  movements: string[],
+): number | null {
+  if (!isRepsScoredType(type)) return null;
+  return input === '' ? (repsPerRoundFromMovements(movements) || null) : Number(input);
+}
+
+/** Plus petite valeur saisie : 0 = score saisi en total (aucune conversion). */
+export const REPS_PER_ROUND_MIN = 0;
+
+/** Champ « Reps par tour » : vide, ou un entier ≥ `REPS_PER_ROUND_MIN`. */
+export function isRepsPerRoundInputValid(input: string): boolean {
+  if (input === '') return true;
+  const n = Number(input);
+  return Number.isInteger(n) && n >= REPS_PER_ROUND_MIN;
+}
+
+/** Encadré sous le champ quand le tour contient une distance ; `null` sinon. */
+export function distanceRoundNotice(movements: string[] | null | undefined): string | null {
+  return hasDistanceLine(movements)
+    ? 'Ce tour contient une distance : elle compte 1 point par tranche complète de 100 m (shuttle run : 1 point par aller). Laisse vide pour le calcul automatique, ou mets 0 si le score se saisit en total.'
+    : null;
 }
 
 export function amrapTotalToRoundsReps(
