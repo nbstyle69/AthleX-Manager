@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/client';
 import { Plus, Trash2, Loader2, X, Sparkles, ChevronDown, ChevronUp, Timer } from 'lucide-react';
 import { useMovementCatalog } from '@/lib/useMovementCatalog';
 import { boGenerateFunctional, boGenerateHybrid } from '@/lib/wod/boAdapter';
-import { isWeightedMovement, editMovementLine, parseMovementRow, repsPerRoundFromMovements, hasDistanceLine, isRepsScoredType, type MovementUnit } from '@/lib/movements';
+import { isWeightedMovement, editMovementLine, parseMovementRow, repsPerRoundFromMovements, repsPerRoundToSave, hasDistanceLine, isRepsScoredType, type MovementUnit } from '@/lib/movements';
 import MovementUnitSelect from '@/components/wods/MovementUnitSelect';
 import { buildMovementLines, generatedForTimeRounds, parseForTimeRounds } from '@/lib/tournaments/movementLines';
 import { toDatetimeLocal, fromDatetimeLocal, isScheduledAhead } from '@/lib/datetime';
@@ -237,9 +237,7 @@ export default function WODForm({ tournamentId, divisions = [], isLeague = false
       division_id:      isLeague ? (form.division_id || null) : null,
       // Les deux colonnes ensemble ; liste des étapes illisible : l'étape du WOD n'est pas touchée.
       ...(!isBracket ? { bracket_board: null, bracket_stage: null } : stagesUnavailable ? {} : parseStageKey(form.bracket_stage)),
-      reps_per_round:   isRepsScoredType(form.type)
-        ? (form.reps_per_round === '' ? (repsPerRoundFromMovements(movements.filter(Boolean)) || null) : Number(form.reps_per_round))
-        : null,
+      reps_per_round:   repsPerRoundToSave(form.type, form.reps_per_round, movements.filter(Boolean)),
     };
 
     let err;
