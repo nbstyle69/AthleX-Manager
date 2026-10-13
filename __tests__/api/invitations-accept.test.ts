@@ -261,4 +261,21 @@ describe('POST /api/invitations/accept', () => {
     expect(res._status).toBe(400);
     expect(res._data?.error).toMatch(/nominative/i);
   });
+
+  it('mode « déjà connecté » : erreur de la RPC → message générique, journal sans texte de base', async () => {
+    const logSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    mockGetToken.mockResolvedValueOnce('jwt-abc');
+    mockCreateSvc.mockReturnValue(svcWith(jest.fn()));
+    mockAsUserRpc.mockResolvedValueOnce({
+      data: null, error: { message: 'permission denied for table box_members', code: '42501' },
+    });
+
+    const res = await POST(makeReq({ token: 'tok', mode: 'existing' })) as any;
+
+    expect(res._status).toBe(500);
+    expect(res._data).toEqual({ ok: false, error: 'Le rattachement a échoué. Réessaie.' });
+    expect(logSpy).toHaveBeenCalledWith('[invitations/accept]', 'consume_existing', { code: '42501', status: null });
+    expect(JSON.stringify(logSpy.mock.calls)).not.toMatch(/permission denied/);
+    logSpy.mockRestore();
+  });
 });
