@@ -293,6 +293,23 @@ export function repsPerRoundToSave(
   return input === '' ? (repsPerRoundFromMovements(movements) || null) : Number(input);
 }
 
+/** Plus petite valeur saisie : 0 = score saisi en total (aucune conversion). */
+export const REPS_PER_ROUND_MIN = 0;
+
+/** Champ « Reps par tour » : vide, ou un entier ≥ `REPS_PER_ROUND_MIN`. */
+export function isRepsPerRoundInputValid(input: string): boolean {
+  if (input === '') return true;
+  const n = Number(input);
+  return Number.isInteger(n) && n >= REPS_PER_ROUND_MIN;
+}
+
+/** Encadré sous le champ quand le tour contient une distance ; `null` sinon. */
+export function distanceRoundNotice(movements: string[] | null | undefined): string | null {
+  return hasDistanceLine(movements)
+    ? 'Ce tour contient une distance : elle compte 1 point par tranche complète de 100 m (shuttle run : 1 point par aller). Laisse vide pour le calcul automatique, ou mets 0 si le score se saisit en total.'
+    : null;
+}
+
 export function amrapTotalToRoundsReps(
   total: number,
   repsPerRound: number,

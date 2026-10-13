@@ -11,7 +11,9 @@
 import fs from 'fs';
 import path from 'path';
 import { createHash } from 'crypto';
-import { isFormatHeaderLine, repsPerRoundFromMovements, repsPerRoundToSave } from '@/lib/movements';
+import {
+  distanceRoundNotice, isFormatHeaderLine, isRepsPerRoundInputValid, repsPerRoundFromMovements, repsPerRoundToSave,
+} from '@/lib/movements';
 import { buildMovementLines } from '@/lib/tournaments/movementLines';
 
 interface CasLigne { ligne: string; header: boolean; reps_score: number }
@@ -97,5 +99,38 @@ describe('reps_per_round enregistré par WODForm', () => {
 
   it('hors AMRAP / Max Reps : NULL', () => {
     expect(repsPerRoundToSave('For Time', '25', ['10 Thrusters'])).toBeNull();
+  });
+});
+
+describe('reps_per_round à 0 : score saisi en total', () => {
+  const wod = ['12 min AMRAP', '200m Row', '12 Burpees'];
+
+  it('0 saisi → 0 enregistré, ni NULL ni le calcul', () => {
+    expect(isRepsPerRoundInputValid('0')).toBe(true);
+    expect(repsPerRoundToSave('AMRAP', '0', wod)).toBe(0);
+  });
+
+  it('champ vide → les points calculés', () => {
+    expect(isRepsPerRoundInputValid('')).toBe(true);
+    expect(repsPerRoundToSave('AMRAP', '', wod)).toBe(14);
+  });
+
+  it('une valeur négative ou décimale reste refusée', () => {
+    expect(isRepsPerRoundInputValid('-1')).toBe(false);
+    expect(isRepsPerRoundInputValid('2.5')).toBe(false);
+    expect(isRepsPerRoundInputValid('12')).toBe(true);
+  });
+});
+
+describe('encadré « Ce tour contient une distance »', () => {
+  const TEXTE = 'Ce tour contient une distance : elle compte 1 point par tranche complète de 100 m (shuttle run : 1 point par aller). Laisse vide pour le calcul automatique, ou mets 0 si le score se saisit en total.';
+
+  it('présent, au mot près, quand une ligne est une distance', () => {
+    expect(distanceRoundNotice(['12 min AMRAP', '200m Row', '12 Burpees'])).toBe(TEXTE);
+  });
+
+  it('absent sans distance', () => {
+    expect(distanceRoundNotice(['12 min AMRAP', '20 cal Row', '12 Burpees'])).toBeNull();
+    expect(distanceRoundNotice([])).toBeNull();
   });
 });
