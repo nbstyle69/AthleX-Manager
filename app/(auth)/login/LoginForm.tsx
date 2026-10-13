@@ -7,6 +7,7 @@ import { Loader2, AlertCircle, ArrowLeft } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { useLanguage } from '@/components/language-provider';
 import { postLoginPath } from '@/lib/authz/post-login';
+import { safeLoginNext } from '@/lib/auth/loginNext';
 import type { BoxRole } from '@/lib/authz/coach-perimeter';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -18,17 +19,11 @@ const SIGNUP_HREF: Record<Audience, string> = {
   box: '/pricing/onboarding',
 };
 
-/** Only same-origin relative paths are honoured, so `next` can't be an open redirect. */
-function safeNext(raw: string | null): string | null {
-  if (!raw || !raw.startsWith('/') || raw.startsWith('//')) return null;
-  return raw;
-}
-
 export default function LoginForm({ audience }: { audience: Audience }) {
   const { t } = useLanguage();
   const l = t.funnel.login;
   const params = useSearchParams();
-  const next = safeNext(params.get('next'));
+  const next = safeLoginNext(params.get('next'));
   const [email, setEmail]       = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading]   = useState(false);

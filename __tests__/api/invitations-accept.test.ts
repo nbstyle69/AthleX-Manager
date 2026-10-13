@@ -74,7 +74,7 @@ describe('POST /api/invitations/accept', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockSignUp.mockResolvedValue({
-      data: { user: { id: 'user-1' }, session: null },
+      data: { user: { id: 'user-1', identities: [{ id: 'ident-1' }] }, session: null },
       error: null,
     });
   });
@@ -147,6 +147,88 @@ describe('POST /api/invitations/accept', () => {
     expect(res._data?.error).toMatch(/Connecte-toi/i);
   });
 
+  // Confirmation d'e-mail active : Supabase ne lève pas d'erreur pour une
+  // adresse déjà inscrite, il renvoie un utilisateur factice sans identité.
+  it.each([
+    ['identities vide', { id: 'fantome', identities: [] }],
+    ['identities absent', { id: 'fantome' }],
+  ])('compte existant (%s) : 409 ACCOUNT_EXISTS sans aucune écriture', async (_label, user) => {
+    const rpc = jest.fn().mockResolvedValueOnce({ data: INVITATION, error: null });
+    const svc = svcWith(rpc);
+    mockCreateSvc.mockReturnValue(svc);
+    mockSignUp.mockResolvedValueOnce({ data: { user, session: null }, error: null });
+
+    const res = await POST(makeReq({ token: 'tok', username: 'Lea', password: 'secret1' })) as any;
+
+    expect(res._status).toBe(409);
+    expect(res._data).toEqual({
+      ok: false,
+      code: 'ACCOUNT_EXISTS',
+      error: 'Tu as déjà un compte avec cet e-mail. Connecte-toi pour rejoindre la box.',
+    });
+    // Ni profil, ni rattachement : la seule RPC appelée est la lecture de l'invitation.
+    expect(rpc).toHaveBeenCalledTimes(1);
+    for (const r of svc.from.mock.results) {
+      expect(r.value.upsert).not.toHaveBeenCalled();
+      expect(r.value.insert).not.toHaveBeenCalled();
+      expect(r.value.update).not.toHaveBeenCalled();
+    }
+  });
+
+  describe('erreur inattendue : message générique, jamais le texte de la base', () => {
+    const DB_TEXT = 'insert or update on table "profiles" violates foreign key constraint "profiles_id_fkey"';
+    let logSpy: jest.SpyInstance;
+    beforeEach(() => { logSpy = jest.spyOn(console, 'error').mockImplementation(() => {}); });
+    afterEach(() => logSpy.mockRestore());
+
+    function expectGeneric(res: any) {
+      expect(res._status).toBe(500);
+      expect(res._data).toEqual({ ok: false, error: 'La création du compte a échoué. Réessaie.' });
+      // Journal serveur : l'étape et le code, ni le texte de la base ni l'adresse.
+      const logged = JSON.stringify(logSpy.mock.calls);
+      expect(logged).not.toMatch(/violates|lea@example\.com/);
+    }
+
+    it('échec du profil', async () => {
+      const rpc = jest.fn().mockResolvedValueOnce({ data: INVITATION, error: null });
+      const svc = svcWith(rpc);
+      svc.from = jest.fn(() => {
+        const chain: any = makeChain();
+        chain.upsert = jest.fn().mockResolvedValue({ error: { message: DB_TEXT, code: '23503' } });
+        return chain;
+      });
+      mockCreateSvc.mockReturnValue(svc);
+
+      expectGeneric(await POST(makeReq({ token: 'tok', username: 'Lea', password: 'secret1' })));
+      expect(rpc).toHaveBeenCalledTimes(1); // pas de rattachement
+    });
+
+    it('échec du rattachement', async () => {
+      const rpc = jest.fn()
+        .mockResolvedValueOnce({ data: INVITATION, error: null })
+        .mockResolvedValueOnce({ data: null, error: { message: DB_TEXT, code: '23503' } });
+      mockCreateSvc.mockReturnValue(svcWith(rpc));
+
+      expectGeneric(await POST(makeReq({ token: 'tok', username: 'Lea', password: 'secret1' })));
+    });
+
+    it('erreur de signUp autre que « déjà inscrit »', async () => {
+      const rpc = jest.fn().mockResolvedValueOnce({ data: INVITATION, error: null });
+      mockCreateSvc.mockReturnValue(svcWith(rpc));
+      mockSignUp.mockResolvedValueOnce({ data: { user: null }, error: { message: DB_TEXT, status: 500 } });
+
+      expectGeneric(await POST(makeReq({ token: 'tok', username: 'Lea', password: 'secret1' })));
+    });
+
+    it('erreur de lecture de l’invitation', async () => {
+      const rpc = jest.fn().mockResolvedValueOnce({ data: null, error: { message: DB_TEXT, code: 'XX000' } });
+      mockCreateSvc.mockReturnValue(svcWith(rpc));
+
+      expectGeneric(await POST(makeReq({ token: 'tok', username: 'Lea', password: 'secret1' })));
+      expect(mockSignUp).not.toHaveBeenCalled();
+    });
+  });
+
   it('mode « déjà connecté » : consomme avec le JWT du visiteur, sans nommer personne', async () => {
     mockGetToken.mockResolvedValueOnce('jwt-abc');
     mockCreateSvc.mockReturnValue(svcWith(jest.fn()));
@@ -178,5 +260,22 @@ describe('POST /api/invitations/accept', () => {
     const res = await POST(makeReq({ token: 'tok', mode: 'existing' })) as any;
     expect(res._status).toBe(400);
     expect(res._data?.error).toMatch(/nominative/i);
+  });
+
+  it('mode « déjà connecté » : erreur de la RPC → message générique, journal sans texte de base', async () => {
+    const logSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    mockGetToken.mockResolvedValueOnce('jwt-abc');
+    mockCreateSvc.mockReturnValue(svcWith(jest.fn()));
+    mockAsUserRpc.mockResolvedValueOnce({
+      data: null, error: { message: 'permission denied for table box_members', code: '42501' },
+    });
+
+    const res = await POST(makeReq({ token: 'tok', mode: 'existing' })) as any;
+
+    expect(res._status).toBe(500);
+    expect(res._data).toEqual({ ok: false, error: 'Le rattachement a échoué. Réessaie.' });
+    expect(logSpy).toHaveBeenCalledWith('[invitations/accept]', 'consume_existing', { code: '42501', status: null });
+    expect(JSON.stringify(logSpy.mock.calls)).not.toMatch(/permission denied/);
+    logSpy.mockRestore();
   });
 });

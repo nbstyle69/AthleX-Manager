@@ -25,6 +25,19 @@ const REFUS: Record<string, string> = {
   box_archivage_programme: "Cette box n'accepte plus de nouveaux membres.",
 };
 
+const ACCOUNT_EXISTS = 'Tu as déjà un compte avec cet e-mail. Connecte-toi pour rejoindre la box.';
+const SIGNUP_FAILED = 'La création du compte a échoué. Réessaie.';
+const JOIN_FAILED = 'Le rattachement a échoué. Réessaie.';
+
+/**
+ * Erreur inattendue : le texte de la base ne part jamais au navigateur. Seuls l'étape et le code d'erreur sont journalisés,
+ * jamais le message (il peut citer une adresse).
+ */
+function failed(step: string, err: { code?: unknown; status?: unknown } | null, message = SIGNUP_FAILED) {
+  console.error('[invitations/accept]', step, { code: err?.code ?? null, status: err?.status ?? null });
+  return NextResponse.json({ ok: false, error: message }, { status: 500 });
+}
+
 async function resolveUsername(service: ReturnType<typeof createServiceClient>, requested: string) {
   const base = requested.trim();
   const { data: existing } = await service
@@ -90,9 +103,7 @@ export async function POST(request: NextRequest) {
     const closed = await closedBox();
     if (closed) return closed;
     const { data, error } = await asUser.rpc('consume_box_invitation', { p_token: token });
-    if (error) {
-      return NextResponse.json({ ok: false, error: error.message }, { status: 400 });
-    }
+    if (error) return failed('consume_existing', error, JOIN_FAILED);
     const result = data as { ok: boolean; reason?: string };
     if (!result?.ok) {
       return NextResponse.json(
@@ -120,9 +131,7 @@ export async function POST(request: NextRequest) {
 
   // L'adresse vient de l'invitation, pas du navigateur.
   const { data: peekData, error: peekError } = await service.rpc('peek_box_invitation', { p_token: token });
-  if (peekError) {
-    return NextResponse.json({ ok: false, error: peekError.message }, { status: 400 });
-  }
+  if (peekError) return failed('peek', peekError);
   const peek = peekData as { ok: boolean; reason?: string; email?: string };
   if (!peek?.ok || !peek.email) {
     return NextResponse.json(
@@ -151,22 +160,18 @@ export async function POST(request: NextRequest) {
       emailRedirectTo: `${SITE_URL}/email-confirme`,
     },
   });
-  if (signUpError) {
-    const emailTaken = /already registered|already been registered|user already exists/i.test(signUpError.message);
-    return NextResponse.json(
-      {
-        ok: false,
-        error: emailTaken
-          ? 'Un compte existe déjà avec cet e-mail. Connecte-toi, puis rouvre ce lien pour rejoindre la box.'
-          : signUpError.message,
-      },
-      { status: emailTaken ? 409 : 400 },
-    );
+  // Avec la confirmation d'e-mail active, Supabase ne signale pas une adresse
+  // déjà inscrite : il renvoie un utilisateur factice, sans identité et absent
+  // de auth.users. Le reconnaître ici, avant toute écriture.
+  const emailTaken = signUpError
+    ? /already registered|already been registered|user already exists/i.test(signUpError.message)
+    : !!signUpData.user && !signUpData.user.identities?.length;
+  if (emailTaken) {
+    return NextResponse.json({ ok: false, error: ACCOUNT_EXISTS, code: 'ACCOUNT_EXISTS' }, { status: 409 });
   }
+  if (signUpError) return failed('signUp', signUpError);
   const user = signUpData.user;
-  if (!user) {
-    return NextResponse.json({ ok: false, error: 'Compte non créé.' }, { status: 400 });
-  }
+  if (!user) return failed('signUp', null);
 
   // Filet idempotent : le trigger handle_new_user pose déjà le profil, cet
   // upsert ne fait rien s'il existe. Il doit précéder la consommation, qui
@@ -185,9 +190,7 @@ export async function POST(request: NextRequest) {
     losses: 0,
     referral_code,
   }, { onConflict: 'id', ignoreDuplicates: true });
-  if (profileError) {
-    return NextResponse.json({ ok: false, error: `Profil: ${profileError.message}` }, { status: 500 });
-  }
+  if (profileError) return failed('profile', profileError);
 
   // Rattachement. La variante service_role est utilisée parce que le compte
   // vient d'être créé : selon la configuration de confirmation d'e-mail,
@@ -197,9 +200,7 @@ export async function POST(request: NextRequest) {
     p_token: token,
     p_user_id: user.id,
   });
-  if (consumeError) {
-    return NextResponse.json({ ok: false, error: consumeError.message }, { status: 500 });
-  }
+  if (consumeError) return failed('consume', consumeError);
   const consumed = consumeData as { ok: boolean; reason?: string };
   if (!consumed?.ok) {
     // Le compte existe, mais le rattachement a échoué : on le dit plutôt que de

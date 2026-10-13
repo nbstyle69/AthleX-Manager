@@ -12,6 +12,7 @@ import { entryRefusalFrom, entryRefusalInfo } from '@/lib/entryRefusalView';
 import { useConfirmDialog } from '@/components/ui/confirm-dialog';
 import BillingDayRecap from '@/components/membership/BillingDayRecap';
 import { parisDate } from '@/lib/datetime';
+import { loginThenReturnTo } from '@/lib/auth/loginNext';
 
 export type InvitationPeek = {
   ok: true;
@@ -65,6 +66,8 @@ export default function JoinInvitationClient({
   const [cgu, setCgu] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // L'adresse invitée a déjà un compte : on propose la connexion, qui ramène ici.
+  const [accountExists, setAccountExists] = useState(false);
   const [done, setDone] = useState<{ finalUsername: string; pseudoChanged: boolean; needsConfirmation: boolean } | null>(null);
   const [payLoading, setPayLoading] = useState(false);
   const [payError, setPayError] = useState<string | null>(null);
@@ -78,6 +81,7 @@ export default function JoinInvitationClient({
   async function submit(body: Record<string, unknown>) {
     setLoading(true);
     setError(null);
+    setAccountExists(false);
     try {
       const res = await fetch('/api/invitations/accept', {
         method: 'POST',
@@ -88,6 +92,7 @@ export default function JoinInvitationClient({
       const refusal = entryRefusalFrom(json);
       if (refusal) { setLoading(false); void inform(entryRefusalInfo(refusal)); return; }
       if (!json.ok) {
+        setAccountExists(json.code === 'ACCOUNT_EXISTS');
         setError(json.error ?? j.failed);
         setLoading(false);
         return;
@@ -232,6 +237,11 @@ export default function JoinInvitationClient({
           <AlertCircle size={15} className="text-ax-danger shrink-0" />
           <p className="text-sm text-ax-danger">{error}</p>
         </div>
+      )}
+      {accountExists && (
+        <Button asChild variant="ax-white" className="w-full mt-3">
+          <a href={loginThenReturnTo(`/rejoindre/${token}`)}>{j.loginCta}</a>
+        </Button>
       )}
 
       {sessionMatches ? (
