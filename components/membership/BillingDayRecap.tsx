@@ -12,7 +12,7 @@ import { BILLING_DAY_MAX, BILLING_DAY_MIN } from '@/lib/membershipBilling';
  * le checkout. Le bouton ne s'active qu'une fois le jour choisi et l'aperçu reçu.
  */
 
-type Preview =
+export type Preview = (
   | {
       kind: 'now'; currency: string; today_cents: number; prorata_until: string | null;
       next_charge_date: string; recurring_cents: number; due_date_ignored: boolean;
@@ -20,7 +20,11 @@ type Preview =
   | {
       kind: 'deferred'; currency: string; first_charge_date: string; first_charge_cents: number;
       merged_prorata_cents: number; prorata_until: string | null; recurring_cents: number; due_date: string;
-    };
+    }
+) & {
+  /** Comptoir P1 : fin d'un accès payé à la box encore en cours (AAAA-MM-JJ), sinon null. */
+  cash_until?: string | null;
+};
 
 const DAYS = Array.from({ length: BILLING_DAY_MAX - BILLING_DAY_MIN + 1 }, (_, i) => BILLING_DAY_MIN + i);
 
@@ -33,6 +37,28 @@ function money(cents: number, currency: string) {
     style: 'currency', currency: currency.toUpperCase(),
     maximumFractionDigits: cents % 100 === 0 ? 0 : 2,
   }).format(cents / 100);
+}
+
+/** « 1er décembre », jamais « 1 décembre ». */
+const premier = (date: string) => date.replace(/^1 /, '1er ');
+
+/** Lendemain (AAAA-MM-JJ) d'un jour AAAA-MM-JJ. */
+function nextDay(ymd: string): string {
+  const d = new Date(`${ymd}T12:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + 1);
+  return d.toISOString().slice(0, 10);
+}
+
+/** Maquette 66:2103 : l'accès payé au comptoir repousse le premier prélèvement. */
+export function CashUntilNotice({ until }: { until: string }) {
+  return (
+    <p
+      className="mb-4 rounded-ax-control border border-[color-mix(in_srgb,var(--ax-accent-text)_40%,transparent)] bg-ax-accent-soft px-3 py-2.5 text-xs font-semibold text-ax-text"
+      data-testid="acces-comptoir-en-cours"
+    >
+      Ton accès payé à la box court jusqu’au {premier(longDate(until))} : rien ne sera prélevé avant le {premier(shortDate(nextDay(until)))}.
+    </p>
+  );
 }
 
 function Line({ label, value, hint }: { label: string; value: string; hint?: string | null }) {
@@ -48,7 +74,7 @@ function Line({ label, value, hint }: { label: string; value: string; hint?: str
 }
 
 export default function BillingDayRecap({
-  request, onPay, paying, error, onRefusal,
+  request, onPay, paying, error, onRefusal, onPreview,
 }: {
   /** `{ plan_id }` (page publique) ou `{ invitation_token }` (invitation). */
   request: Record<string, string>;
@@ -57,6 +83,8 @@ export default function BillingDayRecap({
   error: string | null;
   /** Refus de box fermée renvoyé par l'aperçu : affiché par le parent. */
   onRefusal?: (payload: unknown) => boolean;
+  /** Aperçu reçu (fin d'accès comptoir comprise). */
+  onPreview?: (preview: Preview) => void;
 }) {
   const [day, setDay] = useState<number | null>(null);
   const [preview, setPreview] = useState<Preview | null>(null);
@@ -65,6 +93,8 @@ export default function BillingDayRecap({
   const requestKey = JSON.stringify(request);
   const refusalRef = useRef(onRefusal);
   refusalRef.current = onRefusal;
+  const previewRef = useRef(onPreview);
+  previewRef.current = onPreview;
 
   useEffect(() => {
     if (day === null) return;
@@ -83,6 +113,7 @@ export default function BillingDayRecap({
         if (refusalRef.current?.(data)) return;
         if (!res.ok) throw new Error(data.error ?? 'Montants indisponibles.');
         setPreview(data as Preview);
+        previewRef.current?.(data as Preview);
       })
       .catch((e: unknown) => {
         if (!ctrl.signal.aborted) setPreviewError(e instanceof Error ? e.message : 'Montants indisponibles.');

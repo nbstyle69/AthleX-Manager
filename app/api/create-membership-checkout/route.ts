@@ -208,7 +208,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ url: session.url });
   } catch (err: any) {
-    console.error('create-membership-checkout error:', err);
+    console.error('create-membership-checkout error:', err?.message ?? 'error');
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }

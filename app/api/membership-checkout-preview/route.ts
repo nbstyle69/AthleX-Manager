@@ -36,6 +36,7 @@ export async function POST(req: NextRequest) {
             next_charge_date: bp.nextChargeDate,
             recurring_cents: bp.recurringCents,
             due_date_ignored: bp.dueDateIgnored,
+            cash_until: ctx.cashUntil,
           }
         : {
             kind: 'deferred',
@@ -48,10 +49,11 @@ export async function POST(req: NextRequest) {
             prorata_until: anchorDate(bp.anchor),
             recurring_cents: bp.recurringCents,
             due_date: bp.dueDate,
+            cash_until: ctx.cashUntil,
           },
     );
   } catch (err: any) {
-    console.error('membership-checkout-preview error:', err);
+    console.error('membership-checkout-preview error:', err?.message ?? 'error');
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }

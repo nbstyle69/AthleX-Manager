@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, type ComponentProps } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Loader2, Settings2, XCircle, FileUp, PauseCircle, FileText, CreditCard, CalendarClock,
@@ -16,6 +16,8 @@ import {
   effectiveDateNotice, euros, pastDueNotice, paymentPortalUrl, pendingRequestNotice, scheduledChangeNotice,
   type MembershipOverview,
 } from '@/lib/membership/screens';
+import type { CounterAccessView } from '@/lib/compte/counterAccess';
+import MembershipSubscribeButton from '@/app/box/[slug]/MembershipSubscribeButton';
 
 interface Props {
   /** « Mon abonnement » : la lecture serveur de /api/membership/overview. */
@@ -29,6 +31,11 @@ interface Props {
   paused: boolean;
   pauseResumesAt: string | null;
   termsPdfUrl?: string | null;
+  /** Comptoir P1 : accès payé à la box et passage au paiement en ligne (fenêtre de /box/[slug]). */
+  counter?: {
+    view: CounterAccessView;
+    subscribe: Omit<ComponentProps<typeof MembershipSubscribeButton>, 'trigger'> | null;
+  } | null;
 }
 
 function fmtDate(iso: string | null) {
@@ -101,7 +108,7 @@ export function PlanChoice({
 
 export default function ManageSubscription({
   overview, pastDueSince = null, boxId, commitmentEndDate, cancelAtPeriodEnd = false, periodEnd = null,
-  paused, pauseResumesAt, termsPdfUrl = null,
+  paused, pauseResumesAt, termsPdfUrl = null, counter = null,
 }: Props) {
   const router = useRouter();
   const [mode, setMode] = useState<null | 'change' | 'cancel' | 'request'>(null);
@@ -295,6 +302,11 @@ export default function ManageSubscription({
               <AlertTriangle size={14} className="mt-px shrink-0" /> {pastDueNotice(pastDueSince)}
             </p>
           )}
+          {!online && counter?.view.notice && (
+            <p className="flex items-start gap-2 rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2.5 text-xs text-amber-400" data-testid="encart-fin-acces">
+              <AlertTriangle size={14} className="mt-px shrink-0" /> {counter.view.notice}
+            </p>
+          )}
           {!online && overview.pending_request && (
             <p className="flex items-start gap-2 rounded-xl bg-white/5 px-3 py-2.5 text-xs text-gray-300" data-testid="demande-envoyee">
               <Clock size={14} className="mt-px shrink-0" /> {pendingRequestNotice(overview)}
@@ -306,7 +318,17 @@ export default function ManageSubscription({
               <button onClick={askCancelPlanChange} className={BTN_GREY}>Annuler ce changement</button>
             )}
             {pastDue ? <>{paymentButton}{changeButton}</> : <>{changeButton}{paymentButton}</>}
-            {actions.request && (
+            {!online && counter?.view.cta && counter.subscribe && (
+              <MembershipSubscribeButton
+                {...counter.subscribe}
+                trigger={(
+                  <button type="button" className={BTN_WHITE} data-testid="passer-en-ligne">
+                    <CreditCard size={13} /> {counter.view.cta}
+                  </button>
+                )}
+              />
+            )}
+            {actions.request && (counter?.view.allowRequest ?? true) && (
               <button onClick={() => setMode('change')} className={BTN_GREY}>
                 <Settings2 size={13} /> Demander un changement de formule
               </button>
@@ -330,7 +352,9 @@ export default function ManageSubscription({
           {actions.change === 'disabled' && (
             <p id="changement-indisponible" className="text-[11px] text-gray-500">{PAST_DUE_CHANGE_NOTE}</p>
           )}
-          {actions.request && <p className="text-[11px] text-gray-500">{COUNTER_NOTE}</p>}
+          {!online && counter?.view.hint
+            ? <p className="text-[11px] text-gray-500" data-testid="indication-comptoir">{counter.view.hint}</p>
+            : actions.request && <p className="text-[11px] text-gray-500">{COUNTER_NOTE}</p>}
         </>
       ) : mode === 'change' ? (
         <PlanChoice

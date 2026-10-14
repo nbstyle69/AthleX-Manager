@@ -192,7 +192,7 @@ describe('aperçu : même calcul, rien créé chez Stripe', () => {
     expect(res._status).toBe(200);
     expect(res._data).toEqual({
       kind: 'now', billing_day: 5, currency: 'eur', today_cents: 1550, prorata_until: '2026-10-05',
-      next_charge_date: '2026-10-05', recurring_cents: 6000, due_date_ignored: false,
+      next_charge_date: '2026-10-05', recurring_cents: 6000, due_date_ignored: false, cash_until: null,
     });
     expect(mockSessionsCreate).not.toHaveBeenCalled();
     expect(mockPricesCreate).not.toHaveBeenCalled();

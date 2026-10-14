@@ -242,3 +242,26 @@ describe('statuts d’abonnement', () => {
     expect(chains.box_members.update).toHaveBeenCalledWith(expect.objectContaining({ subscription_status: 'active' }));
   });
 });
+
+describe('comptoir P1 : passage en ligne d’un membre déjà dans la box', () => {
+  it('met à jour sa ligne box_members existante (abonnement posé, actif), sans en créer une autre', async () => {
+    const ev = deferredEvent({ due_date: '2026-11-13', trial_end: String(s('2026-11-13T05:00:00Z')), commitment_months: '0' });
+    delete (ev.data.object.metadata as Record<string, string>).invitation_id;
+    mockConstructEvent.mockReturnValue(ev);
+    const res = (await POST(req())) as any;
+    expect(res._status).toBe(200);
+    expect(chains.box_members.eq).toHaveBeenCalledWith('box_id', 'box-1');
+    expect(chains.box_members.eq).toHaveBeenCalledWith('member_id', 'user-1');
+    expect(chains.box_members.insert).not.toHaveBeenCalled();
+    const [patch] = chains.box_members.update.mock.calls[0];
+    expect(patch).toEqual(expect.objectContaining({
+      stripe_subscription_id: 'sub_1', subscription_status: 'active', status: 'active', commitment_end_date: null,
+    }));
+    expect(chains.box_members.update.mock.results[0].value.eq).toHaveBeenCalledWith('id', 'bm-1');
+    // Constat : la fin d'accès comptoir n'est pas effacée ; la coupure l'ignore
+    // dès que stripe_subscription_id est posé (internal.adhesions_comptoir_datees).
+    expect(patch).not.toHaveProperty('cash_access_until');
+    expect(mockSubsCreate.mock.calls[0][0].trial_end).toBe(s('2026-11-13T05:00:00Z'));
+    expect(mockRpc).not.toHaveBeenCalledWith('accept_box_invitation_after_payment', expect.anything());
+  });
+});
