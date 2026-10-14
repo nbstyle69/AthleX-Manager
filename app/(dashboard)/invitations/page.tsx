@@ -18,6 +18,9 @@ import { countOf } from '@/lib/plural';
 import { entryRefusalFrom, entryRefusalInfo } from '@/lib/entryRefusalView';
 import { parisDate } from '@/lib/datetime';
 import { addMonths, parisYmd, ymdString } from '@/lib/membershipBilling';
+import { euros } from '@/lib/monthlyPrice';
+import CashPaymentDialog, { type CashPaymentRequest } from '@/components/comptoir/CashPaymentDialog';
+import { COUNTER_DURATIONS, FREE_PLAN_NOTE, cashAmountCents, counterPeriod, isPayablePlan, shortDate } from '@/lib/comptoir/counter';
 
 const supabase = createClient();
 
@@ -75,6 +78,7 @@ function rpcMessage(error: { message: string } | null): string | null {
   if (m.includes('DUE_DATE_INVALID')) return 'Prochaine échéance invalide : choisis une date dans le calendrier.';
   if (m.includes('DUE_DATE_PAST')) return 'La prochaine échéance doit tomber après aujourd’hui.';
   if (m.includes('DUE_DATE_TOO_FAR')) return 'La prochaine échéance doit tomber dans les 12 mois.';
+  if (m.includes('INVALID_DURATION')) return 'Choisis une durée payée de 1, 3 ou 12 mois.';
   if (m.includes('FORBIDDEN')) return 'Vous n’administrez pas cette box.';
   return m;
 }
@@ -98,6 +102,9 @@ export default function InvitationsPage() {
   const [planId, setPlanId] = useState('');
   const [paymentMode, setPaymentMode] = useState<'box' | 'stripe'>('box');
   const [cashCollected, setCashCollected] = useState(false);
+  // Comptoir P1 : durée payée d'une invitation « déjà encaissée ».
+  const [cashMonths, setCashMonths] = useState(1);
+  const [cashRequest, setCashRequest] = useState<CashPaymentRequest | null>(null);
   const [dueDate, setDueDate] = useState('');
   const [creating, setCreating] = useState(false);
   // Bornes du calendrier (la base revérifie) : du lendemain à 12 mois, heure de Paris.
@@ -159,7 +166,9 @@ export default function InvitationsPage() {
       p_plan_id: planId || null,
       p_payment_mode: paymentMode,
       p_cash_collected: paymentMode === 'box' && cashCollected,
-      p_next_due_date: dueDate || null,
+      // Encaissement box : l'échéance est masquée, la durée payée la remplace.
+      p_next_due_date: paymentMode === 'stripe' ? dueDate || null : null,
+      p_cash_months: cashMonths,
     });
     setCreating(false);
 
@@ -167,7 +176,7 @@ export default function InvitationsPage() {
     if (message) { setError(message); return; }
 
     const created = data as { id: string; token: string; email: string };
-    setFirstName(''); setLastName(''); setEmail(''); setCashCollected(false); setDueDate('');
+    setFirstName(''); setLastName(''); setEmail(''); setCashCollected(false); setDueDate(''); setCashMonths(1);
     await load();
     await openLink(created.id, created.email, created.token);
   }
@@ -209,14 +218,17 @@ export default function InvitationsPage() {
     await load();
   }
 
-  async function markPaid(invitation: Invitation) {
-    setBusy(invitation.id);
-    const { error: rpcError } = await supabase.rpc('mark_box_invitation_paid', {
-      p_invitation_id: invitation.id,
+  // « Encaissé » : la fenêtre « Encaissement reçu » (durée, montant, période),
+  // puis mark_box_invitation_paid avec la durée choisie.
+  function askMarkPaid(invitation: Invitation) {
+    const plan = plans.find(p => p.id === invitation.plan_id) ?? null;
+    setCashRequest({
+      target: { kind: 'invitation', invitationId: invitation.id },
+      who: [invitation.first_name, invitation.last_name].filter(Boolean).join(' ') || invitation.email,
+      planName: plan?.name ?? null,
+      priceCents: plan?.price_cents ?? null,
+      currentUntil: null,
     });
-    setBusy(null);
-    setError(rpcMessage(rpcError));
-    await load();
   }
 
   async function sendEmail() {
@@ -277,6 +289,7 @@ export default function InvitationsPage() {
   return (
     <div className="space-y-6">
       {dialog}
+      <CashPaymentDialog request={cashRequest} onClose={() => setCashRequest(null)} onDone={load} />
       <div>
         <div className="flex items-center gap-3">
           <h1 className="font-display text-2xl font-medium uppercase tracking-wide text-ax-text">Invitations</h1>
@@ -322,28 +335,50 @@ export default function InvitationsPage() {
         </div>
 
         {paymentMode === 'box' ? (
-          <label className="flex items-center gap-2 text-xs text-ax-text-secondary">
-            <input type="checkbox" checked={cashCollected} onChange={e => setCashCollected(e.target.checked)} />
-            Paiement déjà encaissé — le membre est actif dès qu’il crée son compte
-          </label>
+          <>
+            <label className="flex items-center gap-2 text-xs text-ax-text-secondary">
+              <input type="checkbox" checked={cashCollected} onChange={e => setCashCollected(e.target.checked)} />
+              Paiement déjà encaissé — le membre est actif dès qu’il crée son compte
+            </label>
+            {cashCollected && (() => {
+              const price = plans.find(p => p.id === planId)?.price_cents ?? null;
+              if (!isPayablePlan(price)) return <p className="text-xs text-ax-text-secondary" data-testid="duree-gratuite">{FREE_PLAN_NOTE}</p>;
+              return (
+                <div className="space-y-1.5" data-testid="duree-payee">
+                  <p className="text-xs font-semibold text-ax-text" id="duree-payee">Durée payée</p>
+                  <div className="flex flex-wrap gap-1.5" role="radiogroup" aria-labelledby="duree-payee">
+                    {COUNTER_DURATIONS.map(d => (
+                      <button key={d} type="button" role="radio" aria-checked={cashMonths === d} onClick={() => setCashMonths(d)}
+                        className={`min-h-9 px-4 rounded-ax-control border text-xs font-bold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ax-focus ${cashMonths === d ? 'bg-ax-text text-ax-background border-ax-text' : 'bg-ax-surface text-ax-text border-ax-input-border hover:bg-ax-hover'}`}>
+                        {d} mois
+                      </button>
+                    ))}
+                  </div>
+                  <p className="text-xs text-ax-text-secondary">
+                    Accès jusqu’au {shortDate(counterPeriod(null, cashMonths).until)} · {euros(cashAmountCents(price!, cashMonths))} entrent dans le journal des encaissements. Le membre est prévenu avant la fin et invité à passer au paiement en ligne.
+                  </p>
+                </div>
+              );
+            })()}
+          </>
         ) : (
           <p className="text-xs text-ax-text-muted">
             Le membre créera son compte puis paiera par Stripe. Il ne sera actif qu’une fois le paiement confirmé.
           </p>
         )}
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 items-start">
+        {paymentMode === 'stripe' && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 items-start" data-testid="prochaine-echeance">
           <label className="block">
             <span className="block text-xs font-semibold text-ax-text-secondary mb-1.5">Prochaine échéance (facultatif)</span>
             <input type="date" className={INPUT_CLS} value={dueDate} min={dueBounds.min} max={dueBounds.max}
               onChange={e => setDueDate(e.target.value)} />
           </label>
           <p className="text-xs text-ax-text-muted md:pt-7">
-            {paymentMode === 'stripe'
-              ? 'Pour un adhérent qui paie encore son ancienne salle : il enregistre sa carte ou son mandat SEPA, et rien n’est prélevé avant cette date.'
-              : 'Indicative en encaissement box : aucun prélèvement Stripe.'}
+            Pour un adhérent qui paie encore son ancienne salle : il enregistre sa carte ou son mandat SEPA, et rien n’est prélevé avant cette date.
           </p>
         </div>
+        )}
 
         <button type="submit" disabled={creating || !email.trim()}
           className="flex items-center gap-2 px-4 py-2.5 rounded-ax-control bg-ax-text text-ax-background text-sm font-bold disabled:opacity-40">
@@ -416,7 +451,7 @@ export default function InvitationsPage() {
               {inv.status === 'pending' && (
                 <div className="flex flex-wrap items-center gap-1.5 ml-auto">
                   {toCollect && (
-                    <button onClick={() => markPaid(inv)} disabled={busy === inv.id}
+                    <button onClick={() => askMarkPaid(inv)} disabled={busy === inv.id}
                       className="flex items-center gap-1 px-2.5 py-1.5 rounded-ax-control bg-ax-text text-ax-background text-xs font-bold disabled:opacity-40">
                       <Banknote size={12} /> Encaissé
                     </button>

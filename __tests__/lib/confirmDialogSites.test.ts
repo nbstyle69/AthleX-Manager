@@ -34,7 +34,10 @@ const SITES: Site[] = [
   { id: 'B4', file: 'app/(dashboard)/members/page.tsx', opens: 'askDeletePlan(p)', direct: 'askDeleteWithSubscriptions(', run: /function askDeletePlan[\s\S]{0,200}return askDeleteWithSubscriptions\(\{\s*ask, inform, kind: 'plan'/ },
   { id: 'B5', file: 'components/plans/MembershipPlansSection.tsx', opens: 'askDeletePlan(pl)', direct: 'askDeleteWithSubscriptions(', run: /function askDeletePlan[\s\S]{0,200}return askDeleteWithSubscriptions\(\{\s*ask, inform, kind: 'plan'/ },
   { id: 'B6', file: 'components/plans/PromoCodesSection.tsx', opens: 'askDeletePromo(pc)', direct: 'handleDeletePromo(pc)', run: /function askDeletePromo[\s\S]{0,1100}run: \(\) => handleDeletePromo\(promo\)/ },
-  { id: 'B7', file: 'app/(dashboard)/subscribers/page.tsx', opens: 'askCashPayment(r)', direct: 'recordCashPayment(r)', run: /function askCashPayment[\s\S]{0,700}run: \(\) => recordCashPayment\(r\)/ },
+  // B7 (comptoir P1, PR 5) : la boîte devient la fenêtre « Encaissement reçu »
+  // (components/comptoir/CashPaymentDialog.tsx) ; l'encaissement ne part que de
+  // son bouton « Enregistrer l'encaissement » (testé dans comptoirEncaissement.test.ts).
+  { id: 'B7', file: 'app/(dashboard)/subscribers/page.tsx', opens: 'askCashPayment(r)', direct: 'recordCashPayment(', run: /function askCashPayment[\s\S]{0,700}setCashRequest\(\{/ },
   { id: 'B8a', file: 'app/(dashboard)/subscribers/page.tsx', opens: "askReview(req, 'approve')", direct: "reviewRequest(req.id, 'approve')", run: /function askReview[\s\S]{0,700}run: \(\) => reviewRequest\(req\.id, 'approve'\)/ },
   { id: 'B8b', file: 'app/(dashboard)/subscribers/page.tsx', opens: "askReview(req, 'reject')", direct: "reviewRequest(req.id, 'reject')", run: /function askReview[\s\S]{0,1400}field: \{ label: 'Motif du refus \(facultatif\)' \},[\s\S]{0,120}run: note => reviewRequest\(req\.id, 'reject', note\)/ },
   { id: 'B10', file: 'components/programs/AthleteProgramsWorkspace.tsx', opens: 'askDeleteProgram(p)', direct: 'askDeleteWithSubscriptions(', run: /function askDeleteProgram[\s\S]{0,200}return askDeleteWithSubscriptions\(\{\s*ask, inform, kind: 'program'/ },

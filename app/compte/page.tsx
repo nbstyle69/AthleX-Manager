@@ -9,6 +9,7 @@ import { parisDate } from '@/lib/datetime';
 import { readOverview, type MembershipOverview } from '@/lib/membership/overview';
 import { getConnectStripe } from '@/lib/membership/server';
 import { counterAccessView } from '@/lib/compte/counterAccess';
+import { perMonthSuffix } from '@/lib/monthlyPrice';
 
 export const dynamic = 'force-dynamic';
 
@@ -195,7 +196,7 @@ export default async function AccountPage() {
                     ? (SUB_STATUS_LABEL[activeSub.subscription_status ?? ''] ?? activeSub.subscription_status)
                     : (activeSub.status === 'active' ? 'Adhésion active' : 'Adhésion inactive')}
                 </span>
-                <p className="text-sm font-black text-white mt-1">{fmtPrice(activeSub.amount_cents ?? subPlan?.price_cents)}<span className="text-[10px] text-gray-500"> /mois</span></p>
+                <p className="text-sm font-black text-white mt-1">{fmtPrice(activeSub.amount_cents ?? subPlan?.price_cents)}<span className="text-[10px] text-gray-500">{perMonthSuffix()}</span></p>
               </div>
             </div>
             <div className="flex items-center gap-1.5 text-xs text-gray-500">

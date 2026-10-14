@@ -6,15 +6,11 @@
  */
 import { parisDate } from '@/lib/datetime';
 import type { MembershipOverview } from './overview';
+import { euros, monthlyPrice } from '@/lib/monthlyPrice';
 
 export type { MembershipOverview };
 
-/** « 35 € », « 39,90 € ». */
-export function euros(cents: number): string {
-  return (cents / 100).toLocaleString('fr-FR', {
-    style: 'currency', currency: 'EUR', minimumFractionDigits: cents % 100 === 0 ? 0 : 2,
-  });
-}
+export { euros };
 
 /** « 01 nov. 2026 », en heure de Paris. */
 export function shortDate(iso: string): string {
@@ -28,10 +24,10 @@ function veille(iso: string): string {
 
 type PlanRef = { id: string; name: string };
 
-/** « 3 séances / semaine à 35 € /mois », sans le prix s'il n'est pas connu. */
+/** « 3 séances / semaine à 35 € / mois », sans le prix s'il n'est pas connu. */
 function avecPrix(plan: PlanRef, o: Pick<MembershipOverview, 'available_plans'>): string {
   const p = o.available_plans.find((x) => x.id === plan.id);
-  return p ? `${plan.name} à ${euros(p.price_cents)} /mois` : plan.name;
+  return p ? `${plan.name} à ${monthlyPrice(p.price_cents)}` : plan.name;
 }
 
 /** Encart du choix en ligne : la date d'effet, sans prorata. */

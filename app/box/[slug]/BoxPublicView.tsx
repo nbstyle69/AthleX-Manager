@@ -10,6 +10,7 @@ import { StoreBadges } from '@/components/store-badges';
 import { useLanguage } from '@/components/language-provider';
 import ProgramBuyButton from './ProgramBuyButton';
 import MembershipSubscribeButton from './MembershipSubscribeButton';
+import { euros, perMonthSuffix } from '@/lib/monthlyPrice';
 import MembershipManageButton from './MembershipManageButton';
 import TrialBookingCta from './TrialBookingCta';
 
@@ -277,13 +278,13 @@ export function BoxPublicView({
                     </div>
                     <div className="mt-4 flex items-center justify-between border-t border-ax-border pt-4">
                       <span className="text-sm font-bold text-ax-text">
-                        {formatPrice(pl.price_cents)}
-                        <span className="text-[10px] font-semibold text-ax-text-secondary"> {p.perMonth}</span>
+                        {pl.price_cents > 0 ? euros(pl.price_cents) : formatPrice(pl.price_cents)}
+                        <span className="text-[10px] font-semibold text-ax-text-secondary">{perMonthSuffix(p.perMonth.replace('/', '').trim())}</span>
                       </span>
                       <MembershipSubscribeButton
                         planId={pl.id}
                         planName={pl.name}
-                        priceLabel={`${formatPrice(pl.price_cents)}${p.perMonth}`}
+                        priceLabel={pl.price_cents > 0 ? euros(pl.price_cents) : formatPrice(pl.price_cents)}
                         commitmentMonths={pl.commitment_months ?? 0}
                         description={pl.description}
                         maxSessionsPerWeek={pl.max_sessions_per_week}

@@ -7,10 +7,12 @@ import { Button } from '@/components/ui/button';
 import { entryRefusalFrom, entryRefusalInfo } from '@/lib/entryRefusalView';
 import { useConfirmDialog } from '@/components/ui/confirm-dialog';
 import BillingDayRecap, { CashUntilNotice } from '@/components/membership/BillingDayRecap';
+import { perMonthSuffix } from '@/lib/monthlyPrice';
 
 interface Props {
   planId: string;
   planName: string;
+  /** Montant seul (« 49 € ») : « / mois » est ajouté ici pour un abonnement. */
   priceLabel: string;
   /** 'subscription' (mensuel) ou 'oneshot' (Drop-in / Carnet, paiement unique) */
   mode?: 'subscription' | 'oneshot';
@@ -37,6 +39,8 @@ export default function MembershipSubscribeButton({
 }: Props) {
   const oneShot = mode === 'oneshot';
   const cta = oneShot ? 'Acheter' : 'S\'abonner';
+  // Prix mensuel affiché une seule fois « 49 € / mois » (lib/monthlyPrice).
+  const price = oneShot ? priceLabel : `${priceLabel}${perMonthSuffix()}`;
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -82,7 +86,7 @@ export default function MembershipSubscribeButton({
         ? cloneElement(trigger, { onClick: () => setOpen(true) })
         : (
           <Button onClick={() => setOpen(true)} variant="ax-white" size="ax-compact" className="whitespace-nowrap">
-            {cta} — {priceLabel}
+            {cta} — {price}
           </Button>
         )}
 
@@ -99,7 +103,7 @@ export default function MembershipSubscribeButton({
             <p className="text-xs text-ax-text-muted mb-5">
               {oneShot
                 ? `${priceLabel} — paiement unique. Utilise l'e-mail de ton compte AthleX au paiement : tes crédits de séances s'activent automatiquement. Pas encore de compte ? Ton achat sera rattaché à ton inscription.`
-                : `${priceLabel} — abonnement mensuel. Utilise l'e-mail de ton compte AthleX au paiement : ton abonnement et l'accès aux cours s'activent automatiquement dans l'app. Pas encore de compte ? Ton abonnement sera rattaché à ton inscription.`}
+                : `${price} — abonnement mensuel. Utilise l'e-mail de ton compte AthleX au paiement : ton abonnement et l'accès aux cours s'activent automatiquement dans l'app. Pas encore de compte ? Ton abonnement sera rattaché à ton inscription.`}
             </p>
 
             {!oneShot && cashUntil && <CashUntilNotice until={cashUntil} />}
@@ -109,7 +113,7 @@ export default function MembershipSubscribeButton({
                 <p className="text-[11px] font-black text-ax-text uppercase tracking-wide mb-1">Récapitulatif du contrat</p>
                 <div className="flex justify-between text-xs">
                   <span className="text-ax-text-muted">Prix TTC</span>
-                  <span className="text-ax-text font-semibold">{priceLabel} / mois</span>
+                  <span className="text-ax-text font-semibold">{price}</span>
                 </div>
                 <div className="flex justify-between text-xs">
                   <span className="text-ax-text-muted">Engagement</span>
