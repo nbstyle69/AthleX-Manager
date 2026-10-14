@@ -346,6 +346,10 @@ describe('statut du tableau d’Abonnés', () => {
   it('libellés existants inchangés ; statut inconnu affiché tel quel, en gris', () => {
     expect(statusBadge('active')).toEqual({ label: 'Actif', variant: 'success' });
     expect(statusBadge('expired')).toEqual({ label: 'Accès terminé', variant: 'neutral' });
-    expect(statusBadge('pending_payment')).toEqual({ label: 'pending_payment', variant: 'neutral' });
+    expect(statusBadge('statut_inconnu')).toEqual({ label: 'statut_inconnu', variant: 'neutral' });
+  });
+  it('pending_payment (adhésion) et pending (programme) : badge Alerte « Paiement en attente »', () => {
+    expect(statusBadge('pending_payment')).toEqual({ label: 'Paiement en attente', variant: 'warning' });
+    expect(statusBadge('pending')).toEqual({ label: 'Paiement en attente', variant: 'warning' });
   });
 });
