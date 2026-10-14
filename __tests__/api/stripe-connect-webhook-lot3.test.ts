@@ -213,7 +213,8 @@ describe('échéance future : abonnement créé par le webhook', () => {
     mockConstructEvent.mockReturnValue(deferredEvent());
     const res = (await POST(req())) as any;
     expect(res._status).toBe(500);
-    expect(log).toHaveBeenCalledWith(expect.stringContaining('cs_setup_1'));
+    // logStripeError : l'étape est nommée, l'identifiant de session masqué.
+    expect(log).toHaveBeenCalledWith('stripe-connect-webhook error', expect.stringContaining('membership_deferred.create_subscription'));
     expect(chains.box_members.update).not.toHaveBeenCalled();
     log.mockRestore();
   });

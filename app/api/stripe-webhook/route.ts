@@ -8,6 +8,10 @@ import {
   STRIPE_BILLING_SOURCE,
   type StripeSubscriptionLike,
 } from '@/lib/stripeSubscription';
+import { logStripeError } from '@/lib/membership/server';
+import { must } from '@/lib/stripe/must';
+
+const ROUTE = 'stripe-webhook';
 
 // Toute écriture pilotée par Stripe filtre sur billing_source = 'stripe' :
 // une ligne offerte (manual) n'est jamais touchée, quel que soit l'événement.
@@ -26,7 +30,7 @@ export async function POST(req: NextRequest) {
   try {
     event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
   } catch (err: any) {
-    console.error('Webhook signature verification failed:', err.message);
+    logStripeError(ROUTE, 'signature', err);
     return NextResponse.json({ error: err.message }, { status: 400 });
   }
 
@@ -46,7 +50,7 @@ export async function POST(req: NextRequest) {
           if (!ownerId) break;
           const ownerSub = await stripe.subscriptions.retrieve(subscriptionId) as unknown as StripeSubscriptionLike;
           const { current_period_end } = boxSubscriptionSync(ownerSub);
-          await supabase.from('owner_subscriptions').upsert({
+          must(await supabase.from('owner_subscriptions').upsert({
             owner_id: ownerId,
             plan_tier: 'multi',
             box_quota: quota,
@@ -56,8 +60,8 @@ export async function POST(req: NextRequest) {
             billing_source: STRIPE_BILLING_SOURCE,
             ...(current_period_end ? { current_period_end } : {}),
             updated_at: new Date().toISOString(),
-          }, { onConflict: 'owner_id' });
-          console.log(`Owner Multi checkout completed for owner ${ownerId}`);
+          }, { onConflict: 'owner_id' }), 'owner_subscriptions.upsert');
+          console.log('Owner Multi checkout completed');
           break;
         }
 
@@ -67,18 +71,20 @@ export async function POST(req: NextRequest) {
         const subscription = await stripe.subscriptions.retrieve(subscriptionId) as unknown as StripeSubscriptionLike;
         const sync = boxSubscriptionSync(subscription);
 
-        await supabase.from('box_subscriptions')
-          .update({
+        // Upsert sur box_id (contrainte unique) : une box sans ligne en reçoit
+        // une, au lieu d'un update qui ne touchait rien, en silence.
+        must(await supabase.from('box_subscriptions')
+          .upsert({
+            box_id: boxId,
             stripe_customer_id: customerId,
             stripe_subscription_id: subscriptionId,
             billing_source: STRIPE_BILLING_SOURCE,
             plan_tier: 'complete',
             ...sync,
             status: subscription.status === 'trialing' ? 'trialing' : 'active',
-          })
-          .eq('box_id', boxId);
+          }, { onConflict: 'box_id' }), 'box_subscriptions.upsert');
 
-        console.log(`Checkout completed for box ${boxId}`);
+        console.log('Checkout completed for box');
         break;
       }
 
@@ -88,7 +94,7 @@ export async function POST(req: NextRequest) {
 
         // incomplete / incomplete_expired / paused : rien n'est écrit.
         if (!isSyncableStripeStatus(subscription.status)) {
-          console.log(`Subscription ${subscription.status} ignored for ${customerId}`);
+          console.log(`Subscription ${subscription.status} ignored`);
           break;
         }
 
@@ -96,16 +102,16 @@ export async function POST(req: NextRequest) {
         const { status, current_period_end, trial_ends_at } = boxSubscriptionSync(subscription);
         const periodPatch = current_period_end ? { current_period_end } : {};
 
-        await supabase.from('box_subscriptions')
+        must(await supabase.from('box_subscriptions')
           .update({ status, ...periodPatch, trial_ends_at })
           .eq('stripe_customer_id', customerId)
-          .eq('billing_source', STRIPE_BILLING_SOURCE);
+          .eq('billing_source', STRIPE_BILLING_SOURCE), 'box_subscriptions.update');
 
         // Owner-level subscription mirrors the same status transitions.
-        await supabase.from('owner_subscriptions')
+        must(await supabase.from('owner_subscriptions')
           .update({ status, ...periodPatch, updated_at: new Date().toISOString() })
           .eq('stripe_customer_id', customerId)
-          .eq('billing_source', STRIPE_BILLING_SOURCE);
+          .eq('billing_source', STRIPE_BILLING_SOURCE), 'owner_subscriptions.update');
 
         break;
       }
@@ -114,15 +120,15 @@ export async function POST(req: NextRequest) {
         const subscription = event.data.object as Stripe.Subscription;
         const customerId = subscription.customer as string;
 
-        await supabase.from('box_subscriptions')
+        must(await supabase.from('box_subscriptions')
           .update({ status: 'canceled', stripe_subscription_id: null })
           .eq('stripe_customer_id', customerId)
-          .eq('billing_source', STRIPE_BILLING_SOURCE);
+          .eq('billing_source', STRIPE_BILLING_SOURCE), 'box_subscriptions.update');
 
-        await supabase.from('owner_subscriptions')
+        must(await supabase.from('owner_subscriptions')
           .update({ status: 'canceled', stripe_subscription_id: null, updated_at: new Date().toISOString() })
           .eq('stripe_customer_id', customerId)
-          .eq('billing_source', STRIPE_BILLING_SOURCE);
+          .eq('billing_source', STRIPE_BILLING_SOURCE), 'owner_subscriptions.update');
 
         break;
       }
@@ -131,15 +137,15 @@ export async function POST(req: NextRequest) {
         const invoice = event.data.object as Stripe.Invoice;
         const customerId = invoice.customer as string;
 
-        await supabase.from('box_subscriptions')
+        must(await supabase.from('box_subscriptions')
           .update({ status: 'past_due' })
           .eq('stripe_customer_id', customerId)
-          .eq('billing_source', STRIPE_BILLING_SOURCE);
+          .eq('billing_source', STRIPE_BILLING_SOURCE), 'box_subscriptions.update');
 
-        await supabase.from('owner_subscriptions')
+        must(await supabase.from('owner_subscriptions')
           .update({ status: 'past_due', updated_at: new Date().toISOString() })
           .eq('stripe_customer_id', customerId)
-          .eq('billing_source', STRIPE_BILLING_SOURCE);
+          .eq('billing_source', STRIPE_BILLING_SOURCE), 'owner_subscriptions.update');
 
         break;
       }
@@ -151,17 +157,17 @@ export async function POST(req: NextRequest) {
         const invoice = event.data.object as Stripe.Invoice;
         const customerId = invoice.customer as string;
 
-        await supabase.from('box_subscriptions')
+        must(await supabase.from('box_subscriptions')
           .update({ status: 'active' })
           .eq('stripe_customer_id', customerId)
           .eq('status', 'past_due')
-          .eq('billing_source', STRIPE_BILLING_SOURCE);
+          .eq('billing_source', STRIPE_BILLING_SOURCE), 'box_subscriptions.update');
 
-        await supabase.from('owner_subscriptions')
+        must(await supabase.from('owner_subscriptions')
           .update({ status: 'active', updated_at: new Date().toISOString() })
           .eq('stripe_customer_id', customerId)
           .eq('status', 'past_due')
-          .eq('billing_source', STRIPE_BILLING_SOURCE);
+          .eq('billing_source', STRIPE_BILLING_SOURCE), 'owner_subscriptions.update');
 
         break;
       }
@@ -170,8 +176,9 @@ export async function POST(req: NextRequest) {
         console.log(`Unhandled event: ${event.type}`);
     }
   } catch (err: any) {
-    console.error('Webhook processing error:', err);
-    return NextResponse.json({ error: err.message }, { status: 500 });
+    // 500 : Stripe rejoue l'événement. Le message reste dans le journal, nettoyé.
+    logStripeError(ROUTE, event.type, err);
+    return NextResponse.json({ error: 'Webhook processing failed' }, { status: 500 });
   }
 
   return NextResponse.json({ received: true });
