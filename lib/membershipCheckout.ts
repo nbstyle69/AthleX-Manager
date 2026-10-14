@@ -2,7 +2,11 @@ import { NextResponse } from 'next/server';
 import { createServiceClient, getServerUser } from '@/lib/supabase/server';
 import { buyerIdentity } from '@/lib/buyerIdentity';
 import { refuseClosedBox } from '@/lib/boxEntryGuard';
-import { isBillingDay, planFirstBilling, type BillingPlan, type DueDateRefusal } from '@/lib/membershipBilling';
+import { parisDate } from '@/lib/datetime';
+import {
+  DUE_DATE_MAX_MONTHS, addDays, addMonths, isBillingDay, parisYmd, parseDueDate, planFirstBilling, ymdString,
+  type BillingPlan, type DueDateRefusal,
+} from '@/lib/membershipBilling';
 
 /**
  * Contrôles communs à la création du Checkout d'une formule et à son aperçu :
@@ -29,8 +33,10 @@ export interface MembershipContext {
   supabase: ReturnType<typeof createServiceClient>;
   identity: ReturnType<typeof buyerIdentity>;
   invitationId: string | null;
-  /** Prochaine échéance portée par l'invitation (AAAA-MM-JJ), sinon null. */
+  /** Prochaine échéance (AAAA-MM-JJ) : celle de l'invitation, ou le lendemain d'un accès comptoir en cours ; sinon null. */
   dueDate: string | null;
+  /** Fin d'un accès payé au comptoir encore en cours (AAAA-MM-JJ, incluse), d'où vient `dueDate` ; sinon null. */
+  cashUntil: string | null;
   plan: MembershipPlanRow;
   planType: 'subscription' | 'drop_in' | 'pack';
   box: MembershipBoxRow & { stripe_account_id: string };
@@ -38,9 +44,14 @@ export interface MembershipContext {
 
 type Loaded = { ok: true; ctx: MembershipContext } | { ok: false; response: NextResponse };
 
+export const ALREADY_SUBSCRIBED_ONLINE =
+  'Tu as déjà un abonnement en ligne dans cette box : change de formule depuis Mon compte.';
+
+const STRIPE_VIVANT = ['active', 'trialing', 'past_due'];
+
 export async function loadMembershipContext(body: {
   plan_id?: unknown; buyer_email?: unknown; invitation_token?: unknown;
-}): Promise<Loaded> {
+}, now: Date = new Date()): Promise<Loaded> {
   const supabase = createServiceClient();
   const fail = (response: NextResponse): Loaded => ({ ok: false, response });
 
@@ -135,11 +146,41 @@ export async function loadMembershipContext(body: {
     ));
   }
 
+  const planType = p.plan_type ?? 'subscription';
+
+  // Comptoir P1 : sans invitation, l'adhésion de l'acheteur connecté dans cette
+  // box décide. Abonnement en ligne vivant → refus (sinon double prélèvement) ;
+  // accès payé au comptoir en cours → premier prélèvement au lendemain de sa fin.
+  // L'invitation, elle, porte sa propre échéance et reste prioritaire.
+  let cashUntil: string | null = null;
+  if (!invitationId && identity.userId && planType === 'subscription') {
+    const { data: row, error: rowErr } = await supabase
+      .from('box_members')
+      .select('stripe_subscription_id, subscription_status, cash_access_until')
+      .eq('box_id', p.box_id)
+      .eq('member_id', identity.userId)
+      .maybeSingle();
+    if (rowErr) {
+      // Sans cette lecture, rien n'écarte un second abonnement : on refuse.
+      console.error('membership checkout: lecture de l’adhésion impossible', rowErr.code ?? 'error');
+      return fail(NextResponse.json({ error: 'Ton adhésion n’a pas pu être vérifiée. Réessaie dans un instant.' }, { status: 500 }));
+    }
+    const m = row as { stripe_subscription_id: string | null; subscription_status: string | null; cash_access_until: string | null } | null;
+    if (m?.stripe_subscription_id && STRIPE_VIVANT.includes(m.subscription_status ?? '')) {
+      return fail(NextResponse.json({ error: ALREADY_SUBSCRIBED_ONLINE, reason: 'ALREADY_SUBSCRIBED_ONLINE' }, { status: 409 }));
+    }
+    const fin = !m?.stripe_subscription_id && m?.cash_access_until ? parseDueDate(m.cash_access_until) : null;
+    if (fin && ymdString(fin) >= ymdString(parisYmd(now))) {
+      cashUntil = ymdString(fin);
+      dueDate = ymdString(addDays(fin, 1));
+    }
+  }
+
   return {
     ok: true,
     ctx: {
-      supabase, identity, invitationId, dueDate, plan: p,
-      planType: p.plan_type ?? 'subscription',
+      supabase, identity, invitationId, dueDate, cashUntil, plan: p,
+      planType,
       box: b as MembershipBoxRow & { stripe_account_id: string },
     },
   };
@@ -149,6 +190,18 @@ const DUE_DATE_MESSAGES: Record<DueDateRefusal, string> = {
   DUE_DATE_INVALID: 'Cette invitation n\'est pas payable : sa prochaine échéance est mal renseignée. Rapproche-toi de ta box.',
   DUE_DATE_TOO_FAR: 'Cette invitation n\'est pas payable : sa prochaine échéance tombe à plus de 12 mois. Rapproche-toi de ta box.',
 };
+
+// « 1er décembre », jamais « 1 décembre ».
+const longDate = (ymd: string) => parisDate(ymd, { day: 'numeric', month: 'long', year: 'numeric' }).replace(/^1 /, '1er ');
+
+/**
+ * Accès comptoir qui finit à plus de 12 mois : le passage en ligne n'ouvre
+ * qu'au jour où son lendemain tombe à 12 mois (fin − 12 mois + 1 jour).
+ */
+export function cashTooFarMessage(cashUntil: string): string {
+  const from = ymdString(addDays(addMonths(parseDueDate(cashUntil)!, -DUE_DATE_MAX_MONTHS), 1));
+  return `Ton accès payé à la box court jusqu’au ${longDate(cashUntil)} : tu pourras passer au paiement en ligne à partir du ${longDate(from)}.`;
+}
 
 /**
  * Jour de prélèvement validé côté serveur, puis calcul du premier prélèvement.
@@ -169,9 +222,12 @@ export function billingPlanFor(
   }
   const plan = planFirstBilling({ now, billingDay, priceCents: ctx.plan.price_cents, dueDate: ctx.dueDate });
   if ('refusal' in plan) {
+    const error = ctx.cashUntil && plan.refusal === 'DUE_DATE_TOO_FAR'
+      ? cashTooFarMessage(ctx.cashUntil)
+      : DUE_DATE_MESSAGES[plan.refusal];
     return {
       ok: false,
-      response: NextResponse.json({ error: DUE_DATE_MESSAGES[plan.refusal], reason: plan.refusal }, { status: 409 }),
+      response: NextResponse.json({ error, reason: plan.refusal }, { status: 409 }),
     };
   }
   return { ok: true, plan, billingDay };

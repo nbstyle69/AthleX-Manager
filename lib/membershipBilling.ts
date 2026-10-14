@@ -198,6 +198,11 @@ export function planFirstBilling(input: {
   return { ...base, trialEnd: dueS, anchor: nextS, firstChargeDate: ymdString(due), firstChargeCents: prorata, mergedProrataCents: 0 };
 }
 
+/** Jour calendaire N jours plus tard (N négatif : plus tôt). */
+export function addDays(x: Ymd, n: number): Ymd {
+  return ymdFromOrdinal(ordinal(x) + n);
+}
+
 function ymdFromOrdinal(n: number): Ymd {
   const d = new Date(n * DAY_MS);
   return { y: d.getUTCFullYear(), m: d.getUTCMonth() + 1, d: d.getUTCDate() };

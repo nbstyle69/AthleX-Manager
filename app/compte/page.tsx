@@ -8,6 +8,7 @@ import { selectMembership, type MembershipBillingRow } from '@/lib/compte/member
 import { parisDate } from '@/lib/datetime';
 import { readOverview, type MembershipOverview } from '@/lib/membership/overview';
 import { getConnectStripe } from '@/lib/membership/server';
+import { counterAccessView } from '@/lib/compte/counterAccess';
 
 export const dynamic = 'force-dynamic';
 
@@ -16,7 +17,19 @@ interface ProfileRow {
   full_name: string | null; bio: string | null; avatar_url: string | null;
 }
 
-interface PlanRef { name: string | null; color: string | null; price_cents: number | null }
+interface PlanRef {
+  name: string | null; color: string | null; price_cents: number | null;
+  is_active: boolean | null; plan_type: string | null; commitment_months: number | null;
+  description: string | null; max_sessions_per_week: number | null; terms: string | null;
+}
+
+/** Colonnes ajoutées par le comptoir P1 (get_my_membership_billing). */
+interface CounterBillingColumns {
+  past_due_since?: string | null;
+  has_stripe_subscription?: boolean | null;
+  cash_access_until?: string | null;
+  box_sells_online?: boolean | null;
+}
 interface BoxRef { id: string; name: string | null; slug: string | null; terms_pdf_url?: string | null }
 
 interface CreditRow {
@@ -49,6 +62,7 @@ function fmtDate(iso: string | null | undefined): string {
 const SUB_STATUS_LABEL: Record<string, string> = {
   active: 'Actif', trialing: 'Essai', past_due: 'Paiement en retard',
   canceled: 'Arrêté', cancelled: 'Arrêté', unpaid: 'Impayé', incomplete: 'Incomplet',
+  expired: 'Accès terminé',
 };
 
 export default async function AccountPage() {
@@ -73,9 +87,11 @@ export default async function AccountPage() {
   // amount_cents) ne sont plus lisibles en direct (Lot 6). La RPC filtre sur
   // auth.uid() côté serveur — l'appelant ne choisit pas de qui il lit.
   const { data: billingRaw } = await supabase.rpc('get_my_membership_billing');
-  const { membership: activeSub, stripeBacked } = selectMembership(
-    (billingRaw ?? []) as (MembershipBillingRow & { past_due_since?: string | null })[],
-  );
+  const selection = selectMembership((billingRaw ?? []) as (MembershipBillingRow & CounterBillingColumns)[]);
+  const activeSub = selection.membership;
+  // Un encaissement au comptoir pose aussi subscription_status ('active', puis
+  // 'expired') : seul un abonnement Stripe fait une adhésion « en ligne ».
+  const stripeBacked = selection.stripeBacked && activeSub?.has_stripe_subscription !== false;
 
   // « Mon abonnement » : la même lecture serveur que /api/membership/overview
   // (formules proposables, changement programmé, demande en attente, motif de
@@ -97,13 +113,28 @@ export default async function AccountPage() {
   if (activeSub) {
     const [planRes, boxRes] = await Promise.all([
       activeSub.plan_id
-        ? supabase.from('membership_plans').select('name, color, price_cents').eq('id', activeSub.plan_id).maybeSingle()
+        ? supabase.from('membership_plans')
+            .select('name, color, price_cents, is_active, plan_type, commitment_months, description, max_sessions_per_week, terms')
+            .eq('id', activeSub.plan_id).maybeSingle()
         : Promise.resolve({ data: null }),
       supabase.from('boxes').select('id, name, slug, terms_pdf_url').eq('id', activeSub.box_id).maybeSingle(),
     ]);
     subPlan = (planRes.data ?? null) as PlanRef | null;
     subBox = (boxRes.data ?? null) as BoxRef | null;
   }
+
+  // Comptoir P1 : accès payé à la box (date de fin, fin proche, accès terminé).
+  const counter = activeSub
+    ? counterAccessView(
+        {
+          has_stripe_subscription: activeSub.has_stripe_subscription ?? null,
+          cash_access_until: activeSub.cash_access_until ?? null,
+          subscription_status: activeSub.subscription_status,
+          box_sells_online: activeSub.box_sells_online ?? null,
+        },
+        !!subPlan?.is_active && (subPlan.price_cents ?? 0) > 0 && (subPlan.plan_type ?? 'subscription') === 'subscription',
+      )
+    : null;
 
   const { data: creditRaw } = await supabase
     .from('member_class_credits')
@@ -153,11 +184,14 @@ export default async function AccountPage() {
               </div>
               <div className="text-right">
                 <span className={`text-[11px] px-2 py-0.5 rounded-md font-bold ${
-                  !stripeBacked ? (activeSub.status === 'active' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-gray-500/10 text-gray-400')
+                  counter?.kind === 'ended' ? 'bg-red-500/10 text-red-400'
+                  : !stripeBacked ? (activeSub.status === 'active' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-gray-500/10 text-gray-400')
                   : ['active', 'trialing'].includes(activeSub.subscription_status ?? '') ? 'bg-emerald-500/10 text-emerald-400'
                   : activeSub.subscription_status === 'past_due' ? 'bg-amber-500/10 text-amber-400'
                   : 'bg-red-500/10 text-red-400'}`}>
-                  {stripeBacked
+                  {counter?.kind === 'ended'
+                    ? SUB_STATUS_LABEL.expired
+                    : stripeBacked
                     ? (SUB_STATUS_LABEL[activeSub.subscription_status ?? ''] ?? activeSub.subscription_status)
                     : (activeSub.status === 'active' ? 'Adhésion active' : 'Adhésion inactive')}
                 </span>
@@ -168,6 +202,8 @@ export default async function AccountPage() {
               <CalendarClock size={13} />{' '}
               {stripeBacked
                 ? <>Prochaine échéance : {fmtDate(activeSub.subscription_current_period_end)}</>
+                : counter
+                ? <span data-testid="ligne-acces-comptoir">{counter.line}</span>
                 : <>Sans abonnement en ligne — formule attribuée ou payée à la box{activeSub.joined_at ? ` depuis le ${fmtDate(activeSub.joined_at)}` : ''}</>}
             </div>
             {overview?.mode === 'online' && overview.payment_method && (
@@ -186,6 +222,21 @@ export default async function AccountPage() {
               paused={!!activeSub.subscription_paused}
               pauseResumesAt={activeSub.pause_resumes_at}
               termsPdfUrl={subBox?.terms_pdf_url ?? null}
+              counter={counter && {
+                view: counter,
+                subscribe: activeSub.plan_id && counter.cta ? {
+                  planId: activeSub.plan_id,
+                  planName: subPlan?.name ?? 'Formule',
+                  priceLabel: fmtPrice(subPlan?.price_cents),
+                  commitmentMonths: subPlan?.commitment_months ?? 0,
+                  description: subPlan?.description ?? null,
+                  maxSessionsPerWeek: subPlan?.max_sessions_per_week ?? null,
+                  terms: subPlan?.terms ?? null,
+                  termsPdfUrl: subBox?.terms_pdf_url ?? null,
+                  otherPlansHref: subBox?.slug ? `/box/${subBox.slug}` : null,
+                  cashUntil: counter.kind === 'ended' ? null : counter.until,
+                } : null,
+              }}
             />
             )}
           </div>
