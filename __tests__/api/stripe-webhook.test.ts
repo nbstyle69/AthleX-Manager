@@ -73,15 +73,17 @@ describe('POST /api/stripe-webhook', () => {
 
     expect(res._status).toBe(200);
     expect(res._data).toEqual({ received: true });
-    expect(currentChain.update).toHaveBeenCalledWith(
+    // Upsert sur box_id : une box sans ligne en reçoit une (A2, #438).
+    expect(currentChain.upsert).toHaveBeenCalledWith(
       expect.objectContaining({
+        box_id: 'box-1',
         stripe_customer_id: 'cus_1',
         stripe_subscription_id: 'sub_1',
         plan_tier: 'complete',
         status: 'active',
       }),
+      { onConflict: 'box_id' },
     );
-    expect(currentChain.eq).toHaveBeenCalledWith('box_id', 'box-1');
   });
 
   it('marks the subscription trialing when Stripe reports a trial', async () => {
@@ -93,7 +95,7 @@ describe('POST /api/stripe-webhook', () => {
 
     await POST(makeReq() as any);
 
-    expect(currentChain.update).toHaveBeenCalledWith(expect.objectContaining({ status: 'trialing' }));
+    expect(currentChain.upsert).toHaveBeenCalledWith(expect.objectContaining({ status: 'trialing' }), { onConflict: 'box_id' });
   });
 
   it('ignores checkout.session.completed without box_id (no write)', async () => {
@@ -156,8 +158,9 @@ describe('POST /api/stripe-webhook', () => {
     });
     mockRetrieve.mockResolvedValue({ status: 'active', trial_end: null, items: { data: [{ current_period_end: 1789240593 }] } });
     await POST(makeReq() as any);
-    expect(currentChain.update).toHaveBeenCalledWith(
+    expect(currentChain.upsert).toHaveBeenCalledWith(
       expect.objectContaining({ status: 'active', current_period_end: '2026-09-12T19:16:33.000Z' }),
+      { onConflict: 'box_id' },
     );
   });
 
@@ -179,7 +182,8 @@ describe('POST /api/stripe-webhook', () => {
     mockRetrieve.mockRejectedValue(new Error('stripe down'));
     const res = (await POST(makeReq() as any)) as any;
     expect(res._status).toBe(500);
-    expect(res._data.error).toBe('stripe down');
+    // Corps générique : le détail de l'erreur reste dans le journal, nettoyé.
+    expect(res._data.error).toBe('Webhook processing failed');
   });
 
   describe('billing_source : les lignes manual ne sont jamais touchées', () => {
@@ -220,7 +224,7 @@ describe('POST /api/stripe-webhook', () => {
       });
       mockRetrieve.mockResolvedValue({ status: 'active', current_period_end: 1800000000, trial_end: null });
       await POST(makeReq() as any);
-      expect(currentChain.update).toHaveBeenCalledWith(expect.objectContaining({ billing_source: 'stripe' }));
+      expect(currentChain.upsert).toHaveBeenCalledWith(expect.objectContaining({ billing_source: 'stripe' }), { onConflict: 'box_id' });
 
       jest.clearAllMocks();
       mockConstructEvent.mockReturnValue({

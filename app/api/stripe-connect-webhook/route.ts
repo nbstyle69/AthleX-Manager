@@ -2,7 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { createServiceClient } from '@/lib/supabase/server';
 import { isBillingDay, commitmentEndIso, type BillingPlanDeferred } from '@/lib/membershipBilling';
-import { releaseSchedule } from '@/lib/membership/server';
+import { logStripeError, releaseSchedule } from '@/lib/membership/server';
+import { must } from '@/lib/stripe/must';
+
+const ROUTE = 'stripe-connect-webhook';
 
 function getStripe() {
   return new Stripe(process.env.STRIPE_SECRET_KEY!, {
@@ -53,7 +56,7 @@ export async function POST(req: NextRequest) {
   try {
     event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
   } catch (err: any) {
-    console.error('Connect webhook signature verification failed:', err.message);
+    logStripeError(ROUTE, 'signature', err);
     return NextResponse.json({ error: err.message }, { status: 400 });
   }
 
@@ -61,11 +64,11 @@ export async function POST(req: NextRequest) {
 
   async function resolveUserId(email: string | null | undefined): Promise<string | null> {
     if (!email) return null;
-    const { data } = await supabase
+    const { data } = must(await supabase
       .from('profiles')
       .select('id')
       .ilike('email', email)
-      .maybeSingle();
+      .maybeSingle(), 'profiles.select_by_email');
     return (data as { id?: string } | null)?.id ?? null;
   }
 
@@ -83,24 +86,22 @@ export async function POST(req: NextRequest) {
       session.customer_details?.email ?? session.customer_email ?? null;
     const submitted = session.metadata?.submitted_email ?? null;
     if (submitted && verifiedEmail && submitted.toLowerCase() !== verifiedEmail.toLowerCase()) {
-      console.warn(
-        `Buyer email mismatch on session ${session.id}: submitted=${submitted} verified=${verifiedEmail} — attributing to the verified email.`,
-      );
+      console.warn('Buyer email mismatch on checkout session — attributing to the verified email.');
     }
 
     const metaUserId = session.metadata?.user_id ?? null;
     if (metaUserId) {
       // La metadata est posée serveur depuis la session : on confirme quand même
       // que le profil existe avant d'écrire.
-      const { data } = await supabase
+      const { data } = must(await supabase
         .from('profiles')
         .select('id')
         .eq('id', metaUserId)
-        .maybeSingle();
+        .maybeSingle(), 'profiles.select_by_id');
       if ((data as { id?: string } | null)?.id) {
         return { userId: metaUserId, email: verifiedEmail };
       }
-      console.warn(`Session ${session.id} carries unknown user_id ${metaUserId} — falling back to the Stripe email.`);
+      console.warn('Checkout session carries an unknown user_id — falling back to the Stripe email.');
     }
 
     return { userId: await resolveUserId(verifiedEmail), email: verifiedEmail };
@@ -110,20 +111,20 @@ export async function POST(req: NextRequest) {
    * Lot 4 — l'invitation nominative se ferme au PAIEMENT, jamais au retour
    * navigateur. La RPC est réservée au service_role et revérifie que le compte
    * porte bien l'adresse invitée : un identifiant venu d'une metadata ne suffit
-   * pas à rattacher quelqu'un. Un échec n'annule pas l'activation — le membre a
-   * payé, il entre ; l'invitation restée ouverte se voit dans l'écran de gestion.
+   * pas à rattacher quelqu'un. Un refus métier (`ok: false`) n'annule pas
+   * l'activation — le membre a payé, il entre ; l'invitation restée ouverte se
+   * voit dans l'écran de gestion. Une panne (`error`) jette : 500, Stripe
+   * rejoue, et l'écriture box_members qui précède est idempotente.
    */
   async function closeInvitation(invitationId: string | undefined, userId: string | null) {
     if (!invitationId || !userId) return;
-    const { data, error } = await supabase.rpc('accept_box_invitation_after_payment', {
+    const { data } = must(await supabase.rpc('accept_box_invitation_after_payment', {
       p_invitation_id: invitationId,
       p_user_id: userId,
-    });
+    }), 'rpc.accept_box_invitation_after_payment');
     const result = data as { ok?: boolean; reason?: string } | null;
-    if (error || !result?.ok) {
-      console.error(
-        `Invitation ${invitationId} not closed for user ${userId}: ${error?.message ?? result?.reason}`,
-      );
+    if (!result?.ok) {
+      console.error(`Invitation not closed after payment: ${result?.reason ?? 'unknown'}`);
     }
   }
 
@@ -139,10 +140,10 @@ export async function POST(req: NextRequest) {
     payload: Record<string, unknown>,
     // Vraies colonnes de pending_entitlements (jamais dans payload).
     columns: { billing_day?: number | null } = {},
-  ): Promise<NextResponse | null> {
+  ): Promise<void> {
     if (!email) {
-      console.error(`Cannot park ${kind} purchase for session ${sessionId}: no verified email on the Stripe session.`);
-      return null;
+      console.error(`Cannot park ${kind} purchase: no verified email on the Stripe session.`);
+      return;
     }
     const { error } = await supabase.from('pending_entitlements').insert({
       email: email.toLowerCase(),
@@ -151,24 +152,20 @@ export async function POST(req: NextRequest) {
       stripe_checkout_session_id: sessionId,
       ...columns,
     });
-    if (error) {
-      // Rejeu du même événement : la contrainte unique sur la session tient.
-      if (error.code === '23505') {
-        console.log(`Pending ${kind} for session ${sessionId} already parked — skipping duplicate.`);
-        return null;
-      }
-      console.error(`pending_entitlements insert failed for session ${sessionId}:`, error.message);
-      return NextResponse.json({ error: error.message }, { status: 500 });
+    // Rejeu du même événement : la contrainte unique sur la session tient.
+    if (error?.code === '23505') {
+      console.log(`Pending ${kind} already parked — skipping duplicate.`);
+      return;
     }
-    console.log(`Pending ${kind} parked for ${email} (session ${sessionId}) — will be claimed at signup.`);
-    return null;
+    must({ error }, 'pending_entitlements.insert');
+    console.log(`Pending ${kind} parked — will be claimed at signup.`);
   }
 
   /**
    * Écriture de l'adhésion (payée, ou moyen de paiement enregistré pour une
    * échéance future) : box_members si le compte existe, sinon
-   * pending_entitlements. Ferme ensuite l'invitation. Renvoie une réponse
-   * d'erreur si l'écriture échoue.
+   * pending_entitlements. Ferme ensuite l'invitation. Jette si une
+   * requête échoue (500, Stripe rejoue).
    */
   async function activateMembership(
     session: Stripe.Checkout.Session,
@@ -178,7 +175,7 @@ export async function POST(req: NextRequest) {
       paymentMethodType: string | null; amountCents: number | null; feeCents: number | null;
       commitmentEnd: string | null;
     },
-  ): Promise<NextResponse | null> {
+  ): Promise<void> {
     const patch = {
       plan_id: m.planId,
       subscription_status: 'active',
@@ -199,7 +196,7 @@ export async function POST(req: NextRequest) {
     };
 
     if (!m.userId) {
-      return parkPendingEntitlement('membership', m.buyerEmail, session.id, {
+      await parkPendingEntitlement('membership', m.buyerEmail, session.id, {
         box_id: m.boxId,
         plan_id: m.planId,
         stripe_subscription_id: m.subscriptionId,
@@ -209,28 +206,24 @@ export async function POST(req: NextRequest) {
         commitment_end_date: m.commitmentEnd,
         payment_method_type: m.paymentMethodType,
       }, m.billingDay ? { billing_day: m.billingDay } : {});
+      return;
     }
 
-    const { data: existing } = await supabase.from('box_members')
+    const { data: existing } = must(await supabase.from('box_members')
       .select('id')
       .eq('box_id', m.boxId)
       .eq('member_id', m.userId)
-      .maybeSingle();
+      .maybeSingle(), 'box_members.select_membership');
 
-    const { error: writeErr } = existing?.id
+    must(existing?.id
       ? await supabase.from('box_members').update(patch).eq('id', existing.id)
       : await supabase.from('box_members').insert({
           box_id: m.boxId, member_id: m.userId, role: 'member', ...patch,
-        });
-    if (writeErr) {
-      console.error(`Membership box_members write failed for user ${m.userId} on box ${m.boxId}:`, writeErr.message);
-      return NextResponse.json({ error: writeErr.message }, { status: 500 });
-    }
+        }), 'box_members.write_membership');
 
     await closeInvitation(session.metadata?.invitation_id, m.userId);
 
-    console.log(`Membership plan ${m.planId} activated for user ${m.userId} on box ${m.boxId}`);
-    return null;
+    console.log('Membership activated');
   }
 
   /**
@@ -257,7 +250,7 @@ export async function POST(req: NextRequest) {
     const customerId = typeof session.customer === 'string' ? session.customer : session.customer?.id ?? null;
     const setupIntentId = typeof session.setup_intent === 'string' ? session.setup_intent : session.setup_intent?.id ?? null;
     if (!planId || !boxId || !priceId || !trialEnd || !customerId || !setupIntentId || !account) {
-      console.error(`membership_deferred ${session.id}: metadata, client, SetupIntent ou compte manquant — rien créé.`);
+      console.error('membership_deferred: metadata, client, SetupIntent ou compte manquant — rien créé.');
       return null;
     }
     const opts = { stripeAccount: account };
@@ -323,13 +316,13 @@ export async function POST(req: NextRequest) {
         }
       }
     } catch (e: any) {
-      console.error(`membership_deferred ${session.id}: création de l'abonnement échouée — ${e.message}`);
-      return NextResponse.json({ error: e.message }, { status: 500 });
+      logStripeError(ROUTE, 'membership_deferred.create_subscription', e);
+      return NextResponse.json({ error: 'Webhook processing failed' }, { status: 500 });
     }
 
     const { userId, email: buyerEmail } = await resolveBuyer(session);
     const commitmentMonths = Number(md.commitment_months ?? 0) || 0;
-    return activateMembership(session, {
+    await activateMembership(session, {
       boxId, planId, userId, buyerEmail,
       billingDay: metadataBillingDay(md),
       subscriptionId: subscription.id,
@@ -342,6 +335,7 @@ export async function POST(req: NextRequest) {
         ? commitmentEndIso({ kind: 'deferred', dueDate: md.due_date } as BillingPlanDeferred, commitmentMonths, new Date())
         : null,
     });
+    return null;
   }
 
   try {
@@ -380,17 +374,16 @@ export async function POST(req: NextRequest) {
               paymentMethodType = sub.default_payment_method?.type ?? null;
               periodEnd = subscriptionPeriodEnd(sub);
             } catch (e: any) {
-              console.warn(`Payment method lookup failed for ${membershipSubId}: ${e.message}`);
+              logStripeError(ROUTE, 'membership.payment_method_lookup', e);
             }
           }
 
-          const activated = await activateMembership(session, {
+          await activateMembership(session, {
             boxId, planId, userId, buyerEmail,
             billingDay: metadataBillingDay(session.metadata),
             subscriptionId: membershipSubId,
             periodEnd, paymentMethodType, amountCents, feeCents, commitmentEnd,
           });
-          if (activated) return activated;
           break;
         }
 
@@ -413,14 +406,13 @@ export async function POST(req: NextRequest) {
 
           const { userId, email: buyerEmail } = await resolveBuyer(session);
           if (!userId) {
-            const parked = await parkPendingEntitlement('credit', buyerEmail, session.id, {
+            await parkPendingEntitlement('credit', buyerEmail, session.id, {
               box_id: boxId,
               plan_id: planId,
               credits,
               validity_days: validityDays,
               stripe_payment_intent: (session.payment_intent as string) ?? null,
             });
-            if (parked) return parked;
             break;
           }
 
@@ -437,21 +429,18 @@ export async function POST(req: NextRequest) {
               stripe_checkout_session_id: session.id,
               stripe_payment_intent: (session.payment_intent as string) ?? null,
             });
-          if (creditErr) {
-            // Idempotence : Stripe peut ré-émettre le même événement. Une
-            // contrainte unique sur stripe_checkout_session_id garantit un
-            // seul crédit par paiement ; le rejeu (23505) est déjà traité.
-            if (creditErr.code === '23505') {
-              console.log(`Credit for session ${session.id} already processed — skipping duplicate.`);
-              break;
-            }
-            console.error(`member_class_credits insert failed for user ${userId} on box ${boxId}:`, creditErr.message);
-            return NextResponse.json({ error: creditErr.message }, { status: 500 });
+          // Idempotence : Stripe peut ré-émettre le même événement. Une
+          // contrainte unique sur stripe_checkout_session_id garantit un
+          // seul crédit par paiement ; le rejeu (23505) est déjà traité.
+          if (creditErr?.code === '23505') {
+            console.log('Credit already processed — skipping duplicate.');
+            break;
           }
+          must({ error: creditErr }, 'member_class_credits.insert');
 
           await closeInvitation(session.metadata.invitation_id, userId);
 
-          console.log(`Credit pack (${credits} séances) activated for user ${userId} on box ${boxId}`);
+          console.log(`Credit pack (${credits} séances) activated`);
           break;
         }
 
@@ -493,11 +482,8 @@ export async function POST(req: NextRequest) {
               },
               { onConflict: 'programming_id,subscriber_box_id' },
             );
-          if (subErr) {
-            console.error(`box_programming_subscriptions write failed (prog ${programmingId}, box ${subscriberBoxId}):`, subErr.message);
-            return NextResponse.json({ error: subErr.message }, { status: 500 });
-          }
-          console.log(`Box programming ${programmingId} activated for box ${subscriberBoxId}`);
+          must({ error: subErr }, 'box_programming_subscriptions.upsert');
+          console.log('Box programming activated');
           break;
         }
 
@@ -511,14 +497,13 @@ export async function POST(req: NextRequest) {
         const { userId, email: buyerEmail } = await resolveBuyer(session);
         if (!userId) {
           // L'acheteur n'a pas (encore) de compte : l'achat attend son inscription.
-          const parked = await parkPendingEntitlement('program', buyerEmail, session.id, {
+          await parkPendingEntitlement('program', buyerEmail, session.id, {
             program_id: programId,
             amount_cents: amountCents,
             platform_fee_cents: feeCents,
             stripe_subscription_id: (session.subscription as string) ?? null,
             stripe_payment_intent: (session.payment_intent as string) ?? null,
           });
-          if (parked) return parked;
           break;
         }
 
@@ -540,51 +525,54 @@ export async function POST(req: NextRequest) {
           p_stripe_subscription_id: (session.subscription as string) ?? null,
           p_stripe_payment_intent: (session.payment_intent as string) ?? null,
         });
-        if (programWriteErr) {
-          console.error(`Program program_members write failed for user ${userId} on program ${programId}:`, programWriteErr.message);
-          return NextResponse.json({ error: programWriteErr.message }, { status: 500 });
-        }
+        must({ error: programWriteErr }, 'rpc.join_program');
 
-        console.log(`Program ${programId} activated for user ${userId}`);
+        console.log('Program activated');
         break;
       }
 
       case 'customer.subscription.deleted': {
         const sub = event.data.object as Stripe.Subscription;
-        await supabase.from('program_members')
+        must(await supabase.from('program_members')
           .update({ status: 'cancelled' })
-          .eq('stripe_subscription_id', sub.id);
+          .eq('stripe_subscription_id', sub.id), 'program_members.update_cancelled');
         // Abonnement programmation box→box résilié → `unsubscribe_programming`
         // (backend) passe le statut à canceled et retire les cartes reçues à
         // partir du lundi suivant si le gérant l'a demandé (remove_future_on_cancel).
-        const { data: progSubs } = await supabase.from('box_programming_subscriptions')
+        const { data: progSubs } = must(await supabase.from('box_programming_subscriptions')
           .select('id')
-          .eq('stripe_subscription_id', sub.id);
+          .eq('stripe_subscription_id', sub.id), 'box_programming_subscriptions.select');
+        // Toutes les lignes sont tentées avant de jeter : un échec ne laisse
+        // pas les suivantes non traitées à chaque rejeu (la RPC est idempotente).
+        const unsubErrors: unknown[] = [];
         for (const row of (progSubs ?? []) as { id: string }[]) {
           const { error: unsubErr } = await supabase.rpc('unsubscribe_programming', {
             p_subscription_id: row.id, p_remove_future: null,
           });
-          if (unsubErr) console.error(`unsubscribe_programming failed (${row.id}):`, unsubErr.message);
+          if (unsubErr) unsubErrors.push(unsubErr);
         }
-        await supabase.from('box_programming_subscriptions')
+        if (unsubErrors.length) {
+          must({ error: unsubErrors[0] }, `rpc.unsubscribe_programming (${unsubErrors.length} en échec)`);
+        }
+        must(await supabase.from('box_programming_subscriptions')
           .update({ status: 'canceled' })
-          .eq('stripe_subscription_id', sub.id);
+          .eq('stripe_subscription_id', sub.id), 'box_programming_subscriptions.update_canceled');
         // Abonnement salle résilié → retire la formule (déclenche la sync des groupes).
-        await supabase.from('box_members')
+        must(await supabase.from('box_members')
           .update({
             subscription_status: 'cancelled', plan_id: null,
             subscription_cancel_at_period_end: false,
             commitment_end_date: null, subscription_paused: false,
             pause_started_at: null, pause_resumes_at: null,
           })
-          .eq('stripe_subscription_id', sub.id);
+          .eq('stripe_subscription_id', sub.id), 'box_members.update_cancelled');
         // Fin réelle de l'abonnement → l'adhérent n'est plus membre actif : il perd
         // l'accès gardé par status='active' (créneaux, réservation, WOD de box).
         // On ne touche pas un membre 'banned' (déjà sans accès, décision de l'owner).
-        await supabase.from('box_members')
+        must(await supabase.from('box_members')
           .update({ status: 'inactive' })
           .eq('stripe_subscription_id', sub.id)
-          .eq('status', 'active');
+          .eq('status', 'active'), 'box_members.update_inactive');
         break;
       }
 
@@ -597,18 +585,18 @@ export async function POST(req: NextRequest) {
         const status = sub.status === 'active' || sub.status === 'trialing' ? 'active'
           : sub.status === 'past_due' ? 'active'
           : 'cancelled';
-        await supabase.from('program_members')
+        must(await supabase.from('program_members')
           .update({ status })
-          .eq('stripe_subscription_id', sub.id);
+          .eq('stripe_subscription_id', sub.id), 'program_members.update_status');
         // Programmation box→box : active / past_due / canceled + fin de période.
-        await supabase.from('box_programming_subscriptions')
+        must(await supabase.from('box_programming_subscriptions')
           .update({
             status: sub.status === 'active' || sub.status === 'trialing' ? 'active'
               : sub.status === 'past_due' || sub.status === 'unpaid' ? 'past_due'
               : 'canceled',
             current_period_end: subscriptionPeriodEnd(sub),
           })
-          .eq('stripe_subscription_id', sub.id);
+          .eq('stripe_subscription_id', sub.id), 'box_programming_subscriptions.update_status');
         // Statut d'abonnement salle : active / past_due (impayé) / cancelled.
         const memberStatus = sub.status === 'active' || sub.status === 'trialing' ? 'active'
           : sub.status === 'past_due' || sub.status === 'unpaid' ? 'past_due'
@@ -629,17 +617,17 @@ export async function POST(req: NextRequest) {
           const unit = item?.price?.unit_amount;
           if (typeof unit === 'number') planPatch.amount_cents = unit * (item?.quantity ?? 1);
         } else if (currentPriceId) {
-          const { data: matchedPlan } = await supabase.from('membership_plans')
+          const { data: matchedPlan } = must(await supabase.from('membership_plans')
             .select('id, price_cents')
             .eq('stripe_price_id', currentPriceId)
-            .maybeSingle();
+            .maybeSingle(), 'membership_plans.select_by_price');
           if (matchedPlan?.id) {
             planPatch.plan_id = matchedPlan.id;
             planPatch.amount_cents = matchedPlan.price_cents;
           }
         }
 
-        const { error: subUpdErr } = await supabase.from('box_members')
+        must(await supabase.from('box_members')
           .update({
             subscription_status: memberStatus,
             // Sortie d'impayé : on efface l'ancre de suspension et le compteur
@@ -658,19 +646,16 @@ export async function POST(req: NextRequest) {
             subscription_cancel_at_period_end: !!sub.cancel_at_period_end || sub.cancel_at != null,
             ...(memberStatus !== 'cancelled' ? planPatch : {}),
           })
-          .eq('stripe_subscription_id', sub.id);
-        if (subUpdErr) {
-          console.error(`box_members subscription update failed for ${sub.id}:`, subUpdErr.message);
-        }
+          .eq('stripe_subscription_id', sub.id), 'box_members.update_subscription');
         // Bascule d'un changement programmé : la formule écrite est celle qui
         // était attendue, il n'y a plus rien de programmé. Conditionnel :
         // un autre changement programmé entre-temps n'est pas effacé.
         if (memberStatus !== 'cancelled' && planPatch.plan_id) {
-          const { data: bascule } = await supabase.from('box_members')
+          const { data: bascule } = must(await supabase.from('box_members')
             .update({ scheduled_plan_id: null, scheduled_change_at: null, stripe_schedule_id: null })
             .eq('stripe_subscription_id', sub.id)
             .eq('scheduled_plan_id', planPatch.plan_id)
-            .select('id');
+            .select('id'), 'box_members.update_bascule');
           // L'échéancier a fait son œuvre : relâché tout de suite, pour qu'il ne
           // reste pas attaché un mois (idempotent ; déjà relâché ou absent : rien).
           const scheduleId = typeof sub.schedule === 'string' ? sub.schedule : sub.schedule?.id;
@@ -678,7 +663,7 @@ export async function POST(req: NextRequest) {
             try {
               await releaseSchedule(stripe, scheduleId, 'bascule', event.account);
             } catch (err: any) {
-              console.error(`schedule release after switch failed for ${sub.id}:`, err?.message);
+              logStripeError(ROUTE, 'schedule_release_after_switch', err);
             }
           }
         }
@@ -686,10 +671,10 @@ export async function POST(req: NextRequest) {
         // invoice.payment_failed. `.is(null)` garantit l'idempotence : la date
         // du premier échec n'est jamais repoussée par une nouvelle tentative.
         if (memberStatus === 'past_due') {
-          await supabase.from('box_members')
+          must(await supabase.from('box_members')
             .update({ past_due_since: new Date().toISOString() })
             .eq('stripe_subscription_id', sub.id)
-            .is('past_due_since', null);
+            .is('past_due_since', null), 'box_members.update_past_due_since');
         }
         break;
       }
@@ -709,11 +694,11 @@ export async function POST(req: NextRequest) {
           break;
         }
 
-        const { data: member } = await supabase
+        const { data: member } = must(await supabase
           .from('box_members')
           .select('id, past_due_since, dunning_attempts')
           .eq('stripe_subscription_id', subId)
-          .maybeSingle();
+          .maybeSingle(), 'box_members.select_dunning');
         const m = member as { id: string; past_due_since: string | null; dunning_attempts: number | null } | null;
         if (!m) break;
 
@@ -722,7 +707,7 @@ export async function POST(req: NextRequest) {
         const reason: string | null =
           (invoice.last_finalization_error?.message as string | undefined) ?? null;
 
-        const { error: dunErr } = await supabase
+        must(await supabase
           .from('box_members')
           .update({
             subscription_status: 'past_due',
@@ -730,12 +715,8 @@ export async function POST(req: NextRequest) {
             dunning_attempts: (m.dunning_attempts ?? 0) + 1,
             last_payment_error: reason,
           })
-          .eq('id', m.id);
-        if (dunErr) {
-          console.error(`box_members dunning update failed for ${subId}:`, dunErr.message);
-          return NextResponse.json({ error: dunErr.message }, { status: 500 });
-        }
-        console.log(`Membership past_due recorded for subscription ${subId}`);
+          .eq('id', m.id), 'box_members.update_dunning');
+        console.log('Membership past_due recorded');
         break;
       }
 
@@ -749,7 +730,7 @@ export async function POST(req: NextRequest) {
           break;
         }
 
-        const { error: paidErr } = await supabase
+        must(await supabase
           .from('box_members')
           .update({
             subscription_status: 'active',
@@ -759,11 +740,7 @@ export async function POST(req: NextRequest) {
             dunning_reminders_sent: 0,
             dunning_last_reminder_at: null,
           })
-          .eq('stripe_subscription_id', subId);
-        if (paidErr) {
-          console.error(`box_members dunning reset failed for ${subId}:`, paidErr.message);
-          return NextResponse.json({ error: paidErr.message }, { status: 500 });
-        }
+          .eq('stripe_subscription_id', subId), 'box_members.update_dunning_reset');
         break;
       }
 
@@ -771,14 +748,14 @@ export async function POST(req: NextRequest) {
         const charge = event.data.object as Stripe.Charge;
         if (charge.payment_intent) {
           const paymentIntent = charge.payment_intent as string;
-          await supabase.from('program_members')
+          must(await supabase.from('program_members')
             .update({ status: 'refunded' })
-            .eq('stripe_payment_intent', paymentIntent);
+            .eq('stripe_payment_intent', paymentIntent), 'program_members.update_refunded');
           // Achat unique de crédits (Drop-in / Carnet) remboursé : on révoque
           // l'accès pour que les séances prépayées ne soient plus réservables.
-          await supabase.from('member_class_credits')
+          must(await supabase.from('member_class_credits')
             .update({ status: 'refunded' })
-            .eq('stripe_payment_intent', paymentIntent);
+            .eq('stripe_payment_intent', paymentIntent), 'member_class_credits.update_refunded');
         }
         break;
       }
@@ -791,10 +768,9 @@ export async function POST(req: NextRequest) {
       case 'subscription_schedule.canceled':
       case 'subscription_schedule.completed': {
         const schedule = event.data.object as { id: string };
-        const { error } = await supabase.from('box_members')
+        must(await supabase.from('box_members')
           .update({ scheduled_plan_id: null, scheduled_change_at: null, stripe_schedule_id: null })
-          .eq('stripe_schedule_id', schedule.id);
-        if (error) throw new Error(error.message);
+          .eq('stripe_schedule_id', schedule.id), 'box_members.update_schedule_cleared');
         break;
       }
 
@@ -802,8 +778,9 @@ export async function POST(req: NextRequest) {
         console.log(`Unhandled connect event: ${event.type}`);
     }
   } catch (err: any) {
-    console.error('Connect webhook processing error:', err);
-    return NextResponse.json({ error: err.message }, { status: 500 });
+    // 500 : Stripe rejoue l'événement. Le message reste dans le journal, nettoyé.
+    logStripeError(ROUTE, event.type, err);
+    return NextResponse.json({ error: 'Webhook processing failed' }, { status: 500 });
   }
 
   return NextResponse.json({ received: true });

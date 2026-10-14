@@ -557,7 +557,7 @@ describe('POST /api/stripe-connect-webhook', () => {
     const res = (await POST(makeReq() as any)) as any;
 
     expect(res._status).toBe(500);
-    expect(res._data.error).toBe('boom');
+    expect(res._data.error).toBe('Webhook processing failed');
   });
 
   // ── Lien facture → abonnement selon la version d'API de la destination ──
