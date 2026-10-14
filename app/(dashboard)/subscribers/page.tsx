@@ -17,6 +17,7 @@ import { ERROR_TITLE, fullDate, type ConfirmChoice } from '@/lib/confirmDialog';
 import { paymentMethodLabel } from '@/lib/paymentMethodLabel';
 import { entryRefusalFrom, entryRefusalInfo } from '@/lib/entryRefusalView';
 import { parisDate } from '@/lib/datetime';
+import { TO_COLLECT_LABEL, statusBadge } from '@/lib/subscriberStatus';
 import CashPaymentDialog, { type CashPaymentRequest } from '@/components/comptoir/CashPaymentDialog';
 import {
   counterBlocks, endingLine, noticeLabel, renewalBlocked, shortDate, tableDueNote, toCollectLine,
@@ -71,17 +72,6 @@ interface CancelRequest {
   created_at: string;
   username: string;
 }
-
-// Même sens qu'avant (actif vert, impayé orange, annulé/remboursé rouge, autre
-// statut gris), en jetons lisibles dans les deux thèmes ; le libellé porte le sens.
-type StatusVariant = 'success' | 'warning' | 'danger' | 'neutral';
-const STATUS_STYLE: Record<string, { label: string; variant: StatusVariant }> = {
-  active:    { label: 'Actif',    variant: 'success' },
-  past_due:  { label: 'Impayé',   variant: 'warning' },
-  cancelled: { label: 'Annulé',   variant: 'danger' },
-  refunded:  { label: 'Remboursé', variant: 'danger' },
-  expired:   { label: 'Accès terminé', variant: 'neutral' },
-};
 
 function fmtPrice(cents: number | null) {
   if (!cents) return '—';
@@ -664,7 +654,7 @@ export default function SubscribersPage() {
             )}
             {toCollect.length > 0 && (
               <div className="bg-ax-warning-soft border border-ax-warning rounded-ax-card p-4 space-y-3" data-testid="bloc-a-encaisser">
-                <p className="text-sm font-black text-ax-warning">À encaisser ({toCollect.length})</p>
+                <p className="text-sm font-black text-ax-warning">{TO_COLLECT_LABEL} ({toCollect.length})</p>
                 {toCollect.map((m) => {
                   const r = rowByMember.get(m.box_member_id);
                   return (
@@ -760,7 +750,7 @@ export default function SubscribersPage() {
           </thead>
           <tbody>
             {current.map(r => {
-              const st = STATUS_STYLE[r.status] ?? { label: r.status, variant: 'neutral' as StatusVariant };
+              const st = statusBadge(r.status);
               const history = memberInvoices(r);
               const cash = memberCash(r);
               const historyOpen = openHistory === r.key;
@@ -944,7 +934,7 @@ export default function SubscribersPage() {
               </thead>
               <tbody>
                 {former.map(r => {
-                  const st = STATUS_STYLE[r.status] ?? { label: r.status, variant: 'neutral' as StatusVariant };
+                  const st = statusBadge(r.status);
                   return (
                     <tr key={r.key} className="border-b border-ax-border hover:bg-ax-hover">
                       <td className="px-4 py-3">

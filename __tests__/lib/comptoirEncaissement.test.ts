@@ -330,3 +330,22 @@ describe('vocabulaire', () => {
     expect(read(f)).not.toMatch(/crossfit|hyrox/i);
   });
 });
+
+describe('statut du tableau d’Abonnés', () => {
+  // Import tardif : module pur, sans React.
+  const { statusBadge, TO_COLLECT_LABEL } = require('@/lib/subscriberStatus') as typeof import('@/lib/subscriberStatus');
+  it('pending_cash : badge Alerte « À encaisser », jamais le code brut', () => {
+    expect(statusBadge('pending_cash')).toEqual({ label: 'À encaisser', variant: 'warning' });
+    expect(TO_COLLECT_LABEL).toBe('À encaisser');
+  });
+  it('le bloc et le badge partagent le libellé', () => {
+    const src = read('app/(dashboard)/subscribers/page.tsx');
+    expect(src).toContain('{TO_COLLECT_LABEL} ({toCollect.length})');
+    expect(src.match(/const st = statusBadge\(r\.status\);/g)).toHaveLength(2);
+  });
+  it('libellés existants inchangés ; statut inconnu affiché tel quel, en gris', () => {
+    expect(statusBadge('active')).toEqual({ label: 'Actif', variant: 'success' });
+    expect(statusBadge('expired')).toEqual({ label: 'Accès terminé', variant: 'neutral' });
+    expect(statusBadge('pending_payment')).toEqual({ label: 'pending_payment', variant: 'neutral' });
+  });
+});
