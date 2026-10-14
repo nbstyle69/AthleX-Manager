@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { getMyBox } from '@/lib/getMyBox';
+import CounterRenewalField from '@/components/comptoir/CounterRenewalField';
 import { writeFailure } from '@/lib/writeGuard';
 import HelpButton from '@/components/help/HelpButton';
 import PublicPageSection from '@/components/settings/PublicPageSection';
@@ -104,6 +105,8 @@ export default function SettingsPage() {
   const [savedInfo, setSavedInfo] = useState(false);
   const [foundedAt, setFoundedAt] = useState('');
   const [dunningGraceDays, setDunningGraceDays] = useState('7');
+  // Comptoir P1 : renouvellement au comptoir (colonne réservée au serveur, /api/box/counter-renewal).
+  const [counterRenewal, setCounterRenewal] = useState<{ allow: boolean; saved: boolean; sellsOnline: boolean } | null>(null);
   const [ownerName, setOwnerName] = useState('');
   const [coaches, setCoaches] = useState<{id:string; username:string; avatar_url:string|null}[]>([]);
   const [userId, setUserId] = useState<string | null>(null);
@@ -154,6 +157,11 @@ export default function SettingsPage() {
       if (dunningRes.ok) {
         const dunning = await dunningRes.json();
         setDunningGraceDays(String(dunning.dunning_grace_days ?? 7));
+      }
+      const renewalRes = await fetch('/api/box/counter-renewal');
+      if (renewalRes.ok) {
+        const renewal = await renewalRes.json();
+        setCounterRenewal({ allow: !!renewal.allow_counter_renewal, saved: !!renewal.allow_counter_renewal, sellsOnline: !!renewal.sells_online });
       }
 
       // Fetch owner + coaches in parallel
@@ -449,6 +457,22 @@ export default function SettingsPage() {
       inform({ kind: 'error', title: ERROR_TITLE, body: `Erreur: ${json.error ?? 'délai avant suspension non enregistré'}` });
       setSavingInfo(false);
       return;
+    }
+
+    // Box qui ne vend pas en ligne : le réglage est grisé, rien à écrire.
+    if (counterRenewal && counterRenewal.sellsOnline && counterRenewal.allow !== counterRenewal.saved) {
+      const renewalRes = await fetch('/api/box/counter-renewal', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ allow_counter_renewal: counterRenewal.allow }),
+      });
+      if (!renewalRes.ok) {
+        const json = await renewalRes.json().catch(() => ({ error: 'Erreur' }));
+        inform({ kind: 'error', title: ERROR_TITLE, body: `Erreur: ${json.error ?? 'renouvellement au comptoir non enregistré'}` });
+        setSavingInfo(false);
+        return;
+      }
+      setCounterRenewal({ ...counterRenewal, saved: counterRenewal.allow });
     }
 
     const { data: updated, error } = await supabase.from('boxes')
@@ -799,6 +823,14 @@ export default function SettingsPage() {
               Passé ce délai après un prélèvement refusé, le membre ne peut plus réserver. L&apos;accès est rétabli dès le paiement. 0 = suspension immédiate.
             </p>
           </div>
+
+          {counterRenewal && (
+            <CounterRenewalField
+              allow={counterRenewal.allow}
+              sellsOnline={counterRenewal.sellsOnline}
+              onToggle={() => setCounterRenewal({ ...counterRenewal, allow: !counterRenewal.allow })}
+            />
+          )}
         </div>
 
         <div className="flex items-center gap-3 pt-1">

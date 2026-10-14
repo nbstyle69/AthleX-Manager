@@ -162,8 +162,8 @@ describe('fenêtre d’abonnement', () => {
       ...SUBSCRIBE, trigger: React.createElement<React.ButtonHTMLAttributes<HTMLButtonElement>>('button', { type: 'button' }, 'Passer au paiement en ligne'),
     })));
     expect(avec).toBe('Passer au paiement en ligne');
-    const sans = text(renderToStaticMarkup(React.createElement(MembershipSubscribeButton, { planId: 'p49', planName: 'Mensuel illimité', priceLabel: '49 €/mois' })));
-    expect(sans).toBe('S\'abonner — 49 €/mois');
+    const sans = text(renderToStaticMarkup(React.createElement(MembershipSubscribeButton, { planId: 'p49', planName: 'Mensuel illimité', priceLabel: '49 €' })));
+    expect(sans).toBe('S\'abonner — 49 € / mois');
   });
 });
 

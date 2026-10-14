@@ -69,6 +69,8 @@ const CLASSIFICATION: Record<string, Classe> = {
   'box/[id]/auto-programming': 'box_staff',
   'box/[id]/auto-programming/run': 'box_staff',
   'box/dunning': 'owner_admin',
+  // Comptoir P1, PR 5 : réglage du renouvellement au comptoir (colonne réservée au serveur).
+  'box/counter-renewal': 'owner_admin',
   'box/invite-code': 'owner_admin',
   'cancel-membership': 'self_service',
   'cancel-programming-subscription': 'owner_admin',
@@ -98,6 +100,8 @@ const CLASSIFICATION: Record<string, Classe> = {
   'invitations/send': 'owner_admin',
   // Arret d'un abonnement de salle (S2) : argent -> gerant ou co-gerant seul.
   'members/stop-subscription': 'owner_admin',
+  // Comptoir P1, PR 5 : fins d'accès, file des messages et réglage de la box (lecture, clé serveur).
+  'members/counter-access': 'owner_admin',
   // S4 : bannissement et suppressions qui arretent des abonnements Stripe.
   'marketplace/offers/delete': 'owner_admin',
   'members/ban': 'owner_admin',

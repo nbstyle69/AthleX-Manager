@@ -18,6 +18,7 @@ import {
 } from '@/lib/membership/screens';
 import type { CounterAccessView } from '@/lib/compte/counterAccess';
 import MembershipSubscribeButton from '@/app/box/[slug]/MembershipSubscribeButton';
+import { perMonthSuffix } from '@/lib/monthlyPrice';
 
 interface Props {
   /** « Mon abonnement » : la lecture serveur de /api/membership/overview. */
@@ -85,7 +86,7 @@ export function PlanChoice({
               <input type="radio" name="plan" checked={planId === p.id} onChange={() => onPick(p.id)} className="accent-emerald-500" />
               <span className="text-sm text-white font-semibold break-words">{p.name}</span>
             </span>
-            <span className="text-sm font-black text-white whitespace-nowrap">{euros(p.price_cents)}<span className="text-[10px] font-normal text-gray-500"> /mois</span></span>
+            <span className="text-sm font-black text-white whitespace-nowrap">{euros(p.price_cents)}<span className="text-[10px] font-normal text-gray-500">{perMonthSuffix()}</span></span>
           </label>
         ))}
       </div>

@@ -63,13 +63,13 @@ describe('/compte — les états de la maquette', () => {
       overview: ov(), planId: 'p35', onPick: () => {}, onConfirm: () => {}, onCancel: () => {}, loading: false, error: null,
     })));
     expect(t).toContain('Nouvelle formule — à partir de ta prochaine échéance');
-    expect(t).toContain('Tu gardes Mensuel illimité jusqu’au 31 oct. Ta nouvelle formule, 3 séances / semaine à 35 € /mois, sera prélevée à partir du 01 nov. 2026. Aucun prorata, rien n’est facturé aujourd’hui.');
+    expect(t).toContain('Tu gardes Mensuel illimité jusqu’au 31 oct. Ta nouvelle formule, 3 séances / semaine à 35 € / mois, sera prélevée à partir du 01 nov. 2026. Aucun prorata, rien n’est facturé aujourd’hui.');
     expect(t).toContain('Confirmer le changement Annuler');
   });
 
   it('en ligne, changement programmé : encart, Annuler ce changement, sans Changer de formule', () => {
     const t = text(compte({ scheduled_change: { plan: { id: 'p35', name: '3 séances / semaine' }, at: '2026-11-01T09:00:00Z' } }));
-    expect(t).toContain('Changement programmé : 3 séances / semaine à 35 € /mois à partir du 01 nov. 2026. Tu gardes Mensuel illimité jusque-là.');
+    expect(t).toContain('Changement programmé : 3 séances / semaine à 35 € / mois à partir du 01 nov. 2026. Tu gardes Mensuel illimité jusque-là.');
     expect(t).toContain('Annuler ce changement Gérer mon paiement Résilier');
     expect(t).not.toContain('Changer de formule');
   });
@@ -111,7 +111,7 @@ describe('/compte — les états de la maquette', () => {
 
   it('comptoir, demande envoyée : encart et Annuler ma demande', () => {
     const t = text(compte({ mode: 'counter', pending_request: { plan: { id: 'p35', name: '3 séances / semaine' }, at: '2026-10-05T10:00:00Z' } }));
-    expect(t).toContain('Demande envoyée à ta box le 05 oct. 2026 : 3 séances / semaine à 35 € /mois. Ta box te confirmera le changement.');
+    expect(t).toContain('Demande envoyée à ta box le 05 oct. 2026 : 3 séances / semaine à 35 € / mois. Ta box te confirmera le changement.');
     expect(t).toContain('Annuler ma demande');
     expect(t).not.toContain('Demander un changement de formule');
   });
@@ -135,7 +135,7 @@ describe('/compte — les états de la maquette', () => {
 
   it('sans date d’échéance, l’encart reste juste', () => {
     expect(effectiveDateNotice(ov({ next_billing_at: null }), PLANS[0]).replace(/\s/g, ' ')).toBe(
-      'Tu gardes Mensuel illimité jusqu’à ta prochaine échéance. Ta nouvelle formule, 3 séances / semaine à 35 € /mois, sera prélevée ensuite. Aucun prorata, rien n’est facturé aujourd’hui.',
+      'Tu gardes Mensuel illimité jusqu’à ta prochaine échéance. Ta nouvelle formule, 3 séances / semaine à 35 € / mois, sera prélevée ensuite. Aucun prorata, rien n’est facturé aujourd’hui.',
     );
   });
 

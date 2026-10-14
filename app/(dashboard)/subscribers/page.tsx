@@ -1,10 +1,11 @@
 'use client';
 
 import { Fragment, useState, useEffect, useCallback } from 'react';
+import Link from 'next/link';
 import HelpButton from '@/components/help/HelpButton';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
-import { CreditCard, Loader2, Search, Users, BookOpen, Pause, Play, FileText, Check, X, ChevronDown, ChevronRight, ExternalLink, Banknote, Ban } from 'lucide-react';
+import { CreditCard, Loader2, Search, Users, BookOpen, Pause, Play, FileText, Check, X, ChevronDown, ChevronRight, ExternalLink, Banknote, Ban, Bell } from 'lucide-react';
 import { getMyBox } from '@/lib/getMyBox';
 import { getMemberEmails } from '@/lib/memberEmails';
 import UnpaidPanel from '@/components/UnpaidPanel';
@@ -16,6 +17,11 @@ import { ERROR_TITLE, fullDate, type ConfirmChoice } from '@/lib/confirmDialog';
 import { paymentMethodLabel } from '@/lib/paymentMethodLabel';
 import { entryRefusalFrom, entryRefusalInfo } from '@/lib/entryRefusalView';
 import { parisDate } from '@/lib/datetime';
+import CashPaymentDialog, { type CashPaymentRequest } from '@/components/comptoir/CashPaymentDialog';
+import {
+  counterBlocks, endingLine, noticeLabel, renewalBlocked, shortDate, tableDueNote, toCollectLine,
+  type CounterAccessBox, type CounterAccessMember,
+} from '@/lib/comptoir/counter';
 
 const INPUT_CLS = 'w-full min-h-11 px-3 py-2.5 rounded-ax-control bg-ax-surface border border-ax-input-border text-base sm:text-sm text-ax-text placeholder:text-ax-text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ax-focus focus-visible:ring-offset-2 focus-visible:ring-offset-ax-surface transition-colors';
 
@@ -46,6 +52,8 @@ interface Row {
   /** Changement de formule programmé (en ligne) : formule et date de bascule. */
   scheduledPlan: string | null;
   scheduledAt: string | null;
+  /** Comptoir P1 : fin d'accès payée au comptoir (AAAA-MM-JJ), servie par /api/members/counter-access. */
+  cashUntil: string | null;
 }
 
 const REASON_LABEL: Record<string, string> = {
@@ -72,6 +80,7 @@ const STATUS_STYLE: Record<string, { label: string; variant: StatusVariant }> = 
   past_due:  { label: 'Impayé',   variant: 'warning' },
   cancelled: { label: 'Annulé',   variant: 'danger' },
   refunded:  { label: 'Remboursé', variant: 'danger' },
+  expired:   { label: 'Accès terminé', variant: 'neutral' },
 };
 
 function fmtPrice(cents: number | null) {
@@ -163,6 +172,10 @@ export default function SubscribersPage() {
   // Journal comptoir par membre : l'équivalent des factures pour les espèces.
   const [cashPayments, setCashPayments] = useState<Record<string, CashPaymentRow[]>>({});
   const [openHistory, setOpenHistory] = useState<string | null>(null);
+  // Comptoir P1 : fins d'accès (lecture serveur) et fenêtre « Encaissement reçu ».
+  const [counterBox, setCounterBox] = useState<CounterAccessBox | null>(null);
+  const [counterMembers, setCounterMembers] = useState<CounterAccessMember[]>([]);
+  const [cashRequest, setCashRequest] = useState<CashPaymentRequest | null>(null);
 
   const load = useCallback(async ({ silent }: { silent?: boolean } = {}) => {
     if (!silent) setLoading(true);
@@ -178,6 +191,16 @@ export default function SubscribersPage() {
     const { data: billingRaw, error: billingError } = await supabase.rpc('get_box_billing', { p_box_id: box.id });
     if (billingError) setActionError(`Abonnements indisponibles : ${billingError.message}`);
     const memberRows = ((billingRaw ?? []) as BillingRow[]).filter((b) => b.subscription_status != null);
+
+    // Fins d'accès au comptoir : colonne fermée au navigateur, lue par la route serveur.
+    const counterRes = await fetch(`/api/members/counter-access?box_id=${box.id}`).catch(() => null);
+    const counter = counterRes?.ok
+      ? (await counterRes.json()) as { box: CounterAccessBox; members: CounterAccessMember[] }
+      : null;
+    if (counterRes && !counterRes.ok) setActionError('Fins d’accès au comptoir indisponibles.');
+    setCounterBox(counter?.box ?? null);
+    setCounterMembers(counter?.members ?? []);
+    const cashUntilById = new Map((counter?.members ?? []).map((m) => [m.box_member_id, m.cash_access_until]));
 
     const planIds = Array.from(new Set(memberRows.flatMap((b) => [b.plan_id, b.scheduled_plan_id]).filter((id): id is string => !!id)));
     const planById: Record<string, { name: string | null; color: string | null; price_cents: number | null }> = {};
@@ -289,6 +312,7 @@ export default function SubscribersPage() {
         joinedAt: r.joined_at ?? null,
         scheduledPlan: r.scheduled_plan_id ? planById[r.scheduled_plan_id]?.name ?? null : null,
         scheduledAt: r.scheduled_change_at ?? null,
+        cashUntil: r.id ? cashUntilById.get(r.id) ?? null : null,
       };
     });
 
@@ -316,6 +340,7 @@ export default function SubscribersPage() {
         joinedAt: r.purchased_at ?? null,
         scheduledPlan: null,
         scheduledAt: null,
+        cashUntil: null,
       };
     });
 
@@ -352,26 +377,21 @@ export default function SubscribersPage() {
     }
   }
 
-  // Échéance comptoir : le montant n'est pas envoyé, la RPC le lit sur la
-  // formule du membre et écrit une ligne au journal (en ajout seul).
+  // Encaissement au comptoir (comptoir P1) : la fenêtre choisit la durée ; la
+  // RPC lit le prix, calcule la période et journalise (en ajout seul). Un
+  // membre « à encaisser » est réglé sur son invitation, qui se ferme avec.
   function askCashPayment(r: Row) {
     if (!r.boxMemberId) return;
-    ask({
-      title: 'Enregistrer un paiement au comptoir ?',
-      element: `${r.username} · ${r.label}`,
-      body: `Le paiement, au prix de la formule, s’ajoute au journal des encaissements et ne pourra plus être modifié ni supprimé. L’adhésion de ${r.username} repasse en « actif ».`,
-      confirmLabel: 'Enregistrer le paiement',
-      run: () => recordCashPayment(r),
+    const info = counterMembers.find((m) => m.box_member_id === r.boxMemberId);
+    setCashRequest({
+      target: info?.pending_invitation
+        ? { kind: 'invitation', invitationId: info.pending_invitation.id }
+        : { kind: 'member', boxMemberId: r.boxMemberId },
+      who: r.username,
+      planName: r.label,
+      priceCents: info?.price_cents ?? r.amountCents,
+      currentUntil: r.cashUntil,
     });
-  }
-
-  async function recordCashPayment(r: Row) {
-    if (!r.boxMemberId) return;
-    setActionBusy(r.key); setActionError(null);
-    const { error } = await supabase.rpc('record_member_cash_payment', { p_box_member_id: r.boxMemberId });
-    if (error) setActionError(error.message);
-    else await load({ silent: true });
-    setActionBusy(null);
   }
 
   // Arrêt d'un abonnement par le gérant (S2, option A : aucun remboursement) :
@@ -560,6 +580,7 @@ export default function SubscribersPage() {
   return (
     <div className="space-y-6">
       {dialog}
+      <CashPaymentDialog request={cashRequest} onClose={() => setCashRequest(null)} onDone={() => load({ silent: true })} />
       <div className="flex items-center justify-between">
         <div>
           <div className="flex items-center gap-3">
@@ -589,6 +610,82 @@ export default function SubscribersPage() {
       {actionError && (
         <div className="bg-ax-danger-soft border border-ax-danger rounded-ax-control px-4 py-2.5 text-sm text-ax-danger">{actionError}</div>
       )}
+
+      {/* Comptoir P1 : fins d'accès proches et premiers paiements à encaisser */}
+      {(() => {
+        const rowByMember = new Map(rows.filter((r) => r.boxMemberId).map((r) => [r.boxMemberId!, r]));
+        const { ending, toCollect } = counterBlocks(counterMembers);
+        const head = (r: Row | undefined) => (
+          <p className="text-sm font-bold text-ax-text break-words">
+            {r?.username ?? '?'}<span className="ml-2">{r?.label ?? 'Formule'}</span><span className="ml-2">{fmtPrice(r?.amountCents ?? null)}</span>
+          </p>
+        );
+        const cashButton = (r: Row | undefined) => r && (
+          <button onClick={() => askCashPayment(r)}
+            className="inline-flex items-center gap-1 text-xs font-bold text-ax-warning bg-ax-warning-soft hover:brightness-110 rounded-ax-control px-2.5 py-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ax-focus">
+            <Banknote size={13} /> Encaissement reçu
+          </button>
+        );
+        return (
+          <>
+            {ending.length > 0 && (
+              <div className="bg-ax-warning-soft border border-ax-warning rounded-ax-card p-4 space-y-3" data-testid="bloc-fin-acces">
+                <p className="text-sm font-black text-ax-warning">Fin d’accès proche ({ending.length})</p>
+                {ending.map((m) => {
+                  const r = rowByMember.get(m.box_member_id);
+                  const l = endingLine(m);
+                  const prevenu = noticeLabel(m.last_notice);
+                  const blocked = !!counterBox && renewalBlocked(
+                    { hasCounterPeriod: m.has_counter_period },
+                    { allowCounterRenewal: counterBox.allow_counter_renewal, sellsOnline: counterBox.sells_online },
+                  );
+                  return (
+                    <div key={m.box_member_id} className="flex flex-wrap items-start justify-between gap-4 bg-ax-surface border border-ax-border rounded-ax-control p-3">
+                      <div className="min-w-0 basis-[14rem] flex-1 space-y-1">
+                        {head(r)}
+                        <p className={`text-xs ${l.ended ? 'text-ax-danger' : 'text-ax-text-secondary'}`}>{l.text}</p>
+                        {prevenu && <p className="text-[10px] text-ax-text-muted">{prevenu}</p>}
+                      </div>
+                      <div className="flex flex-wrap items-center gap-2 flex-shrink-0">
+                        {blocked ? (
+                          <div className="text-left sm:text-right text-ax-text-secondary" data-testid="renouvellement-desactive">
+                            <p className="text-xs font-bold">Renouvellement au comptoir désactivé</p>
+                            <p className="text-[10px]">Il passera au paiement en ligne · <Link href="/settings" className="underline underline-offset-2 hover:text-ax-text">Réglages</Link></p>
+                          </div>
+                        ) : cashButton(r)}
+                      </div>
+                    </div>
+                  );
+                })}
+                <p className="flex items-start gap-1.5 text-[10px] text-ax-text-secondary">
+                  <Bell size={12} className="mt-px shrink-0" /> Le membre est prévenu à J-7, J-1 et le jour de fin, et invité à passer au paiement en ligne. Tu n’as rien à relancer.
+                </p>
+              </div>
+            )}
+            {toCollect.length > 0 && (
+              <div className="bg-ax-warning-soft border border-ax-warning rounded-ax-card p-4 space-y-3" data-testid="bloc-a-encaisser">
+                <p className="text-sm font-black text-ax-warning">À encaisser ({toCollect.length})</p>
+                {toCollect.map((m) => {
+                  const r = rowByMember.get(m.box_member_id);
+                  return (
+                    <div key={m.box_member_id} className="flex flex-wrap items-start justify-between gap-4 bg-ax-surface border border-ax-border rounded-ax-control p-3">
+                      <div className="min-w-0 basis-[14rem] flex-1 space-y-1">
+                        {head(r)}
+                        <p className="text-xs text-ax-text-secondary">{toCollectLine(m.joined_at)}</p>
+                        {m.pending_invitation && <p className="text-[10px] text-ax-text-muted">Invitation du {shortDate(m.pending_invitation.created_at)}</p>}
+                      </div>
+                      <div className="flex flex-wrap items-center gap-2 flex-shrink-0">{cashButton(r)}</div>
+                    </div>
+                  );
+                })}
+                <p className="flex items-start gap-1.5 text-[10px] text-ax-text-secondary">
+                  <Bell size={12} className="mt-px shrink-0" /> Ces personnes ont rejoint la box mais ne peuvent pas réserver tant que leur premier paiement n’est pas encaissé.
+                </p>
+              </div>
+            )}
+          </>
+        );
+      })()}
 
       {/* Impayés : relance, encaissement, suspension des droits */}
       {boxId && <UnpaidPanel boxId={boxId} onChange={() => load({ silent: true })} />}
@@ -717,7 +814,15 @@ export default function SubscribersPage() {
                     )}
                   </td>
                   <td className="px-4 py-3 text-xs text-ax-text-secondary min-w-[8rem]">
-                    {fmtDate(r.periodEnd)}
+                    {isCashMember && r.cashUntil ? (() => {
+                      const note = tableDueNote({ subscription_status: r.status, cash_access_until: r.cashUntil });
+                      return (
+                        <>
+                          {fmtDate(r.cashUntil)}
+                          <span className={`block text-[10px] ${note.amber ? 'text-ax-warning' : 'text-ax-text-muted'}`} data-testid="fin-acces">{note.text}</span>
+                        </>
+                      );
+                    })() : fmtDate(r.periodEnd)}
                     {r.cancelAtPeriodEnd && r.periodEnd && (
                       <span className="block text-[10px] text-ax-warning">fin d'abonnement</span>
                     )}

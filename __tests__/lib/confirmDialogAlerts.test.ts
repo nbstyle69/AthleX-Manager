@@ -230,6 +230,12 @@ const ATTENDU: { file: string; kind: 'error' | 'info'; title: string; body: stri
     "file": "app/(dashboard)/settings/page.tsx",
     "kind": "error",
     "title": "ERROR_TITLE",
+    "body": "`Erreur: ${json.error ?? 'renouvellement au comptoir non enregistré'}`"
+  },
+  {
+    "file": "app/(dashboard)/settings/page.tsx",
+    "kind": "error",
+    "title": "ERROR_TITLE",
     "body": "`Erreur: ${error?.message ?? 'aucune ligne modifiée (droits insuffisants)'}`"
   },
   {
