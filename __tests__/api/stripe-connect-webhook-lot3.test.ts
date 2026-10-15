@@ -93,9 +93,12 @@ beforeEach(() => {
   jest.clearAllMocks();
   chains = {
     profiles: makeChain({ maybeSingle: { data: { id: 'user-1' } } }),
-    box_members: makeChain({ maybeSingle: { data: { id: 'bm-1' } }, awaited: { error: null } }),
+    box_members: makeChain({ maybeSingle: { data: { id: 'bm-1' } }, awaited: { data: [{ id: 'bm-1' }], error: null } }),
   };
-  mockRpc.mockResolvedValue({ data: { ok: true }, error: null });
+  // Garde de l'invitation (20270158) : adhésion encore en attente de paiement.
+  mockRpc.mockImplementation(async (fn: string) => (fn === 'box_invitation_activation_permise'
+    ? { data: { permise: true, raison: 'PENDING_PAYMENT' }, error: null }
+    : { data: { ok: true }, error: null }));
   createdSubs = [];
   createdItems = [];
   mockSubsRetrieve.mockResolvedValue({ default_payment_method: { type: 'card' }, items: { data: [{ current_period_end: s('2026-10-05T04:00:00Z') }] } });
