@@ -36,6 +36,9 @@ function metadataBillingDay(metadata: Record<string, string> | null | undefined)
 
 const MEMBERSHIP_FEE_PERCENT = Number(process.env.MEMBERSHIP_FEE_PERCENT ?? '0');
 
+/** Réponse de box_invitation_activation_permise (codes : en-tête de la migration 20270158). */
+type Verdict = { permise: boolean; raison: string };
+
 /**
  * Webhook dédié aux comptes connectés (Stripe Connect).
  * Gère l'achat de programmes (charge directe sur le compte de la box) :
@@ -162,10 +165,75 @@ export async function POST(req: NextRequest) {
   }
 
   /**
+   * Comptoir P1, PR 5b : une page d'invitation ouverte avant une révocation ou
+   * un encaissement au comptoir peut encore être payée. Avant toute écriture,
+   * la base dit si l'activation reste permise (migration 20270158 ; verrou sur
+   * l'invitation et l'adhésion le temps de l'appel).
+   */
+  async function invitationVerdict(invitationId: string, userId: string | null): Promise<Verdict> {
+    const { data } = must(await supabase.rpc('box_invitation_activation_permise', {
+      p_invitation_id: invitationId,
+      p_user_id: userId,
+    }), 'rpc.box_invitation_activation_permise');
+    const v = data as { permise?: boolean; raison?: string } | null;
+    return { permise: v?.permise === true, raison: v?.raison ?? 'UNKNOWN' };
+  }
+
+  /**
+   * Activation refusée : l'adhésion n'est pas touchée. L'abonnement créé par
+   * cette page est annulé tout de suite (sans prorata ni facture finale) et
+   * l'arrêt journalisé. Pas de remboursement automatique. Rejeu : un abonnement
+   * déjà annulé ne l'est pas deux fois, et l'index unique du journal écarte la
+   * seconde ligne. Une erreur jette : 500, Stripe rejoue.
+   */
+  async function refuseActivation(r: {
+    boxId: string; userId: string | null; subscriptionId: string | null;
+    account: string | null; raison: string;
+  }): Promise<void> {
+    console.error(`Activation par invitation refusée (${r.raison}) : abonnement annulé, premier paiement éventuel à rembourser depuis Stripe.`);
+    if (!r.subscriptionId) return;
+    if (!r.account) throw new Error('invitation_refusee: compte connecté absent, abonnement non annulé');
+    try {
+      const sub = await stripe.subscriptions.retrieve(r.subscriptionId, {}, { stripeAccount: r.account });
+      if (sub.status !== 'canceled') {
+        await stripe.subscriptions.cancel(
+          r.subscriptionId,
+          { prorate: false, invoice_now: false },
+          { stripeAccount: r.account, idempotencyKey: `invitation-refusee-annulation-${r.subscriptionId}` },
+        );
+      }
+    } catch (e: any) {
+      logStripeError(ROUTE, 'invitation_refusee.cancel', e);
+      throw e;
+    }
+
+    // Journal des arrêts : il lui faut l'adhésion et un gérant (le propriétaire
+    // de la box, la base n'acceptant qu'un gérant comme auteur).
+    if (!r.userId) return;
+    const { data: bm } = must(await supabase.from('box_members').select('id')
+      .eq('box_id', r.boxId).eq('member_id', r.userId).maybeSingle(), 'box_members.select_refus');
+    const { data: box } = must(await supabase.from('boxes').select('owner_id')
+      .eq('id', r.boxId).maybeSingle(), 'boxes.select_owner');
+    const bmId = (bm as { id?: string } | null)?.id;
+    const ownerId = (box as { owner_id?: string | null } | null)?.owner_id;
+    if (!bmId || !ownerId) {
+      console.error('Activation par invitation refusée : pas d’adhésion ou de gérant, arrêt non journalisé.');
+      return;
+    }
+    const { error } = await supabase.from('box_member_subscription_actions').insert({
+      box_id: r.boxId, box_member_id: bmId, member_id: r.userId, action: 'stop', mode: 'now',
+      refund_cents: 0, stripe_subscription_id: r.subscriptionId, actor_id: ownerId,
+    });
+    if (error?.code === '23505') return; // rejeu : déjà journalisé
+    must({ error }, 'box_member_subscription_actions.insert_refus');
+  }
+
+  /**
    * Écriture de l'adhésion (payée, ou moyen de paiement enregistré pour une
    * échéance future) : box_members si le compte existe, sinon
-   * pending_entitlements. Ferme ensuite l'invitation. Jette si une
-   * requête échoue (500, Stripe rejoue).
+   * pending_entitlements. Ferme ensuite l'invitation. Issue d'une
+   * invitation : seulement si la base le permet, par une écriture
+   * conditionnelle. Jette si une requête échoue (500, Stripe rejoue).
    */
   async function activateMembership(
     session: Stripe.Checkout.Session,
@@ -174,8 +242,18 @@ export async function POST(req: NextRequest) {
       billingDay: number | null; subscriptionId: string | null; periodEnd: string | null;
       paymentMethodType: string | null; amountCents: number | null; feeCents: number | null;
       commitmentEnd: string | null;
+      account: string | null;
+      /** Déjà rendu par la base (échéance future, avant la création de l'abonnement). */
+      verdict?: Verdict;
     },
   ): Promise<void> {
+    const invitationId = session.metadata?.invitation_id;
+    const verdict = invitationId ? m.verdict ?? await invitationVerdict(invitationId, m.userId) : null;
+    const refuse = (raison: string) => refuseActivation({
+      boxId: m.boxId, userId: m.userId, subscriptionId: m.subscriptionId, account: m.account, raison,
+    });
+    if (verdict && !verdict.permise) return refuse(verdict.raison);
+
     const patch = {
       plan_id: m.planId,
       subscription_status: 'active',
@@ -214,6 +292,28 @@ export async function POST(req: NextRequest) {
       .eq('box_id', m.boxId)
       .eq('member_id', m.userId)
       .maybeSingle(), 'box_members.select_membership');
+
+    if (verdict) {
+      // Écriture conditionnelle : l'adhésion est encore en attente, ou elle
+      // n'existe pas encore. Aucune ligne touchée = l'état a changé : refus.
+      let written = false;
+      if (verdict.raison === 'PENDING_PAYMENT' && existing?.id) {
+        const { data } = must(await supabase.from('box_members').update(patch)
+          .eq('id', existing.id).eq('subscription_status', 'pending_payment')
+          .select('id'), 'box_members.write_membership_invitation');
+        written = (data ?? []).length > 0;
+      } else if (verdict.raison === 'NO_MEMBERSHIP_YET' && !existing?.id) {
+        const { error } = await supabase.from('box_members').insert({
+          box_id: m.boxId, member_id: m.userId, role: 'member', ...patch,
+        });
+        if (error?.code !== '23505') must({ error }, 'box_members.insert_membership_invitation');
+        written = !error;
+      }
+      if (!written) return refuse(`${verdict.raison}_ECRITURE_SANS_LIGNE`);
+      await closeInvitation(invitationId, m.userId);
+      console.log('Membership activated');
+      return;
+    }
 
     must(existing?.id
       ? await supabase.from('box_members').update(patch).eq('id', existing.id)
@@ -254,6 +354,23 @@ export async function POST(req: NextRequest) {
       return null;
     }
     const opts = { stripeAccount: account };
+
+    // Invitation : la base décide avant toute création chez Stripe. Refus : rien
+    // n'est créé ; un abonnement laissé par un passage précédent est annulé.
+    const { userId, email: buyerEmail } = await resolveBuyer(session);
+    const verdict = md.invitation_id ? await invitationVerdict(md.invitation_id, userId) : undefined;
+    if (verdict && !verdict.permise) {
+      let leftover: string | null = null;
+      try {
+        const subs = await stripe.subscriptions.list({ customer: customerId, status: 'all', limit: 100 }, opts);
+        leftover = subs.data.find((sub: any) => sub.metadata?.checkout_session_id === session.id)?.id ?? null;
+      } catch (e: any) {
+        logStripeError(ROUTE, 'membership_deferred.refus_lookup', e);
+        return NextResponse.json({ error: 'Webhook processing failed' }, { status: 500 });
+      }
+      await refuseActivation({ boxId, userId, subscriptionId: leftover, account, raison: verdict.raison });
+      return null;
+    }
 
     let subscription: any;
     let paymentMethodType: string | null = null;
@@ -320,10 +437,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Webhook processing failed' }, { status: 500 });
     }
 
-    const { userId, email: buyerEmail } = await resolveBuyer(session);
     const commitmentMonths = Number(md.commitment_months ?? 0) || 0;
     await activateMembership(session, {
-      boxId, planId, userId, buyerEmail,
+      boxId, planId, userId, buyerEmail, account, verdict,
       billingDay: metadataBillingDay(md),
       subscriptionId: subscription.id,
       periodEnd: subscriptionPeriodEnd(subscription) ?? new Date(trialEnd * 1000).toISOString(),
@@ -383,6 +499,7 @@ export async function POST(req: NextRequest) {
             billingDay: metadataBillingDay(session.metadata),
             subscriptionId: membershipSubId,
             periodEnd, paymentMethodType, amountCents, feeCents, commitmentEnd,
+            account: event.account ?? null,
           });
           break;
         }

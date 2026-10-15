@@ -57,7 +57,10 @@ const profileFound = () => makeChain({ maybeSingle: { data: { id: 'user-1' } } }
 beforeEach(() => {
   jest.clearAllMocks();
   chains = {};
-  mockRpc.mockResolvedValue({ data: { ok: true }, error: null });
+  // Garde de l'invitation (20270158) : adhésion encore en attente de paiement.
+  mockRpc.mockImplementation(async (fn: string) => (fn === 'box_invitation_activation_permise'
+    ? { data: { permise: true, raison: 'PENDING_PAYMENT' }, error: null }
+    : { data: { ok: true }, error: null }));
 });
 
 describe('POST /api/stripe-connect-webhook', () => {
@@ -88,7 +91,7 @@ describe('POST /api/stripe-connect-webhook', () => {
 
   it('ferme l’invitation au paiement, au nom du membre activé', async () => {
     chains.profiles = profileFound();
-    chains.box_members = makeChain({ maybeSingle: { data: { id: 'bm-1' } }, awaited: { error: null } });
+    chains.box_members = makeChain({ maybeSingle: { data: { id: 'bm-1' } }, awaited: { data: [{ id: 'bm-1' }], error: null } });
     mockConstructEvent.mockReturnValue({
       type: 'checkout.session.completed',
       data: { object: { id: 'cs_1', customer_details: { email: 'a@b.com' }, subscription: 'sub_1', metadata: { kind: 'membership', plan_id: 'plan-1', box_id: 'box-1', invitation_id: 'inv-1' } } },
@@ -105,7 +108,7 @@ describe('POST /api/stripe-connect-webhook', () => {
 
   it('n’appelle rien quand le paiement ne porte pas d’invitation', async () => {
     chains.profiles = profileFound();
-    chains.box_members = makeChain({ maybeSingle: { data: { id: 'bm-1' } }, awaited: { error: null } });
+    chains.box_members = makeChain({ maybeSingle: { data: { id: 'bm-1' } }, awaited: { data: [{ id: 'bm-1' }], error: null } });
     mockConstructEvent.mockReturnValue({
       type: 'checkout.session.completed',
       data: { object: { id: 'cs_1', customer_details: { email: 'a@b.com' }, subscription: 'sub_1', metadata: { kind: 'membership', plan_id: 'plan-1', box_id: 'box-1' } } },
@@ -119,8 +122,10 @@ describe('POST /api/stripe-connect-webhook', () => {
   // Le membre a payé : son accès ne dépend pas de la fermeture de l'invitation.
   it('active quand même le membre si la fermeture d’invitation échoue', async () => {
     chains.profiles = profileFound();
-    chains.box_members = makeChain({ maybeSingle: { data: { id: 'bm-1' } }, awaited: { error: null } });
-    mockRpc.mockResolvedValue({ data: { ok: false, reason: 'EMAIL_MISMATCH' }, error: null });
+    chains.box_members = makeChain({ maybeSingle: { data: { id: 'bm-1' } }, awaited: { data: [{ id: 'bm-1' }], error: null } });
+    mockRpc.mockImplementation(async (fn: string) => (fn === 'box_invitation_activation_permise'
+      ? { data: { permise: true, raison: 'PENDING_PAYMENT' }, error: null }
+      : { data: { ok: false, reason: 'EMAIL_MISMATCH' }, error: null }));
     mockConstructEvent.mockReturnValue({
       type: 'checkout.session.completed',
       data: { object: { id: 'cs_1', customer_details: { email: 'a@b.com' }, subscription: 'sub_1', metadata: { kind: 'membership', plan_id: 'plan-1', box_id: 'box-1', invitation_id: 'inv-1' } } },
@@ -134,20 +139,27 @@ describe('POST /api/stripe-connect-webhook', () => {
     );
   });
 
-  // Le parking en pending_entitlements n'a pas de membre à nommer : fermer
-  // l'invitation à ce moment reviendrait à l'attribuer à personne.
-  it('ne ferme pas l’invitation quand l’acheteur n’a pas encore de compte', async () => {
+  // Comptoir P1, PR 5b : une invitation payée sans compte n'est plus mise en
+  // attente (la réclamation à l'inscription passerait outre la garde). La base
+  // rend MISSING_ARGUMENT : refus, rien d'écrit, l'invitation n'est pas fermée.
+  it('invitation payée sans compte : refus, ni attente ni fermeture d’invitation', async () => {
     chains.profiles = makeChain({ maybeSingle: { data: null } });
     chains.box_members = makeChain();
     chains.pending_entitlements = makeChain({ awaited: { error: null } });
+    mockRpc.mockResolvedValue({ data: { permise: false, raison: 'MISSING_ARGUMENT' }, error: null });
     mockConstructEvent.mockReturnValue({
       type: 'checkout.session.completed',
       data: { object: { id: 'cs_1', customer_details: { email: 'ghost@b.com' }, metadata: { kind: 'membership', plan_id: 'plan-1', box_id: 'box-1', invitation_id: 'inv-1' } } },
     });
 
-    await POST(makeReq() as any);
+    const res = (await POST(makeReq() as any)) as any;
 
-    expect(mockRpc).not.toHaveBeenCalled();
+    expect(res._status).toBe(200);
+    expect(mockRpc).toHaveBeenCalledWith('box_invitation_activation_permise', { p_invitation_id: 'inv-1', p_user_id: null });
+    expect(mockRpc).not.toHaveBeenCalledWith('accept_box_invitation_after_payment', expect.anything());
+    expect(chains.pending_entitlements.insert).not.toHaveBeenCalled();
+    expect(chains.box_members.update).not.toHaveBeenCalled();
+    expect(chains.box_members.insert).not.toHaveBeenCalled();
   });
 
   it('inserts a new box_members row when none exists', async () => {

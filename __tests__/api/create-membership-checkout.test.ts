@@ -174,6 +174,39 @@ describe('POST /api/create-membership-checkout', () => {
     expect(params.subscription_data.metadata.invitation_id).toBe('inv-1');
   });
 
+  // Comptoir P1, PR 5b : la page d'une invitation n'est payable que 31 min
+  // (Stripe impose 30 au moins) ; un achat ordinaire garde sa durée.
+  describe('durée de la page', () => {
+    const NOW = new Date('2026-10-15T10:00:00Z');
+    const nowS = NOW.getTime() / 1000;
+    beforeEach(() => { jest.useFakeTimers({ now: NOW, doNotFake: ['nextTick', 'setImmediate', 'queueMicrotask'] }); });
+    afterEach(() => { jest.useRealTimers(); });
+
+    it('invitation : expires_at à maintenant + 31 min', async () => {
+      mockRpc.mockResolvedValue({
+        data: { ok: true, id: 'inv-1', box_id: 'box-1', plan_id: 'plan-1', email: 'invite@b.com', status: 'accepted' },
+        error: null,
+      });
+      chains.profiles = makeChain({ single: { data: { id: 'user-42' }, error: null } });
+      chains.membership_plans = makeChain({ single: { data: plan(), error: null } });
+      chains.boxes = makeChain({ single: { data: BOX, error: null } });
+
+      const res = (await POST(makeReq({ invitation_token: 'jeton-brut' }) as any)) as any;
+
+      expect(res._status).toBe(200);
+      expect(mockSessionsCreate.mock.calls[0][0].expires_at).toBe(nowS + 31 * 60);
+    });
+
+    it('achat ordinaire : durée inchangée (24 h ici)', async () => {
+      chains.membership_plans = makeChain({ single: { data: plan(), error: null } });
+      chains.boxes = makeChain({ single: { data: BOX, error: null } });
+
+      await POST(makeReq({ plan_id: 'plan-1' }) as any);
+
+      expect(mockSessionsCreate.mock.calls[0][0].expires_at).toBe(nowS + 24 * 3600);
+    });
+  });
+
   it('refuse un jeton d’invitation révoqué, expiré ou inconnu', async () => {
     mockRpc.mockResolvedValue({ data: { ok: false, reason: 'REVOKED' }, error: null });
 

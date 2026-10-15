@@ -9,12 +9,13 @@ process.env.STRIPE_WEBHOOK_SECRET = 'whsec_dummy';
 
 const mockConstructEvent = jest.fn();
 const mockRetrieve = jest.fn();
+const mockCancel = jest.fn().mockResolvedValue({ status: 'canceled' });
 
 jest.mock('stripe', () => ({
   __esModule: true,
   default: jest.fn().mockImplementation(() => ({
     webhooks: { constructEvent: mockConstructEvent },
-    subscriptions: { retrieve: mockRetrieve },
+    subscriptions: { retrieve: mockRetrieve, cancel: mockCancel },
   })),
 }));
 
@@ -106,8 +107,12 @@ const SCENARIOS: Scenario[] = [
   // ── Connect ──
   { name: 'connect checkout membership (membre existant, invitation)', post: connectPOST,
     event: checkout({ kind: 'membership', plan_id: PLAN, box_id: BOX, user_id: USER, invitation_id: 'inv-1' }),
-    rows: { 'profiles.select': { id: USER }, 'box_members.select': { id: 'bm-1' }, 'rpc.accept_box_invitation_after_payment': { ok: true } },
-    ops: ['profiles.select', 'box_members.select', 'box_members.update', 'rpc.accept_box_invitation_after_payment'] },
+    rows: {
+      'profiles.select': { id: USER }, 'box_members.select': { id: 'bm-1' }, 'box_members.update': [{ id: 'bm-1' }],
+      'rpc.box_invitation_activation_permise': { permise: true, raison: 'PENDING_PAYMENT' },
+      'rpc.accept_box_invitation_after_payment': { ok: true },
+    },
+    ops: ['profiles.select', 'rpc.box_invitation_activation_permise', 'box_members.select', 'box_members.update', 'rpc.accept_box_invitation_after_payment'] },
   { name: 'connect checkout membership (nouvelle ligne)', post: connectPOST,
     event: checkout({ kind: 'membership', plan_id: PLAN, box_id: BOX }),
     rows: { 'profiles.select': { id: USER } },
@@ -150,6 +155,15 @@ const SCENARIOS: Scenario[] = [
   { name: 'connect subscription_schedule.released', post: connectPOST,
     event: { type: 'subscription_schedule.released', data: { object: { id: 'sub_sched_1' } } },
     ops: ['box_members.update'] },
+  // Comptoir P1, PR 5b : activation refusée (invitation révoquée) → abonnement
+  // annulé chez Stripe, arrêt journalisé ; aucune écriture sur l'adhésion.
+  { name: 'connect checkout membership (invitation refusée)', post: connectPOST,
+    event: { ...checkout({ kind: 'membership', plan_id: PLAN, box_id: BOX, user_id: USER, invitation_id: 'inv-1' }), account: 'acct_1' },
+    rows: {
+      'profiles.select': { id: USER }, 'box_members.select': { id: 'bm-1' }, 'boxes.select': { owner_id: USER },
+      'rpc.box_invitation_activation_permise': { permise: false, raison: 'REVOKED' },
+    },
+    ops: ['profiles.select', 'rpc.box_invitation_activation_permise', 'box_members.select', 'boxes.select', 'box_member_subscription_actions.insert'] },
 ];
 
 let logs: string[];
@@ -279,7 +293,7 @@ describe('cas particuliers', () => {
   });
 
   it('les erreurs de base journalisées passent par logStripeError, sans donnée personnelle', async () => {
-    await run(SCENARIOS[6], 2);
+    await run(SCENARIOS[6], 3);
     expect(logs.join('\n')).toContain('stripe-connect-webhook error');
     expect(logs.join('\n')).toContain('box_members.write_membership');
     expectCleanLogs();

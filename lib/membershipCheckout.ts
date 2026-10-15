@@ -230,5 +230,10 @@ export function billingPlanFor(
       response: NextResponse.json({ error, reason: plan.refusal }, { status: 409 }),
     };
   }
+  // Page d'une invitation : 31 min (Stripe impose 30 au moins). Une page ouverte
+  // avant une révocation ou un encaissement au comptoir ne reste pas payable 24 h.
+  if (ctx.invitationId) plan.expiresAt = Math.floor(now.getTime() / 1000) + INVITATION_CHECKOUT_TTL_S;
   return { ok: true, plan, billingDay };
 }
+
+export const INVITATION_CHECKOUT_TTL_S = 31 * 60;
