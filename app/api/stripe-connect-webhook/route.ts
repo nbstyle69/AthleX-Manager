@@ -190,7 +190,7 @@ export async function POST(req: NextRequest) {
     boxId: string; userId: string | null; subscriptionId: string | null;
     account: string | null; raison: string;
   }): Promise<void> {
-    console.error(`Activation par invitation refusée (${r.raison}) : abonnement annulé, premier paiement éventuel à rembourser depuis Stripe.`);
+    console.error(`Activation par invitation refusée par le webhook (garde ${r.raison}) : abonnement annulé, premier paiement éventuel à rembourser depuis Stripe.`);
     if (!r.subscriptionId) return;
     if (!r.account) throw new Error('invitation_refusee: compte connecté absent, abonnement non annulé');
     try {
@@ -207,8 +207,10 @@ export async function POST(req: NextRequest) {
       throw e;
     }
 
-    // Journal des arrêts : il lui faut l'adhésion et un gérant (le propriétaire
-    // de la box, la base n'acceptant qu'un gérant comme auteur).
+    // Journal des arrêts : il lui faut l'adhésion et un gérant. La base n'accepte
+    // qu'un gérant comme auteur et la table n'a pas de motif : l'auteur écrit est
+    // le propriétaire de la box, mais c'est le webhook qui a décidé (journal
+    // serveur ci-dessous ; un motif en table demanderait une migration).
     if (!r.userId) return;
     const { data: bm } = must(await supabase.from('box_members').select('id')
       .eq('box_id', r.boxId).eq('member_id', r.userId).maybeSingle(), 'box_members.select_refus');
@@ -226,6 +228,7 @@ export async function POST(req: NextRequest) {
     });
     if (error?.code === '23505') return; // rejeu : déjà journalisé
     must({ error }, 'box_member_subscription_actions.insert_refus');
+    console.error('Arrêt journalisé : décidé par le webhook (garde d’invitation), auteur inscrit = propriétaire de la box.');
   }
 
   /**
