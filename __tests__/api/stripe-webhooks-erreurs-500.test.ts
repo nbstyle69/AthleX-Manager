@@ -13,10 +13,16 @@ const mockCancel = jest.fn().mockResolvedValue({ status: 'canceled' });
 
 jest.mock('stripe', () => ({
   __esModule: true,
-  default: jest.fn().mockImplementation(() => ({
-    webhooks: { constructEvent: mockConstructEvent },
-    subscriptions: { retrieve: mockRetrieve, cancel: mockCancel },
-  })),
+  default: jest.fn().mockImplementation(() => {
+    const { withAccount, rereadFromEvent } = require('../__fixtures__/stripeRelu');
+    return {
+      webhooks: { constructEvent: withAccount(mockConstructEvent) },
+      subscriptions: {
+        retrieve: (id: string, ...rest: any[]) => rereadFromEvent(mockConstructEvent, () => mockRetrieve(id, ...rest))(id),
+        cancel: mockCancel,
+      },
+    };
+  }),
 }));
 
 // ── Faux Supabase : chaque requête attendue est notée `table.op` (ou

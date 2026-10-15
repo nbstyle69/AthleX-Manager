@@ -8,9 +8,13 @@ const mockConstructEvent = jest.fn();
 
 jest.mock('stripe', () => ({
   __esModule: true,
-  default: jest.fn().mockImplementation(() => ({
-    webhooks: { constructEvent: mockConstructEvent },
-  })),
+  default: jest.fn().mockImplementation(() => {
+    const { withAccount, rereadFromEvent } = require('../__fixtures__/stripeRelu');
+    return {
+      webhooks: { constructEvent: withAccount(mockConstructEvent) },
+      subscriptions: { retrieve: rereadFromEvent(mockConstructEvent) },
+    };
+  }),
 }));
 
 interface ChainCfg {
