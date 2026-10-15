@@ -157,3 +157,47 @@ describe('relecture impossible', () => {
     expect(anyWrite()).toBe(false);
   });
 });
+
+describe('journal serveur : une ligne par événement, identifiant tronqué', () => {
+  const LONG = 'sub_1UQsABCDEFGHIJKLMNOP';
+  const longEvent = (type: string, status: string) => ({ type, account: 'acct_box', data: { object: sub(status, { id: LONG }) } });
+  let log: jest.SpyInstance;
+  beforeEach(() => { log = jest.spyOn(console, 'log').mockImplementation(() => {}); });
+  afterEach(() => { log.mockRestore(); });
+  const lines = () => log.mock.calls.map((c) => String(c[0])).filter((l) => l.startsWith('customer.subscription.'));
+
+  it('ignoré : type, statut de l’événement, décision, pas de statut relu', async () => {
+    mockConstructEvent.mockReturnValue(longEvent('customer.subscription.created', 'incomplete'));
+    await POST(req());
+    expect(lines()).toEqual(['customer.subscription.created sub_1UQsABCD… : statut de l’événement incomplete, ignoré, statut relu —']);
+  });
+
+  it('relu : statut de l’événement et statut relu', async () => {
+    mockConstructEvent.mockReturnValue(longEvent('customer.subscription.updated', 'past_due'));
+    mockRetrieve.mockResolvedValue(sub('active', { id: LONG }));
+    await POST(req());
+    expect(lines()).toEqual(['customer.subscription.updated sub_1UQsABCD… : statut de l’événement past_due, relu, statut relu active']);
+  });
+
+  it('relu « incomplete » : ignoré, avec le statut relu', async () => {
+    mockConstructEvent.mockReturnValue(longEvent('customer.subscription.updated', 'active'));
+    mockRetrieve.mockResolvedValue(sub('incomplete', { id: LONG }));
+    await POST(req());
+    expect(lines()).toEqual(['customer.subscription.updated sub_1UQsABCD… : statut de l’événement active, ignoré, statut relu incomplete']);
+  });
+
+  it('relecture en échec : la ligne le dit', async () => {
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+    mockConstructEvent.mockReturnValue(longEvent('customer.subscription.updated', 'active'));
+    mockRetrieve.mockRejectedValue(new Error('boom'));
+    await POST(req());
+    expect(lines()).toEqual(['customer.subscription.updated sub_1UQsABCD… : statut de l’événement active, relecture en échec (500), statut relu —']);
+  });
+
+  it('aucun identifiant complet dans le journal', async () => {
+    mockConstructEvent.mockReturnValue(longEvent('customer.subscription.updated', 'active'));
+    mockRetrieve.mockResolvedValue(sub('active', { id: LONG }));
+    await POST(req());
+    expect(log.mock.calls.flat().join(' ')).not.toContain(LONG);
+  });
+});
