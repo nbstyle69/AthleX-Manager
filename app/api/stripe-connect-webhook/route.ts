@@ -701,7 +701,21 @@ export async function POST(req: NextRequest) {
       // update so the renewal date is populated immediately, not only on renewal.
       case 'customer.subscription.created':
       case 'customer.subscription.updated': {
-        const sub = event.data.object as any;
+        // Stripe n'envoie pas les événements dans l'ordre : un `created`
+        // encore « incomplete » traité après l'activation écrivait cancelled
+        // sur un abonnement payé. « incomplete » est un état de passage : rien
+        // n'est écrit. Sinon, l'état écrit est celui relu chez Stripe, pas
+        // celui de l'événement ; relecture impossible : 500, Stripe rejoue.
+        if ((event.data.object as any).status === 'incomplete') break;
+        let sub: any;
+        try {
+          if (!event.account) throw new Error('compte connecté absent de l’événement');
+          sub = await stripe.subscriptions.retrieve((event.data.object as any).id, {}, { stripeAccount: event.account });
+        } catch (err: any) {
+          logStripeError(ROUTE, 'subscription.relecture', err);
+          return NextResponse.json({ error: 'Webhook processing failed' }, { status: 500 });
+        }
+        if (sub.status === 'incomplete') break;
         const status = sub.status === 'active' || sub.status === 'trialing' ? 'active'
           : sub.status === 'past_due' ? 'active'
           : 'cancelled';

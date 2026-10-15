@@ -17,8 +17,12 @@ const mockPmAttach = jest.fn();
 jest.mock('stripe', () => ({
   __esModule: true,
   default: jest.fn().mockImplementation(() => ({
-    webhooks: { constructEvent: mockConstructEvent },
-    subscriptions: { retrieve: mockSubsRetrieve, list: mockSubsList, create: mockSubsCreate },
+    webhooks: { constructEvent: require('../__fixtures__/stripeRelu').withAccount(mockConstructEvent) },
+    subscriptions: {
+      retrieve: (id: string, ...rest: any[]) => require('../__fixtures__/stripeRelu')
+        .rereadFromEvent(mockConstructEvent, () => mockSubsRetrieve(id, ...rest))(id),
+      list: mockSubsList, create: mockSubsCreate,
+    },
     setupIntents: { retrieve: mockSetupRetrieve },
     customers: { update: mockCustomersUpdate },
     invoiceItems: { list: mockItemsList, create: mockItemsCreate },

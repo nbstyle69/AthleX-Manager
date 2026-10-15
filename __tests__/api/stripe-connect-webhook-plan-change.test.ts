@@ -9,7 +9,14 @@ const mockConstructEvent = jest.fn();
 const mockSchedules = { release: jest.fn(), retrieve: jest.fn() };
 jest.mock('stripe', () => ({
   __esModule: true,
-  default: jest.fn().mockImplementation(() => ({ webhooks: { constructEvent: mockConstructEvent }, subscriptionSchedules: mockSchedules })),
+  default: jest.fn().mockImplementation(() => {
+    const { withAccount, rereadFromEvent } = require('../__fixtures__/stripeRelu');
+    return {
+      webhooks: { constructEvent: withAccount(mockConstructEvent) },
+      subscriptions: { retrieve: rereadFromEvent(mockConstructEvent) },
+      subscriptionSchedules: mockSchedules,
+    };
+  }),
 }));
 jest.mock('@/lib/supabase/server', () => ({ createServiceClient: jest.fn() }));
 
