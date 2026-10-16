@@ -161,24 +161,58 @@ describe('#442 — échec Stripe après réservation', () => {
     expect(request()).toMatchObject({ status: 'rejected', reviewed_by: 'owner-1' });
   });
 
-  it('nouvelle tentative du gérant : le même arrêt est rejoué avec la même clé, puis e-mail et push partent', async () => {
-    mockSubUpdate.mockRejectedValueOnce(Object.assign(new Error('boom'), { type: 'StripeAPIError' }));
-    await review(req({ request_id: 'req-1', action: 'approve' }));
+  it('nouvelle tentative après remise en attente : nouvelle réservation, nouvelle clé, l’arrêt passe', async () => {
+    // Stripe rend pendant 24 h le résultat déjà obtenu pour une clé, erreurs 4xx comprises.
+    const seen = new Map<string, { ok: boolean; v: any }>();
+    let fail = true;
+    mockSubUpdate.mockImplementation(async (id: string, _p: any, o: any) => {
+      if (!seen.has(o.idempotencyKey)) {
+        seen.set(o.idempotencyKey, fail
+          ? { ok: false, v: Object.assign(new Error('canceled'), { type: 'StripeInvalidRequestError', statusCode: 400 }) }
+          : { ok: true, v: { id, cancel_at_period_end: true } });
+      }
+      const r = seen.get(o.idempotencyKey)!;
+      if (!r.ok) throw r.v;
+      return r.v;
+    });
+    const first: any = await review(req({ request_id: 'req-1', action: 'approve' }));
+    expect(first._status).toBe(502);
+    expect(request().status).toBe('pending');
+    fail = false; // le gérant a corrigé la cause chez Stripe
+    await new Promise(r => setTimeout(r, 2)); // une autre réservation, un autre instant
     const res: any = await review(req({ request_id: 'req-1', action: 'approve' }));
     expect(res._data).toEqual({ ok: true });
-    expect(mockSubUpdate.mock.calls.map(c => c[2].idempotencyKey)).toEqual(['review:req-1', 'review:req-1']);
+    const keys = mockSubUpdate.mock.calls.map(c => c[2].idempotencyKey);
+    expect(keys).toHaveLength(2);
+    expect(keys[1]).not.toBe(keys[0]);
+    expect(keys[1]).toBe(`review:req-1:${request().reviewed_at}`);
     expect(emails()).toHaveLength(1);
     expect(pushesOf(fetchSpy)).toHaveLength(1);
     expect(request().status).toBe('approved');
   });
 });
 
-describe('#442 — clés d’idempotence tirées de la demande, jamais de l’heure', () => {
-  it('Stripe et Resend reçoivent `review:<request_id>`', async () => {
+describe('#442 — clés d’idempotence tirées de la réservation, jamais de l’heure de l’appel', () => {
+  it('Stripe : `review:<id>:<reviewed_at>` ; Resend : `review:<id>:<décision>:<reviewed_at>`', async () => {
+    // Lecture du profil lente : l'heure de l'appel Stripe n'est plus celle de la réservation.
+    const from = db.client.from;
+    db.client.from = jest.fn((t: string) => {
+      const c = from(t);
+      if (t !== 'profiles') return c;
+      const one = c.maybeSingle;
+      c.maybeSingle = async () => { await new Promise(r => setTimeout(r, 5)); return one(); };
+      return c;
+    });
     await review(req({ request_id: 'req-1', action: 'approve' }));
+    const at = request().reviewed_at;
     expect(mockSubUpdate).toHaveBeenCalledWith('sub_1', { cancel_at_period_end: true },
-      { stripeAccount: 'acct_1', idempotencyKey: 'review:req-1' });
-    expect(emails().map(m => m.key)).toEqual(['review:req-1']);
+      { stripeAccount: 'acct_1', idempotencyKey: `review:req-1:${at}` });
+    expect(emails().map(m => m.key)).toEqual([`review:req-1:approved:${at}`]);
+  });
+
+  it('refus : clé Resend avec la décision', async () => {
+    await review(req({ request_id: 'req-1', action: 'reject' }));
+    expect(emails().map(m => m.key)).toEqual([`review:req-1:rejected:${request().reviewed_at}`]);
   });
 });
 

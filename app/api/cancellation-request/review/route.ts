@@ -71,12 +71,15 @@ export async function POST(req: NextRequest) {
       })
       .eq('id', request.id)
       .eq('status', 'pending')
-      .select('id')
+      .select('id, reviewed_at')
       .maybeSingle();
     if (reserveError) throw new Error(reserveError.message);
     if (!reserved) {
       return NextResponse.json({ error: 'Cette demande a déjà été traitée.' }, { status: 409 });
     }
+    // Clés tirées de cette réservation : une nouvelle réservation après remise en
+    // attente en donne une nouvelle (Stripe garde 24 h le résultat d'une clé, erreurs comprises).
+    const reservedAt = (reserved as { reviewed_at: string }).reviewed_at;
 
     const [{ data: memberRaw }, { data: boxRaw }, { data: profileRaw }] = await Promise.all([
       supabase
@@ -103,13 +106,12 @@ export async function POST(req: NextRequest) {
       if (member?.stripe_subscription_id && ACTIVE_STATUSES.includes(member.subscription_status ?? '')) {
         if (box?.stripe_account_id) {
           stopped = !member.subscription_cancel_at_period_end;
-          // Clé tirée de la demande : une nouvelle tentative après échec rejoue le même arrêt.
           try {
             await stopSubscription({
               stripeAccount: box.stripe_account_id,
               subscriptionId: member.stripe_subscription_id,
               mode: 'period_end',
-              idempotencyKey: `review:${request.id}`,
+              idempotencyKey: `review:${request.id}:${reservedAt}`,
             });
           } catch (err: any) {
             // Ni message ni identifiant : type et code Stripe seulement.
@@ -156,7 +158,7 @@ export async function POST(req: NextRequest) {
         boxName,
         replyTo: box?.contact_email ?? null,
         tag: 'cancellation-review',
-        idempotencyKey: `review:${request.id}`,
+        idempotencyKey: `review:${request.id}:${decision}:${reservedAt}`,
       });
     }
 

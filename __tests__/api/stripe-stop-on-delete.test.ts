@@ -487,7 +487,7 @@ describe('réponse à une demande de résiliation', () => {
     const res: any = await review(req({ request_id: 'req-1', action: 'approve' }));
     expect(res._data).toEqual({ ok: true });
     expect(mockSubUpdate).toHaveBeenCalledWith('sub_1', { cancel_at_period_end: true },
-      { stripeAccount: 'acct_1', idempotencyKey: 'review:req-1' });
+      { stripeAccount: 'acct_1', idempotencyKey: expect.stringMatching(/^review:req-1:/) });
     const [mail] = emails();
     expect(mail.to).toBe('membre@exemple.fr');
     expect(mail.reply_to).toBe('salle@exemple.fr');
