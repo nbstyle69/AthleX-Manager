@@ -39,10 +39,12 @@ export async function sendMemberEmail(opts: {
   tag: string;
   /** Pied de l'e-mail ; par défaut « Message envoyé par {box} via AthleX. » */
   footer?: string;
+  /** En-tête `Idempotency-Key` de Resend : un même envoi rejoué ne part qu'une fois. */
+  idempotencyKey?: string;
 }): Promise<boolean> {
   const apiKey = process.env.RESEND_API_KEY;
   if (!apiKey) return false;
-  const { to, subject, bodyText, boxName, replyTo, tag, footer } = opts;
+  const { to, subject, bodyText, boxName, replyTo, tag, footer, idempotencyKey } = opts;
 
   const paragraphs = bodyText
     .split('\n\n')
@@ -61,7 +63,10 @@ export async function sendMemberEmail(opts: {
   try {
     const res = await fetch('https://api.resend.com/emails', {
       method: 'POST',
-      headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+      headers: {
+        Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json',
+        ...(idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : {}),
+      },
       body: JSON.stringify({
         from: MAIL_FROM, to, subject, html,
         ...(replyTo ? { reply_to: replyTo } : {}),
