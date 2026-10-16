@@ -3,7 +3,7 @@
 // La route est un relais d'envoi : le risque n'est pas qu'elle échoue, c'est
 // qu'elle envoie le lien à l'adresse que l'appelant demande, ou qu'elle
 // serve à un gérant d'une autre box. Les tests verrouillent ces deux points,
-// plus le cas Resend 403 (domaine non vérifié) qui doit rester visible.
+// plus le cas Resend 403 (domaine non vérifié) dont l'échec doit rester visible.
 
 const invitationRow = {
   id: 'inv-1',
@@ -120,7 +120,9 @@ describe('POST /api/invitations/send', () => {
     expect(res.status).toBe(200);
     const payload = await res.json();
     expect(payload.sent).toBe(false);
-    expect(payload.error).toContain('not verified');
+    // L'échec reste dit, mais sans le corps Resend (#443) : le détail est au journal par son statut.
+    expect(payload.error).toContain("n'est pas parti");
+    expect(payload.error).not.toContain('not verified');
   });
 
   it('signale l’absence de clé Resend sans prétendre avoir envoyé', async () => {
