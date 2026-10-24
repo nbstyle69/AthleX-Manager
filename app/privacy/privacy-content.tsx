@@ -103,9 +103,18 @@ function PrivacyFr() {
             votre adhésion ; une invitation non utilisée expire automatiquement.
           </>,
           <>
+            <strong className="font-semibold text-ax-text">Données de réservation d&apos;une séance d&apos;essai :</strong>{' '}
+            lorsque vous réservez une séance d&apos;essai sur la page publique d&apos;une box, vous renseignez votre
+            prénom et votre adresse e-mail, et, si vous le souhaitez, votre nom et votre numéro de téléphone. Ils
+            permettent à la box de vous contacter au sujet de votre essai ; seuls le gérant et les coachs de la box y ont
+            accès. L&apos;application mobile ne vous demande jamais votre numéro de téléphone.
+          </>,
+          <>
             <strong className="font-semibold text-ax-text">Données techniques :</strong> jeton de notifications push
             (si vous les activez), préférences de notifications, rapports d&apos;erreur et de performance de
-            l&apos;application (via Sentry) rattachés à votre compte.
+            l&apos;application (via Sentry) et statistiques d&apos;usage de l&apos;application (via Mixpanel),
+            rattachés à votre compte. Sentry et Mixpanel créent chacun un identifiant technique propre à
+            l&apos;installation de l&apos;application sur votre appareil.
           </>,
         ]}
       />
@@ -145,9 +154,15 @@ function PrivacyFr() {
       <H3>6. Nos sous-traitants</H3>
       <P>
         Supabase (hébergement de la base de données et authentification), Vercel (hébergement du site et du back-office),
-        Stripe (paiements), Resend (envoi des e-mails), Sentry (rapports d&apos;erreur), Expo (notifications push) et
-        Tenor (recherche de GIF — seule votre requête lui est transmise, jamais votre identité). Les transferts éventuels
-        hors Union européenne sont encadrés par les garanties du RGPD (clauses contractuelles types).
+        Stripe (paiements), Resend (envoi des e-mails), Sentry (rapports d&apos;erreur — seul l&apos;identifiant de
+        votre compte lui est transmis), Mixpanel (statistiques d&apos;usage de l&apos;application, sur ses serveurs de
+        l&apos;Union européenne, sans géolocalisation déduite de votre adresse IP ; il reçoit l&apos;identifiant de
+        votre compte avec votre pseudo, votre rôle et votre niveau, jamais votre adresse e-mail ; votre profil Mixpanel
+        est effacé à la suppression de votre compte), Expo (notifications push), Anthropic (lecture des PDF de
+        programmation importés par une box — seul le contenu du PDF lui est transmis, aucune donnée de votre compte) et
+        GIPHY (recherche de GIF — l&apos;app l&apos;interroge directement : il reçoit le terme cherché et l&apos;adresse
+        IP de votre appareil, jamais l&apos;identité de votre compte). Les transferts éventuels hors Union européenne
+        sont encadrés par les garanties du RGPD (clauses contractuelles types).
       </P>
 
       <H3>7. Durées de conservation</H3>
@@ -167,19 +182,25 @@ function PrivacyFr() {
         réponse sous un mois. Vous pouvez saisir la CNIL (<Link href="https://www.cnil.fr">cnil.fr</Link>).
       </P>
 
-      <H3>9. Mineurs</H3>
+      <H3>9. Supprimer votre compte</H3>
+      <P>
+        Dans l&apos;app : Profil → Compte → Supprimer mon compte. Sans l&apos;app : écrivez à <Mail /> depuis
+        l&apos;adresse e-mail de votre compte ; votre demande est traitée sous 30 jours.
+      </P>
+
+      <H3>10. Mineurs</H3>
       <P>
         L&apos;inscription est ouverte aux mineurs avec l&apos;autorisation d&apos;un titulaire de l&apos;autorité
         parentale. Les parents ou tuteurs peuvent exercer les droits ci-dessus pour le compte du mineur : <Mail />.
       </P>
 
-      <H3>10. Sécurité</H3>
+      <H3>11. Sécurité</H3>
       <P>
         Données chiffrées en transit (HTTPS), accès cloisonné par box et par rôle, frontières d&apos;accès testées
         régulièrement.
       </P>
 
-      <H3>11. Évolutions</H3>
+      <H3>12. Évolutions</H3>
       <P>
         Cette politique peut évoluer avec l&apos;application ; en cas de changement substantiel, nous vous en informerons
         dans l&apos;app.
@@ -254,8 +275,16 @@ function PrivacyEn() {
             only used to send you the invitation and prepare your membership; unused invitations expire automatically.
           </>,
           <>
+            <strong className="font-semibold text-ax-text">Trial session booking data:</strong> when you book a trial
+            session on a gym&apos;s public page, you enter your first name and email address and, if you wish, your last
+            name and phone number. They allow the gym to contact you about your trial; only the gym&apos;s owner and
+            coaches can access them. The mobile app never asks for your phone number.
+          </>,
+          <>
             <strong className="font-semibold text-ax-text">Technical data:</strong> push notification token (if
-            enabled), notification preferences, crash and performance reports (via Sentry) linked to your account.
+            enabled), notification preferences, crash and performance reports (via Sentry) and app usage statistics
+            (via Mixpanel), linked to your account. Sentry and Mixpanel each create a technical identifier specific to
+            the app&apos;s installation on your device.
           </>,
         ]}
       />
@@ -294,9 +323,14 @@ function PrivacyEn() {
       <H3>6. Our processors</H3>
       <P>
         Supabase (database hosting and authentication), Vercel (website and back-office hosting), Stripe (payments),
-        Resend (email delivery), Sentry (error reports), Expo (push notification delivery) and Tenor (GIF search — only
-        your search query is sent, never your identity). Any transfer outside the European Union is covered by GDPR
-        safeguards (standard contractual clauses).
+        Resend (email delivery), Sentry (error reports — only your account identifier is sent), Mixpanel (app usage
+        statistics, on its European Union servers, with no location inferred from your IP address; it receives your
+        account identifier with your username, role and level, never your email address; your Mixpanel profile is
+        erased when you delete your account), Expo (push notification delivery), Anthropic (reading of training
+        programme PDFs imported by a gym — only the PDF&apos;s content is sent, no data from your account) and GIPHY (GIF search —
+        the app queries it directly: it receives your search term and your device&apos;s IP address, never your account
+        identity). Any transfer outside the European Union is covered by GDPR safeguards (standard contractual
+        clauses).
       </P>
 
       <H3>7. Retention</H3>
@@ -315,19 +349,25 @@ function PrivacyEn() {
         supervisory authority (CNIL, <Link href="https://www.cnil.fr">cnil.fr</Link>).
       </P>
 
-      <H3>9. Minors</H3>
+      <H3>9. Delete your account</H3>
+      <P>
+        In the app: Profile → Account → Delete my account. Without the app: email <Mail /> from your account&apos;s
+        email address; your request is handled within 30 days.
+      </P>
+
+      <H3>10. Minors</H3>
       <P>
         Registration is open to minors with the authorization of a parent or legal guardian. Parents or guardians may
         exercise the rights above on behalf of the minor: <Mail />.
       </P>
 
-      <H3>10. Security</H3>
+      <H3>11. Security</H3>
       <P>
         Data is encrypted in transit (HTTPS); access is partitioned per gym and per role; these access boundaries are
         tested regularly.
       </P>
 
-      <H3>11. Changes</H3>
+      <H3>12. Changes</H3>
       <P>This policy may evolve with the app; we will inform you in the app of any substantial change.</P>
     </>
   );
