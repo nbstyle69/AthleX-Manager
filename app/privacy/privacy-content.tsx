@@ -159,7 +159,7 @@ function PrivacyFr() {
         l&apos;Union européenne, sans géolocalisation déduite de votre adresse IP ; il reçoit l&apos;identifiant de
         votre compte avec votre pseudo, votre rôle et votre niveau, jamais votre adresse e-mail ; votre profil Mixpanel
         est effacé à la suppression de votre compte), Expo (notifications push), Anthropic (lecture des PDF de
-        programmation importés par une box — seul le contenu du PDF lui est transmis, aucune donnée d&apos;athlète) et
+        programmation importés par une box — seul le contenu du PDF lui est transmis, aucune donnée de votre compte) et
         GIPHY (recherche de GIF — l&apos;app l&apos;interroge directement : il reçoit le terme cherché et l&apos;adresse
         IP de votre appareil, jamais l&apos;identité de votre compte). Les transferts éventuels hors Union européenne
         sont encadrés par les garanties du RGPD (clauses contractuelles types).
@@ -327,7 +327,7 @@ function PrivacyEn() {
         statistics, on its European Union servers, with no location inferred from your IP address; it receives your
         account identifier with your username, role and level, never your email address; your Mixpanel profile is
         erased when you delete your account), Expo (push notification delivery), Anthropic (reading of training
-        programme PDFs imported by a gym — only the PDF&apos;s content is sent, no athlete data) and GIPHY (GIF search —
+        programme PDFs imported by a gym — only the PDF&apos;s content is sent, no data from your account) and GIPHY (GIF search —
         the app queries it directly: it receives your search term and your device&apos;s IP address, never your account
         identity). Any transfer outside the European Union is covered by GDPR safeguards (standard contractual
         clauses).
