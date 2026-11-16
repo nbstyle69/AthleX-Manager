@@ -171,7 +171,7 @@ export default function WodEditor({
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-ax-overlay backdrop-blur-ax-glass p-4">
-      <div className="bg-ax-surface border border-ax-border rounded-ax-card w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+      <div className="bg-ax-surface border border-ax-border rounded-ax-card w-full max-w-4xl max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between px-6 py-5 border-b border-ax-border">
           <h2 className="text-lg font-black text-ax-text">{heading}</h2>
           <button onClick={onClose} className="p-1.5 rounded-ax-control hover:bg-ax-hover text-ax-text-secondary hover:text-ax-text transition-colors">
