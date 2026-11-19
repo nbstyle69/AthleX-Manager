@@ -42,6 +42,7 @@ import { Input } from '@/components/ui/input';
 import { useConfirmDialog } from '@/components/ui/confirm-dialog';
 import { ERROR_TITLE, fullDate } from '@/lib/confirmDialog';
 import { countOf } from '@/lib/plural';
+import { SCORE_FREE, ScoreLock, ScoreType, boxWodScoreColumns, loadScoreLock } from '@/lib/wodScoreType';
 
 interface BoxWOD {
   id: string; box_id: string; created_by: string;
@@ -64,6 +65,10 @@ interface BoxWOD {
   edited_at: string | null;
   /** Piste de programmation, `null` pour une carte saisie à la main. */
   track: string | null;
+  /** Type de score choisi par le créateur (#453) ; `null` = l'athlète choisit. */
+  score_type: ScoreType | null;
+  /** `lines` = lignes structurées ; `free` = texte libre (#453). */
+  text_mode: 'lines' | 'free';
 }
 
 /** Provenance d'une carte reçue d'une offre Marketplace (autre box). */
@@ -106,6 +111,7 @@ export default function WODsPage() {
   const [modal,       setModal]       = useState(false);
   const [editWOD,     setEditWOD]     = useState<BoxWOD | null>(null);
   const [form,        setForm]        = useState<WodFormState>(EMPTY_WOD_FORM);
+  const [scoreLock,   setScoreLock]   = useState<ScoreLock>(SCORE_FREE);
   const [movements,   setMovements]   = useState<string[]>([]);
   const [saving,      setSaving]      = useState(false);
   const [formError,   setFormError]   = useState<string | null>(null);
@@ -351,14 +357,16 @@ export default function WODsPage() {
     if (isReceived(wod)) return;
     setEditWOD(wod);
     const gIds = await loadWodGroups(wod.id);
-    const [{ data: pRows }, { data: copies }] = await Promise.all([
+    const [{ data: pRows }, { data: copies }, lock] = await Promise.all([
       supabase.from('wod_program_access').select('program_id').eq('wod_id', wod.id),
       // Coach : aucune copie lue, donc aucun sync/unsync d'offre à l'enregistrement
       // (les RPC le refuseraient et l'enregistrement s'afficherait en échec partiel).
       canSell
         ? supabase.from('box_programming_wods').select('programming_id, week_number').eq('origin_box_wod_id', wod.id)
         : Promise.resolve({ data: [] }),
+      loadScoreLock(supabase, wod.id),
     ]);
+    setScoreLock(lock);
     const pIds = (pRows ?? []).map((r: any) => r.program_id);
     const offerWeeks: Record<string, number> = {};
     ((copies ?? []) as { programming_id: string; week_number: number }[]).forEach(c => { offerWeeks[c.programming_id] = c.week_number; });
@@ -372,6 +380,7 @@ export default function WODsPage() {
       rounds: wod.rounds ? String(wod.rounds) : '',
       notes: wod.notes ?? '', videoUrl: wod.video_url ?? '', published: wod.is_published,
       leaderboard: (wod as any).leaderboard_enabled ?? true,
+      scoreType: wod.score_type ?? '', scoreTypeAuto: false,
       audience: wod.audience,
       groupIds: wod.audience === 'groups' ? gIds : [],
       programIds: pIds,
@@ -394,6 +403,7 @@ export default function WODsPage() {
     setSaving(true); setFormError(null);
     const payload = withWodJson({
       ...sharedWodColumns(form, movements),
+      ...boxWodScoreColumns(form.scoreType, form.leaderboard),
       // Séance ouverte sans toucher aux mouvements : description d'origine, intacte.
       description: descriptionToSave(editWOD?.description ?? null, movements),
       box_id: boxId, created_by: userId,
@@ -1347,6 +1357,7 @@ export default function WODsPage() {
           groups={groups}
           programs={boxPrograms}
           offers={offers}
+          scoreLock={editWOD ? scoreLock : undefined}
         />
       )}
     </div>

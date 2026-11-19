@@ -24,7 +24,9 @@ import {
   StrengthEntry,
   isStrengthLine,
 } from '@/lib/strengthBlock';
-import { BLOCKS, DAY_LABELS, WOD_TYPES, WodFormState } from '@/lib/wodFields';
+import { BLOCKS, DAY_LABELS, WOD_TYPES, WodFormState, withScoreType, withWodType } from '@/lib/wodFields';
+import { MARKETPLACE_SCORE_NOTE, SCORE_FREE, ScoreLock } from '@/lib/wodScoreType';
+import ScoreTypeSelect from '@/components/wods/ScoreTypeSelect';
 import {
   CardioRow,
   STRENGTH_UNIT_LABEL,
@@ -104,6 +106,11 @@ interface WodEditorProps {
   restDays?: readonly RestDay[];
   /** Contexte Whiteboard : offres Marketplace de la box (absent = pas de ligne). */
   offers?: WodEditorOffer[];
+  /**
+   * WOD existant : types de score encore permis au vu des scores déjà posés
+   * (`scoreLockFor`). Absent = création : le Score est obligatoire.
+   */
+  scoreLock?: ScoreLock;
 }
 
 const inp = 'w-full bg-ax-surface-secondary border border-ax-border rounded-ax-control px-4 py-3 text-sm text-ax-text placeholder:text-ax-text-muted focus:outline-none focus:border-ax-focus focus-visible:ring-2 focus-visible:ring-ax-focus focus-visible:ring-offset-2 focus-visible:ring-offset-ax-surface disabled:cursor-not-allowed disabled:bg-ax-neutral-soft [html.light_&]:disabled:bg-ax-surface-secondary disabled:text-ax-text-muted aria-[invalid=true]:border-ax-danger transition-colors motion-reduce:transition-none';
@@ -111,10 +118,13 @@ const inp = 'w-full bg-ax-surface-secondary border border-ax-border rounded-ax-c
 export default function WodEditor({
   mode, heading, submitLabel, form, setForm, movements, setMovements,
   saving, error, onClose, onSubmit, groups = [], programs = [], weeksCount = 1,
-  lockedProgram, restDays = [], offers = [],
+  lockedProgram, restDays = [], offers = [], scoreLock,
 }: WodEditorProps) {
   const isWhiteboard = mode === 'whiteboard';
   const isProgram = mode === 'program';
+  // `box_programming_wods` n'a pas de type de score (#453, PR de base à venir).
+  const hasScore = mode !== 'programming';
+  const noScore = hasScore && form.scoreType === 'none';
 
   // Les lignes de force et de cardio sont éditées structurées ; `movements` ne
   // reçoit que leur sérialisation, ou leur texte d'origine tant qu'elles ne sont
@@ -167,7 +177,8 @@ export default function WodEditor({
   const audienceChosen = !isWhiteboard || form.audience !== '';
   const groupsChosen = !isWhiteboard || form.audience !== 'groups' || form.groupIds.length > 0;
   const strengthValid = strengthRows.every(r => !strengthRowError(r));
-  const canSubmit = !!form.title.trim() && !saving && (!isWhiteboard || !!form.date) && audienceChosen && groupsChosen && strengthValid;
+  const scoreChosen = !hasScore || !!scoreLock || form.scoreType !== '';
+  const canSubmit = !!form.title.trim() && !saving && (!isWhiteboard || !!form.date) && audienceChosen && groupsChosen && strengthValid && scoreChosen;
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-ax-overlay backdrop-blur-ax-glass p-4">
@@ -272,11 +283,21 @@ export default function WodEditor({
             <div>
               <label className="block text-xs font-semibold text-ax-text-secondary mb-1.5 uppercase tracking-wider">Type <span className="text-ax-text-muted normal-case tracking-normal">(optionnel)</span></label>
               <select className={inp} value={form.wod_type}
-                onChange={e => setForm(f => ({ ...f, wod_type: e.target.value }))}>
+                onChange={e => { const v = e.target.value; setForm(f => withWodType(f, v)); }}>
                 <option value="" className="text-ax-text bg-ax-surface">— Aucun —</option>
                 {WOD_TYPES.map(t => <option key={t.value} value={t.value} className="text-ax-text bg-ax-surface">{t.label}</option>)}
               </select>
             </div>
+            {hasScore ? (
+              <ScoreTypeSelect
+                value={form.scoreType}
+                onChange={v => setForm(f => withScoreType(f, v))}
+                lock={scoreLock ?? SCORE_FREE}
+                existing={!!scoreLock}
+                triggerClassName={inp} />
+            ) : (
+              <p data-testid="score-marketplace" className="text-[11px] text-ax-text-muted self-end pb-1">{MARKETPLACE_SCORE_NOTE}</p>
+            )}
           </div>
 
           {form.wod_type === 'emom' && (
@@ -746,17 +767,21 @@ export default function WodEditor({
             </div>
           )}
 
-          <div className="flex items-center justify-between bg-ax-surface-secondary rounded-ax-control px-4 py-3">
+          <div data-testid="bloc-classement" className={`flex items-center justify-between bg-ax-surface-secondary rounded-ax-control px-4 py-3 ${noScore ? 'opacity-50' : ''}`}>
             <div>
               <p className="text-sm font-semibold text-ax-text">Classement</p>
-              <p className="text-xs text-ax-text-muted">{form.leaderboard ? 'Les scores sont classés entre membres' : 'Scores enregistrés en historique uniquement'}</p>
+              <p className="text-xs text-ax-text-muted">{noScore ? 'Pas de classement sans score' : form.leaderboard ? 'Les scores sont classés entre membres' : 'Scores enregistrés en historique uniquement'}</p>
             </div>
             <button
               type="button"
+              role="switch"
+              aria-checked={!noScore && form.leaderboard}
+              aria-label="Classement"
+              disabled={noScore}
               onClick={() => setForm(f => ({ ...f, leaderboard: !f.leaderboard }))}
-              className={`relative w-11 h-6 rounded-full transition-colors ${form.leaderboard ? 'bg-ax-text' : 'bg-ax-hover'}`}
+              className={`relative w-11 h-6 rounded-full transition-colors disabled:cursor-not-allowed ${!noScore && form.leaderboard ? 'bg-ax-text' : 'bg-ax-hover'}`}
             >
-              <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-ax-text shadow transition-transform ${form.leaderboard ? 'translate-x-5' : 'translate-x-0.5'}`} />
+              <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-ax-text shadow transition-transform ${!noScore && form.leaderboard ? 'translate-x-5' : 'translate-x-0.5'}`} />
             </button>
           </div>
 

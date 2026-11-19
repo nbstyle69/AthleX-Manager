@@ -1,5 +1,6 @@
 'use client';
 
+import { formatBoxWodScore } from '@/lib/wodScoreType';
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import {
@@ -148,14 +149,6 @@ export default function BoxDetailPage() {
     return scores.filter((s: any) => s.wod_id === wodId);
   }
 
-  function formatScore(value: number, type: string) {
-    if (type === 'time') {
-      const m = Math.floor(value / 60);
-      const s = Math.round(value % 60);
-      return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
-    }
-    return `${value}`;
-  }
 
   return (
     <div className="space-y-6">
@@ -519,23 +512,26 @@ export default function BoxDetailPage() {
                     <div className="divide-y divide-ax-border">
                       {wodScores.map((s: any, idx: number) => {
                         const sp = Array.isArray(s.profile) ? s.profile[0] : s.profile;
+                        // « Faite » (#453) n'est jamais classée : pas de rang, en fin de liste (tri de la route).
+                        const done = s.score_type === 'done';
                         return (
                           <div key={s.id} className="flex items-center justify-between gap-3 px-5 py-3 hover:bg-ax-hover">
                             <div className="flex flex-wrap items-center gap-x-3 gap-y-1 min-w-0">
                               <span className={cn(
                                 'w-6 h-6 shrink-0 rounded-full flex items-center justify-center text-[10px] font-black',
+                                done ? 'bg-ax-neutral-soft text-ax-text-secondary' :
                                 idx === 0 ? 'bg-ax-warning-soft text-ax-warning' :
                                 idx === 1 ? 'bg-ax-neutral-soft text-ax-text' :
                                 idx === 2 ? `${SUB_ORANGE_SOFT} ${SUB_ORANGE_TEXT}` :
                                 'bg-ax-neutral-soft text-ax-text-secondary'
                               )}>
-                                {idx + 1}
+                                {done ? '—' : idx + 1}
                               </span>
                               <span className="text-sm font-semibold text-ax-text break-words">{sp?.username ?? 'Inconnu'}</span>
                               <span className="text-[10px] font-black uppercase" style={levelStyle(sp?.level)}>{sp?.level}</span>
                               {s.rx && <span className="text-[9px] font-black text-ax-success bg-ax-success-soft px-1.5 py-0.5 rounded-ax-badge">RX</span>}
                             </div>
-                            <span className="text-sm font-black text-ax-text shrink-0">{formatScore(s.score_value, s.score_type)}</span>
+                            <span className="text-sm font-black text-ax-text shrink-0">{formatBoxWodScore(s.score_value, s.score_type, s.capped)}</span>
                           </div>
                         );
                       })}
