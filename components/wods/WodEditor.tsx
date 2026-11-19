@@ -376,7 +376,7 @@ export default function WodEditor({
           <div>
             <div data-testid="entete-programme" className="flex flex-wrap items-center justify-between gap-2 mb-1.5">
               <label id="programme-label" className="block text-xs font-semibold text-ax-text-secondary uppercase tracking-wider">Programme / Mouvements</label>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 ml-auto">
                 {!isFree && (
                   <button type="button" onClick={addMovement} className="text-xs text-ax-text font-semibold flex items-center gap-1 hover:opacity-80">
                     <Plus size={12} /> Ajouter
