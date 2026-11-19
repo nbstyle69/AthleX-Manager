@@ -152,7 +152,7 @@ describe('éditeur de WOD : champ Score', () => {
     React.createElement(WodEditor, {
       ...base, mode: 'whiteboard', form: { ...EMPTY_WOD_FORM, title: 'Fran', date: '2026-11-20', audience: 'all', ...form }, ...extra,
     } as any));
-  const submitDisabled = (html: string) => /<button[^>]*disabled=""[^>]*>(?:(?!<\/button>).)*Créer le WOD/s.test(html);
+  const submitDisabled = (html: string) => /<button[^>]*disabled=""[^>]*>(?:(?!<\/button>)[\s\S])*Créer le WOD/.test(html);
 
   it('création : Score obligatoire', () => {
     expect(submitDisabled(wb({ scoreType: '' }))).toBe(true);
@@ -187,7 +187,7 @@ describe('éditeur de WOD : champ Score', () => {
     const html = renderToStaticMarkup(React.createElement(WodEditor, { ...base, mode: 'programming', form: { ...EMPTY_WOD_FORM, title: 'X' } } as any));
     expect(html).not.toContain('data-testid="champ-score"');
     expect(text(html)).toContain(MARKETPLACE_SCORE_NOTE);
-    expect(/<button[^>]*disabled=""[^>]*>(?:(?!<\/button>).)*Créer le WOD/s.test(html)).toBe(false);
+    expect(/<button[^>]*disabled=""[^>]*>(?:(?!<\/button>)[\s\S])*Créer le WOD/.test(html)).toBe(false);
   });
 });
 
