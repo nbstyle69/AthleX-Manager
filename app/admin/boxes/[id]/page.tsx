@@ -531,7 +531,7 @@ export default function BoxDetailPage() {
                               <span className="text-[10px] font-black uppercase" style={levelStyle(sp?.level)}>{sp?.level}</span>
                               {s.rx && <span className="text-[9px] font-black text-ax-success bg-ax-success-soft px-1.5 py-0.5 rounded-ax-badge">RX</span>}
                             </div>
-                            <span className="text-sm font-black text-ax-text shrink-0">{formatBoxWodScore(s.score_value, s.score_type)}</span>
+                            <span className="text-sm font-black text-ax-text shrink-0">{formatBoxWodScore(s.score_value, s.score_type, s.capped)}</span>
                           </div>
                         );
                       })}

@@ -17,6 +17,8 @@ jest.mock('@/lib/supabase/client', () => ({
   }),
 }));
 
+import { readFileSync } from 'fs';
+import { join } from 'path';
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import WodEditor from '@/components/wods/WodEditor';
@@ -116,13 +118,54 @@ describe('formatage et tri des scores', () => {
     expect(formatBoxWodScore(120, 'weight')).toBe('120');
   });
 
-  const s = (v: number, t: string) => ({ score_value: v, score_type: t });
+  it('temps capé : « CAP + reps » (colonne capped ou ancien 999999 + reps)', () => {
+    expect(formatBoxWodScore(87, 'time', true)).toBe('CAP + 87');
+    expect(formatBoxWodScore(999999 + 87, 'time')).toBe('CAP + 87');
+    expect(formatBoxWodScore(999999, 'time', false)).toBe('CAP + 0');
+    expect(formatBoxWodScore(87, 'time', false)).toBe('01:27');
+    expect(formatBoxWodScore(87, 'reps', true)).toBe('87');
+  });
 
-  it('temps croissant, sinon décroissant, WOD sans type comme avant (croissant)', () => {
-    expect(sortWodScores([s(300, 'time'), s(200, 'time')], 'time').map(x => x.score_value)).toEqual([200, 300]);
-    expect(sortWodScores([s(5010, 'rounds_reps'), s(7002, 'rounds_reps')], 'rounds_reps').map(x => x.score_value)).toEqual([7002, 5010]);
-    expect(sortWodScores([s(80, 'weight'), s(120, 'weight')], 'weight').map(x => x.score_value)).toEqual([120, 80]);
-    expect(sortWodScores([s(80, 'reps'), s(120, 'reps')], null).map(x => x.score_value)).toEqual([80, 120]);
+  it('/admin/boxes/[id] passe capped à l’affichage', () => {
+    const page = readFileSync(join(process.cwd(), 'app/admin/boxes/[id]/page.tsx'), 'utf8');
+    expect(page).toContain('formatBoxWodScore(s.score_value, s.score_type, s.capped)');
+  });
+
+  const s = (v: number, t: string, capped?: boolean) => ({ score_value: v, score_type: t, capped });
+  const vals = (xs: { score_value: number }[]) => xs.map(x => x.score_value);
+
+  it('WOD typé : temps croissant, sinon décroissant', () => {
+    expect(vals(sortWodScores([s(300, 'time'), s(200, 'time')], 'time'))).toEqual([200, 300]);
+    expect(vals(sortWodScores([s(5010, 'rounds_reps'), s(7002, 'rounds_reps')], 'rounds_reps'))).toEqual([7002, 5010]);
+    expect(vals(sortWodScores([s(80, 'weight'), s(120, 'weight')], 'weight'))).toEqual([120, 80]);
+    expect(vals(sortWodScores([s(80, 'reps'), s(120, 'reps')], 'reps'))).toEqual([120, 80]);
+  });
+
+  it('le score_type l’emporte sur le wod_type', () => {
+    expect(vals(sortWodScores([s(80, 'reps'), s(120, 'reps')], 'reps', 'for-time'))).toEqual([120, 80]);
+    expect(vals(sortWodScores([s(300, 'time'), s(200, 'time')], 'time', 'amrap'))).toEqual([200, 300]);
+  });
+
+  it('temps + capés : finis croissants, puis capés par reps décroissantes', () => {
+    const out = sortWodScores([
+      s(31, 'time', true), s(600, 'time'), s(999999 + 8, 'time'), s(420, 'time'), s(999999 + 50, 'time'), s(540, 'time', false), s(40, 'time', true),
+    ], 'time');
+    expect(out.map(x => formatBoxWodScore(x.score_value, x.score_type, x.capped)))
+      .toEqual(['07:00', '09:00', '10:00', 'CAP + 50', 'CAP + 40', 'CAP + 31', 'CAP + 8']);
+  });
+
+  it('WOD sans type : For Time comme l’ELO (croissant, capés derrière)', () => {
+    const out = sortWodScores([s(31, 'time', true), s(600, 'time'), s(420, 'time'), s(999999 + 40, 'time')], null, 'for-time');
+    expect(vals(out)).toEqual([420, 600, 999999 + 40, 31]);
+  });
+
+  it('WOD sans type : AMRAP et autres décroissants (l’AMRAP n’est plus à l’envers)', () => {
+    expect(vals(sortWodScores([s(5010, 'rounds_reps'), s(7002, 'rounds_reps')], null, 'amrap'))).toEqual([7002, 5010]);
+    expect(vals(sortWodScores([s(80, 'reps'), s(120, 'reps')], null, null))).toEqual([120, 80]);
+  });
+
+  it('hors temps, capped est ignoré (comme l’ELO)', () => {
+    expect(vals(sortWodScores([s(50, 'reps', true), s(80, 'reps')], 'reps'))).toEqual([80, 50]);
   });
 
   it('« Faite » n’est jamais classée : en fin de liste', () => {
@@ -136,6 +179,8 @@ describe('formatage et tri des scores', () => {
     ];
     const out = sortScoresByWod(scores, [{ id: 'a', score_type: 'rounds_reps' }, { id: 'b', score_type: 'time' }]);
     expect(out.map(x => `${x.wod_id}${x.score_value}`)).toEqual(['a7002', 'a5010', 'b200', 'b300']);
+    const sansType = sortScoresByWod(scores, [{ id: 'a', score_type: null, wod_type: 'amrap' }, { id: 'b', score_type: null, wod_type: 'for-time' }]);
+    expect(sansType.map(x => `${x.wod_id}${x.score_value}`)).toEqual(['a7002', 'a5010', 'b200', 'b300']);
   });
 
   it('le filtre des totaux garde les scores sans type', () => {

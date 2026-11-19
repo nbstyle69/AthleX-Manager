@@ -62,8 +62,8 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
       .from('wod_scores')
       .select('*, profile:profiles!wod_scores_member_id_fkey(username, level)')
       .in('wod_id', wodIds);
-    // Ordre par WOD, selon le type de score choisi par le créateur (#453) :
-    // un tri croissant global rangeait un AMRAP à l'envers.
+    // Ordre par WOD, règle de l'ELO (#453) : score_type, sinon wod_type ; temps
+    // finis croissants puis capés (`capped`, lu par le select *) par reps décroissantes.
     scores = sortScoresByWod(s ?? [], wods ?? []);
   }
 

@@ -79,10 +79,21 @@ export function scoreTypeAllowed(lock: ScoreLock, t: ScoreType): boolean {
   return lock.allowed === null || lock.allowed.includes(t);
 }
 
+/** Ancien encodage d'un temps capé : 999999 + reps (avant la colonne `capped`). */
+const LEGACY_CAP = 999999;
+
+/** Reps d'un score « Temps » arrêté au time cap, sinon null (règle de compute_wod_elo). */
+export function cappedReps(value: number, capped?: boolean | null): number | null {
+  if (value >= LEGACY_CAP) return value - LEGACY_CAP;
+  return capped ? value : null;
+}
+
 /** Affichage d'un score de WOD de box. */
-export function formatBoxWodScore(value: number, type: string | null | undefined): string {
+export function formatBoxWodScore(value: number, type: string | null | undefined, capped?: boolean | null): string {
   if (type === 'done') return 'Faite';
   if (type === 'time') {
+    const reps = cappedReps(value, capped);
+    if (reps !== null) return `CAP + ${reps}`;
     const m = Math.floor(value / 60);
     const s = Math.round(value % 60);
     return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
@@ -91,27 +102,41 @@ export function formatBoxWodScore(value: number, type: string | null | undefined
   return `${value}`;
 }
 
-export interface SortableScore { score_value: number; score_type: string | null }
+export interface SortableScore { score_value: number; score_type: string | null; capped?: boolean | null }
+
+/** Sens du WOD, comme compute_wod_elo / compute_box_elo : score_type, sinon wod_type. */
+export function isTimeWod(wodScoreType: string | null | undefined, wodType: string | null | undefined): boolean {
+  return wodScoreType != null ? wodScoreType === 'time' : wodType === 'for-time';
+}
 
 /**
- * Ordre d'affichage des scores d'un WOD : selon le type choisi par le créateur
- * (temps croissant, sinon décroissant) ; WOD sans type : croissant, comme
- * avant. Une séance « Faite » n'est jamais classée : en fin de liste.
+ * Ordre d'affichage des scores d'un WOD, règle de l'ELO : WOD au temps =
+ * temps finis croissants, puis scores capés par reps décroissantes ; sinon
+ * décroissant. Une séance « Faite » n'est jamais classée : en fin de liste.
  */
-export function sortWodScores<T extends SortableScore>(scores: readonly T[], wodScoreType: string | null | undefined): T[] {
-  const asc = wodScoreType == null || wodScoreType === 'time';
-  const ranked = scores.filter(s => s.score_type !== 'done')
-    .sort((a, b) => (asc ? a.score_value - b.score_value : b.score_value - a.score_value));
-  return [...ranked, ...scores.filter(s => s.score_type === 'done')];
+export function sortWodScores<T extends SortableScore>(
+  scores: readonly T[], wodScoreType: string | null | undefined, wodType?: string | null,
+): T[] {
+  const time = isTimeWod(wodScoreType, wodType);
+  const key = (x: T): [number, number] => {
+    if (!time) return [0, -x.score_value];
+    const reps = cappedReps(x.score_value, x.capped);
+    return reps === null ? [0, x.score_value] : [1, -reps];
+  };
+  const ranked = scores.filter(x => x.score_type !== 'done').sort((a, b) => {
+    const [ga, va] = key(a); const [gb, vb] = key(b);
+    return ga - gb || va - vb;
+  });
+  return [...ranked, ...scores.filter(x => x.score_type === 'done')];
 }
 
 /** Tri par WOD d'une liste de scores de plusieurs WODs (ordre des WODs conservé). */
 export function sortScoresByWod<T extends SortableScore & { wod_id: string }>(
-  scores: readonly T[], wods: readonly { id: string; score_type?: string | null }[],
+  scores: readonly T[], wods: readonly { id: string; score_type?: string | null; wod_type?: string | null }[],
 ): T[] {
   const byWod = new Map<string, T[]>();
   for (const s of scores) byWod.set(s.wod_id, [...(byWod.get(s.wod_id) ?? []), s]);
-  return wods.flatMap(w => sortWodScores(byWod.get(w.id) ?? [], w.score_type ?? null));
+  return wods.flatMap(w => sortWodScores(byWod.get(w.id) ?? [], w.score_type ?? null, w.wod_type ?? null));
 }
 
 /** Colonnes de score propres à `box_wods` (absentes de `box_programming_wods`). */
