@@ -33,8 +33,8 @@ export default function ScoreTypeSelect({ value, onChange, lock, existing, trigg
           <Select.Icon><ChevronDown size={16} className="text-ax-text-secondary" /></Select.Icon>
         </Select.Trigger>
         <Select.Portal>
-          <Select.Content position="popper" sideOffset={6} collisionPadding={8}
-            className="z-[60] w-[var(--radix-select-trigger-width)] max-h-[var(--radix-select-content-available-height)] overflow-y-auto bg-ax-surface border border-ax-border rounded-ax-control shadow-ax-panel">
+          <Select.Content position="popper" align="end" sideOffset={6} collisionPadding={8}
+            className="z-[60] w-[var(--radix-select-trigger-width)] min-w-[min(20rem,calc(100vw-2rem))] max-h-[var(--radix-select-content-available-height)] overflow-y-auto bg-ax-surface border border-ax-border rounded-ax-control shadow-ax-panel">
             <Select.Viewport className="p-1">
               {SCORE_TYPES.map(s => (
                 <Select.Item key={s.value} value={s.value} disabled={!scoreTypeAllowed(lock, s.value)}
