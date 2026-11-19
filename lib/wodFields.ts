@@ -5,6 +5,7 @@
 
 import type { Audience } from '@/lib/audience';
 import { ScoreType, proposedScoreType } from '@/lib/wodScoreType';
+import { freeDescription, splitFreeDescription } from '@/lib/freeTextWod';
 
 export type WodType = 'for-time' | 'amrap' | 'emom' | 'tabata' | 'strength' | 'custom';
 
@@ -71,6 +72,10 @@ export interface WodFormState {
   scoreType: ScoreType | '';
   /** Vrai tant que le Score suit la valeur proposée par le Type (création, non touché). */
   scoreTypeAuto: boolean;
+  /** `lines` = mouvements structurés ; `free` = texte libre affiché tel quel (#453). */
+  textMode: 'lines' | 'free';
+  /** Texte libre (mode `free`) ; les séries de Musculation et de Cardio restent dans `movements`. */
+  freeText: string;
   emomInterval: string;
   tabataWork: string;
   tabataRest: string;
@@ -96,6 +101,7 @@ export const EMPTY_WOD_FORM: WodFormState = {
   timeCap: '', rounds: '', notes: '', videoUrl: '',
   leaderboard: true,
   scoreType: '', scoreTypeAuto: true,
+  textMode: 'lines', freeText: '',
   emomInterval: '1', tabataWork: '20', tabataRest: '10',
   date: '', published: true, publishMode: 'now', publishHour: '06', publishMin: '00',
   audience: '', groupIds: [], programIds: [], offerWeeks: {},
@@ -125,7 +131,7 @@ export interface SharedWodColumns {
 export function sharedWodColumns(form: WodFormState, movements: string[]): SharedWodColumns {
   return {
     title: form.title.trim(),
-    description: descriptionToSave(null, movements),
+    description: wodDescription(form, null, movements),
     wod_type: form.wod_type || null,
     block_name: form.block || null,
     time_cap_seconds: parseCap(form.timeCap),
@@ -175,6 +181,21 @@ export function descriptionToSave(original: string | null, movements: string[]):
     if (read.length === movements.length && read.every((l, i) => l === movements[i])) return original;
   }
   return movements.map(l => l.trim()).filter(Boolean).join('\n') || null;
+}
+
+/**
+ * Description enregistrée : en texte libre, les séries (Musculation, Cardio)
+ * puis le texte tel quel ; sinon `descriptionToSave`.
+ */
+export function wodDescription(form: Pick<WodFormState, 'textMode' | 'freeText'>, original: string | null, movements: string[]): string | null {
+  return form.textMode === 'free' ? freeDescription(movements, form.freeText) : descriptionToSave(original, movements);
+}
+
+/** WOD relu → lignes de l'éditeur et texte libre (`text_mode = 'free'` : séries de tête seulement). */
+export function editorContent(description: string | null, textMode: string | null | undefined): { movements: string[]; textMode: 'lines' | 'free'; freeText: string } {
+  if (textMode !== 'free') return { movements: movementLines(description), textMode: 'lines', freeText: '' };
+  const { blockLines, freeText } = splitFreeDescription(description);
+  return { movements: blockLines, textMode: 'free', freeText };
 }
 
 /** `description` → lignes de l'éditeur de mouvements. */

@@ -143,13 +143,15 @@ export function sortScoresByWod<T extends SortableScore & { wod_id: string }>(
 export interface BoxWodScoreColumns {
   score_type: ScoreType | null;
   leaderboard_enabled: boolean;
+  text_mode: 'lines' | 'free';
 }
 
 /** « Sans score » ⇒ classement coupé, quoi que dise l'interrupteur (CHECK en base). */
-export function boxWodScoreColumns(scoreType: ScoreType | '', leaderboard: boolean): BoxWodScoreColumns {
+export function boxWodScoreColumns(scoreType: ScoreType | '', leaderboard: boolean, textMode: 'lines' | 'free' = 'lines'): BoxWodScoreColumns {
   return {
     score_type: scoreType || null,
     leaderboard_enabled: scoreType === 'none' ? false : leaderboard,
+    text_mode: textMode,
   };
 }
 

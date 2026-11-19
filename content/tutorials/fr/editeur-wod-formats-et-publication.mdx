@@ -1,10 +1,10 @@
 ---
 slug: editeur-wod-formats-et-publication
 title: EMOM, Tabata, time cap et publication programmée d'un WOD
-summary: Règle un EMOM ou un Tabata, programme l'heure de publication, choisis si les scores sont classés et copie le WOD dans une offre Marketplace.
+summary: Règle un EMOM ou un Tabata, choisis le score, écris la séance en texte libre, programme l'heure de publication, choisis si les scores sont classés et copie le WOD dans une offre Marketplace.
 role: both
 pages: [whiteboard]
-tags: [emom, e2mom, tabata, time cap, rounds, block, publier, programmer, heure, classement, leaderboard, offre marketplace]
+tags: [emom, e2mom, tabata, time cap, rounds, block, score, sans score, texte libre, publier, programmer, heure, classement, leaderboard, offre marketplace]
 order: 28
 ---
 
@@ -19,6 +19,19 @@ Ces réglages se trouvent dans la fenêtre **Créer un WOD** (ou **Modifier le W
 3. Dans **Type (optionnel)**, choisis **EMOM** : la ligne **Intervalle EMOM** propose **EMOM**, **E2MOM**, **E3MOM**, **E4MOM** et **E5MOM**. Le texte dessous confirme le choix, par exemple « Un intervalle = 2 min entre chaque départ. ». <Screenshot src="/tutorials/editeur-wod-formats-et-publication/1.png" alt="Fenêtre Créer un WOD avec le type EMOM et l'intervalle E2MOM sélectionné" />
 4. Pour un **Tabata**, règle **Travail (sec)** et **Repos (sec)** : 20 et 10 par défaut. Le travail vaut au moins 5 secondes. <Screenshot src="/tutorials/editeur-wod-formats-et-publication/2.png" alt="Fenêtre Créer un WOD avec le type Tabata, Travail 20 secondes et Repos 10 secondes" />
 5. Plus bas, remplis **Time Cap (mm:ss)**, par exemple `12:30`, et **Rounds (optionnel)**. Un nombre seul dans le time cap compte en minutes : `12` donne 12:00.
+
+## Choisir le score
+
+1. À droite de **Type (optionnel)**, le champ **Score** (obligatoire) propose : **Temps** (temps final ; au time cap, l'athlète saisit ses reps), **Tours + reps** (tours complets + reps du tour en cours), **Reps totales**, **Charge (kg)** (meilleure charge soulevée) et **Sans score** (séance seulement marquée faite, sans classement).
+2. Tant que tu n'y as pas touché, le Score suit le Type : For Time → Temps, AMRAP → Tours + reps, EMOM et Tabata → Reps totales, Force → Charge (kg). Choisis-en un autre si ta séance se mesure autrement.
+3. **Sans score** coupe le classement : **Classement** est grisé, « Pas de classement sans score ».
+4. Un WOD créé avant ce champ s'ouvre avec « Non défini : les athlètes choisissent. » : tu peux le laisser ainsi. Si des athlètes ont déjà posé des scores, seul leur type reste possible ; la raison s'affiche sous le champ (par exemple « 2 scores existent déjà en « Temps » : seul ce type reste possible. »).
+
+## Écrire la séance en texte libre
+
+1. Dans l'en-tête de **Programme / Mouvements**, choisis **Texte libre** au lieu de **Mouvements**.
+2. Écris la séance comme au tableau : elle s'affiche telle quelle dans l'app, retours à la ligne compris. En passant de **Mouvements** à **Texte libre**, tes lignes actuelles pré-remplissent le texte ; dans l'autre sens, le texte est relu ligne par ligne et une ligne non reconnue reste une ligne libre : rien n'est perdu.
+3. Sous le texte, **Ce que l'app comprend** montre les mouvements qui comptent dans les badges : voir « Mouvements et badges ».
 
 ## Publier maintenant ou à l'heure voulue
 
@@ -37,7 +50,10 @@ Ces réglages se trouvent dans la fenêtre **Créer un WOD** (ou **Modifier le W
 
 ## Erreurs fréquentes
 
-- **Créer le WOD reste grisé.** Il manque le **Titre**, la **Date** ou le choix de **Qui reçoit ce WOD ?** (« Choisis qui voit ce WOD ») → complète-les.
+- **Créer le WOD reste grisé.** Il manque le **Titre**, la **Date**, le **Score** ou le choix de **Qui reçoit ce WOD ?** (« Choisis qui voit ce WOD ») → complète-les.
+- **Le Score ne se change pas.** Des athlètes ont déjà posé des scores d'un autre type : la raison est affichée sous le champ → garde le type de ces scores.
+- **Classement est grisé.** Le Score est sur **Sans score** → choisis un autre score pour classer les athlètes.
+- **Pas de Score ni de Texte libre dans une offre Marketplace.** « Le type de score et le texte libre ne sont pas encore disponibles pour une offre Marketplace. » → écris la séance en **Mouvements**.
 - **Les athlètes ne voient pas la séance ce matin.** Elle est en **Programmer** et l'**Heure** n'est pas encore passée → avance l'heure ou choisis **Maintenant**.
 - **Le WOD porte le badge Brouillon.** **Publier** est désactivé → active-le, ou clique l'œil **Publier** de la carte.
 - **L'intervalle ou le Tabata a disparu.** Ces réglages ne sont gardés que pour le type **EMOM** ou **Tabata** → remets le bon type.

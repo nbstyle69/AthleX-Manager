@@ -19,6 +19,13 @@ Athlete movement badges are computed from completed reps, movement by movement. 
 3. Enter the reps and the men's / women's loads: the badge is computed from reps, the loads serve the athlete and the ranking. <Screenshot src="/tutorials/mouvements-et-badges/2.png" alt="Completed movement line with reps and loads" />
 4. Repeat for every metcon line, then click **Créer le WOD** (or **Enregistrer**). After the session, the reps validated by athletes feed their badges with no further action from you.
 
+## As free text
+
+1. With **Texte libre**, the **Ce que l'app comprend** preview (what the app understands) reads your session the way the app does: each line is split on "+", `@43/29` gives the ♂ / ♀ loads and `15/12 cal` the ♂ / ♀ quantities. Format, rest, time cap and target lines do not count (« Non comptées »).
+2. In green, the recognised movements: only the exact name from the official list counts, plural aside ("thrusters" → Thruster). In orange, the lines **à corriger** (to fix): « écris « SkiErg » pour compter 15 / 12 cal » when a close name exists, « pas encore compté par l'app » for a movement the app does not read in free text yet. The counter sums it up: « 6 mouvements comptent · 3 à corriger ».
+3. Recognised movements are credited to badges only when the score proves the session was finished: a **Temps** not stopped at the time cap. A score in reps, rounds + reps, load, stopped at the cap or « Faite » credits nothing in free text.
+4. With **Mouvements**, a For Time stopped at the time cap credits the first X reps in the WOD's order, never more than the written session.
+
 ## Common mistakes
 
 - **A hand-typed movement gives no badge.** Out of catalogue, it is stored with its raw name and credits nothing; reopened, the line becomes free text, without the list → delete it (bin), add it again with **Ajouter** and take the list entry.
