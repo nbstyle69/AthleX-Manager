@@ -1,0 +1,276 @@
+{
+  "_doc": "Lecture d'un WOD en texte libre (#453) : cas partagés app / Manager, identiques octet pour octet (app : src/__tests__/fixtures/free-text-wod-contract.json ; Manager : aperçu « Ce que l'app comprend »). blocks = suite continue de lignes EN TÊTE au format du bloc Musculation (strengthBlock, % du max de gymnastique compris) ou d'une série Cardio (cardioBlock), sans espaces de bord, dans l'ordre ; dès la première ligne qui n'a pas ce format (ligne vide comprise), tout le reste est du texte libre, même une ligne plus loin au format d'une série ; rest = le texte après ces lignes, retours à la ligne gardés, sans lignes vides en tête ni espaces en fin (affiché tel quel, seul lu comme metcon) ; recognized = mouvements reconnus (nom du catalogue, quantités ♂ / ♀, charges ♂ / ♀) ; toFix = morceaux à corriger ; ignored = lignes de format, repos, time cap, objectif.",
+  "cases": [
+    {
+      "name": "RXP 01 (Road to open), exemple de la maquette",
+      "text": "For time\n21 pull-ups + 15/12 cal ski + 21 thrusters @43/29\n1'30 rest\n18 chest-to-bar + 15/12 cal ski + 18 thrusters @43/29\n1'30 rest\n15 bar muscle-ups + 12/9 cal ski + 15 thrusters @43/29\nTC 14'\nRX+ : 12'",
+      "expected": {
+        "blocks": [],
+        "rest": "For time\n21 pull-ups + 15/12 cal ski + 21 thrusters @43/29\n1'30 rest\n18 chest-to-bar + 15/12 cal ski + 18 thrusters @43/29\n1'30 rest\n15 bar muscle-ups + 12/9 cal ski + 15 thrusters @43/29\nTC 14'\nRX+ : 12'",
+        "recognized": [
+          {
+            "segment": "21 pull-ups",
+            "name": "Pull-ups",
+            "unit": "reps",
+            "reps": {
+              "male": 21,
+              "female": 21
+            },
+            "loadKg": null
+          },
+          {
+            "segment": "21 thrusters @43/29",
+            "name": "Thruster",
+            "unit": "reps",
+            "reps": {
+              "male": 21,
+              "female": 21
+            },
+            "loadKg": {
+              "male": 43,
+              "female": 29
+            }
+          },
+          {
+            "segment": "18 chest-to-bar",
+            "name": "Chest-to-Bar",
+            "unit": "reps",
+            "reps": {
+              "male": 18,
+              "female": 18
+            },
+            "loadKg": null
+          },
+          {
+            "segment": "18 thrusters @43/29",
+            "name": "Thruster",
+            "unit": "reps",
+            "reps": {
+              "male": 18,
+              "female": 18
+            },
+            "loadKg": {
+              "male": 43,
+              "female": 29
+            }
+          },
+          {
+            "segment": "15 bar muscle-ups",
+            "name": "Bar Muscle-ups",
+            "unit": "reps",
+            "reps": {
+              "male": 15,
+              "female": 15
+            },
+            "loadKg": null
+          },
+          {
+            "segment": "15 thrusters @43/29",
+            "name": "Thruster",
+            "unit": "reps",
+            "reps": {
+              "male": 15,
+              "female": 15
+            },
+            "loadKg": {
+              "male": 43,
+              "female": 29
+            }
+          }
+        ],
+        "toFix": [
+          "15/12 cal ski",
+          "15/12 cal ski",
+          "12/9 cal ski"
+        ],
+        "ignored": [
+          "For time",
+          "1'30 rest",
+          "1'30 rest",
+          "TC 14'",
+          "RX+ : 12'"
+        ]
+      }
+    },
+    {
+      "name": "Format, objectif, cardio du catalogue, singulier d'un nom pluriel, mouvement sans quantité",
+      "text": "AMRAP 12'\n10 wall balls @9/6\n20/15 cal SkiErg + 1 pull-up\n\nObjectif : 6 tours\nRun",
+      "expected": {
+        "blocks": [],
+        "rest": "AMRAP 12'\n10 wall balls @9/6\n20/15 cal SkiErg + 1 pull-up\n\nObjectif : 6 tours\nRun",
+        "recognized": [
+          {
+            "segment": "10 wall balls @9/6",
+            "name": "Wall Balls",
+            "unit": "reps",
+            "reps": {
+              "male": 10,
+              "female": 10
+            },
+            "loadKg": {
+              "male": 9,
+              "female": 6
+            }
+          },
+          {
+            "segment": "20/15 cal SkiErg",
+            "name": "SkiErg",
+            "unit": "cal",
+            "reps": {
+              "male": 20,
+              "female": 15
+            },
+            "loadKg": null
+          }
+        ],
+        "toFix": [
+          "1 pull-up",
+          "Run"
+        ],
+        "ignored": [
+          "AMRAP 12'",
+          "Objectif : 6 tours"
+        ]
+      }
+    },
+    {
+      "name": "Texte libre + bloc Musculation (charge, % du max) + série Cardio en tête (Manager)",
+      "text": "Back Squat — 5 × 3 @ 80 %1RM — repos 2:00\nRing Muscle-ups — 3 × 50 % du max\nRow ~ 2 × 500 m ~ 2:00/500 m ~ repos 1:30\n\nFor time\n21 thrusters @43/29 + 21 pull-ups\nTC 10'",
+      "expected": {
+        "blocks": [
+          "Back Squat — 5 × 3 @ 80 %1RM — repos 2:00",
+          "Ring Muscle-ups — 3 × 50 % du max",
+          "Row ~ 2 × 500 m ~ 2:00/500 m ~ repos 1:30"
+        ],
+        "rest": "For time\n21 thrusters @43/29 + 21 pull-ups\nTC 10'",
+        "recognized": [
+          {
+            "segment": "21 thrusters @43/29",
+            "name": "Thruster",
+            "unit": "reps",
+            "reps": {
+              "male": 21,
+              "female": 21
+            },
+            "loadKg": {
+              "male": 43,
+              "female": 29
+            }
+          },
+          {
+            "segment": "21 pull-ups",
+            "name": "Pull-ups",
+            "unit": "reps",
+            "reps": {
+              "male": 21,
+              "female": 21
+            },
+            "loadKg": null
+          }
+        ],
+        "toFix": [],
+        "ignored": [
+          "For time",
+          "TC 10'"
+        ]
+      }
+    },
+    {
+      "name": "Série au milieu du texte : reste du texte (affichée telle quelle, à corriger pour la lecture metcon), lignes vides gardées",
+      "text": "AMRAP 8'\n10 burpees\n\nSkiErg ~ 4 × 20 cal ~ RPE 6\n\nAMRAP 6'\n20 wall balls @9/6\n",
+      "expected": {
+        "blocks": [],
+        "rest": "AMRAP 8'\n10 burpees\n\nSkiErg ~ 4 × 20 cal ~ RPE 6\n\nAMRAP 6'\n20 wall balls @9/6",
+        "recognized": [
+          {
+            "segment": "10 burpees",
+            "name": "Burpees",
+            "unit": "reps",
+            "reps": {
+              "male": 10,
+              "female": 10
+            },
+            "loadKg": null
+          },
+          {
+            "segment": "20 wall balls @9/6",
+            "name": "Wall Balls",
+            "unit": "reps",
+            "reps": {
+              "male": 20,
+              "female": 20
+            },
+            "loadKg": {
+              "male": 9,
+              "female": 6
+            }
+          }
+        ],
+        "toFix": [
+          "SkiErg ~ 4 × 20 cal ~ RPE 6"
+        ],
+        "ignored": [
+          "AMRAP 8'",
+          "AMRAP 6'"
+        ]
+      }
+    },
+    {
+      "name": "Blocs en tête puis texte : une série plus loin reste du texte",
+      "text": "Back Squat — 5 × 5 @ 100 kg\nRow ~ 3 × 250 m\nFor time\n21 thrusters @43/29\nBack Squat — 3 × 3 @ 110 kg\nSkiErg ~ 2 × 15 cal",
+      "expected": {
+        "blocks": [
+          "Back Squat — 5 × 5 @ 100 kg",
+          "Row ~ 3 × 250 m"
+        ],
+        "rest": "For time\n21 thrusters @43/29\nBack Squat — 3 × 3 @ 110 kg\nSkiErg ~ 2 × 15 cal",
+        "recognized": [
+          {
+            "segment": "21 thrusters @43/29",
+            "name": "Thruster",
+            "unit": "reps",
+            "reps": {
+              "male": 21,
+              "female": 21
+            },
+            "loadKg": {
+              "male": 43,
+              "female": 29
+            }
+          }
+        ],
+        "toFix": [
+          "Back Squat — 3 × 3 @ 110 kg",
+          "SkiErg ~ 2 × 15 cal"
+        ],
+        "ignored": [
+          "For time"
+        ]
+      }
+    },
+    {
+      "name": "Ligne vide en tête : aucun bloc, tout est du texte",
+      "text": "\nBack Squat — 5 × 5 @ 100 kg\n10 burpees",
+      "expected": {
+        "blocks": [],
+        "rest": "Back Squat — 5 × 5 @ 100 kg\n10 burpees",
+        "recognized": [
+          {
+            "segment": "10 burpees",
+            "name": "Burpees",
+            "unit": "reps",
+            "reps": {
+              "male": 10,
+              "female": 10
+            },
+            "loadKg": null
+          }
+        ],
+        "toFix": [
+          "Back Squat — 5 × 5 @ 100 kg"
+        ],
+        "ignored": []
+      }
+    }
+  ]
+}

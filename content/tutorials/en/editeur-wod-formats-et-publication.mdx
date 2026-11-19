@@ -1,10 +1,10 @@
 ---
 slug: editeur-wod-formats-et-publication
 title: EMOM, Tabata, time cap and scheduled publishing of a WOD
-summary: Set up an EMOM or a Tabata, schedule the publishing time, choose whether scores are ranked and copy the WOD into a Marketplace offer.
+summary: Set up an EMOM or a Tabata, choose the score, write the session as free text, schedule the publishing time, choose whether scores are ranked and copy the WOD into a Marketplace offer.
 role: both
 pages: [whiteboard]
-tags: [emom, e2mom, tabata, time cap, rounds, block, publish, schedule, time, ranking, leaderboard, marketplace offer]
+tags: [emom, e2mom, tabata, time cap, rounds, block, score, no score, free text, publish, schedule, time, ranking, leaderboard, marketplace offer]
 order: 28
 ---
 
@@ -19,6 +19,20 @@ These settings live in the **Créer un WOD** (or **Modifier le WOD**) window of 
 3. In **Type (optionnel)**, pick **EMOM**: the **Intervalle EMOM** row offers **EMOM**, **E2MOM**, **E3MOM**, **E4MOM** and **E5MOM**. The text below confirms the choice, for example « Un intervalle = 2 min entre chaque départ. » (one interval = 2 min between starts). <Screenshot src="/tutorials/editeur-wod-formats-et-publication/1.png" alt="Créer un WOD window with the EMOM type and the E2MOM interval selected" />
 4. For a **Tabata**, set **Travail (sec)** (work) and **Repos (sec)** (rest): 20 and 10 by default. Work is at least 5 seconds. <Screenshot src="/tutorials/editeur-wod-formats-et-publication/2.png" alt="Créer un WOD window with the Tabata type, Work 20 seconds and Rest 10 seconds" />
 5. Further down, fill **Time Cap (mm:ss)**, for example `12:30`, and **Rounds (optionnel)**. A bare number in the time cap counts as minutes: `12` gives 12:00.
+
+## Choose the score
+
+1. To the right of **Type (optionnel)**, the **Score** field (required) offers: **Temps** (final time; at the time cap, the athlete enters their reps), **Tours + reps** (full rounds + reps of the round in progress), **Reps totales** (total reps), **Charge (kg)** (best load lifted) and **Sans score** (session only marked as done, no ranking).
+2. Until you touch it, the Score follows the Type: For Time → Temps, AMRAP → Tours + reps, EMOM and Tabata → Reps totales, Force → Charge (kg). Pick another one if your session is measured differently.
+3. **Sans score** turns ranking off: **Classement** is greyed out, « Pas de classement sans score » (no ranking without a score).
+4. A WOD created before this field opens with « Non défini : les athlètes choisissent. » (not set: athletes choose): you can leave it that way. If athletes have already posted scores, only their type stays possible; the reason shows under the field (for example « 2 scores existent déjà en « Temps » : seul ce type reste possible. »).
+
+## Write the session as free text
+
+1. In the **Programme / Mouvements** header, pick **Texte libre** (free text) instead of **Mouvements**.
+2. Write the session as on the board: it shows as is in the app, line breaks included. Going from **Mouvements** to **Texte libre**, your current lines prefill the text; the other way, the text is read back line by line and a line that is not recognised stays a free line: nothing is lost.
+3. Musculation and Cardio sets are read only when they are written at the top, before the rest of the text. The editor's **Musculation** and **Cardio** blocks write them at the top for you.
+3. Under the text, **Ce que l'app comprend** (what the app understands) shows the movements that count towards badges: see « Mouvements et badges ».
 
 ## Publish now or at a set time
 
@@ -37,7 +51,10 @@ These settings live in the **Créer un WOD** (or **Modifier le WOD**) window of 
 
 ## Common mistakes
 
-- **Créer le WOD stays greyed out.** The **Titre**, the **Date** or the **Qui reçoit ce WOD ?** choice is missing (« Choisis qui voit ce WOD ») → fill them in.
+- **Créer le WOD stays greyed out.** The **Titre**, the **Date**, the **Score** or the **Qui reçoit ce WOD ?** choice is missing (« Choisis qui voit ce WOD ») → fill them in.
+- **The Score cannot be changed.** Athletes have already posted scores of another type: the reason shows under the field → keep the type of those scores.
+- **Classement is greyed out.** The Score is on **Sans score** → pick another score to rank athletes.
+- **No Score or Texte libre in a Marketplace offer.** « Le type de score et le texte libre ne sont pas encore disponibles pour une offre Marketplace. » (not available yet for a Marketplace offer) → write the session with **Mouvements**.
 - **Athletes do not see the session this morning.** It is on **Programmer** and the **Heure** has not passed yet → bring the time forward or choose **Maintenant**.
 - **The WOD carries the Brouillon (draft) badge.** **Publier** is off → turn it on, or click the **Publier** eye on the card.
 - **The interval or the Tabata settings are gone.** They are only kept for the **EMOM** or **Tabata** type → set the right type again.

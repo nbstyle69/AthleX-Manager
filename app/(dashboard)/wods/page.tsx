@@ -30,7 +30,7 @@ import PdfImportModal from '@/components/wods/PdfImportModal';
 import { applyWeekNotes } from '@/lib/programWeek';
 import {
   BLOCK_COLOR, BLOCK_LABEL, DAY_LABELS, EMPTY_WOD_FORM, TYPE_COLOR,
-  WodFormState, WodType, descriptionToSave, formatCap, movementLines, parseCap, sharedWodColumns,
+  WodFormState, WodType, descriptionToSave, editorContent, formatCap, movementLines, parseCap, sharedWodColumns, wodDescription,
 } from '@/lib/wodFields';
 import { downloadWodCsvTemplate, parseWodImportFile, VALID_WOD_TYPES } from '@/lib/wodImport';
 import { stripWodJson, withWodJson, writeWithWodJsonFallback } from '@/lib/wodJson';
@@ -371,6 +371,7 @@ export default function WODsPage() {
     const offerWeeks: Record<string, number> = {};
     ((copies ?? []) as { programming_id: string; week_number: number }[]).forEach(c => { offerWeeks[c.programming_id] = c.week_number; });
     setEditOfferWeeks(offerWeeks);
+    const content = editorContent(wod.description, wod.text_mode);
     setForm({
       ...EMPTY_WOD_FORM,
       title: wod.title, description: wod.description ?? '',
@@ -381,6 +382,7 @@ export default function WODsPage() {
       notes: wod.notes ?? '', videoUrl: wod.video_url ?? '', published: wod.is_published,
       leaderboard: (wod as any).leaderboard_enabled ?? true,
       scoreType: wod.score_type ?? '', scoreTypeAuto: false,
+      textMode: content.textMode, freeText: content.freeText,
       audience: wod.audience,
       groupIds: wod.audience === 'groups' ? gIds : [],
       programIds: pIds,
@@ -392,7 +394,7 @@ export default function WODsPage() {
       tabataWork: wod.tabata_work_seconds ? String(wod.tabata_work_seconds) : '20',
       tabataRest: wod.tabata_rest_seconds != null ? String(wod.tabata_rest_seconds) : '10',
     });
-    setMovements(movementLines(wod.description));
+    setMovements(content.movements);
     setFormError(null);
     setModal(true);
   }
@@ -403,9 +405,9 @@ export default function WODsPage() {
     setSaving(true); setFormError(null);
     const payload = withWodJson({
       ...sharedWodColumns(form, movements),
-      ...boxWodScoreColumns(form.scoreType, form.leaderboard),
+      ...boxWodScoreColumns(form.scoreType, form.leaderboard, form.textMode),
       // Séance ouverte sans toucher aux mouvements : description d'origine, intacte.
-      description: descriptionToSave(editWOD?.description ?? null, movements),
+      description: wodDescription(form, editWOD?.description ?? null, movements),
       box_id: boxId, created_by: userId,
       scheduled_date: form.date,
       audience: form.audience,

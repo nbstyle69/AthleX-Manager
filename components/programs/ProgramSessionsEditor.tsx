@@ -17,7 +17,7 @@ import { programColor } from '@/components/wods/RestrictionBadges';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import {
-  BLOCK_COLOR, BLOCK_LABEL, DAY_LABELS, EMPTY_WOD_FORM, TYPE_COLOR, WodFormState, formatCap, movementLines,
+  BLOCK_COLOR, BLOCK_LABEL, DAY_LABELS, EMPTY_WOD_FORM, TYPE_COLOR, WodFormState, editorContent, formatCap, movementLines,
 } from '@/lib/wodFields';
 import {
   CaseProgramme, ProgramWod,
@@ -146,7 +146,7 @@ export default function ProgramSessionsEditor({ program, userId, onClose, onChan
     setScoreLock(await loadScoreLock(createClient(), w.id));
     setEditWod(w);
     setForm(formulaireDepuisSeance(w, week));
-    setMovements(movementLines(w.description));
+    setMovements(editorContent(w.description, w.text_mode).movements);
     setFormError(null);
     setModal(true);
   }

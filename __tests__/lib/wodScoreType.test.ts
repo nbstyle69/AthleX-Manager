@@ -72,9 +72,9 @@ describe('Sans score ⇒ classement coupé', () => {
   });
 
   it('les colonnes envoient leaderboard_enabled = false même si l’interrupteur dit oui', () => {
-    expect(boxWodScoreColumns('none', true)).toEqual({ score_type: 'none', leaderboard_enabled: false });
-    expect(boxWodScoreColumns('time', true)).toEqual({ score_type: 'time', leaderboard_enabled: true });
-    expect(boxWodScoreColumns('', true)).toEqual({ score_type: null, leaderboard_enabled: true });
+    expect(boxWodScoreColumns('none', true)).toEqual({ score_type: 'none', leaderboard_enabled: false, text_mode: 'lines' });
+    expect(boxWodScoreColumns('time', true)).toEqual({ score_type: 'time', leaderboard_enabled: true, text_mode: 'lines' });
+    expect(boxWodScoreColumns('', true)).toEqual({ score_type: null, leaderboard_enabled: true, text_mode: 'lines' });
   });
 });
 

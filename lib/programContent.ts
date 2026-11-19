@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/client';
 import { stripWodJson, withWodJson, writeWithWodJsonFallback } from '@/lib/wodJson';
 import {
-  EMPTY_WOD_FORM, SharedWodColumns, WodFormState, formatCap, sharedWodColumns,
+  EMPTY_WOD_FORM, SharedWodColumns, WodFormState, editorContent, formatCap, sharedWodColumns,
 } from '@/lib/wodFields';
 import { BoxWodScoreColumns, boxWodScoreColumns } from '@/lib/wodScoreType';
 
@@ -25,8 +25,6 @@ import { BoxWodScoreColumns, boxWodScoreColumns } from '@/lib/wodScoreType';
 
 export type ProgramWod = SharedWodColumns & BoxWodScoreColumns & {
   id: string;
-  /** `lines` | `free` (#453) : recopié tel quel par « Dupliquer la semaine ». */
-  text_mode: 'lines' | 'free';
   scheduled_date: string | null;
   program_week: number | null;
   program_day: number | null;
@@ -38,7 +36,6 @@ export type ProgramWod = SharedWodColumns & BoxWodScoreColumns & {
 export interface CaseProgramme { week: number; day: number }
 
 export type ProgramWodPayload = SharedWodColumns & BoxWodScoreColumns & {
-  text_mode?: 'lines' | 'free';
   scheduled_date: null;
   program_week: number;
   program_day: number;
@@ -155,6 +152,8 @@ export function formulaireDepuisSeance(w: ProgramWod, semaineAffichee: number): 
     leaderboard: false,
     scoreType: w.score_type ?? '',
     scoreTypeAuto: false,
+    textMode: editorContent(w.description, w.text_mode).textMode,
+    freeText: editorContent(w.description, w.text_mode).freeText,
     published: w.is_published ?? true,
     emomInterval: w.emom_interval_minutes ? String(w.emom_interval_minutes) : '1',
     tabataWork: w.tabata_work_seconds ? String(w.tabata_work_seconds) : '20',
@@ -180,7 +179,7 @@ export function colonnesSeance(form: WodFormState, movements: string[]): Program
   const day = Math.min(7, Math.max(1, Math.floor(form.dayOfWeek)));
   return {
     ...sharedWodColumns(form, movements),
-    ...boxWodScoreColumns(form.scoreType, false),
+    ...boxWodScoreColumns(form.scoreType, false, form.textMode),
     scheduled_date: null,
     program_week: week,
     program_day: day,

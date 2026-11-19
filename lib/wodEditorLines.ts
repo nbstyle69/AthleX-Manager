@@ -3,7 +3,7 @@ import {
 } from '@/lib/strengthBlock';
 import { gymPrLabel } from '@/lib/gymMovements';
 import { CardioEntry, parseCardioLine, serializeCardio, splitCardioLines } from '@/lib/cardioBlock';
-import { MovementRow, serializeMovementRows } from '@/lib/wodMovementRows';
+import { MovementRow, movementRowsFromLines, serializeMovementRows } from '@/lib/wodMovementRows';
 
 /**
  * Lignes Musculation et Cardio telles que le WodEditor les édite : structurées,
@@ -102,4 +102,26 @@ export function composeMovements(wod: MovementRow[], strength: StrengthRow[], ca
     ...cardio.map(serializeCardioRow).filter(Boolean),
     ...serializeMovementRows(wod),
   ];
+}
+
+/**
+ * `movements` de l'éditeur : en texte libre (#453), seulement les séries
+ * (Musculation, Cardio) — le texte vit à part et s'enregistre après elles.
+ */
+export function editorMovements(free: boolean, wod: MovementRow[], strength: StrengthRow[], cardio: CardioRow[]): string[] {
+  return composeMovements(free ? [] : wod, strength, cardio);
+}
+
+/** Mouvements → Texte libre (#453) : les lignes actuelles pré-remplissent le texte. */
+export function freeTextFromRows(rows: MovementRow[]): string {
+  return composeMovements(rows, [], []).join('\n');
+}
+
+/**
+ * Texte libre → Mouvements : relu par la logique des lignes. Une ligne non
+ * reconnue reste une ligne libre, gardée telle quelle : seules les lignes
+ * vides disparaissent.
+ */
+export function rowsFromFreeText(text: string): MovementRow[] {
+  return movementRowsFromLines(text.split('\n').map(l => l.trim()).filter(Boolean));
 }

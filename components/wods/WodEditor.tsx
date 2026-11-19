@@ -27,6 +27,8 @@ import {
 import { BLOCKS, DAY_LABELS, WOD_TYPES, WodFormState, withScoreType, withWodType } from '@/lib/wodFields';
 import { MARKETPLACE_SCORE_NOTE, SCORE_FREE, ScoreLock } from '@/lib/wodScoreType';
 import ScoreTypeSelect from '@/components/wods/ScoreTypeSelect';
+import FreeTextPreview from '@/components/wods/FreeTextPreview';
+import { FREE_TEXT_BLOCKS_RULE } from '@/lib/freeTextWod';
 import {
   CardioRow,
   STRENGTH_UNIT_LABEL,
@@ -34,7 +36,9 @@ import {
   StrengthUnitChoice,
   cardioRowsFromLines,
   changeStrengthUnit,
-  composeMovements,
+  editorMovements,
+  freeTextFromRows,
+  rowsFromFreeText,
   serializeCardioRow,
   serializeStrengthRow,
   strengthRowError,
@@ -140,8 +144,28 @@ export default function WodEditor({
     () => movementRowsFromLines(movements.filter(l => !isStrengthLine(l) && !isCardioLine(l))),
   );
 
-  const commit = (wod: MovementRow[], strength: StrengthRow[], cardio: CardioRow[]) =>
-    setMovements(composeMovements(wod, strength, cardio));
+  // Texte libre : `movements` ne porte que les séries (Musculation, Cardio) ;
+  // le texte vit dans `form.freeText` et s'enregistre tel quel après elles.
+  const isFree = form.textMode === 'free';
+  const commit = (wod: MovementRow[], strength: StrengthRow[], cardio: CardioRow[], free = isFree) =>
+    setMovements(editorMovements(free, wod, strength, cardio));
+
+  // Mouvements → Texte libre : les lignes actuelles pré-remplissent le texte.
+  // Texte libre → Mouvements : relu par la logique des lignes (une ligne non
+  // reconnue reste une ligne libre, rien n'est perdu).
+  const setTextMode = (mode: 'lines' | 'free') => {
+    if (mode === form.textMode) return;
+    if (mode === 'free') {
+      const text = freeTextFromRows(wodRows);
+      setForm(f => ({ ...f, textMode: 'free', freeText: text }));
+      commit(wodRows, strengthRows, cardioRows, true);
+    } else {
+      const rows = rowsFromFreeText(form.freeText);
+      setWodRows(rows);
+      setForm(f => ({ ...f, textMode: 'lines' }));
+      commit(rows, strengthRows, cardioRows, false);
+    }
+  };
 
   const setWod = (rows: MovementRow[]) => {
     setWodRows(rows);
@@ -351,15 +375,46 @@ export default function WodEditor({
           </div>
 
           <div>
-            <div className="flex items-center justify-between mb-1.5">
-              <label className="block text-xs font-semibold text-ax-text-secondary uppercase tracking-wider">Programme / Mouvements</label>
-              <button type="button" onClick={addMovement} className="text-xs text-ax-text font-semibold flex items-center gap-1 hover:opacity-80">
-                <Plus size={12} /> Ajouter
-              </button>
+            <div data-testid="entete-programme" className="flex flex-wrap items-center justify-between gap-2 mb-1.5">
+              <label id="programme-label" className="block text-xs font-semibold text-ax-text-secondary uppercase tracking-wider">Programme / Mouvements</label>
+              <div className="flex items-center gap-3 ml-auto">
+                {!isFree && (
+                  <button type="button" onClick={addMovement} className="text-xs text-ax-text font-semibold flex items-center gap-1 hover:opacity-80">
+                    <Plus size={12} /> Ajouter
+                  </button>
+                )}
+                {/* Texte libre : `box_wods` seulement (pas de colonne côté Marketplace). */}
+                {hasScore && (
+                  <div data-testid="selecteur-mode" role="radiogroup" aria-labelledby="programme-label"
+                    className="flex gap-1 p-1 rounded-ax-control bg-ax-surface-secondary border border-ax-border">
+                    {(['lines', 'free'] as const).map(m => (
+                      <button key={m} type="button" role="radio" aria-checked={form.textMode === m}
+                        onClick={() => setTextMode(m)}
+                        className={`px-3 py-1.5 rounded-ax-control text-xs font-bold transition-colors ${form.textMode === m ? 'bg-ax-accent-soft text-ax-text border border-ax-input-border' : 'text-ax-text-secondary border border-transparent hover:text-ax-text'}`}>
+                        {m === 'lines' ? 'Mouvements' : 'Texte libre'}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
             <datalist id="box-movement-catalog">
               {movementCatalog.map(mv => <option key={mv.name} value={mv.name} />)}
             </datalist>
+            {isFree ? (
+              <div className="space-y-2">
+                <textarea data-testid="texte-libre" rows={8}
+                  className={`${inp} resize-y min-h-[12rem] [field-sizing:content] font-normal leading-relaxed`}
+                  value={form.freeText}
+                  onChange={e => { const v = e.target.value; setForm(f => ({ ...f, freeText: v })); }}
+                  aria-labelledby="programme-label"
+                  placeholder={'For time\n21 pull-ups + 15/12 cal SkiErg + 21 thrusters @43/29\n1\'30 rest\nTC 14\''} />
+                <p className="text-[11px] text-ax-text-muted">
+                  Écris la séance comme au tableau : elle s’affiche telle quelle dans l’app. Les mouvements reconnus comptent dans les badges des athlètes. {FREE_TEXT_BLOCKS_RULE}
+                </p>
+                <FreeTextPreview text={form.freeText} managerCatalog={movementCatalog.map(mv => mv.name)} blockLines={movements} />
+              </div>
+            ) : (
             <div className="space-y-2">
               {wodRows.map((parsed, i) => {
                 if (parsed.free) {
@@ -468,6 +523,7 @@ export default function WodEditor({
                 Les exercices cardio (Row, Bike, SkiErg, Run…) se comptent en mètres ou calories, avec une quantité ♂/♀ séparée si besoin.
               </p>
             </div>
+            )}
           </div>
 
           {/* Bloc Musculation — séries × reps × charge (kg ou %1RM), ou séries × % du max (gymnastique) */}
