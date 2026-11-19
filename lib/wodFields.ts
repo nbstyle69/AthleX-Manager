@@ -4,6 +4,7 @@
 // l'ancrage diffère — une date d'un côté, semaine × jour de l'autre.
 
 import type { Audience } from '@/lib/audience';
+import { ScoreType, proposedScoreType } from '@/lib/wodScoreType';
 
 export type WodType = 'for-time' | 'amrap' | 'emom' | 'tabata' | 'strength' | 'custom';
 
@@ -66,6 +67,10 @@ export interface WodFormState {
   notes: string;
   videoUrl: string;
   leaderboard: boolean;
+  /** Type de score choisi (#453) ; '' = non défini (les athlètes choisissent). */
+  scoreType: ScoreType | '';
+  /** Vrai tant que le Score suit la valeur proposée par le Type (création, non touché). */
+  scoreTypeAuto: boolean;
   emomInterval: string;
   tabataWork: string;
   tabataRest: string;
@@ -90,6 +95,7 @@ export const EMPTY_WOD_FORM: WodFormState = {
   title: '', description: '', wod_type: '', block: '',
   timeCap: '', rounds: '', notes: '', videoUrl: '',
   leaderboard: true,
+  scoreType: '', scoreTypeAuto: true,
   emomInterval: '1', tabataWork: '20', tabataRest: '10',
   date: '', published: true, publishMode: 'now', publishHour: '06', publishMin: '00',
   audience: '', groupIds: [], programIds: [], offerWeeks: {},
@@ -137,6 +143,22 @@ export function sharedWodColumns(form: WodFormState, movements: string[]): Share
       ? Math.max(0, parseInt(form.tabataRest) || 10)
       : null,
   };
+}
+
+/** Changement de Type : le Score suit la valeur proposée tant que le créateur ne l'a pas choisi. */
+export function withWodType(f: WodFormState, wodType: string): WodFormState {
+  return f.scoreTypeAuto ? withScore({ ...f, wod_type: wodType }, proposedScoreType(wodType)) : { ...f, wod_type: wodType };
+}
+
+/** Score choisi à la main : il ne suit plus le Type. */
+export function withScoreType(f: WodFormState, scoreType: ScoreType): WodFormState {
+  return { ...withScore(f, scoreType), scoreTypeAuto: false };
+}
+
+/** « Sans score » coupe le classement ; le quitter le rallume. */
+function withScore(f: WodFormState, scoreType: ScoreType | ''): WodFormState {
+  const leaderboard = scoreType === 'none' ? false : f.scoreType === 'none' ? true : f.leaderboard;
+  return { ...f, scoreType, leaderboard };
 }
 
 /**

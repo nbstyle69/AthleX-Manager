@@ -23,6 +23,7 @@ const seance = (o: Partial<ProgramWod>): ProgramWod => ({
   time_cap_seconds: null, rounds: null, notes: null, video_url: null,
   leaderboard_enabled: true, emom_interval_minutes: null, tabata_work_seconds: null, tabata_rest_seconds: null,
   scheduled_date: null, program_week: 1, program_day: 1, sort_order: 0, is_published: true,
+  score_type: null, text_mode: 'lines',
   ...o,
 });
 

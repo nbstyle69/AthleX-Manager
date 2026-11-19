@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient, getServerUser } from '@/lib/supabase/server';
 import { boxPlanInfo, type BoxSubscriptionTier } from '@/lib/boxPlanTier';
+import { sortScoresByWod } from '@/lib/wodScoreType';
 
 async function checkAdmin() {
   const user = await getServerUser();
@@ -60,9 +61,10 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
     const { data: s } = await supabase
       .from('wod_scores')
       .select('*, profile:profiles!wod_scores_member_id_fkey(username, level)')
-      .in('wod_id', wodIds)
-      .order('score_value', { ascending: true });
-    scores = s ?? [];
+      .in('wod_id', wodIds);
+    // Ordre par WOD, selon le type de score choisi par le créateur (#453) :
+    // un tri croissant global rangeait un AMRAP à l'envers.
+    scores = sortScoresByWod(s ?? [], wods ?? []);
   }
 
   // Tournois de la box (table `tournaments`, celle du back-office gérant)

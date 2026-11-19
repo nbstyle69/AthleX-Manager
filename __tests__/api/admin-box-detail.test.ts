@@ -87,4 +87,30 @@ describe('GET /api/admin/boxes/[id]', () => {
     expect(body.competitions).toHaveLength(0);
     expect(body.wod_count).toBe(0);
   });
+  it('trie les scores de chaque WOD selon son score_type (#453) : AMRAP décroissant, temps croissant, « Faite » à la fin', async () => {
+    mockGetServerUser.mockResolvedValue({ id: 'admin-1' });
+    mockCreateServiceClient.mockReturnValueOnce(serviceClient({ profiles: makeChain({ data: { role: 'super_admin' } }) }));
+    const wods = [{ id: 'amrap', score_type: 'rounds_reps' }, { id: 'fran', score_type: 'time' }, { id: 'mobi', score_type: 'none' }];
+    const boxWods = makeChain({ data: wods, error: null });
+    boxWods.select = jest.fn((_cols: string, opts?: any) =>
+      opts?.count === 'exact' ? makeChain({ data: null, count: 3, error: null }) : boxWods);
+    const scores = [
+      { id: 'a1', wod_id: 'amrap', score_type: 'rounds_reps', score_value: 5010 },
+      { id: 'f1', wod_id: 'fran', score_type: 'time', score_value: 300 },
+      { id: 'a2', wod_id: 'amrap', score_type: 'rounds_reps', score_value: 7002 },
+      { id: 'm1', wod_id: 'mobi', score_type: 'done', score_value: 1 },
+      { id: 'f2', wod_id: 'fran', score_type: 'time', score_value: 200 },
+    ];
+    mockCreateServiceClient.mockReturnValueOnce(serviceClient({
+      boxes: makeChain({ data: { id: BOX, name: 'AthleX Fitness' }, error: null }),
+      box_subscriptions: makeChain({ data: [], error: null }),
+      box_members: makeChain({ data: [], error: null }),
+      box_wods: boxWods,
+      wod_scores: makeChain({ data: scores, error: null }),
+      tournaments: makeChain({ data: [], error: null }),
+    }));
+    const res: any = await GET({} as any, { params: Promise.resolve({ id: BOX }) });
+    const body = await res.json();
+    expect(body.scores.map((s: any) => s.id)).toEqual(['a2', 'a1', 'f2', 'f1', 'm1']);
+  });
 });

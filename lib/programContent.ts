@@ -3,6 +3,7 @@ import { stripWodJson, withWodJson, writeWithWodJsonFallback } from '@/lib/wodJs
 import {
   EMPTY_WOD_FORM, SharedWodColumns, WodFormState, formatCap, sharedWodColumns,
 } from '@/lib/wodFields';
+import { BoxWodScoreColumns, boxWodScoreColumns } from '@/lib/wodScoreType';
 
 /**
  * Le contenu d'un programme athlète n'a pas de table à lui : c'est une ligne
@@ -22,8 +23,10 @@ import {
  * les parseurs de l'app la lisent sans code spécifique.
  */
 
-export type ProgramWod = SharedWodColumns & {
+export type ProgramWod = SharedWodColumns & BoxWodScoreColumns & {
   id: string;
+  /** `lines` | `free` (#453) : recopié tel quel par « Dupliquer la semaine ». */
+  text_mode: 'lines' | 'free';
   scheduled_date: string | null;
   program_week: number | null;
   program_day: number | null;
@@ -34,7 +37,8 @@ export type ProgramWod = SharedWodColumns & {
 /** Ancrage relatif d'une séance : semaine 1..X, jour ISO 1 (lundi) .. 7 (dimanche). */
 export interface CaseProgramme { week: number; day: number }
 
-export type ProgramWodPayload = SharedWodColumns & {
+export type ProgramWodPayload = SharedWodColumns & BoxWodScoreColumns & {
+  text_mode?: 'lines' | 'free';
   scheduled_date: null;
   program_week: number;
   program_day: number;
@@ -42,10 +46,10 @@ export type ProgramWodPayload = SharedWodColumns & {
   sort_order?: number;
 };
 
-const COLONNES = [
+export const COLONNES = [
   'id', 'title', 'description', 'wod_type', 'block_name', 'time_cap_seconds', 'rounds',
   'notes', 'video_url', 'leaderboard_enabled', 'emom_interval_minutes',
-  'tabata_work_seconds', 'tabata_rest_seconds',
+  'tabata_work_seconds', 'tabata_rest_seconds', 'score_type', 'text_mode',
   'scheduled_date', 'program_week', 'program_day', 'sort_order', 'is_published',
 ].join(', ');
 
@@ -149,6 +153,8 @@ export function formulaireDepuisSeance(w: ProgramWod, semaineAffichee: number): 
     notes: w.notes ?? '',
     videoUrl: w.video_url ?? '',
     leaderboard: false,
+    scoreType: w.score_type ?? '',
+    scoreTypeAuto: false,
     published: w.is_published ?? true,
     emomInterval: w.emom_interval_minutes ? String(w.emom_interval_minutes) : '1',
     tabataWork: w.tabata_work_seconds ? String(w.tabata_work_seconds) : '20',
@@ -174,6 +180,7 @@ export function colonnesSeance(form: WodFormState, movements: string[]): Program
   const day = Math.min(7, Math.max(1, Math.floor(form.dayOfWeek)));
   return {
     ...sharedWodColumns(form, movements),
+    ...boxWodScoreColumns(form.scoreType, false),
     scheduled_date: null,
     program_week: week,
     program_day: day,
