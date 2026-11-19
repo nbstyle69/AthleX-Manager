@@ -9,9 +9,16 @@ import { countOf } from '@/lib/plural';
  * par l'app, ligne par ligne. Vert = compté dans les badges, orange = à
  * corriger, puis les lignes non comptées avec leur raison.
  */
-export default function FreeTextPreview({ text, managerCatalog }: { text: string; managerCatalog: readonly string[] }) {
-  const p = freeTextPreview(text, managerCatalog);
-  if (!p.groups.length && !p.ignored.length) return null;
+const BLOCKS = [
+  { key: 'strength', testid: 'apercu-musculation', title: 'Musculation : séance guidée dans l’app (grille de séries)' },
+  { key: 'cardio', testid: 'apercu-cardio', title: 'Cardio : compté dans les badges cardio' },
+] as const;
+
+export default function FreeTextPreview({ text, managerCatalog, blockLines = [] }: {
+  text: string; managerCatalog: readonly string[]; blockLines?: readonly string[];
+}) {
+  const p = freeTextPreview(text, managerCatalog, blockLines);
+  if (!p.groups.length && !p.ignored.length && !p.strength.length && !p.cardio.length) return null;
   const item = (it: { ok: boolean; text: string }, k: number) => (
     <li key={k} className={`flex items-start gap-2 text-xs ${it.ok ? 'text-ax-text' : 'text-ax-warning'}`}>
       {it.ok
@@ -28,6 +35,14 @@ export default function FreeTextPreview({ text, managerCatalog }: { text: string
           {countOf(p.okCount, 'mouvement compte', 'mouvements comptent')} · {p.fixCount} à corriger
         </p>
       </div>
+      {BLOCKS.map(b => p[b.key].length > 0 && (
+        <div key={b.key} data-testid={b.testid} className="space-y-1">
+          <p className="text-xs font-semibold text-ax-text-secondary break-words">{b.title}</p>
+          <ul className="space-y-1 pl-2">
+            {p[b.key].map((l, k) => <li key={k} className="text-xs text-ax-text break-words">{l}</li>)}
+          </ul>
+        </div>
+      ))}
       {p.groups.map((g, i) => (
         <div key={i} className="space-y-1">
           {g.line && <p className="text-xs font-semibold text-ax-text-secondary break-words">{g.line}</p>}

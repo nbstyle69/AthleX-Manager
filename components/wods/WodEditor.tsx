@@ -411,7 +411,7 @@ export default function WodEditor({
                 <p className="text-[11px] text-ax-text-muted">
                   Écris la séance comme au tableau : elle s’affiche telle quelle dans l’app. Les mouvements reconnus comptent dans les badges des athlètes.
                 </p>
-                <FreeTextPreview text={form.freeText} managerCatalog={movementCatalog.map(mv => mv.name)} />
+                <FreeTextPreview text={form.freeText} managerCatalog={movementCatalog.map(mv => mv.name)} blockLines={movements} />
               </div>
             ) : (
             <div className="space-y-2">

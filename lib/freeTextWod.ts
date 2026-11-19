@@ -282,6 +282,9 @@ export function recognizedLabel(m: FreeTextMovement): string {
 export type PreviewItem = { ok: true; text: string } | { ok: false; text: string };
 export interface PreviewGroup { line: string | null; items: PreviewItem[] }
 export interface FreeTextPreview {
+  /** Séries de tête, lues par l'app comme ses blocs (PR 3b) : séance guidée / badges cardio. */
+  strength: string[];
+  cardio: string[];
   groups: PreviewGroup[];
   ignored: { text: string; reason: IgnoredReason; count: number }[];
   okCount: number;
@@ -289,20 +292,24 @@ export interface FreeTextPreview {
 }
 
 /**
- * Aperçu groupé par ligne. `managerCatalog` : noms du catalogue du Manager —
- * un nom qui n'y figure que là est « pas encore compté par l'app ». Les lignes
- * de Musculation (« — ») et de Cardio (« ~ ») ne sont pas lues par l'app en
- * texte libre : listées comme non comptées, pas « à corriger ».
+ * Aperçu de la description telle qu'elle sera enregistrée (`freeDescription`)
+ * et relue (`splitFreeDescription`) : les séries de tête — blocs Musculation
+ * et Cardio, ou lignes à leur format en tête du texte — vont dans leur
+ * rubrique ; le reste est lu ligne par ligne. `managerCatalog` : noms du
+ * catalogue du Manager — un nom qui n'y figure que là est « pas encore compté
+ * par l'app ». Une série au milieu du texte n'est pas un bloc : non comptée.
  */
-export function freeTextPreview(text: string, managerCatalog: readonly string[] = []): FreeTextPreview {
-  const out: FreeTextPreview = { groups: [], ignored: [], okCount: 0, fixCount: 0 };
+export function freeTextPreview(text: string, managerCatalog: readonly string[] = [], blockLines: readonly string[] = []): FreeTextPreview {
+  const out: FreeTextPreview = { strength: [], cardio: [], groups: [], ignored: [], okCount: 0, fixCount: 0 };
+  const split = splitFreeDescription(freeDescription(blockLines, text));
+  for (const l of split.blockLines) (isStrengthLine(l) ? out.strength : out.cardio).push(l);
   const mgr = new Set(managerCatalog.map(n => n.toLowerCase()));
   const seen = new Set<string>();
   const ignore = (t: string, reason: IgnoredReason) => {
     const hit = out.ignored.find(i => i.text === t && i.reason === reason);
     if (hit) hit.count += 1; else out.ignored.push({ text: t, reason, count: 1 });
   };
-  for (const raw of text.split('\n')) {
+  for (const raw of split.freeText.split('\n')) {
     const line = raw.trim();
     if (!line) continue;
     if (isStrengthLine(line)) { ignore(line, 'série de musculation'); continue; }

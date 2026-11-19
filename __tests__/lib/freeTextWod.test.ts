@@ -97,11 +97,24 @@ describe('aperçu « Ce que l’app comprend »', () => {
       .toBe('« zorglub » n’est pas dans la liste officielle : non compté');
   });
 
-  it('séries de Musculation et de Cardio : non comptées en texte libre, jamais « à corriger »', () => {
-    const p = freeTextPreview('Back Squat — 5 × 3 @ 80 %\n21 thrusters @43/29');
+  it('blocs Musculation et Cardio : chacun dans sa rubrique, ni « non comptés » ni « à corriger »', () => {
+    const p = freeTextPreview('21 thrusters @43/29', [], ['Back Squat — 5 × 3 @ 80 %', 'Row ~ 2 × 500 m ~ 250 W', 'Deadlift — 3 × 5 @ 100 kg']);
+    expect(p.strength).toEqual(['Back Squat — 5 × 3 @ 80 %', 'Deadlift — 3 × 5 @ 100 kg']);
+    expect(p.cardio).toEqual(['Row ~ 2 × 500 m ~ 250 W']);
+    expect(p.ignored).toEqual([]);
+    expect([p.okCount, p.fixCount]).toEqual([1, 0]);
+  });
+
+  it('séries en tête du texte : rubriques comme à la réouverture ; au milieu : non comptées', () => {
+    const p = freeTextPreview('Back Squat — 5 × 3 @ 80 %\nRow ~ 2 × 500 m ~ 250 W\nFor time\n21 thrusters @43/29\nDeadlift — 3 × 5 @ 100 kg\nRun ~ 3 × 400 m');
+    expect(p.strength).toEqual(['Back Squat — 5 × 3 @ 80 %']);
+    expect(p.cardio).toEqual(['Row ~ 2 × 500 m ~ 250 W']);
+    expect(p.ignored).toEqual([
+      { text: 'For time', reason: 'format', count: 1 },
+      { text: 'Deadlift — 3 × 5 @ 100 kg', reason: 'série de musculation', count: 1 },
+      { text: 'Run ~ 3 × 400 m', reason: 'série cardio', count: 1 },
+    ]);
     expect(p.fixCount).toBe(0);
-    expect(p.ignored).toEqual([{ text: 'Back Squat — 5 × 3 @ 80 %', reason: 'série de musculation', count: 1 }]);
-    expect(freeTextPreview('Row ~ 2 × 500 m ~ 250 W').ignored).toEqual([{ text: 'Row ~ 2 × 500 m ~ 250 W', reason: 'série cardio', count: 1 }]);
   });
 
   it('une ligne d’un seul morceau n’a pas de titre de groupe', () => {
@@ -197,6 +210,16 @@ describe('éditeur : sélecteur Mouvements | Texte libre', () => {
     expect(text(html)).toContain('Musculation');
     expect(html).toContain('aria-label="Exercice de musculation"');
     expect(html).not.toContain('hidden=""');
+    expect(html).toContain('data-testid="apercu-musculation"');
+  });
+
+  it('aperçu : séries des blocs dans leurs rubriques', () => {
+    const html = render('whiteboard', { textMode: 'free', freeText: '21 thrusters @43/29' }, ['Back Squat — 5 × 3 @ 80 %', 'Row ~ 2 × 500 m ~ 250 W']);
+    const t = text(html);
+    expect(t).toContain('Musculation : séance guidée dans l’app (grille de séries) Back Squat — 5 × 3 @ 80 %');
+    expect(t).toContain('Cardio : compté dans les badges cardio Row ~ 2 × 500 m ~ 250 W');
+    expect(t).not.toContain('Non comptées');
+    expect(t).toContain('1 mouvement compte · 0 à corriger');
   });
 
   it('Marketplace : pas de sélecteur', () => {
