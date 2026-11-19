@@ -178,6 +178,10 @@ export interface FreeTextMovement {
 }
 
 export interface FreeTextReading {
+  /** Lignes de bloc Musculation / Cardio en tête, dans l'ordre, sans espaces de bord. */
+  blocks: string[];
+  /** Le texte après ces lignes, retours à la ligne gardés, sans lignes vides de bord. */
+  rest: string;
   recognized: FreeTextMovement[];
   toFix: string[];
   ignored: string[];
@@ -206,10 +210,27 @@ function readSegment(segment: string): FreeTextMovement | null {
   };
 }
 
-/** `readFreeText` de l'app. */
+/** Ligne du bloc Musculation (charge, % 1RM, % du max) ou série Cardio (« ~ »). */
+export function isBlockLine(line: string): boolean {
+  return isStrengthLine(line) || isCardioLine(line);
+}
+
+/**
+ * `readFreeText` de l'app (PR 3b) : la suite continue de lignes de bloc EN
+ * TÊTE est extraite (`blocks`) ; dès la première autre ligne (ligne vide
+ * comprise), tout le reste est du texte (`rest`), seul lu comme metcon.
+ */
 export function readFreeText(text: string | null | undefined): FreeTextReading {
-  const out: FreeTextReading = { recognized: [], toFix: [], ignored: [] };
-  for (const raw of (text ?? '').split('\n')) {
+  const lines = (text ?? '').split('\n');
+  const first = lines.findIndex(l => !isBlockLine(l));
+  const head = first < 0 ? lines.length : first;
+  const kept = lines.slice(head);
+  const out: FreeTextReading = {
+    blocks: lines.slice(0, head).map(l => l.trim()),
+    rest: kept.join('\n').replace(/^\s*\n/, '').trimEnd(),
+    recognized: [], toFix: [], ignored: [],
+  };
+  for (const raw of kept) {
     const line = raw.trim();
     if (!line) continue;
     if (isIgnoredFreeTextLine(line)) { out.ignored.push(line); continue; }
@@ -225,7 +246,7 @@ export function readFreeText(text: string | null | undefined): FreeTextReading {
 
 // ── Aperçu « Ce que l'app comprend » (propre au Manager) ─────────────────────
 
-export type IgnoredReason = 'format' | 'repos' | 'time cap' | 'objectif' | 'série de musculation' | 'série cardio';
+export type IgnoredReason = 'format' | 'repos' | 'time cap' | 'objectif';
 
 /** Raison affichée d'une ligne non comptée (même tri que `isIgnoredFreeTextLine`). */
 export function ignoredReason(line: string): IgnoredReason {
@@ -292,28 +313,31 @@ export interface FreeTextPreview {
 }
 
 /**
- * Aperçu de la description telle qu'elle sera enregistrée (`freeDescription`)
- * et relue (`splitFreeDescription`) : les séries de tête — blocs Musculation
- * et Cardio, ou lignes à leur format en tête du texte — vont dans leur
- * rubrique ; le reste est lu ligne par ligne. `managerCatalog` : noms du
+ * Aperçu de la description telle qu'elle sera enregistrée (`freeDescription`),
+ * lue comme l'app (`readFreeText`) : les blocs en tête vont dans leur rubrique
+ * (Musculation / Cardio), le reste est lu ligne par ligne. Une série écrite
+ * plus loin n'est pas un bloc : « à corriger ». `managerCatalog` : noms du
  * catalogue du Manager — un nom qui n'y figure que là est « pas encore compté
- * par l'app ». Une série au milieu du texte n'est pas un bloc : non comptée.
+ * par l'app ».
  */
 export function freeTextPreview(text: string, managerCatalog: readonly string[] = [], blockLines: readonly string[] = []): FreeTextPreview {
   const out: FreeTextPreview = { strength: [], cardio: [], groups: [], ignored: [], okCount: 0, fixCount: 0 };
-  const split = splitFreeDescription(freeDescription(blockLines, text));
-  for (const l of split.blockLines) (isStrengthLine(l) ? out.strength : out.cardio).push(l);
+  const reading = readFreeText(freeDescription(blockLines, text));
+  for (const l of reading.blocks) (isStrengthLine(l) ? out.strength : out.cardio).push(l);
   const mgr = new Set(managerCatalog.map(n => n.toLowerCase()));
   const seen = new Set<string>();
   const ignore = (t: string, reason: IgnoredReason) => {
     const hit = out.ignored.find(i => i.text === t && i.reason === reason);
     if (hit) hit.count += 1; else out.ignored.push({ text: t, reason, count: 1 });
   };
-  for (const raw of split.freeText.split('\n')) {
+  for (const raw of reading.rest.split('\n')) {
     const line = raw.trim();
     if (!line) continue;
-    if (isStrengthLine(line)) { ignore(line, 'série de musculation'); continue; }
-    if (isCardioLine(line)) { ignore(line, 'série cardio'); continue; }
+    if (isBlockLine(line)) {
+      out.groups.push({ line: null, items: [{ ok: false, text: `« ${line} » : ${LATE_BLOCK_NOTE}` }] });
+      out.fixCount += 1;
+      continue;
+    }
     const r = readFreeText(line);
     if (r.ignored.length) { ignore(line, ignoredReason(line)); continue; }
     const items: PreviewItem[] = [];
@@ -330,6 +354,12 @@ export function freeTextPreview(text: string, managerCatalog: readonly string[] 
   }
   return out;
 }
+
+/** Règle de lecture des blocs en texte libre, dite dans l'éditeur et l'Aide. */
+export const FREE_TEXT_BLOCKS_RULE =
+  'Les séries Musculation et Cardio sont lues seulement si elles sont écrites en tête, avant le reste du texte.';
+
+const LATE_BLOCK_NOTE = 'série écrite après le texte, non lue : mets-la en tête, avant le reste du texte';
 
 function fixMessage(segment: string, mgr: Set<string>, seen: Set<string>): string {
   const male = parseMovementLine(segment, 'male');
@@ -364,10 +394,10 @@ export function freeDescription(blockLines: readonly string[], freeText: string)
   return parts.length ? parts.join('\n') : null;
 }
 
-/** Inverse de `freeDescription` : séries de tête d'un côté, texte libre intact de l'autre. */
+/** Inverse de `freeDescription`, même découpe que `readFreeText` : blocs de tête d'un côté, texte libre intact de l'autre. */
 export function splitFreeDescription(description: string | null): { blockLines: string[]; freeText: string } {
   const lines = (description ?? '').split('\n');
   let i = 0;
-  while (i < lines.length && (isStrengthLine(lines[i].trim()) || isCardioLine(lines[i].trim()))) i++;
+  while (i < lines.length && isBlockLine(lines[i])) i++;
   return { blockLines: lines.slice(0, i).map(l => l.trim()), freeText: lines.slice(i).join('\n') };
 }

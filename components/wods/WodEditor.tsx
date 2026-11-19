@@ -28,6 +28,7 @@ import { BLOCKS, DAY_LABELS, WOD_TYPES, WodFormState, withScoreType, withWodType
 import { MARKETPLACE_SCORE_NOTE, SCORE_FREE, ScoreLock } from '@/lib/wodScoreType';
 import ScoreTypeSelect from '@/components/wods/ScoreTypeSelect';
 import FreeTextPreview from '@/components/wods/FreeTextPreview';
+import { FREE_TEXT_BLOCKS_RULE } from '@/lib/freeTextWod';
 import {
   CardioRow,
   STRENGTH_UNIT_LABEL,
@@ -409,7 +410,7 @@ export default function WodEditor({
                   aria-labelledby="programme-label"
                   placeholder={'For time\n21 pull-ups + 15/12 cal SkiErg + 21 thrusters @43/29\n1\'30 rest\nTC 14\''} />
                 <p className="text-[11px] text-ax-text-muted">
-                  Écris la séance comme au tableau : elle s’affiche telle quelle dans l’app. Les mouvements reconnus comptent dans les badges des athlètes.
+                  Écris la séance comme au tableau : elle s’affiche telle quelle dans l’app. Les mouvements reconnus comptent dans les badges des athlètes. {FREE_TEXT_BLOCKS_RULE}
                 </p>
                 <FreeTextPreview text={form.freeText} managerCatalog={movementCatalog.map(mv => mv.name)} blockLines={movements} />
               </div>

@@ -25,13 +25,31 @@ describe('contrat partagé avec l’app (free-text-wod-contract.json)', () => {
   const contract = JSON.parse(bytes.toString('utf8')) as { cases: { name: string; text: string; expected: unknown }[] };
 
   it('le fichier est celui de l’app, octet pour octet', () => {
-    expect(bytes.length).toBe(3708);
+    // athlex-app b468c12 (PR 3b), src/__tests__/fixtures/free-text-wod-contract.json
+    expect(bytes.length).toBe(8634);
     expect(createHash('sha256').update(bytes).digest('hex'))
-      .toBe('b5b5b7b2d572cb13a2d58dae9d2a6110713c1b217e12aa3d5b5deaf97062713c');
+      .toBe('01a6923d5d66c66dd178d6fba73aab4cdb0e011588b65d6269e0c235ef868dcb');
+  });
+
+  it('chaque cas porte blocks, rest, recognized, toFix, ignored', () => {
+    expect(contract.cases).toHaveLength(6);
+    for (const c of contract.cases) {
+      expect(Object.keys(c.expected as object).sort()).toEqual(['blocks', 'ignored', 'recognized', 'rest', 'toFix']);
+    }
   });
 
   it.each(contract.cases.map(c => [c.name, c] as const))('%s', (_n, c) => {
     expect(readFreeText(c.text)).toEqual(c.expected);
+  });
+
+  it('blocs rendus sans espaces de bord', () => {
+    expect(readFreeText('  Back Squat — 5 × 5 @ 100 kg  \nFor time').blocks).toEqual(['Back Squat — 5 × 5 @ 100 kg']);
+  });
+
+  it('réouverture : même découpe que l’app (ligne vide en tête = aucun bloc)', () => {
+    const d = '\nBack Squat — 5 × 5 @ 100 kg\n10 burpees';
+    expect(splitFreeDescription(d)).toEqual({ blockLines: [], freeText: d });
+    expect(readFreeText(d).blocks).toEqual([]);
   });
 });
 
@@ -105,16 +123,28 @@ describe('aperçu « Ce que l’app comprend »', () => {
     expect([p.okCount, p.fixCount]).toEqual([1, 0]);
   });
 
-  it('séries en tête du texte : rubriques comme à la réouverture ; au milieu : non comptées', () => {
+  it('blocs en tête + série plus loin : rubriques pour la tête, « à corriger » pour la série', () => {
     const p = freeTextPreview('Back Squat — 5 × 3 @ 80 %\nRow ~ 2 × 500 m ~ 250 W\nFor time\n21 thrusters @43/29\nDeadlift — 3 × 5 @ 100 kg\nRun ~ 3 × 400 m');
     expect(p.strength).toEqual(['Back Squat — 5 × 3 @ 80 %']);
     expect(p.cardio).toEqual(['Row ~ 2 × 500 m ~ 250 W']);
-    expect(p.ignored).toEqual([
-      { text: 'For time', reason: 'format', count: 1 },
-      { text: 'Deadlift — 3 × 5 @ 100 kg', reason: 'série de musculation', count: 1 },
-      { text: 'Run ~ 3 × 400 m', reason: 'série cardio', count: 1 },
+    expect(p.ignored).toEqual([{ text: 'For time', reason: 'format', count: 1 }]);
+    expect(p.groups.slice(1)).toEqual([
+      { line: null, items: [{ ok: false, text: '« Deadlift — 3 × 5 @ 100 kg » : série écrite après le texte, non lue : mets-la en tête, avant le reste du texte' }] },
+      { line: null, items: [{ ok: false, text: '« Run ~ 3 × 400 m » : série écrite après le texte, non lue : mets-la en tête, avant le reste du texte' }] },
     ]);
-    expect(p.fixCount).toBe(0);
+    expect([p.okCount, p.fixCount]).toEqual([1, 2]);
+  });
+
+  it('une ligne vide en tête : aucune rubrique, la série est à corriger (comme l’app)', () => {
+    const p = freeTextPreview('\nBack Squat — 5 × 5 @ 100 kg\n10 burpees');
+    expect([p.strength, p.cardio]).toEqual([[], []]);
+    expect([p.okCount, p.fixCount]).toEqual([1, 1]);
+  });
+
+  it('aperçu et contrat : mêmes blocs que readFreeText de l’app', () => {
+    const c = JSON.parse(fixture('free-text-wod-contract.json').toString('utf8')).cases[2];
+    const p = freeTextPreview(c.text);
+    expect([...p.strength, ...p.cardio]).toEqual(c.expected.blocks);
   });
 
   it('une ligne d’un seul morceau n’a pas de titre de groupe', () => {
@@ -194,6 +224,7 @@ describe('éditeur : sélecteur Mouvements | Texte libre', () => {
     expect(html).toContain('data-testid="apercu-texte-libre"');
     expect(text(html)).toContain('2 mouvements comptent · 1 à corriger');
     expect(text(html)).toContain('Crédités dans les badges seulement quand le score prouve la séance terminée.');
+    expect(text(html)).toContain('Les séries Musculation et Cardio sont lues seulement si elles sont écrites en tête, avant le reste du texte.');
     expect(html).toMatch(/role="radio" aria-checked="true"[^>]*>Texte libre/);
     expect(text(html)).not.toMatch(/Programme \/ Mouvements Ajouter/);
   });

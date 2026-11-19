@@ -28,4 +28,14 @@ describe('vocabulaire de l’Aide', () => {
     expect(en).toContain('the app reads them as with **Mouvements**: guided strength session (set grid)');
     for (const t of [fr, en]) expect(t).not.toMatch(/ne les lit pas|does not read them/);
   });
+
+  it.each(['blocs-force-musculation-cardio.mdx', 'editeur-wod-formats-et-publication.mdx', 'mouvements-et-badges.mdx'])(
+    '%s : règle des séries en tête, dite en FR et en EN', f => {
+      const fr = readFileSync(path.join(ROOT, 'fr', f), 'utf8');
+      const en = readFileSync(path.join(ROOT, 'en', f), 'utf8');
+      const nFr = fr.match(/s(?:é|e)ries Musculation et Cardio sont lues seulement si elles sont écrites en tête, avant le reste du texte/gi)?.length ?? 0;
+      const nEn = en.match(/Musculation and Cardio sets are read only when they are written at the top, before the rest of the text/gi)?.length ?? 0;
+      expect(nFr).toBeGreaterThan(0);
+      expect(nEn).toBe(nFr);
+    });
 });
