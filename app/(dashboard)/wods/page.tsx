@@ -42,7 +42,7 @@ import { Input } from '@/components/ui/input';
 import { useConfirmDialog } from '@/components/ui/confirm-dialog';
 import { ERROR_TITLE, fullDate } from '@/lib/confirmDialog';
 import { countOf } from '@/lib/plural';
-import { SCORE_FREE, ScoreLock, ScoreType, boxWodScoreColumns, loadScoreLock } from '@/lib/wodScoreType';
+import { SCORE_FREE, ScoreLock, ScoreType, loadScoreLock } from '@/lib/wodScoreType';
 
 interface BoxWOD {
   id: string; box_id: string; created_by: string;
@@ -405,7 +405,6 @@ export default function WODsPage() {
     setSaving(true); setFormError(null);
     const payload = withWodJson({
       ...sharedWodColumns(form, movements),
-      ...boxWodScoreColumns(form.scoreType, form.leaderboard, form.textMode),
       // Séance ouverte sans toucher aux mouvements : description d'origine, intacte.
       description: wodDescription(form, editWOD?.description ?? null, movements),
       box_id: boxId, created_by: userId,

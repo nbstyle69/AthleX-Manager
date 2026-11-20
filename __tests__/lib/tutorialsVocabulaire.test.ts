@@ -38,4 +38,12 @@ describe('vocabulaire de l’Aide', () => {
       expect(nFr).toBeGreaterThan(0);
       expect(nEn).toBe(nFr);
     });
+
+  it('Marketplace : plus de « pas encore disponible », Score et texte libre dits pour les offres (FR et EN, #453 PR 2c)', () => {
+    for (const f of files) expect(readFileSync(path.join(ROOT, f), 'utf8')).not.toMatch(/pas encore disponibles? pour une offre|not available yet for a Marketplace/i);
+    for (const f of ['editeur-wod-formats-et-publication.mdx', 'marketplace-publier-une-offre.mdx']) {
+      expect(readFileSync(path.join(ROOT, 'fr', f), 'utf8')).toContain("Le **Score** et le **Texte libre** marchent aussi pour les WOD d'une offre Marketplace, et ils sont recopiés vers les box abonnées.");
+      expect(readFileSync(path.join(ROOT, 'en', f), 'utf8')).toContain('The **Score** and the **Texte libre** (free text) also work for the WODs of a Marketplace offer, and they are copied to the subscribed boxes.');
+    }
+  });
 });

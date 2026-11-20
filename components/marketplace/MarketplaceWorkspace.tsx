@@ -11,9 +11,10 @@ import WodEditor from '@/components/wods/WodEditor';
 import { ACTIVE_BOX_COOKIE, getMyAdminBoxes } from '@/lib/getMyBox';
 import ProgWodImportModal from '@/components/wods/ProgWodImportModal';
 import {
-  BLOCK_COLOR, BLOCK_LABEL, DAY_LABELS, EMPTY_WOD_FORM, TYPE_COLOR,
-  WodFormState, formatCap, movementLines, sharedWodColumns,
+  BLOCK_COLOR, BLOCK_LABEL, DAY_LABELS, EMPTY_WOD_FORM, TYPE_COLOR, WodFormState, formatCap,
 } from '@/lib/wodFields';
+import { OfferWod as ProgWod, offerWodForm, offerWodPayload } from '@/lib/offerWod';
+import { SCORE_FREE } from '@/lib/wodScoreType';
 import { disciplineLabel } from '@/lib/disciplines';
 import { softVar, textTint } from '@/lib/colorVars';
 import { Button } from '@/components/ui/button';
@@ -71,26 +72,6 @@ interface CatalogRow {
   publisher_box_id: string; publisher_box_name: string | null; goal: string | null; target_audience: string | null;
   equipment: string | null; wods_total: number; wods_per_week: number[] | null;
   preview_week1: { day: number; titles: string[] }[] | null; subscribed: boolean;
-}
-
-interface ProgWod {
-  id: string;
-  programming_id: string;
-  week_number: number;
-  day_of_week: number;
-  title: string;
-  description: string | null;
-  wod_type: string | null;
-  time_cap_seconds: number | null;
-  rounds: number | null;
-  notes: string | null;
-  block_name: string | null;
-  video_url: string | null;
-  leaderboard_enabled: boolean;
-  emom_interval_minutes: number | null;
-  tabata_work_seconds: number | null;
-  tabata_rest_seconds: number | null;
-  sort_order: number;
 }
 
 interface Subscription {
@@ -906,24 +887,9 @@ function OfferEditor({ offer, publisherBoxId, onClose, onSaved }: {
 
   function openEditWod(w: ProgWod) {
     setEditWod(w);
-    setWodForm({
-      ...EMPTY_WOD_FORM,
-      title: w.title,
-      description: w.description ?? '',
-      wod_type: w.wod_type ?? '',
-      block: w.block_name ?? '',
-      timeCap: formatCap(w.time_cap_seconds),
-      rounds: w.rounds ? String(w.rounds) : '',
-      notes: w.notes ?? '',
-      videoUrl: w.video_url ?? '',
-      leaderboard: w.leaderboard_enabled ?? true,
-      emomInterval: w.emom_interval_minutes ? String(w.emom_interval_minutes) : '1',
-      tabataWork: w.tabata_work_seconds ? String(w.tabata_work_seconds) : '20',
-      tabataRest: w.tabata_rest_seconds != null ? String(w.tabata_rest_seconds) : '10',
-      week: w.week_number,
-      dayOfWeek: w.day_of_week,
-    });
-    setMovements(movementLines(w.description));
+    const { form: f, movements: lines } = offerWodForm(w);
+    setWodForm(f);
+    setMovements(lines);
     setWodError(null);
     setWodModal(true);
   }
@@ -932,11 +898,7 @@ function OfferEditor({ offer, publisherBoxId, onClose, onSaved }: {
     if (!offerId || !wodForm.title.trim()) return;
     setWodSaving(true);
     setWodError(null);
-    const payload = {
-      ...sharedWodColumns(wodForm, movements),
-      week_number: wodForm.week,
-      day_of_week: wodForm.dayOfWeek,
-    };
+    const payload = offerWodPayload(wodForm, movements);
     if (editWod) {
       const { error: err } = await supabase.from('box_programming_wods').update(payload).eq('id', editWod.id);
       setWodSaving(false);
@@ -1120,6 +1082,10 @@ function OfferEditor({ offer, publisherBoxId, onClose, onSaved }: {
           onClose={() => setWodModal(false)}
           onSubmit={saveWod}
           weeksCount={weeksCount}
+          // Un WOD d'offre n'a jamais de scores (ils sont posés sur les copies
+          // des box abonnées) : aucun verrou à lire, seulement « Non défini »
+          // pour un WOD d'avant le champ.
+          scoreLock={editWod ? SCORE_FREE : undefined}
         />
         </div>
       )}

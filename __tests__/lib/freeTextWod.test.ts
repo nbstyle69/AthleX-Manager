@@ -13,7 +13,6 @@ import {
 } from '@/lib/freeTextWod';
 import { EMPTY_WOD_FORM, editorContent, sharedWodColumns, wodDescription } from '@/lib/wodFields';
 import { editorMovements, freeTextFromRows, rowsFromFreeText } from '@/lib/wodEditorLines';
-import { boxWodScoreColumns } from '@/lib/wodScoreType';
 import { ProgramWod, colonnesSeance, formulaireDepuisSeance } from '@/lib/programContent';
 
 (globalThis as unknown as { React: typeof React }).React = React;
@@ -184,7 +183,7 @@ describe('description en texte libre : enregistrée telle quelle', () => {
     expect(wodDescription(f, 'autre', [])).toBe(libre);
     expect(sharedWodColumns(f, []).description).toBe(libre);
     expect(wodDescription({ ...f, textMode: 'lines' }, null, ['21 Thruster'])).toBe('21 Thruster');
-    expect(boxWodScoreColumns('time', true, 'free').text_mode).toBe('free');
+    expect(sharedWodColumns(f, []).text_mode).toBe('free');
   });
 });
 
@@ -253,8 +252,8 @@ describe('éditeur : sélecteur Mouvements | Texte libre', () => {
     expect(t).toContain('1 mouvement compte · 0 à corriger');
   });
 
-  it('Marketplace : pas de sélecteur', () => {
-    expect(render('programming', {})).not.toContain('data-testid="selecteur-mode"');
+  it('Marketplace : même sélecteur qu’un WOD de box (#453, PR 2c)', () => {
+    expect(render('programming', {})).toContain('data-testid="selecteur-mode"');
   });
 });
 
