@@ -3,7 +3,6 @@ import { stripWodJson, withWodJson, writeWithWodJsonFallback } from '@/lib/wodJs
 import {
   EMPTY_WOD_FORM, SharedWodColumns, WodFormState, editorContent, formatCap, sharedWodColumns,
 } from '@/lib/wodFields';
-import { BoxWodScoreColumns, boxWodScoreColumns } from '@/lib/wodScoreType';
 
 /**
  * Le contenu d'un programme athlète n'a pas de table à lui : c'est une ligne
@@ -23,7 +22,7 @@ import { BoxWodScoreColumns, boxWodScoreColumns } from '@/lib/wodScoreType';
  * les parseurs de l'app la lisent sans code spécifique.
  */
 
-export type ProgramWod = SharedWodColumns & BoxWodScoreColumns & {
+export type ProgramWod = SharedWodColumns & {
   id: string;
   scheduled_date: string | null;
   program_week: number | null;
@@ -35,7 +34,7 @@ export type ProgramWod = SharedWodColumns & BoxWodScoreColumns & {
 /** Ancrage relatif d'une séance : semaine 1..X, jour ISO 1 (lundi) .. 7 (dimanche). */
 export interface CaseProgramme { week: number; day: number }
 
-export type ProgramWodPayload = SharedWodColumns & BoxWodScoreColumns & {
+export type ProgramWodPayload = SharedWodColumns & {
   scheduled_date: null;
   program_week: number;
   program_day: number;
@@ -179,7 +178,6 @@ export function colonnesSeance(form: WodFormState, movements: string[]): Program
   const day = Math.min(7, Math.max(1, Math.floor(form.dayOfWeek)));
   return {
     ...sharedWodColumns(form, movements),
-    ...boxWodScoreColumns(form.scoreType, false, form.textMode),
     scheduled_date: null,
     program_week: week,
     program_day: day,

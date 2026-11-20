@@ -2,8 +2,8 @@
 // `box_wods.score_type` : NULL = l'athlète choisit (WOD d'avant #453), sinon
 // time | rounds_reps | reps | weight | none. La base garde la cohérence des
 // scores (trigger `trg_wod_scores_type_du_wod`, 'none' ↔ 'done') et interdit
-// un classement sans score (CHECK). `box_programming_wods` n'a pas ces
-// colonnes : l'éditeur Marketplace ne propose pas le champ.
+// un classement sans score (CHECK). `box_programming_wods` porte les mêmes
+// colonnes et contraintes (athlex-app#617) : l'éditeur d'offre a le même champ.
 
 export type ScoreType = 'time' | 'rounds_reps' | 'reps' | 'weight' | 'none';
 
@@ -22,9 +22,6 @@ export const SCORE_PROPOSAL_NOTE =
   'Valeur proposée selon le Type : For Time → Temps · AMRAP → Tours + reps · EMOM, Tabata → Reps totales · Force → Charge (kg). Tu peux la changer.';
 
 export const SCORE_UNDEFINED_NOTE = 'Non défini : les athlètes choisissent.';
-
-export const MARKETPLACE_SCORE_NOTE =
-  'Le type de score et le texte libre ne sont pas encore disponibles pour une offre Marketplace.';
 
 export function isScoreType(v: unknown): v is ScoreType {
   return SCORE_TYPES.some(s => s.value === v);
@@ -137,22 +134,6 @@ export function sortScoresByWod<T extends SortableScore & { wod_id: string }>(
   const byWod = new Map<string, T[]>();
   for (const s of scores) byWod.set(s.wod_id, [...(byWod.get(s.wod_id) ?? []), s]);
   return wods.flatMap(w => sortWodScores(byWod.get(w.id) ?? [], w.score_type ?? null, w.wod_type ?? null));
-}
-
-/** Colonnes de score propres à `box_wods` (absentes de `box_programming_wods`). */
-export interface BoxWodScoreColumns {
-  score_type: ScoreType | null;
-  leaderboard_enabled: boolean;
-  text_mode: 'lines' | 'free';
-}
-
-/** « Sans score » ⇒ classement coupé, quoi que dise l'interrupteur (CHECK en base). */
-export function boxWodScoreColumns(scoreType: ScoreType | '', leaderboard: boolean, textMode: 'lines' | 'free' = 'lines'): BoxWodScoreColumns {
-  return {
-    score_type: scoreType || null,
-    leaderboard_enabled: scoreType === 'none' ? false : leaderboard,
-    text_mode: textMode,
-  };
 }
 
 export const SCORE_LOCK_UNREADABLE: ScoreLock = {

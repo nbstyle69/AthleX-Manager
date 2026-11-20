@@ -22,9 +22,9 @@ import { join } from 'path';
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import WodEditor from '@/components/wods/WodEditor';
-import { EMPTY_WOD_FORM, WodFormState, withScoreType, withWodType } from '@/lib/wodFields';
+import { EMPTY_WOD_FORM, WodFormState, sharedWodColumns, withScoreType, withWodType } from '@/lib/wodFields';
 import {
-  MARKETPLACE_SCORE_NOTE, NOT_DONE, SCORE_LOCK_UNREADABLE, boxWodScoreColumns, formatBoxWodScore, loadScoreLock,
+  NOT_DONE, SCORE_LOCK_UNREADABLE, formatBoxWodScore, loadScoreLock,
   proposedScoreType, scoreLockFor, scoreTypeAllowed, sortScoresByWod, sortWodScores,
 } from '@/lib/wodScoreType';
 import { COLONNES, ProgramWod, colonnesSeance, duplicateProgramWeek, formulaireDepuisSeance } from '@/lib/programContent';
@@ -72,9 +72,13 @@ describe('Sans score ⇒ classement coupé', () => {
   });
 
   it('les colonnes envoient leaderboard_enabled = false même si l’interrupteur dit oui', () => {
-    expect(boxWodScoreColumns('none', true)).toEqual({ score_type: 'none', leaderboard_enabled: false, text_mode: 'lines' });
-    expect(boxWodScoreColumns('time', true)).toEqual({ score_type: 'time', leaderboard_enabled: true, text_mode: 'lines' });
-    expect(boxWodScoreColumns('', true)).toEqual({ score_type: null, leaderboard_enabled: true, text_mode: 'lines' });
+    const cols = (scoreType: WodFormState['scoreType']) => {
+      const c = sharedWodColumns({ ...EMPTY_WOD_FORM, title: 'X', scoreType, leaderboard: true }, []);
+      return { score_type: c.score_type, leaderboard_enabled: c.leaderboard_enabled, text_mode: c.text_mode };
+    };
+    expect(cols('none')).toEqual({ score_type: 'none', leaderboard_enabled: false, text_mode: 'lines' });
+    expect(cols('time')).toEqual({ score_type: 'time', leaderboard_enabled: true, text_mode: 'lines' });
+    expect(cols('')).toEqual({ score_type: null, leaderboard_enabled: true, text_mode: 'lines' });
   });
 });
 
@@ -228,12 +232,6 @@ describe('éditeur de WOD : champ Score', () => {
     expect(html).toMatch(/data-testid="score-trigger"[^>]*disabled=""|disabled=""[^>]*data-testid="score-trigger"/);
   });
 
-  it('Marketplace : pas de champ Score, une phrase', () => {
-    const html = renderToStaticMarkup(React.createElement(WodEditor, { ...base, mode: 'programming', form: { ...EMPTY_WOD_FORM, title: 'X' } } as any));
-    expect(html).not.toContain('data-testid="champ-score"');
-    expect(text(html)).toContain(MARKETPLACE_SCORE_NOTE);
-    expect(/<button[^>]*disabled=""[^>]*>(?:(?!<\/button>)[\s\S])*Créer le WOD/.test(html)).toBe(false);
-  });
 });
 
 describe('séances de programme', () => {

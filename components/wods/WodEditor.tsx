@@ -25,7 +25,7 @@ import {
   isStrengthLine,
 } from '@/lib/strengthBlock';
 import { BLOCKS, DAY_LABELS, WOD_TYPES, WodFormState, withScoreType, withWodType } from '@/lib/wodFields';
-import { MARKETPLACE_SCORE_NOTE, SCORE_FREE, ScoreLock } from '@/lib/wodScoreType';
+import { SCORE_FREE, ScoreLock } from '@/lib/wodScoreType';
 import ScoreTypeSelect from '@/components/wods/ScoreTypeSelect';
 import FreeTextPreview from '@/components/wods/FreeTextPreview';
 import { FREE_TEXT_BLOCKS_RULE } from '@/lib/freeTextWod';
@@ -112,7 +112,8 @@ interface WodEditorProps {
   offers?: WodEditorOffer[];
   /**
    * WOD existant : types de score encore permis au vu des scores déjà posés
-   * (`scoreLockFor`). Absent = création : le Score est obligatoire.
+   * (`scoreLockFor`). Absent = création : le Score est obligatoire. Un WOD
+   * d'offre Marketplace n'a jamais de scores : `SCORE_FREE` en modification.
    */
   scoreLock?: ScoreLock;
 }
@@ -126,9 +127,7 @@ export default function WodEditor({
 }: WodEditorProps) {
   const isWhiteboard = mode === 'whiteboard';
   const isProgram = mode === 'program';
-  // `box_programming_wods` n'a pas de type de score (#453, PR de base à venir).
-  const hasScore = mode !== 'programming';
-  const noScore = hasScore && form.scoreType === 'none';
+  const noScore = form.scoreType === 'none';
 
   // Les lignes de force et de cardio sont éditées structurées ; `movements` ne
   // reçoit que leur sérialisation, ou leur texte d'origine tant qu'elles ne sont
@@ -201,7 +200,7 @@ export default function WodEditor({
   const audienceChosen = !isWhiteboard || form.audience !== '';
   const groupsChosen = !isWhiteboard || form.audience !== 'groups' || form.groupIds.length > 0;
   const strengthValid = strengthRows.every(r => !strengthRowError(r));
-  const scoreChosen = !hasScore || !!scoreLock || form.scoreType !== '';
+  const scoreChosen = !!scoreLock || form.scoreType !== '';
   const canSubmit = !!form.title.trim() && !saving && (!isWhiteboard || !!form.date) && audienceChosen && groupsChosen && strengthValid && scoreChosen;
 
   return (
@@ -312,16 +311,12 @@ export default function WodEditor({
                 {WOD_TYPES.map(t => <option key={t.value} value={t.value} className="text-ax-text bg-ax-surface">{t.label}</option>)}
               </select>
             </div>
-            {hasScore ? (
-              <ScoreTypeSelect
-                value={form.scoreType}
-                onChange={v => setForm(f => withScoreType(f, v))}
-                lock={scoreLock ?? SCORE_FREE}
-                existing={!!scoreLock}
-                triggerClassName={inp} />
-            ) : (
-              <p data-testid="score-marketplace" className="text-[11px] text-ax-text-muted self-end pb-1">{MARKETPLACE_SCORE_NOTE}</p>
-            )}
+            <ScoreTypeSelect
+              value={form.scoreType}
+              onChange={v => setForm(f => withScoreType(f, v))}
+              lock={scoreLock ?? SCORE_FREE}
+              existing={!!scoreLock}
+              triggerClassName={inp} />
           </div>
 
           {form.wod_type === 'emom' && (
@@ -383,19 +378,16 @@ export default function WodEditor({
                     <Plus size={12} /> Ajouter
                   </button>
                 )}
-                {/* Texte libre : `box_wods` seulement (pas de colonne côté Marketplace). */}
-                {hasScore && (
-                  <div data-testid="selecteur-mode" role="radiogroup" aria-labelledby="programme-label"
-                    className="flex gap-1 p-1 rounded-ax-control bg-ax-surface-secondary border border-ax-border">
-                    {(['lines', 'free'] as const).map(m => (
-                      <button key={m} type="button" role="radio" aria-checked={form.textMode === m}
-                        onClick={() => setTextMode(m)}
-                        className={`px-3 py-1.5 rounded-ax-control text-xs font-bold transition-colors ${form.textMode === m ? 'bg-ax-accent-soft text-ax-text border border-ax-input-border' : 'text-ax-text-secondary border border-transparent hover:text-ax-text'}`}>
-                        {m === 'lines' ? 'Mouvements' : 'Texte libre'}
-                      </button>
-                    ))}
-                  </div>
-                )}
+                <div data-testid="selecteur-mode" role="radiogroup" aria-labelledby="programme-label"
+                  className="flex gap-1 p-1 rounded-ax-control bg-ax-surface-secondary border border-ax-border">
+                  {(['lines', 'free'] as const).map(m => (
+                    <button key={m} type="button" role="radio" aria-checked={form.textMode === m}
+                      onClick={() => setTextMode(m)}
+                      className={`px-3 py-1.5 rounded-ax-control text-xs font-bold transition-colors ${form.textMode === m ? 'bg-ax-accent-soft text-ax-text border border-ax-input-border' : 'text-ax-text-secondary border border-transparent hover:text-ax-text'}`}>
+                      {m === 'lines' ? 'Mouvements' : 'Texte libre'}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
             <datalist id="box-movement-catalog">

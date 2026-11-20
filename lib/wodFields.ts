@@ -121,12 +121,16 @@ export interface SharedWodColumns {
   emom_interval_minutes: number | null;
   tabata_work_seconds: number | null;
   tabata_rest_seconds: number | null;
+  score_type: ScoreType | null;
+  text_mode: 'lines' | 'free';
 }
 
 /**
- * Colonnes que `box_wods` et `box_programming_wods` ont en commun. Les
- * mouvements structurés ne sont pas un modèle à part : ils sont sérialisés
- * une ligne par mouvement dans `description`.
+ * Colonnes que `box_wods` et `box_programming_wods` ont en commun (`score_type`
+ * et `text_mode` compris depuis athlex-app#617). Les mouvements structurés ne
+ * sont pas un modèle à part : ils sont sérialisés une ligne par mouvement dans
+ * `description`. « Sans score » ⇒ classement coupé, quoi que dise
+ * l'interrupteur (CHECK dans les deux tables).
  */
 export function sharedWodColumns(form: WodFormState, movements: string[]): SharedWodColumns {
   return {
@@ -138,7 +142,7 @@ export function sharedWodColumns(form: WodFormState, movements: string[]): Share
     rounds: form.rounds ? parseInt(form.rounds) : null,
     notes: form.notes.trim() || null,
     video_url: form.videoUrl.trim() || null,
-    leaderboard_enabled: form.leaderboard,
+    leaderboard_enabled: form.scoreType === 'none' ? false : form.leaderboard,
     emom_interval_minutes: form.wod_type === 'emom'
       ? Math.min(5, Math.max(1, parseInt(form.emomInterval) || 1))
       : null,
@@ -148,6 +152,8 @@ export function sharedWodColumns(form: WodFormState, movements: string[]): Share
     tabata_rest_seconds: form.wod_type === 'tabata'
       ? Math.max(0, parseInt(form.tabataRest) || 10)
       : null,
+    score_type: form.scoreType || null,
+    text_mode: form.textMode,
   };
 }
 
