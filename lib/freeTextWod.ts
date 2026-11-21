@@ -14,7 +14,7 @@
 // Les suggestions, raisons et regroupements de l'aperçu (`freeTextPreview`)
 // sont propres au Manager.
 import { DURATION_LINE, isFormatHeaderLine, isPercentLine } from '@/lib/movements';
-import { isStrengthLine } from '@/lib/strengthBlock';
+import { COMPLEX_NAME, isStrengthLine, parseStrengthLine, serializeStrength, type StrengthEntry } from '@/lib/strengthBlock';
 import { isCardioLine } from '@/lib/cardioBlock';
 
 export type FreeTextUnit = 'reps' | 'm' | 'cal';
@@ -218,7 +218,8 @@ export function isBlockLine(line: string): boolean {
 /**
  * `readFreeText` de l'app (PR 3b) : la suite continue de lignes de bloc EN
  * TÊTE est extraite (`blocks`) ; dès la première autre ligne (ligne vide
- * comprise), tout le reste est du texte (`rest`), seul lu comme metcon.
+ * comprise), tout le reste est du texte (`rest`), seul lu comme metcon ; une
+ * ligne de ce reste au format d'une série (complexe compris) est entière à corriger.
  */
 export function readFreeText(text: string | null | undefined): FreeTextReading {
   const lines = (text ?? '').split('\n');
@@ -233,6 +234,9 @@ export function readFreeText(text: string | null | undefined): FreeTextReading {
   for (const raw of kept) {
     const line = raw.trim();
     if (!line) continue;
+    // Série écrite après le texte (Musculation, Cardio, complexe #454) : non lue,
+    // entière à corriger, avant tout découpage sur « + » (miroir de l'app, #621).
+    if (isBlockLine(line)) { out.toFix.push(line); continue; }
     if (isIgnoredFreeTextLine(line)) { out.ignored.push(line); continue; }
     for (const part of line.split('+')) {
       const segment = part.trim();
@@ -300,8 +304,94 @@ export function recognizedLabel(m: FreeTextMovement): string {
   return parts.join(' · ');
 }
 
+// ── « Transformer en bloc Musculation » (#454) ───────────────────────────────
+
+/** Ligne du texte qui peut devenir une carte du bloc Musculation. */
+export interface StrengthCandidate {
+  /** Ligne telle qu'écrite (sans espaces de bord), retirée du texte à la transformation. */
+  line: string;
+  /** Carte du bloc ; `raw` = la ligne au format exact, gardée telle quelle. */
+  entry: StrengthEntry & { raw?: string };
+  /** « Complexe · 1 Deadlift + 1 Power Clean · 5 × 1 @ 75 %1RM Power Clean » */
+  label: string;
+  /** « @80% » sans « 1RM » : lu comme un %1RM, à vérifier. */
+  guessedPct: boolean;
+}
+
+/** Nom du catalogue officiel du Manager (casse, ponctuation, pluriel ignorés), sinon tel qu'écrit. */
+function officialName(raw: string, catalog: readonly string[]): string {
+  const n = norm(raw);
+  return catalog.find(c => { const k = norm(c); return k === n || `${k}s` === n || k === `${n}s`; }) ?? raw.trim();
+}
+
+const LOAD = String.raw`@\s*(\d+(?:[.,]\d+)?)\s*(kg|%\s*1\s*rm|%)`;
+/** « Back squat 5×3 @80% », « Pull-ups 4 x 8 » (nom d'abord, sans séparateur). */
+const LOOSE_SET = new RegExp(String.raw`^([A-Za-zÀ-ÿ][^@×()]*?)\s+(\d+)\s*[x×]\s*(\d+)(?:\s*${LOAD})?$`, 'i');
+/** « 5 × (1 deadlift + 1 power clean) @75% power clean » */
+const LOOSE_COMPLEX = new RegExp(String.raw`^(\d+)\s*[x×]\s*\(([^()]+)\)(?:\s*${LOAD}\s*(.*))?$`, 'i');
+
+function loadOf(num: string | undefined, unit: string | undefined): { load: number | null; unit: 'kg' | '%1RM'; guessed: boolean } {
+  if (num == null) return { load: null, unit: 'kg', guessed: false };
+  const kg = /^kg$/i.test(unit ?? '');
+  return { load: parseFloat(num.replace(',', '.')), unit: kg ? 'kg' : '%1RM', guessed: !kg && !/rm/i.test(unit ?? '') };
+}
+
+/**
+ * Ligne de musculation ou de complexe écrite sous une forme connue :
+ * - le format exact du bloc (`parseStrengthLine`, complexe compris), repris tel quel ;
+ * - « Nom S×R [@ charge kg|%|%1RM] » ;
+ * - « S × (r mouvement + r mouvement…) [@ charge kg|%|%1RM [référence]] » (deux
+ *   mouvements au moins ; référence absente = le dernier, hors du complexe = refusée).
+ * Noms ramenés au catalogue officiel quand ils y sont. Toute autre ligne : `null`.
+ */
+export function strengthCandidate(rawLine: string, catalog: readonly string[] = []): StrengthCandidate | null {
+  const line = rawLine.trim();
+  const label = (e: StrengthEntry) => serializeStrength(e).split(' — ').join(' · ');
+  const exact = parseStrengthLine(line);
+  if (exact) return { line, entry: { ...exact, raw: line }, label: label(exact), guessedPct: false };
+
+  const s = line.match(LOOSE_SET);
+  if (s) {
+    const l = loadOf(s[4], s[5]);
+    const entry: StrengthEntry = {
+      name: officialName(s[1], catalog), sets: parseInt(s[2], 10), reps: parseInt(s[3], 10),
+      load: l.load, unit: l.unit, restSec: null, tempo: null, loadNote: null,
+    };
+    if (entry.sets < 1 || entry.reps < 1) return null;
+    return { line, entry, label: label(entry), guessedPct: l.guessed };
+  }
+
+  const c = line.match(LOOSE_COMPLEX);
+  if (!c) return null;
+  const movements: { reps: number; name: string }[] = [];
+  for (const part of c[2].split('+')) {
+    const mv = part.trim().match(/^(\d+)\s+(\D.*)$/);
+    if (!mv || parseInt(mv[1], 10) < 1) return null;
+    movements.push({ reps: parseInt(mv[1], 10), name: officialName(mv[2], catalog) });
+  }
+  if (movements.length < 2 || parseInt(c[1], 10) < 1) return null;
+  const l = loadOf(c[3], c[4]);
+  const wanted = (c[5] ?? '').trim();
+  if (wanted && l.unit === 'kg') return null;
+  const ref = l.load == null || l.unit === 'kg' ? null
+    : wanted ? movements.find(m => norm(m.name) === norm(officialName(wanted, catalog))) : movements[movements.length - 1];
+  if (l.load != null && l.unit === '%1RM' && !ref) return null;    // référence hors du complexe
+  const entry: StrengthEntry = {
+    name: COMPLEX_NAME, sets: parseInt(c[1], 10), reps: 1, load: l.load, unit: l.unit,
+    restSec: null, tempo: null, loadNote: null, complex: { movements, refName: ref?.name ?? null },
+  };
+  return { line, entry, label: label(entry), guessedPct: l.guessed };
+}
+
+/** Texte sans la ligne transformée (première occurrence, espaces de bord ignorés). */
+export function freeTextWithout(text: string, line: string): string {
+  const lines = text.split('\n');
+  const i = lines.findIndex(l => l.trim() === line);
+  return i < 0 ? text : [...lines.slice(0, i), ...lines.slice(i + 1)].join('\n');
+}
+
 export type PreviewItem = { ok: true; text: string } | { ok: false; text: string };
-export interface PreviewGroup { line: string | null; items: PreviewItem[] }
+export interface PreviewGroup { line: string | null; items: PreviewItem[]; candidate?: StrengthCandidate }
 export interface FreeTextPreview {
   /** Séries de tête, lues par l'app comme ses blocs (PR 3b) : séance guidée / badges cardio. */
   strength: string[];
@@ -310,6 +400,8 @@ export interface FreeTextPreview {
   ignored: { text: string; reason: IgnoredReason; count: number }[];
   okCount: number;
   fixCount: number;
+  /** Lignes de musculation ou de complexe repérées plus loin, à transformer. */
+  candidateCount: number;
 }
 
 /**
@@ -321,7 +413,7 @@ export interface FreeTextPreview {
  * par l'app ».
  */
 export function freeTextPreview(text: string, managerCatalog: readonly string[] = [], blockLines: readonly string[] = []): FreeTextPreview {
-  const out: FreeTextPreview = { strength: [], cardio: [], groups: [], ignored: [], okCount: 0, fixCount: 0 };
+  const out: FreeTextPreview = { strength: [], cardio: [], groups: [], ignored: [], okCount: 0, fixCount: 0, candidateCount: 0 };
   const reading = readFreeText(freeDescription(blockLines, text));
   for (const l of reading.blocks) (isStrengthLine(l) ? out.strength : out.cardio).push(l);
   const mgr = new Set(managerCatalog.map(n => n.toLowerCase()));
@@ -333,6 +425,15 @@ export function freeTextPreview(text: string, managerCatalog: readonly string[] 
   for (const raw of reading.rest.split('\n')) {
     const line = raw.trim();
     if (!line) continue;
+    // Musculation ou complexe plus loin (#454) : à corriger tant que non transformé.
+    // Une ligne seule au format exact est un bloc pour readFreeText, jamais « ignorée ».
+    const candidate = readFreeText(line).ignored.length ? null : strengthCandidate(line, managerCatalog);
+    if (candidate) {
+      out.groups.push({ line, items: [], candidate });
+      out.fixCount += 1;
+      out.candidateCount += 1;
+      continue;
+    }
     if (isBlockLine(line)) {
       out.groups.push({ line: null, items: [{ ok: false, text: `« ${line} » : ${LATE_BLOCK_NOTE}` }] });
       out.fixCount += 1;

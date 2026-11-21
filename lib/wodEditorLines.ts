@@ -1,9 +1,11 @@
 import {
-  EMPTY_STRENGTH_ENTRY, StrengthEntry, StrengthLoadUnit, parseStrengthLine, serializeStrength, splitStrengthLines,
+  COMPLEX_NAME, EMPTY_STRENGTH_ENTRY, StrengthEntry, StrengthLoadUnit, complexMovesForWrite, parseStrengthLine,
+  serializeStrength, splitStrengthLines,
 } from '@/lib/strengthBlock';
 import { gymPrLabel } from '@/lib/gymMovements';
 import { CardioEntry, parseCardioLine, serializeCardio, splitCardioLines } from '@/lib/cardioBlock';
 import { MovementRow, movementRowsFromLines, serializeMovementRows } from '@/lib/wodMovementRows';
+import { StrengthCandidate, freeTextWithout } from '@/lib/freeTextWod';
 
 /**
  * Lignes Musculation et Cardio telles que le WodEditor les édite : structurées,
@@ -69,12 +71,68 @@ export function strengthUnitChoice(row: StrengthEntry): StrengthUnitChoice {
  * reste affiché (en erreur) quand il est déjà choisi, jamais retiré en silence.
  */
 export function strengthUnitChoices(row: StrengthEntry): StrengthUnitChoice[] {
+  if (row.complex) return ['kg', '%1RM'];
   return gymPrLabel(row.name) || row.pctOfMax != null ? ['kg', '%1RM', 'pctOfMax'] : ['kg', '%1RM'];
 }
 
+export const COMPLEX_TWO_MOVES = 'Un complexe enchaîne au moins deux mouvements : nomme le deuxième.';
+
 /** Erreur à afficher sous le sélecteur ; tant qu'elle existe, l'enregistrement est bloqué. */
 export function strengthRowError(row: StrengthEntry): string | null {
+  // Un seul mouvement nommé : la ligne ne s'écrirait pas, le complexe serait perdu en silence.
+  if (row.complex) return complexMovesForWrite(row.complex).length === 1 ? COMPLEX_TWO_MOVES : null;
   return row.pctOfMax != null && row.name.trim() !== '' && !gymPrLabel(row.name) ? PCT_OF_MAX_ONLY_GYM : null;
+}
+
+// ── Complexe (#454) ─────────────────────────────────────────────────────────
+
+/** Nouvelle carte « Complexe » : deux mouvements à nommer, 5 × 1, charge en kg. */
+export function emptyComplexEntry(): StrengthEntry {
+  return {
+    ...EMPTY_STRENGTH_ENTRY, name: COMPLEX_NAME, sets: 5, reps: 1,
+    complex: { movements: [{ reps: 1, name: '' }, { reps: 1, name: '' }], refName: null },
+  };
+}
+
+/** « rep » au singulier, « reps » au-delà. */
+export const repsWord = (n: number) => (n > 1 ? 'reps' : 'rep');
+
+/**
+ * Mouvement de référence affiché et écrit : celui choisi s'il est encore dans
+ * le complexe, sinon le dernier mouvement nommé (même règle que l'écriture).
+ */
+export function complexRefName(row: StrengthEntry): string | null {
+  if (!row.complex) return null;
+  const moves = complexMovesForWrite(row.complex);
+  if (!moves.length) return null;
+  const want = (row.complex.refName ?? '').trim().toLowerCase();
+  return (moves.find(m => m.name.toLowerCase() === want) ?? moves[moves.length - 1]).name;
+}
+
+/** Modifie le mouvement `j` du complexe de la ligne `index`. */
+export function updateComplexMove(rows: StrengthRow[], index: number, j: number, patch: Partial<{ reps: number; name: string }>): StrengthRow[] {
+  const c = rows[index]?.complex;
+  if (!c) return rows;
+  return updateStrengthRow(rows, index, { complex: { ...c, movements: c.movements.map((m, k) => (k === j ? { ...m, ...patch } : m)) } });
+}
+
+export function addComplexMove(rows: StrengthRow[], index: number): StrengthRow[] {
+  const c = rows[index]?.complex;
+  if (!c) return rows;
+  return updateStrengthRow(rows, index, { complex: { ...c, movements: [...c.movements, { reps: 1, name: '' }] } });
+}
+
+/** Retire le mouvement `j` ; un complexe garde toujours deux lignes de mouvement. */
+export function removeComplexMove(rows: StrengthRow[], index: number, j: number): StrengthRow[] {
+  const c = rows[index]?.complex;
+  if (!c || c.movements.length <= 2) return rows;
+  return updateStrengthRow(rows, index, { complex: { ...c, movements: c.movements.filter((_, k) => k !== j) } });
+}
+
+export function setComplexRef(rows: StrengthRow[], index: number, refName: string): StrengthRow[] {
+  const c = rows[index]?.complex;
+  if (!c) return rows;
+  return updateStrengthRow(rows, index, { complex: { ...c, refName } });
 }
 
 /**
@@ -124,4 +182,22 @@ export function freeTextFromRows(rows: MovementRow[]): string {
  */
 export function rowsFromFreeText(text: string): MovementRow[] {
   return movementRowsFromLines(text.split('\n').map(l => l.trim()).filter(Boolean));
+}
+
+/** État rendu par « Annuler » : texte et cartes d'avant la première transformation (#454). */
+export interface TransformUndo { freeText: string; rows: StrengthRow[]; count: number }
+
+/**
+ * « Transformer en bloc Musculation » : la ligne quitte le texte et devient la
+ * dernière carte du bloc (écrite en tête à l'enregistrement). Les transformations
+ * successives s'additionnent ; « Annuler » rend l'état d'avant la première.
+ */
+export function transformFreeTextLine(
+  freeText: string, rows: StrengthRow[], undo: TransformUndo | null, c: StrengthCandidate,
+): { freeText: string; rows: StrengthRow[]; undo: TransformUndo } {
+  return {
+    freeText: freeTextWithout(freeText, c.line),
+    rows: [...rows, c.entry],
+    undo: { freeText: undo?.freeText ?? freeText, rows: undo?.rows ?? rows, count: (undo?.count ?? 0) + 1 },
+  };
 }

@@ -1,5 +1,5 @@
 {
-  "_doc": "Lecture d'un WOD en texte libre (#453) : cas partagés app / Manager, identiques octet pour octet (app : src/__tests__/fixtures/free-text-wod-contract.json ; Manager : aperçu « Ce que l'app comprend »). blocks = suite continue de lignes EN TÊTE au format du bloc Musculation (strengthBlock, % du max de gymnastique compris) ou d'une série Cardio (cardioBlock), sans espaces de bord, dans l'ordre ; dès la première ligne qui n'a pas ce format (ligne vide comprise), tout le reste est du texte libre, même une ligne plus loin au format d'une série ; rest = le texte après ces lignes, retours à la ligne gardés, sans lignes vides en tête ni espaces en fin (affiché tel quel, seul lu comme metcon) ; recognized = mouvements reconnus (nom du catalogue, quantités ♂ / ♀, charges ♂ / ♀) ; toFix = morceaux à corriger ; ignored = lignes de format, repos, time cap, objectif.",
+  "_doc": "Lecture d'un WOD en texte libre (#453) : cas partagés app / Manager, identiques octet pour octet (app : src/__tests__/fixtures/free-text-wod-contract.json ; Manager : aperçu « Ce que l'app comprend »). blocks = suite continue de lignes EN TÊTE au format du bloc Musculation (strengthBlock, % du max de gymnastique compris) ou d'une série Cardio (cardioBlock), sans espaces de bord, dans l'ordre ; dès la première ligne qui n'a pas ce format (ligne vide comprise), tout le reste est du texte libre, même une ligne plus loin au format d'une série ; rest = le texte après ces lignes, retours à la ligne gardés, sans lignes vides en tête ni espaces en fin (affiché tel quel, seul lu comme metcon ; une ligne de ce reste au format d'une série — Musculation, Cardio ou complexe (nbstyle69/AthleX-Manager#454) — n'est pas lue : entière dans toFix, jamais découpée sur « + ») ; recognized = mouvements reconnus (nom du catalogue, quantités ♂ / ♀, charges ♂ / ♀) ; toFix = morceaux à corriger ; ignored = lignes de format, repos, time cap, objectif.",
   "cases": [
     {
       "name": "RXP 01 (Road to open), exemple de la maquette",
@@ -270,6 +270,46 @@
           "Back Squat — 5 × 5 @ 100 kg"
         ],
         "ignored": []
+      }
+    },
+    {
+      "name": "Complexe écrit après le texte (#454) : non lu, entier à corriger, aucune rep de ses mouvements",
+      "text": "For time\n21 thrusters @43/29 + 21 pull-ups\nComplexe — 1 Deadlift + 1 Hang Power Clean + 1 Power Clean — 5 × 1 @ 75 %1RM Power Clean\nTC 10'",
+      "expected": {
+        "blocks": [],
+        "rest": "For time\n21 thrusters @43/29 + 21 pull-ups\nComplexe — 1 Deadlift + 1 Hang Power Clean + 1 Power Clean — 5 × 1 @ 75 %1RM Power Clean\nTC 10'",
+        "recognized": [
+          {
+            "segment": "21 thrusters @43/29",
+            "name": "Thruster",
+            "unit": "reps",
+            "reps": {
+              "male": 21,
+              "female": 21
+            },
+            "loadKg": {
+              "male": 43,
+              "female": 29
+            }
+          },
+          {
+            "segment": "21 pull-ups",
+            "name": "Pull-ups",
+            "unit": "reps",
+            "reps": {
+              "male": 21,
+              "female": 21
+            },
+            "loadKg": null
+          }
+        ],
+        "toFix": [
+          "Complexe — 1 Deadlift + 1 Hang Power Clean + 1 Power Clean — 5 × 1 @ 75 %1RM Power Clean"
+        ],
+        "ignored": [
+          "For time",
+          "TC 10'"
+        ]
       }
     }
   ]

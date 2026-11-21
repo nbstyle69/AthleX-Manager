@@ -1,7 +1,7 @@
 import { createHash } from 'crypto';
 import { readFileSync } from 'fs';
 import path from 'path';
-import { isStrengthLine, parseStrengthLine, serializeStrength, type StrengthEntry } from '@/lib/strengthBlock';
+import { isStrengthLine, parseStrengthLine, serializeStrength, type StrengthComplex, type StrengthEntry } from '@/lib/strengthBlock';
 import { gymPrLabel, GYM_PR_MOVEMENTS } from '@/lib/gymMovements';
 import { parseMovementRow } from '@/lib/movements';
 
@@ -13,11 +13,19 @@ import { parseMovementRow } from '@/lib/movements';
 const FILE = path.join(__dirname, '../../lib/__fixtures__/strength-line-contract.json');
 const bytes = readFileSync(FILE);
 const contract = JSON.parse(bytes.toString('utf8')) as {
-  cases: Array<{ line: string; expected: Record<string, string | number> | null; serialize: boolean }>;
+  version: number;
+  cases: Array<{ line: string; expected: Expected | null; serialize: boolean }>;
 };
-const FIELDS = ['name', 'sets', 'reps', 'pctOfMax', 'restSec'] as const;
+type Expected = {
+  name: string; sets: number; reps?: number; load?: number; unit?: string; pctOfMax?: number;
+  restSec?: number; tempo?: string; loadNote?: string; complex?: StrengthComplex;
+};
+const FIELDS = ['name', 'sets', 'reps', 'pctOfMax', 'restSec', 'tempo', 'loadNote', 'complex'] as const;
 
-/** Champs comparés ; absent = non défini ou null, et des reps à 0 comptent comme absentes. */
+/**
+ * Champs comparés (version 2) ; absent = non défini ou null, des reps à 0
+ * comptent comme absentes, `unit` n'est comparée qu'avec une charge.
+ */
 function pick(e: Partial<StrengthEntry>) {
   const out: Record<string, unknown> = {};
   for (const f of FIELDS) {
@@ -25,14 +33,23 @@ function pick(e: Partial<StrengthEntry>) {
     if (v == null || (f === 'reps' && v === 0)) continue;
     out[f] = v;
   }
+  if (e.load != null) { out.load = e.load; out.unit = e.unit; }
   return out;
 }
 
 describe('contrat de format des lignes de force (partagé avec l’app)', () => {
   it('le fichier est celui de l’app, octet pour octet', () => {
-    expect(bytes.length).toBe(1320);
+    // nbstyle69/athlex-app#621 (39972d1), src/__tests__/fixtures/strength-line-contract.json
+    expect(bytes.length).toBe(4216);
     expect(createHash('sha256').update(bytes).digest('hex'))
-      .toBe('52b03e77b685ae11e108841902e5281775c4a6c98fdcf0fae18f9c5f7fdd7025');
+      .toBe('ee8ae5cca55ecb8abe95592814f03298c2c0566877e9cd6893db15e1e286373f');
+  });
+
+  it('version 2 : cinq cas d’origine, quatre complexes, six lignes refusées', () => {
+    expect(contract.version).toBe(2);
+    expect(contract.cases).toHaveLength(15);
+    expect(contract.cases.filter(c => c.expected?.complex)).toHaveLength(4);
+    expect(contract.cases.filter(c => c.expected === null)).toHaveLength(6);
   });
 
   it.each(contract.cases.map(c => [c.line, c] as const))('%s', (_line, c) => {
@@ -47,14 +64,16 @@ describe('contrat de format des lignes de force (partagé avec l’app)', () => 
     if (c.serialize) {
       const x = c.expected;
       expect(serializeStrength({
-        name: String(x.name),
-        sets: Number(x.sets),
-        reps: x.reps != null ? Number(x.reps) : 0,
-        load: null,
-        unit: 'kg',
-        restSec: x.restSec != null ? Number(x.restSec) : null,
-        tempo: null,
-        ...(x.pctOfMax != null ? { pctOfMax: Number(x.pctOfMax) } : {}),
+        name: x.name,
+        sets: x.sets,
+        reps: x.reps ?? 0,
+        load: x.load ?? null,
+        unit: (x.unit as StrengthEntry['unit']) ?? 'kg',
+        restSec: x.restSec ?? null,
+        tempo: x.tempo ?? null,
+        ...(x.loadNote != null ? { loadNote: x.loadNote } : {}),
+        ...(x.pctOfMax != null ? { pctOfMax: x.pctOfMax } : {}),
+        ...(x.complex != null ? { complex: x.complex } : {}),
       })).toBe(c.line);
     }
   });
@@ -132,5 +151,29 @@ describe('gymPrLabel (miroir de gymZones.ts, athlex-app)', () => {
     expect(gymPrLabel('HSPU')).toBeNull();
     expect(gymPrLabel('Back Squat')).toBeNull();
     expect(gymPrLabel('')).toBeNull();
+  });
+});
+
+describe('non-régression (#454) : toute ligne d’avant se lit comme avant', () => {
+  // Lecture figée par parseStrengthLine d’origin/main 857487c, avant les complexes.
+  const avant = JSON.parse(readFileSync(path.join(__dirname, '../../lib/__fixtures__/strength-lines-avant-454.json'), 'utf8')) as {
+    cases: Array<{ line: string; expected: StrengthEntry | null }>;
+  };
+  const complexes = new Set(contract.cases.filter(c => c.expected?.complex).map(c => c.line));
+
+  it('corpus : contrat, lignes de l’app (#621) et chaînes du dépôt', () => {
+    expect(avant.cases.length).toBeGreaterThanOrEqual(100);
+    expect(avant.cases.filter(c => c.expected).length).toBeGreaterThanOrEqual(80);
+  });
+
+  it.each(avant.cases.filter(c => !complexes.has(c.line)).map(c => [c.line, c] as const))('%s', (_l, c) => {
+    expect(parseStrengthLine(c.line)).toEqual(c.expected);
+  });
+
+  it('seuls les complexes du contrat changent (avant : non lus)', () => {
+    for (const c of avant.cases.filter(x => complexes.has(x.line))) {
+      expect(c.expected).toBeNull();
+      expect(parseStrengthLine(c.line)?.complex).toBeDefined();
+    }
   });
 });

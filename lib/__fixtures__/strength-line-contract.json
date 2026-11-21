@@ -1,10 +1,10 @@
 {
-  "version": 1,
-  "description": "Contrat de format des lignes de bloc musculation, partagé entre athlex-app (src/__tests__/fixtures) et AthleX-Manager (lib/__fixtures__) : fichiers identiques octet pour octet. Champs vérifiés : name, sets, reps, pctOfMax, restSec. Un champ absent de expected doit être absent du résultat (non défini ou null) ; des reps à 0 (inconnues, % du max) comptent comme absentes. expected null : ligne non reconnue. serialize vrai : expected se sérialise exactement en line.",
+  "version": 2,
+  "description": "Contrat de format des lignes de bloc musculation, partagé entre athlex-app (src/__tests__/fixtures) et AthleX-Manager (lib/__fixtures__) : fichiers identiques octet pour octet. Champs vérifiés : name, sets, reps, load, unit, pctOfMax, restSec, tempo, loadNote, complex. Un champ absent de expected doit être absent du résultat (non défini ou null) ; des reps à 0 (inconnues, % du max) comptent comme absentes ; unit n'est vérifiée qu'avec une charge. Complexe (nbstyle69/AthleX-Manager#454) : « Complexe — <reps> <mouvement> + … — séries × reps [@ <kg> kg | @ <pct> %1RM <mouvement de référence>] » puis charge / repos / tempo ; deux mouvements au moins, chacun avec ses reps ; sans mouvement nommé après %1RM, la référence est le dernier du complexe ; une référence hors du complexe est refusée. expected null : ligne non reconnue. serialize vrai : expected se sérialise exactement en line.",
   "cases": [
     {
       "line": "Back Squat — 5 × 3 @ 80 %1RM — repos 2:00",
-      "expected": { "name": "Back Squat", "sets": 5, "reps": 3, "restSec": 120 },
+      "expected": { "name": "Back Squat", "sets": 5, "reps": 3, "load": 80, "unit": "%1RM", "restSec": 120 },
       "serialize": false
     },
     {
@@ -25,6 +25,56 @@
     {
       "line": "Pull-ups — 4 × 8",
       "expected": { "name": "Pull-ups", "sets": 4, "reps": 8 },
+      "serialize": false
+    },
+    {
+      "line": "Back Squat — 5 × 5 @ 100 kg — repos 2:00",
+      "expected": { "name": "Back Squat", "sets": 5, "reps": 5, "load": 100, "unit": "kg", "restSec": 120 },
+      "serialize": true
+    },
+    {
+      "line": "Complexe — 1 Deadlift + 1 Hang Power Clean + 1 Power Clean — 5 × 1 @ 75 %1RM Power Clean — repos 2:00",
+      "expected": { "name": "Complexe", "sets": 5, "reps": 1, "load": 75, "unit": "%1RM", "restSec": 120, "complex": {"movements": [{"reps": 1, "name": "Deadlift"}, {"reps": 1, "name": "Hang Power Clean"}, {"reps": 1, "name": "Power Clean"}], "refName": "Power Clean"} },
+      "serialize": true
+    },
+    {
+      "line": "Complexe — 2 Power Clean + 1 Push Jerk — 4 × 2 @ 80 kg",
+      "expected": { "name": "Complexe", "sets": 4, "reps": 2, "load": 80, "unit": "kg", "complex": {"movements": [{"reps": 2, "name": "Power Clean"}, {"reps": 1, "name": "Push Jerk"}], "refName": null} },
+      "serialize": true
+    },
+    {
+      "line": "Complexe — 1 Snatch Pull + 1 Hang Snatch + 1 Overhead Squat — 3 × 1 — charge RPE 8 — repos 1:30 — tempo 21X1",
+      "expected": { "name": "Complexe", "sets": 3, "reps": 1, "restSec": 90, "tempo": "21X1", "loadNote": "RPE 8", "complex": {"movements": [{"reps": 1, "name": "Snatch Pull"}, {"reps": 1, "name": "Hang Snatch"}, {"reps": 1, "name": "Overhead Squat"}], "refName": null} },
+      "serialize": true
+    },
+    {
+      "line": "Complexe — 1 Deadlift + 1 Power Clean — 5 × 1 @ 70 %1RM",
+      "expected": { "name": "Complexe", "sets": 5, "reps": 1, "load": 70, "unit": "%1RM", "complex": {"movements": [{"reps": 1, "name": "Deadlift"}, {"reps": 1, "name": "Power Clean"}], "refName": "Power Clean"} },
+      "serialize": false
+    },
+    {
+      "line": "Complexe — 1 Deadlift + 1 Power Clean — 5 × 1 @ 75 %1RM Back Squat",
+      "expected": null,
+      "serialize": false
+    },
+    {
+      "line": "Complexe — 1 Deadlift — 5 × 1 @ 75 %1RM Deadlift",
+      "expected": null,
+      "serialize": false
+    },
+    {
+      "line": "Complexe — Deadlift + 1 Power Clean — 5 × 1",
+      "expected": null,
+      "serialize": false
+    },
+    {
+      "line": "Complexe — 1 Deadlift + 1 Power Clean — 5 × 0",
+      "expected": null,
+      "serialize": false
+    },
+    {
+      "line": "1 Deadlift + 1 Power Clean — 5 × 1 @ 75 %1RM Power Clean",
+      "expected": null,
       "serialize": false
     }
   ]
