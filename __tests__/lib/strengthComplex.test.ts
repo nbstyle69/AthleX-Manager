@@ -91,6 +91,7 @@ describe('carte Complexe : écriture au format exact', () => {
   it('un seul mouvement nommé : erreur qui bloque l’enregistrement', () => {
     const rows = updateComplexMove([emptyComplexEntry()], 0, 0, { name: 'Deadlift' });
     expect(strengthRowError(rows[0])).toBe(COMPLEX_TWO_MOVES);
+    expect(serializeStrengthRow(rows[0])).toBe('');
     expect(strengthRowError(filled()[0])).toBeNull();
   });
 
@@ -227,6 +228,12 @@ describe('aperçu : lignes repérées hors de la tête du texte', () => {
     expect(p.fixCount).toBe(1);
     // L'app, elle, ne la lit pas (contrat) : toujours « à corriger ».
     expect(readFreeText(`For time\n${BRIEF}`).toFix).toEqual([BRIEF]);
+  });
+
+  it('ligne de format (« EMOM 10 x 3 », « Tabata 8 x 20 ») : ignorée, jamais proposée', () => {
+    const p = freeTextPreview('For time\nEMOM 10 x 3\nTabata 8 x 20', CATALOG);
+    expect(p.candidateCount).toBe(0);
+    expect(p.ignored.map(i => i.text)).toEqual(['For time', 'EMOM 10 x 3', 'Tabata 8 x 20']);
   });
 
   it('une série Cardio plus loin reste « non lue », sans transformation', () => {

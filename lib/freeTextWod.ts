@@ -426,8 +426,8 @@ export function freeTextPreview(text: string, managerCatalog: readonly string[] 
     const line = raw.trim();
     if (!line) continue;
     // Musculation ou complexe plus loin (#454) : à corriger tant que non transformé.
-    const exact = isStrengthLine(line);
-    const candidate = exact || !readFreeText(line).ignored.length ? strengthCandidate(line, managerCatalog) : null;
+    // Une ligne seule au format exact est un bloc pour readFreeText, jamais « ignorée ».
+    const candidate = readFreeText(line).ignored.length ? null : strengthCandidate(line, managerCatalog);
     if (candidate) {
       out.groups.push({ line, items: [], candidate });
       out.fixCount += 1;
