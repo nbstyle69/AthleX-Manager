@@ -1,0 +1,1234 @@
+{
+ "description": "Lignes de bloc musculation (contrat v1 et v2, corpus de l’app nbstyle69/athlex-app#621, chaînes du dépôt) lues par parseStrengthLine de origin/main 857487c, avant les complexes (#454). Le parseur doit en rendre exactement le même résultat, complexes exceptés.",
+ "cases": [
+  {
+   "line": "  Back Squat — 5 × 5 @ 100 kg  ",
+   "expected": {
+    "name": "Back Squat",
+    "sets": 5,
+    "reps": 5,
+    "load": 100,
+    "unit": "kg",
+    "restSec": null,
+    "tempo": null
+   }
+  },
+  {
+   "line": "*   Back Squat — 5 × 3 @ 80 %1RM — repos 2:00 — tempo 30X1",
+   "expected": {
+    "name": "*   Back Squat",
+    "sets": 5,
+    "reps": 3,
+    "load": 80,
+    "unit": "%1RM",
+    "restSec": 120,
+    "tempo": "30X1"
+   }
+  },
+  {
+   "line": "1 Deadlift + 1 Power Clean — 5 × 1 @ 75 %1RM Power Clean",
+   "expected": null
+  },
+  {
+   "line": "Back Squat - 3x5 @ 80kg",
+   "expected": {
+    "name": "Back Squat",
+    "sets": 3,
+    "reps": 5,
+    "load": 80,
+    "unit": "kg",
+    "restSec": null,
+    "tempo": null
+   }
+  },
+  {
+   "line": "Back Squat - 5 x 3 @ 80 % 1RM - repos 2:00",
+   "expected": {
+    "name": "Back Squat",
+    "sets": 5,
+    "reps": 3,
+    "load": 80,
+    "unit": "%1RM",
+    "restSec": 120,
+    "tempo": null
+   }
+  },
+  {
+   "line": "Back Squat 5×3 RPE 8 → « Back Squat — 5 × 3 — charge RPE 8 », relue avec loadNote",
+   "expected": {
+    "name": "Back Squat 5×3 RPE 8 → « Back Squat",
+    "sets": 5,
+    "reps": 3,
+    "load": null,
+    "unit": "kg",
+    "restSec": null,
+    "tempo": null,
+    "loadNote": "RPE 8 », relue avec loadNote"
+   }
+  },
+  {
+   "line": "Back Squat – 5x3@100kg",
+   "expected": {
+    "name": "Back Squat",
+    "sets": 5,
+    "reps": 3,
+    "load": 100,
+    "unit": "kg",
+    "restSec": null,
+    "tempo": null
+   }
+  },
+  {
+   "line": "Back Squat — 1 × 3 @ 100 kg",
+   "expected": {
+    "name": "Back Squat",
+    "sets": 1,
+    "reps": 3,
+    "load": 100,
+    "unit": "kg",
+    "restSec": null,
+    "tempo": null
+   }
+  },
+  {
+   "line": "Back Squat — 2 × 3 @ 100 kg",
+   "expected": {
+    "name": "Back Squat",
+    "sets": 2,
+    "reps": 3,
+    "load": 100,
+    "unit": "kg",
+    "restSec": null,
+    "tempo": null
+   }
+  },
+  {
+   "line": "Back Squat — 2 × 3 @ 80 %1RM",
+   "expected": {
+    "name": "Back Squat",
+    "sets": 2,
+    "reps": 3,
+    "load": 80,
+    "unit": "%1RM",
+    "restSec": null,
+    "tempo": null
+   }
+  },
+  {
+   "line": "Back Squat — 2 × 3 — charge RPE 8",
+   "expected": {
+    "name": "Back Squat",
+    "sets": 2,
+    "reps": 3,
+    "load": null,
+    "unit": "kg",
+    "restSec": null,
+    "tempo": null,
+    "loadNote": "RPE 8"
+   }
+  },
+  {
+   "line": "Back Squat — 2 × 5 @ 100 kg",
+   "expected": {
+    "name": "Back Squat",
+    "sets": 2,
+    "reps": 5,
+    "load": 100,
+    "unit": "kg",
+    "restSec": null,
+    "tempo": null
+   }
+  },
+  {
+   "line": "Back Squat — 2 × 5 @ 75 %1RM",
+   "expected": {
+    "name": "Back Squat",
+    "sets": 2,
+    "reps": 5,
+    "load": 75,
+    "unit": "%1RM",
+    "restSec": null,
+    "tempo": null
+   }
+  },
+  {
+   "line": "Back Squat — 3 × 15 %",
+   "expected": null
+  },
+  {
+   "line": "Back Squat — 3 × 15 % du max",
+   "expected": null
+  },
+  {
+   "line": "Back Squat — 3 × 3 @ 110 kg",
+   "expected": {
+    "name": "Back Squat",
+    "sets": 3,
+    "reps": 3,
+    "load": 110,
+    "unit": "kg",
+    "restSec": null,
+    "tempo": null
+   }
+  },
+  {
+   "line": "Back Squat — 3 × 5 @ 100 kg",
+   "expected": {
+    "name": "Back Squat",
+    "sets": 3,
+    "reps": 5,
+    "load": 100,
+    "unit": "kg",
+    "restSec": null,
+    "tempo": null
+   }
+  },
+  {
+   "line": "Back Squat — 30 × 1 @ 50kg",
+   "expected": {
+    "name": "Back Squat",
+    "sets": 30,
+    "reps": 1,
+    "load": 50,
+    "unit": "kg",
+    "restSec": null,
+    "tempo": null
+   }
+  },
+  {
+   "line": "Back Squat — 30 × 1 @ 60kg",
+   "expected": {
+    "name": "Back Squat",
+    "sets": 30,
+    "reps": 1,
+    "load": 60,
+    "unit": "kg",
+    "restSec": null,
+    "tempo": null
+   }
+  },
+  {
+   "line": "Back Squat — 5 × 3",
+   "expected": {
+    "name": "Back Squat",
+    "sets": 5,
+    "reps": 3,
+    "load": null,
+    "unit": "kg",
+    "restSec": null,
+    "tempo": null
+   }
+  },
+  {
+   "line": "Back Squat — 5 × 3 @ 100 kg",
+   "expected": {
+    "name": "Back Squat",
+    "sets": 5,
+    "reps": 3,
+    "load": 100,
+    "unit": "kg",
+    "restSec": null,
+    "tempo": null
+   }
+  },
+  {
+   "line": "Back Squat — 5 × 3 @ 100 kg — repos 2:00",
+   "expected": {
+    "name": "Back Squat",
+    "sets": 5,
+    "reps": 3,
+    "load": 100,
+    "unit": "kg",
+    "restSec": 120,
+    "tempo": null
+   }
+  },
+  {
+   "line": "Back Squat — 5 × 3 @ 80 %",
+   "expected": {
+    "name": "Back Squat",
+    "sets": 5,
+    "reps": 3,
+    "load": 80,
+    "unit": "%1RM",
+    "restSec": null,
+    "tempo": null
+   }
+  },
+  {
+   "line": "Back Squat — 5 × 3 @ 80 % (≈ 80 kg)",
+   "expected": null
+  },
+  {
+   "line": "Back Squat — 5 × 3 @ 80 %1RM",
+   "expected": {
+    "name": "Back Squat",
+    "sets": 5,
+    "reps": 3,
+    "load": 80,
+    "unit": "%1RM",
+    "restSec": null,
+    "tempo": null
+   }
+  },
+  {
+   "line": "Back Squat — 5 × 3 @ 80 %1RM — repos 2:00",
+   "expected": {
+    "name": "Back Squat",
+    "sets": 5,
+    "reps": 3,
+    "load": 80,
+    "unit": "%1RM",
+    "restSec": 120,
+    "tempo": null
+   }
+  },
+  {
+   "line": "Back Squat — 5 × 3 @ 80 %1RM — repos 2:00 — tempo 30X1",
+   "expected": {
+    "name": "Back Squat",
+    "sets": 5,
+    "reps": 3,
+    "load": 80,
+    "unit": "%1RM",
+    "restSec": 120,
+    "tempo": "30X1"
+   }
+  },
+  {
+   "line": "Back Squat — 5 × 3 @ 80 %1RM — repos 2:00 — tempo 30X1 — charge RPE 8",
+   "expected": {
+    "name": "Back Squat",
+    "sets": 5,
+    "reps": 3,
+    "load": 80,
+    "unit": "%1RM",
+    "restSec": 120,
+    "tempo": "30X1",
+    "loadNote": "RPE 8"
+   }
+  },
+  {
+   "line": "Back Squat — 5 × 3 — charge RM du jour",
+   "expected": {
+    "name": "Back Squat",
+    "sets": 5,
+    "reps": 3,
+    "load": null,
+    "unit": "kg",
+    "restSec": null,
+    "tempo": null,
+    "loadNote": "RM du jour"
+   }
+  },
+  {
+   "line": "Back Squat — 5 × 3 — charge RPE 8",
+   "expected": {
+    "name": "Back Squat",
+    "sets": 5,
+    "reps": 3,
+    "load": null,
+    "unit": "kg",
+    "restSec": null,
+    "tempo": null,
+    "loadNote": "RPE 8"
+   }
+  },
+  {
+   "line": "Back Squat — 5 × 3 — charge RPE 9 — repos 2:00",
+   "expected": {
+    "name": "Back Squat",
+    "sets": 5,
+    "reps": 3,
+    "load": null,
+    "unit": "kg",
+    "restSec": 120,
+    "tempo": null,
+    "loadNote": "RPE 9"
+   }
+  },
+  {
+   "line": "Back Squat — 5 × 5",
+   "expected": {
+    "name": "Back Squat",
+    "sets": 5,
+    "reps": 5,
+    "load": null,
+    "unit": "kg",
+    "restSec": null,
+    "tempo": null
+   }
+  },
+  {
+   "line": "Back Squat — 5 × 5 @ 100 kg",
+   "expected": {
+    "name": "Back Squat",
+    "sets": 5,
+    "reps": 5,
+    "load": 100,
+    "unit": "kg",
+    "restSec": null,
+    "tempo": null
+   }
+  },
+  {
+   "line": "Back Squat — 5 × 5 @ 100 kg — repos 2:00",
+   "expected": {
+    "name": "Back Squat",
+    "sets": 5,
+    "reps": 5,
+    "load": 100,
+    "unit": "kg",
+    "restSec": 120,
+    "tempo": null
+   }
+  },
+  {
+   "line": "Back Squat — 5 × 80 %",
+   "expected": null
+  },
+  {
+   "line": "Bar Muscle-up — 5 × 40 % du max — repos 2:00 — tempo 10X0",
+   "expected": {
+    "name": "Bar Muscle-up",
+    "sets": 5,
+    "reps": 0,
+    "load": null,
+    "unit": "kg",
+    "restSec": 120,
+    "tempo": "10X0",
+    "pctOfMax": 40
+   }
+  },
+  {
+   "line": "Bar Muscle-ups — 3 × 30 % du max",
+   "expected": {
+    "name": "Bar Muscle-ups",
+    "sets": 3,
+    "reps": 0,
+    "load": null,
+    "unit": "kg",
+    "restSec": null,
+    "tempo": null,
+    "pctOfMax": 30
+   }
+  },
+  {
+   "line": "Bar Muscle-ups — 7 × 20 % du max",
+   "expected": {
+    "name": "Bar Muscle-ups",
+    "sets": 7,
+    "reps": 0,
+    "load": null,
+    "unit": "kg",
+    "restSec": null,
+    "tempo": null,
+    "pctOfMax": 20
+   }
+  },
+  {
+   "line": "Bench Press — 4 × 18 — RPE 7 (≈ 55 % du 1RM) — repos 40s",
+   "expected": {
+    "name": "Bench Press",
+    "sets": 4,
+    "reps": 18,
+    "load": null,
+    "unit": "kg",
+    "restSec": 40,
+    "tempo": null
+   }
+  },
+  {
+   "line": "Bench Press — 4 × 20 — repos 40s",
+   "expected": {
+    "name": "Bench Press",
+    "sets": 4,
+    "reps": 20,
+    "load": null,
+    "unit": "kg",
+    "restSec": 40,
+    "tempo": null
+   }
+  },
+  {
+   "line": "Bench Press — 5 × 5 — charge RPE 8",
+   "expected": {
+    "name": "Bench Press",
+    "sets": 5,
+    "reps": 5,
+    "load": null,
+    "unit": "kg",
+    "restSec": null,
+    "tempo": null,
+    "loadNote": "RPE 8"
+   }
+  },
+  {
+   "line": "Bench Press — 5 × 5 — tempo 30X1 — charge +2,5 kg — repos 90",
+   "expected": {
+    "name": "Bench Press",
+    "sets": 5,
+    "reps": 5,
+    "load": null,
+    "unit": "kg",
+    "restSec": 90,
+    "tempo": "30X1",
+    "loadNote": "+2,5 kg"
+   }
+  },
+  {
+   "line": "Bench — 4 × 6 @ 80 %1RM — charge ou RPE 8 — repos 1:30 — tempo 30X1",
+   "expected": {
+    "name": "Bench",
+    "sets": 4,
+    "reps": 6,
+    "load": 80,
+    "unit": "%1RM",
+    "restSec": 90,
+    "tempo": "30X1",
+    "loadNote": "ou RPE 8"
+   }
+  },
+  {
+   "line": "Bench — 4 × 6 @ 80 %1RM — charge ou RPE 8 — tempo 30X1",
+   "expected": {
+    "name": "Bench",
+    "sets": 4,
+    "reps": 6,
+    "load": 80,
+    "unit": "%1RM",
+    "restSec": null,
+    "tempo": "30X1",
+    "loadNote": "ou RPE 8"
+   }
+  },
+  {
+   "line": "Bench — 4 × 6 @ 80 %1RM — repos 1:30 — tempo 30X1 — charge ou RPE 8",
+   "expected": {
+    "name": "Bench",
+    "sets": 4,
+    "reps": 6,
+    "load": 80,
+    "unit": "%1RM",
+    "restSec": 90,
+    "tempo": "30X1",
+    "loadNote": "ou RPE 8"
+   }
+  },
+  {
+   "line": "Calf Raise (bodyweight) — 3 × 18 — charge poids du corps — repos 1:15",
+   "expected": {
+    "name": "Calf Raise (bodyweight)",
+    "sets": 3,
+    "reps": 18,
+    "load": null,
+    "unit": "kg",
+    "restSec": 75,
+    "tempo": null,
+    "loadNote": "poids du corps"
+   }
+  },
+  {
+   "line": "Chest-to-Bar — 4 × 33 % du max",
+   "expected": {
+    "name": "Chest-to-Bar",
+    "sets": 4,
+    "reps": 0,
+    "load": null,
+    "unit": "kg",
+    "restSec": null,
+    "tempo": null,
+    "pctOfMax": 33
+   }
+  },
+  {
+   "line": "Chest-to-Bar — 5 × 20 % du max",
+   "expected": {
+    "name": "Chest-to-Bar",
+    "sets": 5,
+    "reps": 0,
+    "load": null,
+    "unit": "kg",
+    "restSec": null,
+    "tempo": null,
+    "pctOfMax": 20
+   }
+  },
+  {
+   "line": "Clean — 1 Deadlift + 1 Clean — 5 × 1",
+   "expected": null
+  },
+  {
+   "line": "Complex — 1 Clean + 1 Jerk — 5 × 1 @ 75 %1RM Jerk",
+   "expected": null
+  },
+  {
+   "line": "Complexe — 1 Deadlift + 1 Hang Power Clean + 1 Power Clean — 5 × 1 @ 75 %1RM Power Clean — repos 2:00",
+   "expected": null
+  },
+  {
+   "line": "Complexe — 1 Deadlift + 1 Power Clean — 5 × 0",
+   "expected": null
+  },
+  {
+   "line": "Complexe — 1 Deadlift + 1 Power Clean — 5 × 1 @ 70 %1RM",
+   "expected": null
+  },
+  {
+   "line": "Complexe — 1 Deadlift + 1 Power Clean — 5 × 1 @ 75 %1RM Back Squat",
+   "expected": null
+  },
+  {
+   "line": "Complexe — 1 Deadlift — 5 × 1 @ 75 %1RM Deadlift",
+   "expected": null
+  },
+  {
+   "line": "Complexe — 1 Snatch Pull + 1 Hang Snatch + 1 Overhead Squat — 3 × 1 — charge RPE 8 — repos 1:30 — tempo 21X1",
+   "expected": null
+  },
+  {
+   "line": "Complexe — 2 Power Clean + 1 Push Jerk — 4 × 2 @ 80 kg",
+   "expected": null
+  },
+  {
+   "line": "Complexe — 3 × 15 % du max",
+   "expected": null
+  },
+  {
+   "line": "Complexe — 5 × 1 @ 60 %1RM",
+   "expected": {
+    "name": "Complexe",
+    "sets": 5,
+    "reps": 1,
+    "load": 60,
+    "unit": "%1RM",
+    "restSec": null,
+    "tempo": null
+   }
+  },
+  {
+   "line": "Complexe — 5 × 3 @ 80 kg",
+   "expected": {
+    "name": "Complexe",
+    "sets": 5,
+    "reps": 3,
+    "load": 80,
+    "unit": "kg",
+    "restSec": null,
+    "tempo": null
+   }
+  },
+  {
+   "line": "Complexe — Deadlift + 1 Power Clean — 5 × 1",
+   "expected": null
+  },
+  {
+   "line": "Deadlift - 3x5 @ 90% - repos 180s",
+   "expected": {
+    "name": "Deadlift",
+    "sets": 3,
+    "reps": 5,
+    "load": 90,
+    "unit": "%1RM",
+    "restSec": 180,
+    "tempo": null
+   }
+  },
+  {
+   "line": "Deadlift — 1 × 2 @ 100 kg",
+   "expected": {
+    "name": "Deadlift",
+    "sets": 1,
+    "reps": 2,
+    "load": 100,
+    "unit": "kg",
+    "restSec": null,
+    "tempo": null
+   }
+  },
+  {
+   "line": "Deadlift — 2 × 2 @ 100 kg",
+   "expected": {
+    "name": "Deadlift",
+    "sets": 2,
+    "reps": 2,
+    "load": 100,
+    "unit": "kg",
+    "restSec": null,
+    "tempo": null
+   }
+  },
+  {
+   "line": "Deadlift — 2 × 2 @ 86 %1RM",
+   "expected": {
+    "name": "Deadlift",
+    "sets": 2,
+    "reps": 2,
+    "load": 86,
+    "unit": "%1RM",
+    "restSec": null,
+    "tempo": null
+   }
+  },
+  {
+   "line": "Deadlift — 3 × 5 @ 100 kg",
+   "expected": {
+    "name": "Deadlift",
+    "sets": 3,
+    "reps": 5,
+    "load": 100,
+    "unit": "kg",
+    "restSec": null,
+    "tempo": null
+   }
+  },
+  {
+   "line": "Deadlift — 3 × 5 — charge +2,5 kg",
+   "expected": {
+    "name": "Deadlift",
+    "sets": 3,
+    "reps": 5,
+    "load": null,
+    "unit": "kg",
+    "restSec": null,
+    "tempo": null,
+    "loadNote": "+2,5 kg"
+   }
+  },
+  {
+   "line": "Deadlift — 3 × 5 — charge RM du jour",
+   "expected": {
+    "name": "Deadlift",
+    "sets": 3,
+    "reps": 5,
+    "load": null,
+    "unit": "kg",
+    "restSec": null,
+    "tempo": null,
+    "loadNote": "RM du jour"
+   }
+  },
+  {
+   "line": "Deadlift — 4 × 2 — charge RPE 8-9",
+   "expected": {
+    "name": "Deadlift",
+    "sets": 4,
+    "reps": 2,
+    "load": null,
+    "unit": "kg",
+    "restSec": null,
+    "tempo": null,
+    "loadNote": "RPE 8-9"
+   }
+  },
+  {
+   "line": "Dips — 3 × 12,5 % du max",
+   "expected": {
+    "name": "Dips",
+    "sets": 3,
+    "reps": 0,
+    "load": null,
+    "unit": "kg",
+    "restSec": null,
+    "tempo": null,
+    "pctOfMax": 12.5
+   }
+  },
+  {
+   "line": "Farmer Carry — 2 × 40 m",
+   "expected": null
+  },
+  {
+   "line": "Farmer Carry — 4 × 40 m @ 32 kg",
+   "expected": null
+  },
+  {
+   "line": "Front Squat — 3 × 5 @ 70 %",
+   "expected": {
+    "name": "Front Squat",
+    "sets": 3,
+    "reps": 5,
+    "load": 70,
+    "unit": "%1RM",
+    "restSec": null,
+    "tempo": null
+   }
+  },
+  {
+   "line": "Front Squat — 3 × 5 — charge RPE 7/8",
+   "expected": {
+    "name": "Front Squat",
+    "sets": 3,
+    "reps": 5,
+    "load": null,
+    "unit": "kg",
+    "restSec": null,
+    "tempo": null,
+    "loadNote": "RPE 7/8"
+   }
+  },
+  {
+   "line": "Front Squat — 5 × 3 @ 82 %1RM — repos 3:00 — tempo 2-1-X-1 — charge 80-85 %",
+   "expected": {
+    "name": "Front Squat",
+    "sets": 5,
+    "reps": 3,
+    "load": 82,
+    "unit": "%1RM",
+    "restSec": 180,
+    "tempo": "2-1-X-1",
+    "loadNote": "80-85 %"
+   }
+  },
+  {
+   "line": "Front Squat — 6 × 3 @ 82 %1RM — charge 80-85 % — repos 3:00 — tempo 2-1-X-1",
+   "expected": {
+    "name": "Front Squat",
+    "sets": 6,
+    "reps": 3,
+    "load": 82,
+    "unit": "%1RM",
+    "restSec": 180,
+    "tempo": "2-1-X-1",
+    "loadNote": "80-85 %"
+   }
+  },
+  {
+   "line": "Lunge — 3 × 8 / jambe @ 20 kg — tempo 31X1 — repos 1:00",
+   "expected": null
+  },
+  {
+   "line": "Musculation : séance guidée dans l’app (grille de séries) Back Squat — 5 × 3 @ 80 %",
+   "expected": {
+    "name": "Musculation : séance guidée dans l’app (grille de séries) Back Squat",
+    "sets": 5,
+    "reps": 3,
+    "load": 80,
+    "unit": "%1RM",
+    "restSec": null,
+    "tempo": null
+   }
+  },
+  {
+   "line": "Plank — 3 × 30 s",
+   "expected": null
+  },
+  {
+   "line": "Power Clean + Push Jerk — 5 × 1 @ 80 kg",
+   "expected": {
+    "name": "Power Clean + Push Jerk",
+    "sets": 5,
+    "reps": 1,
+    "load": 80,
+    "unit": "kg",
+    "restSec": null,
+    "tempo": null
+   }
+  },
+  {
+   "line": "Power Snatch — 4 × 1 @ 65 %1RM — repos 3:00 — charge E3MOM · 60-70 %",
+   "expected": {
+    "name": "Power Snatch",
+    "sets": 4,
+    "reps": 1,
+    "load": 65,
+    "unit": "%1RM",
+    "restSec": 180,
+    "tempo": null,
+    "loadNote": "E3MOM · 60-70 %"
+   }
+  },
+  {
+   "line": "Pull-ups — 1 × 8 @ 10 kg",
+   "expected": {
+    "name": "Pull-ups",
+    "sets": 1,
+    "reps": 8,
+    "load": 10,
+    "unit": "kg",
+    "restSec": null,
+    "tempo": null
+   }
+  },
+  {
+   "line": "Pull-ups — 2 × 30 s",
+   "expected": null
+  },
+  {
+   "line": "Pull-ups — 2 × 8",
+   "expected": {
+    "name": "Pull-ups",
+    "sets": 2,
+    "reps": 8,
+    "load": null,
+    "unit": "kg",
+    "restSec": null,
+    "tempo": null
+   }
+  },
+  {
+   "line": "Pull-ups — 2 × 8 @ 10 kg",
+   "expected": {
+    "name": "Pull-ups",
+    "sets": 2,
+    "reps": 8,
+    "load": 10,
+    "unit": "kg",
+    "restSec": null,
+    "tempo": null
+   }
+  },
+  {
+   "line": "Pull-ups — 3 × 5 @ 60 %",
+   "expected": {
+    "name": "Pull-ups",
+    "sets": 3,
+    "reps": 5,
+    "load": 60,
+    "unit": "%1RM",
+    "restSec": null,
+    "tempo": null
+   }
+  },
+  {
+   "line": "Pull-ups — 4 × 5 @ 60 %",
+   "expected": {
+    "name": "Pull-ups",
+    "sets": 4,
+    "reps": 5,
+    "load": 60,
+    "unit": "%1RM",
+    "restSec": null,
+    "tempo": null
+   }
+  },
+  {
+   "line": "Pull-ups — 4 × 8",
+   "expected": {
+    "name": "Pull-ups",
+    "sets": 4,
+    "reps": 8,
+    "load": null,
+    "unit": "kg",
+    "restSec": null,
+    "tempo": null
+   }
+  },
+  {
+   "line": "Pull-ups — 4 × 8 @ 10 kg",
+   "expected": {
+    "name": "Pull-ups",
+    "sets": 4,
+    "reps": 8,
+    "load": 10,
+    "unit": "kg",
+    "restSec": null,
+    "tempo": null
+   }
+  },
+  {
+   "line": "Pull-ups — 5 × 8",
+   "expected": {
+    "name": "Pull-ups",
+    "sets": 5,
+    "reps": 8,
+    "load": null,
+    "unit": "kg",
+    "restSec": null,
+    "tempo": null
+   }
+  },
+  {
+   "line": "Push Press — 2 × 5",
+   "expected": {
+    "name": "Push Press",
+    "sets": 2,
+    "reps": 5,
+    "load": null,
+    "unit": "kg",
+    "restSec": null,
+    "tempo": null
+   }
+  },
+  {
+   "line": "Rameur — 2 × 500 m — repos 2:00",
+   "expected": null
+  },
+  {
+   "line": "Ring Muscle-up — 3 × 15 % du max — charge gilet — repos 1:30 — tempo 20X0",
+   "expected": {
+    "name": "Ring Muscle-up",
+    "sets": 3,
+    "reps": 0,
+    "load": null,
+    "unit": "kg",
+    "restSec": 90,
+    "tempo": "20X0",
+    "loadNote": "gilet",
+    "pctOfMax": 15
+   }
+  },
+  {
+   "line": "Ring Muscle-up — 3 × 15 % du max — repos 1:30",
+   "expected": {
+    "name": "Ring Muscle-up",
+    "sets": 3,
+    "reps": 0,
+    "load": null,
+    "unit": "kg",
+    "restSec": 90,
+    "tempo": null,
+    "pctOfMax": 15
+   }
+  },
+  {
+   "line": "Ring Muscle-up — 3 × 5 — repos 1:30",
+   "expected": {
+    "name": "Ring Muscle-up",
+    "sets": 3,
+    "reps": 5,
+    "load": null,
+    "unit": "kg",
+    "restSec": 90,
+    "tempo": null
+   }
+  },
+  {
+   "line": "Ring Muscle-up — 4 × 15 % du max — repos 1:30",
+   "expected": {
+    "name": "Ring Muscle-up",
+    "sets": 4,
+    "reps": 0,
+    "load": null,
+    "unit": "kg",
+    "restSec": 90,
+    "tempo": null,
+    "pctOfMax": 15
+   }
+  },
+  {
+   "line": "Ring Muscle-ups — 3 × 50 % du max",
+   "expected": {
+    "name": "Ring Muscle-ups",
+    "sets": 3,
+    "reps": 0,
+    "load": null,
+    "unit": "kg",
+    "restSec": null,
+    "tempo": null,
+    "pctOfMax": 50
+   }
+  },
+  {
+   "line": "Ring Muscle-ups — 3 × 8",
+   "expected": {
+    "name": "Ring Muscle-ups",
+    "sets": 3,
+    "reps": 8,
+    "load": null,
+    "unit": "kg",
+    "restSec": null,
+    "tempo": null
+   }
+  },
+  {
+   "line": "Ring Muscle-ups — 4 × 25 % du max",
+   "expected": {
+    "name": "Ring Muscle-ups",
+    "sets": 4,
+    "reps": 0,
+    "load": null,
+    "unit": "kg",
+    "restSec": null,
+    "tempo": null,
+    "pctOfMax": 25
+   }
+  },
+  {
+   "line": "Row — 2 × 500 m — rest 2:00",
+   "expected": null
+  },
+  {
+   "line": "Strict Handstand Push-Ups — 6 × 25 % du max",
+   "expected": {
+    "name": "Strict Handstand Push-Ups",
+    "sets": 6,
+    "reps": 0,
+    "load": null,
+    "unit": "kg",
+    "restSec": null,
+    "tempo": null,
+    "pctOfMax": 25
+   }
+  },
+  {
+   "line": "Strict Press — 5 × 3 @ 50 %1RM",
+   "expected": {
+    "name": "Strict Press",
+    "sets": 5,
+    "reps": 3,
+    "load": 50,
+    "unit": "%1RM",
+    "restSec": null,
+    "tempo": null
+   }
+  },
+  {
+   "line": "Strict Press — 5 × 3 @ 50 %1RM (≈ 30 kg)",
+   "expected": null
+  },
+  {
+   "line": "Strict Pull-Ups — 3 × 15 % du max",
+   "expected": null
+  },
+  {
+   "line": "Strict Pull-Ups — 3 × 5 — repos 1:30 — tempo 2-1-2-1 — charge strict, qualité avant quantité",
+   "expected": {
+    "name": "Strict Pull-Ups",
+    "sets": 3,
+    "reps": 5,
+    "load": null,
+    "unit": "kg",
+    "restSec": 90,
+    "tempo": "2-1-2-1",
+    "loadNote": "strict, qualité avant quantité"
+   }
+  },
+  {
+   "line": "Strict Pull-Ups — 3 × 50 %",
+   "expected": null
+  },
+  {
+   "line": "Strict Pull-Ups — 3 × 8",
+   "expected": {
+    "name": "Strict Pull-Ups",
+    "sets": 3,
+    "reps": 8,
+    "load": null,
+    "unit": "kg",
+    "restSec": null,
+    "tempo": null
+   }
+  },
+  {
+   "line": "T2B — 4 × 50 %",
+   "expected": {
+    "name": "T2B",
+    "sets": 4,
+    "reps": 0,
+    "load": null,
+    "unit": "kg",
+    "restSec": null,
+    "tempo": null,
+    "pctOfMax": 50
+   }
+  },
+  {
+   "line": "T2B — 4 × 50 % du max",
+   "expected": {
+    "name": "T2B",
+    "sets": 4,
+    "reps": 0,
+    "load": null,
+    "unit": "kg",
+    "restSec": null,
+    "tempo": null,
+    "pctOfMax": 50
+   }
+  },
+  {
+   "line": "Toes To Bar — 2 × 60 % du max",
+   "expected": {
+    "name": "Toes To Bar",
+    "sets": 2,
+    "reps": 0,
+    "load": null,
+    "unit": "kg",
+    "restSec": null,
+    "tempo": null,
+    "pctOfMax": 60
+   }
+  },
+  {
+   "line": "Toes to Bar — 2 × 60 %",
+   "expected": {
+    "name": "Toes to Bar",
+    "sets": 2,
+    "reps": 0,
+    "load": null,
+    "unit": "kg",
+    "restSec": null,
+    "tempo": null,
+    "pctOfMax": 60
+   }
+  },
+  {
+   "line": "Toes to Bar — 2 × 60 % du max",
+   "expected": {
+    "name": "Toes to Bar",
+    "sets": 2,
+    "reps": 0,
+    "load": null,
+    "unit": "kg",
+    "restSec": null,
+    "tempo": null,
+    "pctOfMax": 60
+   }
+  },
+  {
+   "line": "Toes to Bar — 3 × 60 % du max",
+   "expected": {
+    "name": "Toes to Bar",
+    "sets": 3,
+    "reps": 0,
+    "load": null,
+    "unit": "kg",
+    "restSec": null,
+    "tempo": null,
+    "pctOfMax": 60
+   }
+  },
+  {
+   "line": "Toes-to-Bar — 6 × 35 % du max",
+   "expected": {
+    "name": "Toes-to-Bar",
+    "sets": 6,
+    "reps": 0,
+    "load": null,
+    "unit": "kg",
+    "restSec": null,
+    "tempo": null,
+    "pctOfMax": 35
+   }
+  },
+  {
+   "line": "Toes-to-Bar — 6 × 5",
+   "expected": {
+    "name": "Toes-to-Bar",
+    "sets": 6,
+    "reps": 5,
+    "load": null,
+    "unit": "kg",
+    "restSec": null,
+    "tempo": null
+   }
+  },
+  {
+   "line": "Zercher Squat — 3 × 5 — charge RPE 9",
+   "expected": {
+    "name": "Zercher Squat",
+    "sets": 3,
+    "reps": 5,
+    "load": null,
+    "unit": "kg",
+    "restSec": null,
+    "tempo": null,
+    "loadNote": "RPE 9"
+   }
+  },
+  {
+   "line": "« Deadlift — 3 × 5 @ 100 kg » : série écrite après le texte, non lue : mets-la en tête, avant le reste du texte",
+   "expected": null
+  }
+ ]
+}

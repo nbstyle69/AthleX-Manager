@@ -24,14 +24,14 @@ describe('contrat partagé avec l’app (free-text-wod-contract.json)', () => {
   const contract = JSON.parse(bytes.toString('utf8')) as { cases: { name: string; text: string; expected: unknown }[] };
 
   it('le fichier est celui de l’app, octet pour octet', () => {
-    // athlex-app b468c12 (PR 3b), src/__tests__/fixtures/free-text-wod-contract.json
-    expect(bytes.length).toBe(8634);
+    // nbstyle69/athlex-app#621 (39972d1), src/__tests__/fixtures/free-text-wod-contract.json
+    expect(bytes.length).toBe(10121);
     expect(createHash('sha256').update(bytes).digest('hex'))
-      .toBe('01a6923d5d66c66dd178d6fba73aab4cdb0e011588b65d6269e0c235ef868dcb');
+      .toBe('5596d406cb6af6a894b8ef68940d63c4ac88ea8475899dbafbfa417fd6f256ec');
   });
 
   it('chaque cas porte blocks, rest, recognized, toFix, ignored', () => {
-    expect(contract.cases).toHaveLength(6);
+    expect(contract.cases).toHaveLength(7);
     for (const c of contract.cases) {
       expect(Object.keys(c.expected as object).sort()).toEqual(['blocks', 'ignored', 'recognized', 'rest', 'toFix']);
     }
@@ -127,11 +127,14 @@ describe('aperçu « Ce que l’app comprend »', () => {
     expect(p.strength).toEqual(['Back Squat — 5 × 3 @ 80 %']);
     expect(p.cardio).toEqual(['Row ~ 2 × 500 m ~ 250 W']);
     expect(p.ignored).toEqual([{ text: 'For time', reason: 'format', count: 1 }]);
-    expect(p.groups.slice(1)).toEqual([
-      { line: null, items: [{ ok: false, text: '« Deadlift — 3 × 5 @ 100 kg » : série écrite après le texte, non lue : mets-la en tête, avant le reste du texte' }] },
+    // #454 : la série de Musculation plus loin propose « Transformer en bloc Musculation » ;
+    // la série Cardio reste « non lue ». Les deux restent à corriger.
+    expect(p.groups[1]).toMatchObject({ line: 'Deadlift — 3 × 5 @ 100 kg', items: [], candidate: { label: 'Deadlift · 3 × 5 @ 100 kg' } });
+    expect(p.groups[2]).toEqual(
       { line: null, items: [{ ok: false, text: '« Run ~ 3 × 400 m » : série écrite après le texte, non lue : mets-la en tête, avant le reste du texte' }] },
-    ]);
-    expect([p.okCount, p.fixCount]).toEqual([1, 2]);
+    );
+    expect(p.groups).toHaveLength(3);
+    expect([p.okCount, p.fixCount, p.candidateCount]).toEqual([1, 2, 1]);
   });
 
   it('une ligne vide en tête : aucune rubrique, la série est à corriger (comme l’app)', () => {

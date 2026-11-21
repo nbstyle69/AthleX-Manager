@@ -1,10 +1,10 @@
 ---
 slug: blocs-force-musculation-cardio
 title: Blocs Musculation et Cardio
-summary: Ajouter des séries de force et des séries cardio à un WOD, et savoir ce qui compte dans les badges.
+summary: Ajouter des séries de force, des complexes et des séries cardio à un WOD, et savoir ce qui compte dans les badges.
 role: both
 pages: [whiteboard]
-tags: [musculation, force, cardio, series, badges, wod]
+tags: [musculation, force, complexe, 1rm, cardio, series, badges, wod, texte libre]
 order: 22
 ---
 
@@ -16,15 +16,29 @@ L'éditeur de WOD contient trois zones : **Programme / Mouvements** (le metcon),
 
 1. Ouvre un WOD sur le Whiteboard et repère le bloc **Musculation (optionnel)**. <Screenshot src="/tutorials/blocs-force-musculation-cardio/3.png" alt="Blocs Musculation, Cardio et Time cap du formulaire WOD" />
 2. Clique **Ajouter une série** puis remplis l'exercice, les séries, les reps et la **Charge** en **kg** ou en **%1RM** ; si la charge dépend du jour, écris-la dans **Charge libre** (`RPE 9`). Un **Tempo** (`30X1`) et un **Repos** en secondes peuvent compléter la ligne. <Screenshot src="/tutorials/blocs-force-musculation-cardio/1.png" alt="Bloc Musculation avec une série, charge et tempo" />
-3. Descends sur le bloc **Cardio (optionnel)** et clique **Ajouter une série cardio** : choisis le mouvement (Row, SkiErg, Run…), le nombre de séries et la quantité en mètres, en calories ou en secondes. <Screenshot src="/tutorials/blocs-force-musculation-cardio/2.png" alt="Bloc Cardio (optionnel) avec une série Row" />
-4. Ajoute une cible d'intensité si tu en veux une : **Watts** ou **Allure**, jamais les deux sur la même ligne. Le repos entre séries s'écrit en `mm:ss`, et un **RPE** peut compléter la ligne. <Screenshot src="/tutorials/blocs-force-musculation-cardio/4.png" alt="Ligne cardio avec Watts, cible, repos et RPE" />
-5. Clique **Créer le WOD** (ou **Enregistrer**) : les trois blocs arrivent ensemble dans l'application de l'athlète, toujours dans cet ordre : Musculation, Cardio, puis le metcon.
+3. Pour un complexe (plusieurs mouvements enchaînés sans lâcher la barre), clique **Ajouter un complexe** dans l'en-tête du bloc. Sur chaque ligne, écris les reps et le mouvement (liste officielle) ; **Ajouter un mouvement au complexe** en ajoute un (deux au moins). Remplis ensuite les séries **× complexe** et la charge en **kg** ou en **%1RM de…**, avec le **mouvement de référence** : par défaut le dernier du complexe. Repos, tempo et charge libre se remplissent comme pour une série. La ligne enregistrée ressemble à `Complexe — 1 Deadlift + 1 Hang Power Clean + 1 Power Clean — 5 × 1 @ 75 %1RM Power Clean — repos 2:00`.
+4. Descends sur le bloc **Cardio (optionnel)** et clique **Ajouter une série cardio** : choisis le mouvement (Row, SkiErg, Run…), le nombre de séries et la quantité en mètres, en calories ou en secondes. <Screenshot src="/tutorials/blocs-force-musculation-cardio/2.png" alt="Bloc Cardio (optionnel) avec une série Row" />
+5. Ajoute une cible d'intensité si tu en veux une : **Watts** ou **Allure**, jamais les deux sur la même ligne. Le repos entre séries s'écrit en `mm:ss`, et un **RPE** peut compléter la ligne. <Screenshot src="/tutorials/blocs-force-musculation-cardio/4.png" alt="Ligne cardio avec Watts, cible, repos et RPE" />
+6. Clique **Créer le WOD** (ou **Enregistrer**) : les trois blocs arrivent ensemble dans l'application de l'athlète, toujours dans cet ordre : Musculation, Cardio, puis le metcon.
+
+## Le % du 1RM d'un complexe
+
+Un complexe n'a pas de 1RM à lui. Chez l'athlète, une charge en %1RM se calcule sur son 1RM du mouvement de référence : 75 % d'un 1RM de Power Clean à 100 kg donnent 75 kg. Sans 1RM connu pour ce mouvement, l'athlète voit le pourcentage seul. Un complexe ne change pas le 1RM : la charge réussie ne met jamais à jour un record, et le complexe ne compte pas de reps de badge.
+
+## Transformer une ligne du texte libre en bloc Musculation
+
+1. En **Texte libre**, une ligne de musculation ou de complexe écrite après le reste du texte n'est pas lue par l'app. L'aperçu **Ce que l'app comprend** la repère quand elle a une forme connue : le format du bloc (`Back Squat — 5 × 3 @ 80 %1RM`), `Back squat 5×3 @80%` ou `5 × (1 deadlift + 1 power clean) @75% power clean`.
+2. Clique **Transformer en bloc Musculation** : la ligne quitte le texte et devient une carte du bloc **Musculation**, écrite en tête à l'enregistrement.
+3. Vérifie la carte : le mouvement de référence, la charge (« Lu comme %1RM : à vérifier » quand le texte disait seulement `%`) et le repos, qui reste dans le texte. **Annuler** remet le texte et le bloc comme avant la transformation.
+4. Une ligne que tu ne transformes pas reste **à corriger** : l'athlète voit le texte, sans grille ni charge calculée.
 
 ## Erreurs fréquentes
 
 - **Les séries de force ne créditent aucun badge.** C'est le comportement attendu : les séries du bloc Musculation ne comptent pas de reps de badge, ce n'est pas du metcon → mets au metcon ce qui doit compter.
 - **Une série cardio n'est pas créditée.** Le bloc Cardio est crédité en `séries × quantité`, mais une ligne sans exercice n'est pas enregistrée (« Choisis l’exercice pour enregistrer cette série. ») → choisis Row, SkiErg, Run… dans la liste.
 - **Une cible d'allure est ignorée.** Elle n'est pas au format `mm:ss` → écris-la comme `2:00`, puis choisis `/500 m` ou `/km`.
+- **Le complexe ne s'enregistre pas.** Un complexe enchaîne au moins deux mouvements nommés (« Un complexe enchaîne au moins deux mouvements : nomme le deuxième. ») → nomme le deuxième mouvement.
+- **Le 1RM de l'athlète n'a pas bougé après un complexe.** C'est voulu : un complexe ne change pas le 1RM → pour tester un record, programme une série simple du mouvement.
 - **La charge « RPE 9 » ne rentre pas dans le champ Charge.** Ce champ n'accepte que des nombres → écris-la dans **Charge libre**.
 
 ## Y aller

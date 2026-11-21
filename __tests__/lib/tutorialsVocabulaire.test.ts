@@ -39,6 +39,24 @@ describe('vocabulaire de l’Aide', () => {
       expect(nEn).toBe(nFr);
     });
 
+  it('complexes (#454) : créer, % du 1RM de référence, 1RM inchangé, « Transformer » (FR et EN)', () => {
+    const fr = readFileSync(path.join(ROOT, 'fr', 'blocs-force-musculation-cardio.mdx'), 'utf8');
+    const en = readFileSync(path.join(ROOT, 'en', 'blocs-force-musculation-cardio.mdx'), 'utf8');
+    for (const t of [fr, en]) {
+      for (const k of ['**Ajouter un complexe**', '**Ajouter un mouvement au complexe**', '**%1RM de…**', '**Transformer en bloc Musculation**', '**Annuler**',
+        '`Complexe — 1 Deadlift + 1 Hang Power Clean + 1 Power Clean — 5 × 1 @ 75 %1RM Power Clean — repos 2:00`']) {
+        expect(t).toContain(k);
+      }
+    }
+    expect(fr).toContain('Un complexe ne change pas le 1RM');
+    expect(en).toContain('A complex does not change the 1RM');
+    expect(fr).toContain('se calcule sur son 1RM du mouvement de référence');
+    expect(en).toContain("worked out from the athlete's 1RM of the reference movement");
+    for (const l of ['fr', 'en']) {
+      expect(readFileSync(path.join(ROOT, l, 'editeur-wod-formats-et-publication.mdx'), 'utf8')).toContain('**Transformer en bloc Musculation**');
+    }
+  });
+
   it('Marketplace : plus de « pas encore disponible », Score et texte libre dits pour les offres (FR et EN, #453 PR 2c)', () => {
     for (const f of files) expect(readFileSync(path.join(ROOT, f), 'utf8')).not.toMatch(/pas encore disponibles? pour une offre|not available yet for a Marketplace/i);
     for (const f of ['editeur-wod-formats-et-publication.mdx', 'marketplace-publier-une-offre.mdx']) {

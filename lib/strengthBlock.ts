@@ -40,7 +40,23 @@ export interface StrengthEntry {
    * l'athlète, côté app ; `reps` vaut alors 0 (inconnues ici).
    */
   pctOfMax?: number;
+  /**
+   * Complexe (#454) : « Complexe — 1 Deadlift + 1 Power Clean — 5 × 1 @ 75 %1RM
+   * Power Clean ». `name` vaut « Complexe », `sets` × `reps` sont les séries ×
+   * répétitions du complexe entier. Un complexe n'a jamais de 1RM propre : un
+   * %1RM se calcule sur celui de `refName` (un des mouvements), côté app.
+   */
+  complex?: StrengthComplex;
 }
+
+export interface StrengthComplex {
+  movements: { reps: number; name: string }[];
+  /** Mouvement de référence d'une charge en %1RM ; `null` pour une charge en kg ou libre. */
+  refName: string | null;
+}
+
+/** Nom d'un complexe dans le texte du WOD (relu par le parseur, jamais traduit). */
+export const COMPLEX_NAME = 'Complexe';
 
 export const EMPTY_STRENGTH_ENTRY: StrengthEntry = {
   name: '', sets: 5, reps: 5, load: null, unit: 'kg', restSec: null, tempo: null, loadNote: null,
@@ -70,7 +86,41 @@ function parseRest(text: string): number | null {
   return null;
 }
 
+/** Fin commune : charge libre, repos, tempo (ordre de l'app, contrat partagé). */
+function serializeTails(e: StrengthEntry): string {
+  let out = '';
+  const loadNote = (e.loadNote ?? '').trim().replace(/\s+[—–-]\s+/g, ' ');
+  if (loadNote) out += `${SEP}charge ${loadNote}`;
+  if (e.restSec != null && e.restSec > 0) out += `${SEP}repos ${formatRest(e.restSec)}`;
+  const tempo = (e.tempo ?? '').trim();
+  if (tempo) out += `${SEP}tempo ${tempo}`;
+  return out;
+}
+
+/** Mouvements d'un complexe tels qu'écrits (nom nettoyé, « + » retiré, vides écartés). */
+export function complexMovesForWrite(c: StrengthComplex): { reps: number; name: string }[] {
+  return c.movements
+    .map(m => ({ reps: Math.max(1, Math.round(m.reps)), name: sanitizeName(m.name).replace(/\s*\+\s*/g, ' ') }))
+    .filter(m => m.name);
+}
+
+function serializeComplex(e: StrengthEntry, c: StrengthComplex): string {
+  const moves = complexMovesForWrite(c);
+  if (moves.length < 2) return '';
+  let out = `${COMPLEX_NAME}${SEP}${moves.map(m => `${m.reps} ${m.name}`).join(' + ')}`
+    + `${SEP}${Math.max(1, Math.round(e.sets))} × ${Math.max(1, Math.round(e.reps))}`;
+  if (e.load != null && e.load > 0) {
+    if (e.unit === 'kg') out += ` @ ${e.load} kg`;
+    else {
+      const ref = moves.find(m => m.name.toLowerCase() === (c.refName ?? '').trim().toLowerCase()) ?? moves[moves.length - 1];
+      out += ` @ ${e.load} %1RM ${ref.name}`;
+    }
+  }
+  return out + serializeTails(e);
+}
+
 export function serializeStrength(e: StrengthEntry): string {
+  if (e.complex) return serializeComplex(e, e.complex);
   const name = sanitizeName(e.name);
   if (!name) return '';
   const sets = Math.max(1, Math.round(e.sets));
@@ -81,12 +131,66 @@ export function serializeStrength(e: StrengthEntry): string {
     ? `${name}${SEP}${sets} × ${e.pctOfMax} % du max`
     : `${name}${SEP}${sets} × ${reps}`;
   if (e.pctOfMax == null && e.load != null && e.load > 0) out += ` @ ${e.load} ${e.unit}`;
-  const loadNote = (e.loadNote ?? '').trim().replace(/\s+[—–-]\s+/g, ' ');
-  if (loadNote) out += `${SEP}charge ${loadNote}`;
-  if (e.restSec != null && e.restSec > 0) out += `${SEP}repos ${formatRest(e.restSec)}`;
-  const tempo = (e.tempo ?? '').trim();
-  if (tempo) out += `${SEP}tempo ${tempo}`;
-  return out;
+  return out + serializeTails(e);
+}
+
+/** Repos, tempo et charge libre des segments de fin. */
+function parseTails(tails: string[]): { restSec: number | null; tempo: string | null; loadNote: string | null } {
+  let restSec: number | null = null;
+  let tempo: string | null = null;
+  let loadNote: string | null = null;
+  for (const tail of tails) {
+    const rest = tail.match(/^repos\s+(.+)$/i);
+    if (rest) { restSec = parseRest(rest[1]); continue; }
+    const tp = tail.match(/^tempo\s+(.+)$/i);
+    if (tp) { tempo = tp[1].trim(); continue; }
+    const ch = tail.match(/^charge\s+(.+)$/i);
+    if (ch) loadNote = ch[1].trim();
+  }
+  return { restSec, tempo, loadNote };
+}
+
+/**
+ * « Complexe — 1 Deadlift + 1 Power Clean — 5 × 1 @ 75 %1RM Power Clean ».
+ * Deux mouvements au moins, chacun avec ses reps ; charge en kg, en %1RM d'un
+ * des mouvements (sans mouvement nommé : le dernier), ou aucune. Toute autre
+ * forme : `null`. Miroir exact de `parseComplexLine` côté app (#621).
+ */
+function parseComplexLine(parts: string[]): StrengthEntry | null {
+  if (parts.length < 3 || !/^complexe$/i.test(parts[0].trim())) return null;
+  const movements: StrengthComplex['movements'] = [];
+  for (const raw of parts[1].split('+')) {
+    const mv = raw.trim().match(/^(\d+)\s+(\D.*)$/);
+    if (!mv || parseInt(mv[1], 10) < 1) return null;
+    movements.push({ reps: parseInt(mv[1], 10), name: mv[2].trim() });
+  }
+  if (movements.length < 2) return null;
+  const sc = parts[2].match(/^(\d+)\s*[x×]\s*(\d+)(?:\s*@\s*(\d+(?:[.,]\d+)?)\s*(?:(kg)|%\s*1rm(?:\s+(.+))?))?$/i);
+  if (!sc) return null;
+  const sets = parseInt(sc[1], 10);
+  const reps = parseInt(sc[2], 10);
+  if (sets < 1 || reps < 1) return null;
+  const load = sc[3] != null ? parseFloat(sc[3].replace(',', '.')) : null;
+  const unit: StrengthLoadUnit = load != null && sc[4] == null ? '%1RM' : 'kg';
+  let refName: string | null = null;
+  if (unit === '%1RM') {
+    const wanted = (sc[5] ?? '').trim().toLowerCase();
+    const ref = wanted ? movements.find(m => m.name.toLowerCase() === wanted) : movements[movements.length - 1];
+    if (!ref) return null;                     // référence hors du complexe
+    refName = ref.name;
+  }
+  const { restSec, tempo, loadNote } = parseTails(parts.slice(3));
+  return {
+    name: parts[0].trim(),
+    sets,
+    reps,
+    load,
+    unit,
+    restSec,
+    tempo,
+    ...(loadNote ? { loadNote } : {}),
+    complex: { movements, refName },
+  };
 }
 
 export function parseStrengthLine(line: string): StrengthEntry | null {
@@ -96,6 +200,8 @@ export function parseStrengthLine(line: string): StrengthEntry | null {
   if (parts.length < 2) return null;
   const name = parts[0].trim();
   if (!name) return null;
+  const complex = parseComplexLine(parts);
+  if (complex) return complex;
 
   const m = parts[1].match(/^(\d+)\s*[x×]\s*(\d+)(?:\s*@\s*(\d+(?:[.,]\d+)?)\s*(kg|%\s*1rm|%))?$/i);
   // « 3 × 15 % du max » / « 3 × 15 % » : seulement pour un mouvement de
@@ -106,17 +212,7 @@ export function parseStrengthLine(line: string): StrengthEntry | null {
   const load = m?.[3] != null ? parseFloat(m[3].replace(',', '.')) : null;
   const unit: StrengthLoadUnit = m?.[4] != null && m[4].toLowerCase().startsWith('kg') ? 'kg' : '%1RM';
 
-  let restSec: number | null = null;
-  let tempo: string | null = null;
-  let loadNote: string | null = null;
-  for (const tail of parts.slice(2)) {
-    const rest = tail.match(/^repos\s+(.+)$/i);
-    if (rest) { restSec = parseRest(rest[1]); continue; }
-    const tp = tail.match(/^tempo\s+(.+)$/i);
-    if (tp) { tempo = tp[1].trim(); continue; }
-    const ch = tail.match(/^charge\s+(.+)$/i);
-    if (ch) loadNote = ch[1].trim();
-  }
+  const { restSec, tempo, loadNote } = parseTails(parts.slice(2));
 
   return {
     name,
