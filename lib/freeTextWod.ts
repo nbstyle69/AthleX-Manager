@@ -7,8 +7,10 @@
 //
 // - chaque ligne est découpée sur « + » ;
 // - « @43/29 » = charges ♂ / ♀ ; « 15/12 cal » = quantités ♂ / ♀ ;
-// - nom exact du catalogue DE L'APP (pas celui du Manager), pluriel en « s »
-//   toléré ; sinon le morceau est « à corriger » ;
+// - nom de la liste du texte libre de l'app (catalogue + FREE_TEXT_EXTRA_MOVEMENTS),
+//   casse, tirets et pluriel ignorés ; écriture de MOVEMENT_MAP qui ne désigne
+//   qu'un seul nom de cette liste (« T2B ») ; abréviation de FREE_TEXT_ABBREVIATIONS
+//   (« STOH ») ; sinon le morceau est « à corriger » (aucune devinette) ;
 // - lignes de format, repos, time cap et objectif ignorées.
 //
 // Les suggestions, raisons et regroupements de l'aperçu (`freeTextPreview`)
@@ -96,27 +98,187 @@ export type Gender = 'male' | 'female';
 
 export interface ParsedMovement { name: string; reps: number; unit?: FreeTextUnit; weight_kg?: number }
 
-function catalogEntry(raw: string): { name: string; unit?: FreeTextUnit } | null {
-  const n = raw.trim().toLowerCase();
-  return APP_MOVEMENT_CATALOG.find(m => {
-    const c = m.name.toLowerCase();
-    return n === c || n === `${c}s`;
-  }) ?? null;
+// ── Noms : MOVEMENT_MAP et nettoyage de l'app (`src/utils/tournamentUtils.ts`) ──
+// Copie à l'identique, vérifiée contre `lib/__fixtures__/app-tournamentUtils.ts.txt`.
+export const MOVEMENT_MAP: Readonly<Record<string, string>> = {
+  deadlift: 'deadlift', 'soulevé de terre': 'deadlift',
+  'sumo deadlift high pull': 'sdlhp', sdlhp: 'sdlhp',
+  'pull up': 'pull_up', traction: 'pull_up',
+  'chest to bar': 'chest_to_bar', 'chest to bar pull up': 'chest_to_bar', ctb: 'chest_to_bar',
+  'pull over': 'pull_over',
+  'push up': 'push_up', pompe: 'push_up',
+  thruster: 'thruster', 'db thruster': 'db_thruster', 'dumbbell thruster': 'db_thruster',
+  'kb thruster': 'kb_thruster',
+  burpee: 'burpee', 'burpee over the bar': 'burpee', 'bar facing burpee': 'burpee',
+  'burpee box jump': 'burpee_box_jump', 'burpee box jump over': 'burpee_box_jump',
+  'box jump': 'box_jump', 'box jump over': 'box_jump', 'box step up': 'box_jump',
+  'saut sur boite': 'box_jump',
+  'kettlebell swing': 'kb_swing', 'kb swing': 'kb_swing',
+  'air squat': 'air_squat', squat: 'air_squat',
+  'front squat': 'squat', 'back squat': 'squat',
+  'overhead squat': 'overhead_squat', ohs: 'overhead_squat',
+  'goblet squat': 'goblet_squat',
+  'pistol squat': 'pistol_squat', pistol: 'pistol_squat',
+  'double under': 'double_under', 'single under': 'single_under',
+  'toe to bar': 'toes_to_bar', 'toes to bar': 'toes_to_bar', t2b: 'toes_to_bar',
+  'knee to elbow': 'knees_to_elbow', k2e: 'knees_to_elbow',
+  'handstand push up': 'hspu', hspu: 'hspu', 'hspu strict': 'hspu',
+  'strict handstand push up': 'hspu', 'wall facing hspu': 'hspu',
+  'muscle up': 'muscle_up',
+  'bar muscle up': 'bar_muscle_up', 'ring muscle up': 'ring_muscle_up',
+  'ring dip': 'ring_dip', 'ring row': 'ring_row',
+  clean: 'clean', épaulé: 'clean',
+  'power clean': 'clean', 'squat clean': 'clean', 'hang clean': 'clean',
+  'hang power clean': 'clean', 'hang squat clean': 'clean',
+  'clean and jerk': 'clean_and_jerk', 'hang clean and jerk': 'clean_and_jerk',
+  'db clean and jerk': 'db_cj', 'kb clean and jerk': 'kb_cj',
+  snatch: 'snatch', arraché: 'snatch',
+  'power snatch': 'snatch', 'squat snatch': 'snatch', 'hang snatch': 'snatch',
+  'db snatch': 'db_snatch', 'db snatch alt': 'db_snatch', 'dumbbell snatch': 'db_snatch',
+  'kb snatch': 'kb_snatch',
+  'push press': 'press', 'push jerk': 'press',
+  'shoulder to overhead': 'press', 'shoulder to oh': 'press',
+  'strict press': 'strict_press', 'shoulder press': 'strict_press', 'military press': 'strict_press',
+  'power jerk': 'press', 'split jerk': 'press', 'back rack split jerk': 'press',
+  jerk: 'press',
+  'db push press': 'db_push_press',
+  'db strict press': 'db_strict_press', 'db shoulder press': 'db_strict_press',
+  'dumbbell strict press': 'db_strict_press',
+  'bench press': 'bench_press', bench: 'bench_press',
+  'snatch balance': 'snatch_balance',
+  'snatch high pull': 'snatch_high_pull', 'snatch pull': 'snatch_high_pull',
+  'clean pull': 'clean_pull',
+  'zercher squat': 'squat',
+  'devil press': 'devil_press',
+  lunge: 'lunge', 'db lunge': 'lunge', 'walking lunge': 'lunge', fente: 'lunge',
+  'turkish get up': 'turkish_get_up',
+  'wall ball': 'wall_ball', 'wall ball shot': 'wall_ball',
+  'wall walk': 'wall_walk', ww: 'wall_walk',
+  'sit up': 'sit_up', 'v up': 'v_up', 'hollow rock': 'hollow_rock',
+  'mountain climber': 'mountain_climber',
+  'mb slam': 'mb_slam', 'medicine ball slam': 'mb_slam', 'slam ball': 'mb_slam',
+  row: 'row', 'cal row': 'row', aviron: 'row', rameur: 'row', 'cal rameur': 'row',
+  'assault bike': 'bike', 'echo bike': 'bike', 'cal assault bike': 'bike',
+  'cal bike': 'bike', 'bike erg': 'bike',
+  'ski erg': 'ski_erg', 'cal ski erg': 'ski_erg', ski: 'ski_erg', skierg: 'ski_erg',
+  run: 'run', course: 'run',
+  // Formes accolées héritées de l'ancien normaliseur du site (pullup, wallball…) :
+  // elles existent dans les données et dans les saisies libres.
+  'kipping pull up': 'pull_up', 'strict pull up': 'pull_up',
+  'alternating lunge': 'lunge', 'alternating db lunge': 'lunge',
+  'alternating db snatch': 'db_snatch',
+  'strict hspu': 'hspu', 'tall clean': 'clean', 'tall snatch': 'snatch',
+  pullup: 'pull_up', pushup: 'push_up', situp: 'sit_up', boxjump: 'box_jump',
+  wallball: 'wall_ball', wallwalk: 'wall_walk', doubleunder: 'double_under',
+  singleunder: 'single_under', kbswing: 'kb_swing', toes2bar: 'toes_to_bar',
+  // Décision A de Nab (#453, PR 3c-0) : comptent pour les badges deadlift et squat,
+  // partout ; le pont serveur movement_stats_keys suit (migration 20270166).
+  'kb deadlift': 'deadlift', 'kb front squat': 'squat',
+  // Texte libre (#453, PR 3c) : écritures et abréviations courantes.
+  'kettlebell deadlift': 'deadlift',
+  'kb lunge': 'lunge', 'db overhead lunge': 'lunge', 'kb overhead lunge': 'lunge', 'overhead lunge': 'lunge',
+  stoh: 'press', s2oh: 'press',
+  c2b: 'chest_to_bar', du: 'double_under', bmu: 'bar_muscle_up', rmu: 'ring_muscle_up',
+};
+
+function singularize(word: string): string {
+  if (/(ches|shes|xes|sses)$/.test(word)) return word.slice(0, -2);
+  if (/[^s]s$/.test(word)) return word.slice(0, -1);
+  return word;
 }
 
-/** Nom exact du catalogue de l'app (casse ignorée), ou son pluriel en « s ». */
-export function catalogName(raw: string): string | null {
-  return catalogEntry(raw)?.name ?? null;
+/** Écriture nettoyée : casse, tirets, nombres, charges et pluriels ignorés. */
+export function cleanMovementName(raw: string): string {
+  return cleanWithoutPlural(raw).split(' ').map(singularize).join(' ');
 }
+
+function cleanWithoutPlural(raw: string): string {
+  return raw.toLowerCase()
+    .replace(/&/g, ' and ')
+    .replace(/\bfor time\b/g, '')
+    .replace(/\d+[-x]\d+[-x]?\d*/g, '')
+    .replace(/\d+\s*(kg|lb|rm|%)/g, '')
+    // Un chiffre entre deux lettres fait partie du nom (« t2b », « c2b », « s2oh ») ;
+    // ailleurs c'est une quantité.
+    .replace(/\d+/g, (d, i: number, str: string) => (/[a-z]/.test(str[i - 1] ?? '') && /[a-z]/.test(str[i + d.length] ?? '') ? d : ''))
+    .replace(/[^\w\s-]/g, '')
+    .replace(/-/g, ' ')
+    .trim()
+    .split(/\s+/)
+    .join(' ');
+}
+
+/** MOVEMENT_MAP sur l'écriture au singulier, puis telle qu'écrite (« ohs » n'est pas un pluriel). */
+function mapLookup(raw: string): string | undefined {
+  return MOVEMENT_MAP[cleanMovementName(raw)] ?? MOVEMENT_MAP[cleanWithoutPlural(raw)];
+}
+
+/** Clé de badge d'une écriture que MOVEMENT_MAP connaît, sinon null (pas de repli). */
+export function mappedMovementKey(raw: string): string | null {
+  return mapLookup(raw) ?? null;
+}
+
+export function normalizeMovement(raw: string): { key: string; label: string } {
+  const cleaned = cleanMovementName(raw);
+  const key = mapLookup(raw) ?? cleaned.replace(/\s+/g, '_');
+  const label = key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+  return { key, label };
+}
+
+// ── Liste du texte libre (`src/utils/freeTextWod.ts` de l'app, #453 PR 3c) ──
+
+/** Mouvements lus en texte libre en plus du catalogue (décision A, #453 PR 3c). */
+export const FREE_TEXT_EXTRA_MOVEMENTS: readonly { name: string; unit?: FreeTextUnit }[] = [
+  { name: 'Snatch' },
+  { name: 'Clean' },
+  { name: 'Shoulder to Overhead' },
+  { name: 'DB Lunge' },
+  { name: 'DB Overhead Lunge' },
+  { name: 'KB Snatch' },
+  { name: 'KB Deadlift' },
+  { name: 'KB Front Squat' },
+  { name: 'KB Lunge' },
+  { name: 'KB Overhead Lunge' },
+];
+
+/** La liste du texte libre : le catalogue, puis les mouvements propres au texte libre. */
+export const FREE_TEXT_MOVEMENTS: readonly { name: string; unit?: FreeTextUnit }[] = [...APP_MOVEMENT_CATALOG, ...FREE_TEXT_EXTRA_MOVEMENTS];
+
+/** Abréviations vers UN nom de la liste, quand leur clé en désigne plusieurs. Clés = `cleanMovementName`. */
+export const FREE_TEXT_ABBREVIATIONS: Readonly<Record<string, string>> = {
+  stoh: 'Shoulder to Overhead',
+  s2oh: 'Shoulder to Overhead',
+};
 
 /**
- * `defaultUnitFor` de l'app, réduit à ce qu'il rend pour un nom que
- * `catalogName` accepte (les seuls qui sortent de cette lecture) : l'unité du
- * catalogue, ou reps. Le repli de l'app par clé normalisée (`rows` → row → cal)
- * donne la même unité que l'entrée du catalogue pour ces noms.
+ * Nom de la liste du texte libre pour une écriture, ou null (aucune devinette) :
+ * même nom (casse, tirets et pluriel ignorés), puis abréviation, puis écriture
+ * de MOVEMENT_MAP dont la clé ne désigne qu'un seul nom de la liste.
  */
+export function catalogName(raw: string): string | null {
+  const n = cleanMovementName(raw);
+  if (!n) return null;
+  const same = FREE_TEXT_MOVEMENTS.find(m => cleanMovementName(m.name) === n);
+  if (same) return same.name;
+  const abbreviation = FREE_TEXT_ABBREVIATIONS[n];
+  if (abbreviation) return abbreviation;
+  const key = mappedMovementKey(raw);
+  if (!key) return null;
+  const hits = FREE_TEXT_MOVEMENTS.filter(m => normalizeMovement(m.name).key === key);
+  return hits.length === 1 ? hits[0].name : null;
+}
+
+const DEFAULT_UNIT_BY_KEY: Record<string, FreeTextUnit> = {
+  row: 'cal', bike: 'cal', ski_erg: 'cal', run: 'm',
+};
+
+/** `defaultUnitFor` de l'app (`movementsCatalog.ts`) : nom exact du catalogue, sinon la clé de la machine. */
 function defaultUnitFor(name: string): FreeTextUnit {
-  return catalogEntry(name)?.unit ?? 'reps';
+  const n = name.toLowerCase().trim();
+  if (!n) return 'reps';
+  const cat = APP_MOVEMENT_CATALOG.find(m => m.name.toLowerCase() === n);
+  if (cat?.unit) return cat.unit;
+  return DEFAULT_UNIT_BY_KEY[normalizeMovement(name).key] ?? 'reps';
 }
 
 function pickQuantity(men: string, women: string | undefined, gender?: Gender | null): number {
@@ -272,7 +434,7 @@ function distance(a: string, b: string): number {
 }
 
 /**
- * Nom du catalogue de l'app proche d'un nom écrit : même lettres au pluriel ou
+ * Nom de la liste du texte libre proche d'un nom écrit : même lettres au pluriel ou
  * à la ponctuation près (« pull-up » → Pull-ups), début du nom (« ski » →
  * SkiErg), ou faute de frappe (2 lettres au plus).
  */
@@ -280,7 +442,7 @@ export function nearCatalogName(raw: string): string | null {
   const n = norm(raw);
   if (n.length < 3) return null;
   let best: { name: string; score: number } | null = null;
-  for (const m of APP_MOVEMENT_CATALOG) {
+  for (const m of FREE_TEXT_MOVEMENTS) {
     const c = norm(m.name);
     let score: number | null = null;
     if (c === n || c === `${n}s` || `${c}s` === n) score = 0;

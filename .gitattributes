@@ -1,3 +1,5 @@
 lib/__fixtures__/strength-line-contract.json -text
 lib/__fixtures__/free-text-wod-contract.json -text
 lib/__fixtures__/app-movementsCatalog.ts.txt -text
+lib/__fixtures__/app-freeTextWod.ts.txt -text
+lib/__fixtures__/app-tournamentUtils.ts.txt -text

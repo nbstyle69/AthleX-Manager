@@ -1,5 +1,5 @@
 {
-  "_doc": "Lecture d'un WOD en texte libre (#453) : cas partagés app / Manager, identiques octet pour octet (app : src/__tests__/fixtures/free-text-wod-contract.json ; Manager : aperçu « Ce que l'app comprend »). blocks = suite continue de lignes EN TÊTE au format du bloc Musculation (strengthBlock, % du max de gymnastique compris) ou d'une série Cardio (cardioBlock), sans espaces de bord, dans l'ordre ; dès la première ligne qui n'a pas ce format (ligne vide comprise), tout le reste est du texte libre, même une ligne plus loin au format d'une série ; rest = le texte après ces lignes, retours à la ligne gardés, sans lignes vides en tête ni espaces en fin (affiché tel quel, seul lu comme metcon ; une ligne de ce reste au format d'une série — Musculation, Cardio ou complexe (nbstyle69/AthleX-Manager#454) — n'est pas lue : entière dans toFix, jamais découpée sur « + ») ; recognized = mouvements reconnus (nom du catalogue, quantités ♂ / ♀, charges ♂ / ♀) ; toFix = morceaux à corriger ; ignored = lignes de format, repos, time cap, objectif.",
+  "_doc": "Lecture d'un WOD en texte libre (#453) : cas partagés app / Manager, identiques octet pour octet (app : src/__tests__/fixtures/free-text-wod-contract.json ; Manager : aperçu « Ce que l'app comprend »). blocks = suite continue de lignes EN TÊTE au format du bloc Musculation (strengthBlock, % du max de gymnastique compris) ou d'une série Cardio (cardioBlock), sans espaces de bord, dans l'ordre ; dès la première ligne qui n'a pas ce format (ligne vide comprise), tout le reste est du texte libre, même une ligne plus loin au format d'une série ; rest = le texte après ces lignes, retours à la ligne gardés, sans lignes vides en tête ni espaces en fin (affiché tel quel, seul lu comme metcon ; une ligne de ce reste au format d'une série — Musculation, Cardio ou complexe (nbstyle69/AthleX-Manager#454) — n'est pas lue : entière dans toFix, jamais découpée sur « + ») ; recognized = mouvements reconnus (nom de la liste du texte libre : catalogue de l'app et mouvements propres au texte libre, casse, tirets et pluriel ignorés ; ou écriture de MOVEMENT_MAP qui ne désigne qu'un seul de ces noms ; aucune devinette, une écriture qui en désigne plusieurs reste à corriger ; quantités ♂ / ♀, charges ♂ / ♀) ; toFix = morceaux à corriger ; ignored = lignes de format, repos, time cap, objectif.",
   "cases": [
     {
       "name": "RXP 01 (Road to open), exemple de la maquette",
@@ -15,6 +15,16 @@
             "reps": {
               "male": 21,
               "female": 21
+            },
+            "loadKg": null
+          },
+          {
+            "segment": "15/12 cal ski",
+            "name": "SkiErg",
+            "unit": "cal",
+            "reps": {
+              "male": 15,
+              "female": 12
             },
             "loadKg": null
           },
@@ -42,6 +52,16 @@
             "loadKg": null
           },
           {
+            "segment": "15/12 cal ski",
+            "name": "SkiErg",
+            "unit": "cal",
+            "reps": {
+              "male": 15,
+              "female": 12
+            },
+            "loadKg": null
+          },
+          {
             "segment": "18 thrusters @43/29",
             "name": "Thruster",
             "unit": "reps",
@@ -65,6 +85,16 @@
             "loadKg": null
           },
           {
+            "segment": "12/9 cal ski",
+            "name": "SkiErg",
+            "unit": "cal",
+            "reps": {
+              "male": 12,
+              "female": 9
+            },
+            "loadKg": null
+          },
+          {
             "segment": "15 thrusters @43/29",
             "name": "Thruster",
             "unit": "reps",
@@ -78,11 +108,7 @@
             }
           }
         ],
-        "toFix": [
-          "15/12 cal ski",
-          "15/12 cal ski",
-          "12/9 cal ski"
-        ],
+        "toFix": [],
         "ignored": [
           "For time",
           "1'30 rest",
@@ -121,10 +147,19 @@
               "female": 15
             },
             "loadKg": null
+          },
+          {
+            "segment": "1 pull-up",
+            "name": "Pull-ups",
+            "unit": "reps",
+            "reps": {
+              "male": 1,
+              "female": 1
+            },
+            "loadKg": null
           }
         ],
         "toFix": [
-          "1 pull-up",
           "Run"
         ],
         "ignored": [
@@ -309,6 +344,389 @@
         "ignored": [
           "For time",
           "TC 10'"
+        ]
+      }
+    },
+    {
+      "name": "Abréviations (#453 PR 3c) : T2B, C2B, HSPU, DU, BMU, OHS par MOVEMENT_MAP ; STOH et S2OH par la table explicite du texte libre → Shoulder to Overhead (leur clé press vaut six noms de la liste)",
+      "text": "For time\n21 T2B + 21 C2B + 10 HSPU\n30 DU + 5 BMU + 10 OHS @40/30\n10 STOH @60/40 + 10 S2OH @60/40",
+      "expected": {
+        "blocks": [],
+        "rest": "For time\n21 T2B + 21 C2B + 10 HSPU\n30 DU + 5 BMU + 10 OHS @40/30\n10 STOH @60/40 + 10 S2OH @60/40",
+        "recognized": [
+          {
+            "segment": "21 T2B",
+            "name": "Toes-to-Bar",
+            "unit": "reps",
+            "reps": {
+              "male": 21,
+              "female": 21
+            },
+            "loadKg": null
+          },
+          {
+            "segment": "21 C2B",
+            "name": "Chest-to-Bar",
+            "unit": "reps",
+            "reps": {
+              "male": 21,
+              "female": 21
+            },
+            "loadKg": null
+          },
+          {
+            "segment": "10 HSPU",
+            "name": "Handstand Push-ups",
+            "unit": "reps",
+            "reps": {
+              "male": 10,
+              "female": 10
+            },
+            "loadKg": null
+          },
+          {
+            "segment": "30 DU",
+            "name": "Double-unders",
+            "unit": "reps",
+            "reps": {
+              "male": 30,
+              "female": 30
+            },
+            "loadKg": null
+          },
+          {
+            "segment": "5 BMU",
+            "name": "Bar Muscle-ups",
+            "unit": "reps",
+            "reps": {
+              "male": 5,
+              "female": 5
+            },
+            "loadKg": null
+          },
+          {
+            "segment": "10 OHS @40/30",
+            "name": "Overhead Squat",
+            "unit": "reps",
+            "reps": {
+              "male": 10,
+              "female": 10
+            },
+            "loadKg": {
+              "male": 40,
+              "female": 30
+            }
+          },
+          {
+            "segment": "10 STOH @60/40",
+            "name": "Shoulder to Overhead",
+            "unit": "reps",
+            "reps": {
+              "male": 10,
+              "female": 10
+            },
+            "loadKg": {
+              "male": 60,
+              "female": 40
+            }
+          },
+          {
+            "segment": "10 S2OH @60/40",
+            "name": "Shoulder to Overhead",
+            "unit": "reps",
+            "reps": {
+              "male": 10,
+              "female": 10
+            },
+            "loadKg": {
+              "male": 60,
+              "female": 40
+            }
+          }
+        ],
+        "toFix": [],
+        "ignored": [
+          "For time"
+        ]
+      }
+    },
+    {
+      "name": "Singulier et formes sans tiret (#453 PR 3c) : « muscle up » seul ne désigne aucun nom de la liste, à corriger",
+      "text": "AMRAP 10'\n5 toe to bar + 5 pull up + 5 chest to bar\n3 bar muscle up + 3 ring muscle up + 3 muscle up",
+      "expected": {
+        "blocks": [],
+        "rest": "AMRAP 10'\n5 toe to bar + 5 pull up + 5 chest to bar\n3 bar muscle up + 3 ring muscle up + 3 muscle up",
+        "recognized": [
+          {
+            "segment": "5 toe to bar",
+            "name": "Toes-to-Bar",
+            "unit": "reps",
+            "reps": {
+              "male": 5,
+              "female": 5
+            },
+            "loadKg": null
+          },
+          {
+            "segment": "5 pull up",
+            "name": "Pull-ups",
+            "unit": "reps",
+            "reps": {
+              "male": 5,
+              "female": 5
+            },
+            "loadKg": null
+          },
+          {
+            "segment": "5 chest to bar",
+            "name": "Chest-to-Bar",
+            "unit": "reps",
+            "reps": {
+              "male": 5,
+              "female": 5
+            },
+            "loadKg": null
+          },
+          {
+            "segment": "3 bar muscle up",
+            "name": "Bar Muscle-ups",
+            "unit": "reps",
+            "reps": {
+              "male": 3,
+              "female": 3
+            },
+            "loadKg": null
+          },
+          {
+            "segment": "3 ring muscle up",
+            "name": "Ring Muscle-ups",
+            "unit": "reps",
+            "reps": {
+              "male": 3,
+              "female": 3
+            },
+            "loadKg": null
+          }
+        ],
+        "toFix": [
+          "3 muscle up"
+        ],
+        "ignored": [
+          "AMRAP 10'"
+        ]
+      }
+    },
+    {
+      "name": "Mouvements propres au texte libre, avec charge ♂ / ♀ (#453 PR 3c)",
+      "text": "For time\n10 snatch @60/40 + 10 clean @60/40 + 10 shoulder to overhead @60/40\n10 DB lunges @22.5/15 + 10 DB overhead lunges @22.5/15\n10 KB snatch @24/16 + 10 KB deadlifts @24/16 + 10 KB front squats @24/16\n10 KB lunges @24/16 + 10 KB overhead lunges @24/16",
+      "expected": {
+        "blocks": [],
+        "rest": "For time\n10 snatch @60/40 + 10 clean @60/40 + 10 shoulder to overhead @60/40\n10 DB lunges @22.5/15 + 10 DB overhead lunges @22.5/15\n10 KB snatch @24/16 + 10 KB deadlifts @24/16 + 10 KB front squats @24/16\n10 KB lunges @24/16 + 10 KB overhead lunges @24/16",
+        "recognized": [
+          {
+            "segment": "10 snatch @60/40",
+            "name": "Snatch",
+            "unit": "reps",
+            "reps": {
+              "male": 10,
+              "female": 10
+            },
+            "loadKg": {
+              "male": 60,
+              "female": 40
+            }
+          },
+          {
+            "segment": "10 clean @60/40",
+            "name": "Clean",
+            "unit": "reps",
+            "reps": {
+              "male": 10,
+              "female": 10
+            },
+            "loadKg": {
+              "male": 60,
+              "female": 40
+            }
+          },
+          {
+            "segment": "10 shoulder to overhead @60/40",
+            "name": "Shoulder to Overhead",
+            "unit": "reps",
+            "reps": {
+              "male": 10,
+              "female": 10
+            },
+            "loadKg": {
+              "male": 60,
+              "female": 40
+            }
+          },
+          {
+            "segment": "10 DB lunges @22.5/15",
+            "name": "DB Lunge",
+            "unit": "reps",
+            "reps": {
+              "male": 10,
+              "female": 10
+            },
+            "loadKg": {
+              "male": 22.5,
+              "female": 15
+            }
+          },
+          {
+            "segment": "10 DB overhead lunges @22.5/15",
+            "name": "DB Overhead Lunge",
+            "unit": "reps",
+            "reps": {
+              "male": 10,
+              "female": 10
+            },
+            "loadKg": {
+              "male": 22.5,
+              "female": 15
+            }
+          },
+          {
+            "segment": "10 KB snatch @24/16",
+            "name": "KB Snatch",
+            "unit": "reps",
+            "reps": {
+              "male": 10,
+              "female": 10
+            },
+            "loadKg": {
+              "male": 24,
+              "female": 16
+            }
+          },
+          {
+            "segment": "10 KB deadlifts @24/16",
+            "name": "KB Deadlift",
+            "unit": "reps",
+            "reps": {
+              "male": 10,
+              "female": 10
+            },
+            "loadKg": {
+              "male": 24,
+              "female": 16
+            }
+          },
+          {
+            "segment": "10 KB front squats @24/16",
+            "name": "KB Front Squat",
+            "unit": "reps",
+            "reps": {
+              "male": 10,
+              "female": 10
+            },
+            "loadKg": {
+              "male": 24,
+              "female": 16
+            }
+          },
+          {
+            "segment": "10 KB lunges @24/16",
+            "name": "KB Lunge",
+            "unit": "reps",
+            "reps": {
+              "male": 10,
+              "female": 10
+            },
+            "loadKg": {
+              "male": 24,
+              "female": 16
+            }
+          },
+          {
+            "segment": "10 KB overhead lunges @24/16",
+            "name": "KB Overhead Lunge",
+            "unit": "reps",
+            "reps": {
+              "male": 10,
+              "female": 10
+            },
+            "loadKg": {
+              "male": 24,
+              "female": 16
+            }
+          }
+        ],
+        "toFix": [],
+        "ignored": [
+          "For time"
+        ]
+      }
+    },
+    {
+      "name": "Complexe metcon sur une ligne de texte (#453 PR 3c) : trois mouvements reconnus, charges ♂ / ♀",
+      "text": "EMOM 10'\n1 power clean @70/45 + 1 front squat @70/45 + 1 push jerk @70/45",
+      "expected": {
+        "blocks": [],
+        "rest": "EMOM 10'\n1 power clean @70/45 + 1 front squat @70/45 + 1 push jerk @70/45",
+        "recognized": [
+          {
+            "segment": "1 power clean @70/45",
+            "name": "Power Clean",
+            "unit": "reps",
+            "reps": {
+              "male": 1,
+              "female": 1
+            },
+            "loadKg": {
+              "male": 70,
+              "female": 45
+            }
+          },
+          {
+            "segment": "1 front squat @70/45",
+            "name": "Front Squat",
+            "unit": "reps",
+            "reps": {
+              "male": 1,
+              "female": 1
+            },
+            "loadKg": {
+              "male": 70,
+              "female": 45
+            }
+          },
+          {
+            "segment": "1 push jerk @70/45",
+            "name": "Push Jerk",
+            "unit": "reps",
+            "reps": {
+              "male": 1,
+              "female": 1
+            },
+            "loadKg": {
+              "male": 70,
+              "female": 45
+            }
+          }
+        ],
+        "toFix": [],
+        "ignored": [
+          "EMOM 10'"
+        ]
+      }
+    },
+    {
+      "name": "Écritures non devinées (#453 PR 3c) : à corriger, jamais créditées",
+      "text": "For time\n5 pow clean @60/40 + 10 kb dl @24/16 + 10 pullups strict",
+      "expected": {
+        "blocks": [],
+        "rest": "For time\n5 pow clean @60/40 + 10 kb dl @24/16 + 10 pullups strict",
+        "recognized": [],
+        "toFix": [
+          "5 pow clean @60/40",
+          "10 kb dl @24/16",
+          "10 pullups strict"
+        ],
+        "ignored": [
+          "For time"
         ]
       }
     }
