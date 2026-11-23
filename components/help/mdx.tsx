@@ -112,6 +112,12 @@ export function helpMdxComponents(locale: Locale) {
         {children}
       </code>
     ),
+    // Séance d'exemple : bloc de code, lignes gardées telles quelles.
+    pre: ({ children }: { children?: ReactNode }) => (
+      <pre className="mt-3 overflow-x-auto whitespace-pre rounded-ax-control border border-ax-border bg-ax-hover px-4 py-3 font-mono text-[12px] leading-relaxed text-ax-text [&_code]:bg-transparent [&_code]:p-0 [&_code]:font-mono [&_code]:font-semibold">
+        {children}
+      </pre>
+    ),
     Screenshot: (props: { src?: string; alt: string }) => <Screenshot {...props} locale={locale} />,
     GoTo: (props: { page: string }) => <GoTo {...props} locale={locale} />,
     Callout,

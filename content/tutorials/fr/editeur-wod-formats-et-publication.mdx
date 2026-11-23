@@ -36,6 +36,79 @@ Ces réglages se trouvent dans la fenêtre **Créer un WOD** (ou **Modifier le W
 
 Le **Score** et le **Texte libre** marchent aussi pour les WOD d'une offre Marketplace, et ils sont recopiés vers les box abonnées.
 
+## Le format en texte libre
+
+1. Le texte libre décide de ce que l'athlète lit et de ce qui compte dans ses badges. Il ne choisit jamais le format. Écrire « AMRAP 12' » dans le texte ne règle ni le **Type** ni le **Score** : choisis-les en haut de la fenêtre, et règle le **Time Cap (mm:ss)** plus bas. La ligne de format reste affichée à l'athlète, mais l'aperçu la range dans « Non comptées ».
+2. Pour chaque mouvement, écris d'abord la quantité, puis le nom de la liste officielle, puis la charge : `21 thrusters @43/29`, `20/15 cal SkiErg`, `400 m run`. Sépare les mouvements par « + » ou par un retour à la ligne. Les noms lus sont listés dans « Mouvements et badges ».
+3. En texte libre, seul un **Temps** terminé avant le time cap crédite les badges. Pour un AMRAP, un EMOM ou un Tabata dont les reps doivent compter, utilise **Mouvements**.
+
+**For Time** (Type For Time · Score Temps · Time Cap 10:00)
+
+```text
+For time
+21 thrusters @43/29 + 21 pull-ups
+15 thrusters @43/29 + 15 pull-ups
+9 thrusters @43/29 + 9 pull-ups
+TC 10'
+```
+
+L'aperçu affiche 6 mouvements qui comptent. « For time » et « TC 10' » ne sont pas comptés. Un temps terminé avant 10:00 crédite les badges.
+
+**AMRAP** (Type AMRAP · Score Tours + reps · Time Cap 12:00)
+
+```text
+AMRAP 12'
+10 wall balls @9/6
+20/15 cal SkiErg
+10 burpees
+```
+
+Les 3 mouvements sont reconnus, mais un score en tours + reps ne crédite rien en texte libre.
+
+<Screenshot src="/tutorials/editeur-wod-formats-et-publication/5.png" alt="Type AMRAP, Score Tours + reps, séance AMRAP en texte libre et aperçu Ce que l'app comprend" />
+
+**EMOM** (Type EMOM · Intervalle E2MOM · Score Reps totales · Time Cap 16:00)
+
+```text
+E2MOM 16'
+12/10 cal Row
+10 KB swings @24/16
+```
+
+La séance est affichée et reconnue, mais elle ne crédite rien en texte libre.
+
+**Tabata** (Type Tabata · Travail 20 · Repos 10 · Score Reps totales)
+
+```text
+Tabata 8 rounds
+Air squats
+Push-ups
+```
+
+Sans quantité, les deux mouvements apparaissent en orange, « à corriger ». C'est normal en Tabata : la séance s'enregistre quand même et s'affiche telle quelle.
+
+**Complexe en metcon** (Type Force · Score Charge (kg) · Time Cap 10:00)
+
+```text
+E2MOM 10'
+1 power clean @70/45 + 1 front squat @70/45 + 1 push jerk @70/45
+```
+
+Écris la quantité devant chaque mouvement et la charge après chacun : `@70/45` ne s'applique qu'au mouvement juste devant. Avec un score en charge, le texte libre ne crédite rien dans les badges. Pour un complexe en % du 1RM d'un mouvement de référence, utilise plutôt **Ajouter un complexe** dans le bloc Musculation (voir « Blocs Musculation et Cardio ») : l'éditeur l'écrit en tête du texte et l'app le lit comme une série.
+
+**Musculation puis metcon** (Type For Time · Score Temps · Time Cap 8:00)
+
+```text
+Back Squat — 5 × 3 @ 80 %1RM — repos 2:00
+
+For time
+30 burpees
+400 m run
+TC 8'
+```
+
+La première ligne vient du bloc **Musculation** : ajoute-la avec **Ajouter une série** plutôt qu'à la main, l'éditeur l'écrit en tête du texte.
+
 ## Publier maintenant ou à l'heure voulue
 
 1. L'interrupteur **Publier** (« Visible par les athlètes de la box ») est activé par défaut. Désactive-le pour garder un brouillon.
@@ -62,6 +135,9 @@ Le **Score** et le **Texte libre** marchent aussi pour les WOD d'une offre Marke
 - **Les offres sont grisées.** « Choisis d'abord une date : la copie a besoin du jour de la semaine. » → renseigne la **Date**.
 - **Un coach ne voit pas Mes offres Marketplace.** La section n'est affichée qu'au gérant et au co-gérant → c'est à eux de copier le WOD dans une offre.
 - **Les scores ne sont pas classés.** **Classement** est désactivé (« Scores enregistrés en historique uniquement ») → rouvre le WOD et active-le.
+- **J'ai écrit AMRAP dans le texte mais l'app demande un temps.** Le format se règle dans Type et Score, pas dans le texte → choisis **Tours + reps**.
+- **Les reps de mon AMRAP en texte libre ne comptent pas dans les badges.** En texte libre, seul un Temps terminé avant le cap crédite → passe en **Mouvements**.
+- **Dans mon complexe en metcon, seul le dernier mouvement a une charge.** La charge ne s'applique qu'au mouvement juste devant → écris `@70/45` après chaque mouvement.
 
 ## Y aller
 

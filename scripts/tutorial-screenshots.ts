@@ -16,6 +16,9 @@
  *   DEMO_EMAIL     Gérant de la box de démonstration (AthleX Fitness).
  *   DEMO_PASSWORD  Son mot de passe. Jamais écrit sur disque ni journalisé.
  *   CDP_URL        Optionnel : navigateur déjà lancé (ex. http://localhost:29229).
+ *   VERCEL_AUTOMATION_BYPASS_SECRET  Optionnel : preview Vercel protégée.
+ *   CHROME_PATH    Optionnel : exécutable Chrome à lancer à la place du Chromium de Playwright.
+ *   (DEMO_EMAIL / DEMO_PASSWORD retombent sur ATHLEX_TEST_OWNER_EMAIL / _PASSWORD.)
  *
  * Règles tenues par le script :
  *   - aucune écriture dans la box : les formulaires sont remplis puis fermés
@@ -31,11 +34,16 @@
 
 import fs from 'fs';
 import path from 'path';
-import { chromium, type Browser, type Locator, type Page } from 'playwright';
+import { chromium, type Browser, type BrowserContext, type Locator, type Page } from 'playwright';
 
 const BASE_URL = (process.env.BASE_URL ?? 'http://localhost:3000').replace(/\/$/, '');
-const DEMO_EMAIL = process.env.DEMO_EMAIL ?? '';
-const DEMO_PASSWORD = process.env.DEMO_PASSWORD ?? '';
+const DEMO_EMAIL = process.env.DEMO_EMAIL ?? process.env.ATHLEX_TEST_OWNER_EMAIL ?? '';
+const DEMO_PASSWORD = process.env.DEMO_PASSWORD ?? process.env.ATHLEX_TEST_OWNER_PASSWORD ?? '';
+/** Preview protégée : en-tête de contournement Vercel (jamais journalisé). */
+const BYPASS = process.env.VERCEL_AUTOMATION_BYPASS_SECRET ?? '';
+const BYPASS_HEADERS: Record<string, string> = BYPASS
+  ? { 'x-vercel-protection-bypass': BYPASS }
+  : {};
 const DEMO_BOX = process.env.DEMO_BOX ?? 'AthleX Fitness';
 const CDP_URL = process.env.CDP_URL ?? '';
 const OUT = path.join(process.cwd(), 'public', 'tutorials');
@@ -108,17 +116,299 @@ const scrollTo = (label: RegExp) => async (page: Page) => {
   await page.waitForTimeout(500);
 };
 
-const SHOTS: Shot[] = [
-  { slug: 'premiers-pas', n: 1, route: '/' },
-  { slug: 'creer-un-wod', n: 1, route: '/wods' },
+// ── Éditeur de WOD (#453, PR 2d) : état actuel (Score, Mouvements | Texte libre,
+// Musculation avec « Ajouter un complexe »). Rien n'est enregistré : chaque
+// fenêtre est remplie puis fermée par Échap.
+const editor = (page: Page) => page.locator(MODAL).first();
+
+const openEditor = async (page: Page) => {
+  await click(/Nouveau WOD/i)(page);
+  await editor(page).waitFor();
+};
+
+/** Type (select natif) par son libellé. */
+const setType = async (page: Page, label: string) => {
+  await editor(page)
+    .locator('select')
+    .filter({ has: page.locator('option', { hasText: /^AMRAP$/ }) })
+    .first()
+    .selectOption({ label });
+  await page.waitForTimeout(400);
+};
+
+/** Score (liste Radix) par le début de son libellé. */
+const setScore = async (page: Page, label: RegExp) => {
+  await page.getByTestId('score-trigger').click();
+  await page.getByRole('option', { name: label }).first().click();
+  await page.waitForTimeout(400);
+};
+
+const freeText = async (page: Page, text: string) => {
+  await page.getByRole('radio', { name: 'Texte libre' }).click();
+  await page.getByTestId('texte-libre').fill(text);
+  await page.waitForTimeout(600);
+};
+
+/** Fait défiler la fenêtre pour mettre `target` en haut du cadre. */
+const toTop = async (page: Page, target: Locator, offset = 24) => {
+  await target.first().evaluate((el, off) => {
+    const box = el.closest('.fixed.inset-0.z-50 > div') as HTMLElement | null;
+    if (!box) return el.scrollIntoView({ block: 'start' });
+    box.scrollTop += el.getBoundingClientRect().top - box.getBoundingClientRect().top - off;
+  }, offset);
+  await page.waitForTimeout(400);
+};
+
+const movementLine = async (page: Page, i: number, reps: string, name: string, male?: string, female?: string) => {
+  const row = editor(page).getByLabel('Exercice', { exact: true }).nth(i).locator('xpath=ancestor::div[1]');
+  await editor(page).getByLabel('Répétitions', { exact: true }).nth(i).fill(reps);
+  await editor(page).getByLabel('Exercice', { exact: true }).nth(i).fill(name);
+  await page.waitForTimeout(300);
+  if (male) await editor(page).getByLabel('Charge hommes en kilos').nth(i).fill(male);
+  if (female) await editor(page).getByLabel('Charge femmes en kilos').nth(i).fill(female);
+  await row.page().waitForTimeout(200);
+};
+
+const AMRAP_EXAMPLE = "AMRAP 12'\n10 wall balls @9/6\n20/15 cal SkiErg\n10 burpees";
+
+const EDITOR_SHOTS: Shot[] = [
   {
+    // Haut de la fenêtre : date, block, type, score et titre.
     slug: 'creer-un-wod',
     n: 2,
     route: '/wods',
-    prepare: click(/Nouveau WOD/i),
+    prepare: async (page) => {
+      await openEditor(page);
+      await setType(page, 'For Time');
+      await setScore(page, /^Temps/);
+      await editor(page).getByPlaceholder('Fran, Cindy, Helen…').fill('Fran');
+      await toTop(page, editor(page).getByText(/^Date/), 0);
+    },
     cleanup: escape,
     area: MODAL,
   },
+  {
+    slug: 'creer-un-wod',
+    n: 3,
+    route: '/wods',
+    prepare: async (page) => {
+      await openEditor(page);
+      await click(/Ajouter un mouvement$/)(page);
+      // La première ligne remplace le bouton pointillé : la suivante passe par « + Ajouter ».
+      await editor(page).getByRole('button', { name: 'Ajouter', exact: true }).click();
+      await page.waitForTimeout(600);
+      await movementLine(page, 0, '21', 'Thruster', '43', '30');
+      await movementLine(page, 1, '21', 'Pull-ups');
+      await toTop(page, page.getByTestId('entete-programme'));
+    },
+    cleanup: escape,
+    area: MODAL,
+  },
+  {
+    slug: 'creer-un-wod',
+    n: 4,
+    route: '/wods',
+    prepare: async (page) => {
+      await openEditor(page);
+      await page.getByText(/^Toute la box$/).first().click();
+      await toTop(page, editor(page).getByText(/Qui reçoit ce WOD/i));
+    },
+    cleanup: escape,
+    area: MODAL,
+  },
+  {
+    slug: 'creer-un-wod',
+    n: 5,
+    route: '/wods',
+    prepare: async (page) => {
+      await openEditor(page);
+      await toTop(page, editor(page).getByText(/^Notes Coach$/));
+    },
+    cleanup: escape,
+    area: MODAL,
+  },
+  {
+    slug: 'editeur-wod-formats-et-publication',
+    n: 1,
+    route: '/wods',
+    prepare: async (page) => {
+      await openEditor(page);
+      await setType(page, 'EMOM');
+      await editor(page).getByRole('button', { name: 'E2MOM', exact: true }).click();
+      await page.waitForTimeout(300);
+      await toTop(page, editor(page).getByText(/^Date/), 0);
+    },
+    cleanup: escape,
+    area: MODAL,
+  },
+  {
+    slug: 'editeur-wod-formats-et-publication',
+    n: 2,
+    route: '/wods',
+    prepare: async (page) => {
+      await openEditor(page);
+      await setType(page, 'Tabata');
+      await toTop(page, editor(page).getByText(/^Date/), 0);
+    },
+    cleanup: escape,
+    area: MODAL,
+  },
+  {
+    slug: 'editeur-wod-formats-et-publication',
+    n: 3,
+    route: '/wods',
+    prepare: async (page) => {
+      await openEditor(page);
+      await setScore(page, /^Temps/);
+      await page.getByText(/^Toute la box$/).first().click();
+      await editor(page).getByRole('button', { name: 'Programmer', exact: true }).click();
+      const hour = editor(page).locator('input[type="number"][max="23"]');
+      await hour.fill('7');
+      await editor(page).locator('input[type="number"][max="59"]').fill('0');
+      await toTop(page, editor(page).getByText(/^Publier$/).first(), 120);
+    },
+    cleanup: escape,
+    area: MODAL,
+  },
+  {
+    slug: 'editeur-wod-formats-et-publication',
+    n: 4,
+    route: '/wods',
+    prepare: async (page) => {
+      await openEditor(page);
+      await editor(page).getByRole('button', { name: /Mes offres Marketplace/ }).click();
+      await page.waitForTimeout(500);
+      const offer = editor(page).getByText(/^Mes offres Marketplace/).locator('xpath=following::div[contains(@class,"flex-wrap")][1]/button').first();
+      await offer.click();
+      await page.waitForTimeout(400);
+      const week = editor(page).locator('select[aria-label^="Semaine dans"]').first();
+      if ((await week.locator('option').count()) > 1) await week.selectOption({ index: 1 });
+      await toTop(page, editor(page).getByText(/Qui reçoit ce WOD/i));
+    },
+    cleanup: escape,
+    area: MODAL,
+  },
+  {
+    slug: 'editeur-wod-formats-et-publication',
+    n: 5,
+    route: '/wods',
+    prepare: async (page) => {
+      await openEditor(page);
+      await setType(page, 'AMRAP');
+      await setScore(page, /^Tours \+ reps/);
+      await freeText(page, AMRAP_EXAMPLE);
+      await toTop(page, page.getByTestId('entete-programme'), 180);
+    },
+    cleanup: escape,
+    area: MODAL,
+  },
+  {
+    slug: 'mouvements-et-badges',
+    n: 1,
+    route: '/wods',
+    prepare: async (page) => {
+      await openEditor(page);
+      await click(/Ajouter un mouvement$/)(page);
+      await editor(page).getByLabel('Exercice', { exact: true }).first().fill('Thru');
+      await toTop(page, page.getByTestId('entete-programme'));
+    },
+    cleanup: escape,
+    area: MODAL,
+  },
+  {
+    slug: 'mouvements-et-badges',
+    n: 2,
+    route: '/wods',
+    prepare: async (page) => {
+      await openEditor(page);
+      await click(/Ajouter un mouvement$/)(page);
+      await movementLine(page, 0, '21', 'Thruster', '43', '30');
+      await toTop(page, page.getByTestId('entete-programme'));
+    },
+    cleanup: escape,
+    area: MODAL,
+  },
+  {
+    slug: 'mouvements-et-badges',
+    n: 3,
+    route: '/wods',
+    prepare: async (page) => {
+      await openEditor(page);
+      await freeText(page, '21 T2B + 21 KB deadlifts @24/16\n1 pow clean');
+      await toTop(page, page.getByTestId('entete-programme'));
+    },
+    cleanup: escape,
+    area: MODAL,
+  },
+  {
+    slug: 'blocs-force-musculation-cardio',
+    n: 1,
+    route: '/wods',
+    prepare: async (page) => {
+      await openEditor(page);
+      await click(/^\+?\s*Ajouter une série$/)(page);
+      await editor(page).getByLabel('Exercice de musculation').first().fill('Back Squat');
+      await editor(page).getByLabel('Séries', { exact: true }).first().fill('5');
+      await editor(page).getByLabel('Répétitions par série').first().fill('3');
+      await editor(page).getByLabel('Charge par série').first().fill('80');
+      await editor(page).getByLabel('Tempo', { exact: true }).first().fill('30X1');
+      await toTop(page, editor(page).getByTestId('ajouter-complexe'), 60);
+    },
+    cleanup: escape,
+    area: MODAL,
+  },
+  {
+    slug: 'blocs-force-musculation-cardio',
+    n: 2,
+    route: '/wods',
+    prepare: async (page) => {
+      await openEditor(page);
+      await click(/^\+?\s*Ajouter une série cardio$/)(page);
+      await editor(page).getByLabel('Exercice cardio').first().selectOption({ label: 'Row' });
+      await editor(page).getByLabel('Séries cardio').first().fill('3');
+      await editor(page).getByLabel('Quantité par série').first().fill('500');
+      await editor(page).getByLabel('Unité cardio').first().selectOption('m');
+      await toTop(page, editor(page).getByRole('button', { name: /Ajouter une série cardio$/ }).first(), 60);
+    },
+    cleanup: escape,
+    area: MODAL,
+  },
+  {
+    slug: 'blocs-force-musculation-cardio',
+    n: 3,
+    route: '/wods',
+    prepare: async (page) => {
+      await openEditor(page);
+      await toTop(page, editor(page).getByTestId('ajouter-complexe'), 60);
+    },
+    cleanup: escape,
+    area: MODAL,
+  },
+  {
+    slug: 'blocs-force-musculation-cardio',
+    n: 4,
+    route: '/wods',
+    prepare: async (page) => {
+      await openEditor(page);
+      await click(/^\+?\s*Ajouter une série cardio$/)(page);
+      await editor(page).getByLabel('Exercice cardio').first().selectOption({ label: 'Row' });
+      await editor(page).getByLabel('Séries cardio').first().fill('4');
+      await editor(page).getByLabel('Quantité par série').first().fill('500');
+      await editor(page).getByLabel('Unité cardio').first().selectOption('m');
+      await editor(page).getByLabel('Type de cible').first().selectOption('watts');
+      await editor(page).getByLabel('Cible en watts').first().fill('250');
+      await editor(page).getByLabel('Repos entre séries cardio').first().fill('1:30');
+      await editor(page).getByLabel('RPE', { exact: true }).first().fill('7');
+      await toTop(page, editor(page).getByRole('button', { name: /Ajouter une série cardio$/ }).first(), 60);
+    },
+    cleanup: escape,
+    area: MODAL,
+  },
+];
+
+const SHOTS: Shot[] = [
+  { slug: 'premiers-pas', n: 1, route: '/' },
+  { slug: 'creer-un-wod', n: 1, route: '/wods' },
   {
     slug: 'visibilite-d-un-wod',
     n: 1,
@@ -133,36 +423,6 @@ const SHOTS: Shot[] = [
       page.getByText(/Qui reçoit ce WOD/i).first().locator('xpath=ancestor::div[1]'),
   },
   {
-    slug: 'blocs-force-musculation-cardio',
-    n: 1,
-    route: '/wods',
-    prepare: async (page) => {
-      await click(/Nouveau WOD/i)(page);
-      // La modale défile dans sa propre boîte : sans scroll forcé, la capture
-      // s'arrête avant les séries de musculation et de cardio.
-      await page.locator(MODAL).first().evaluate((el) => {
-        el.scrollTop = 500;
-      });
-      await page.waitForTimeout(400);
-    },
-    cleanup: escape,
-    area: MODAL,
-  },
-  {
-    slug: 'blocs-force-musculation-cardio',
-    n: 2,
-    route: '/wods',
-    prepare: async (page) => {
-      await click(/Nouveau WOD/i)(page);
-      await page.locator(MODAL).first().evaluate((el) => {
-        el.scrollTop = 900;
-      });
-      await page.waitForTimeout(400);
-    },
-    cleanup: escape,
-    area: MODAL,
-  },
-  {
     slug: 'creneaux-et-reservations',
     n: 4,
     route: '/schedules',
@@ -171,18 +431,6 @@ const SHOTS: Shot[] = [
     area: MODAL,
   },
   { slug: 'essai-gratuit-et-reservation', n: 5, route: '/prospects' },
-  {
-    slug: 'mouvements-et-badges',
-    n: 1,
-    route: '/wods',
-    prepare: async (page) => {
-      await click(/Nouveau WOD/i)(page);
-      await click(/Ajouter un mouvement/i)(page);
-      await page.waitForTimeout(600);
-    },
-    cleanup: escape,
-    area: MODAL,
-  },
   // « Importer » est un label sur un input fichier caché : le cliquer ouvrirait
   // le sélecteur de fichiers de l'OS, donc on capture la barre d'outils.
   {
@@ -262,20 +510,6 @@ const SHOTS: Shot[] = [
       page
         .getByPlaceholder('Titre de la demande')
         .locator('xpath=ancestor::div[contains(@class,"rounded-2xl")][1]'),
-  },
-  {
-    slug: 'creer-un-wod',
-    n: 3,
-    route: '/wods',
-    prepare: async (page) => {
-      await click(/Nouveau WOD/i)(page);
-      await page.locator(MODAL).first().evaluate((el) => {
-        el.scrollTop = 260;
-      });
-      await page.waitForTimeout(400);
-    },
-    cleanup: escape,
-    area: MODAL,
   },
   {
     slug: 'creneaux-et-reservations',
@@ -500,18 +734,6 @@ const SHOTS: Shot[] = [
   },
   { slug: 'premiers-pas', n: 7, route: '/groups' },
   {
-    slug: 'creer-un-wod',
-    n: 4,
-    route: '/wods',
-    prepare: async (page) => {
-      await click(/Nouveau WOD/i)(page);
-      await page.getByText(/Qui reçoit ce WOD/i).first().scrollIntoViewIfNeeded();
-      await page.waitForTimeout(400);
-    },
-    cleanup: escape,
-    area: MODAL,
-  },
-  {
     slug: 'membres-et-formules',
     n: 3,
     route: '/members',
@@ -694,6 +916,9 @@ const SHOTS: Shot[] = [
       await click(/Nouveau WOD/i)(page);
       await page.getByText(/Qui reçoit ce WOD/i).first().scrollIntoViewIfNeeded();
       await page.getByText(/^Ces groupes$/).first().click();
+      await page.waitForTimeout(400);
+      // Un groupe coché, comme le dit l'alt (état d'écran seulement, rien n'est enregistré).
+      await page.getByText(/^Ces groupes$/).first().locator('xpath=ancestor::div[2]').locator('button').nth(3).click();
       await page.waitForTimeout(600);
     },
     cleanup: escape,
@@ -713,57 +938,6 @@ const SHOTS: Shot[] = [
     cleanup: escape,
     area: (page) =>
       page.getByText(/Qui reçoit ce WOD/i).first().locator('xpath=ancestor::div[1]'),
-  },
-  {
-    slug: 'blocs-force-musculation-cardio',
-    n: 3,
-    route: '/wods',
-    prepare: async (page) => {
-      await click(/Nouveau WOD/i)(page);
-      await page.locator(MODAL).first().evaluate((el) => {
-        el.scrollTop = 420;
-      });
-      await page.waitForTimeout(400);
-    },
-    cleanup: escape,
-    area: MODAL,
-  },
-  {
-    slug: 'creer-un-wod',
-    n: 5,
-    route: '/wods',
-    prepare: async (page) => {
-      await click(/Nouveau WOD/i)(page);
-      await page.locator(MODAL).first().evaluate((el) => {
-        el.scrollTop = 1200;
-      });
-      await page.waitForTimeout(400);
-    },
-    cleanup: escape,
-    area: MODAL,
-  },
-  {
-    slug: 'mouvements-et-badges',
-    n: 2,
-    route: '/wods',
-    // Ligne de mouvement remplie : le WOD n'est jamais publié, la modale est
-    // fermée par Échap.
-    prepare: async (page) => {
-      await click(/Nouveau WOD/i)(page);
-      await click(/Ajouter un mouvement/i)(page);
-      const exercise = page.locator('input[list="box-movement-catalog"]').first();
-      const row = exercise.locator('xpath=ancestor::div[1]');
-      await row.locator('input[inputmode="numeric"]').first().fill('21');
-      await exercise.fill('Thruster');
-      const loads = row.locator('input:not([inputmode="numeric"]):not([list])');
-      if ((await loads.count()) > 1) {
-        await loads.nth(0).fill('43');
-        await loads.nth(1).fill('30');
-      }
-      await page.waitForTimeout(800);
-    },
-    cleanup: escape,
-    area: MODAL,
   },
   {
     slug: 'semaines-types',
@@ -813,21 +987,6 @@ const SHOTS: Shot[] = [
         .getByText(/Visible par toute la box/)
         .first()
         .locator('xpath=ancestor::div[5]'),
-  },
-  {
-    slug: 'blocs-force-musculation-cardio',
-    n: 4,
-    route: '/wods',
-    prepare: async (page) => {
-      await click(/Nouveau WOD/i)(page);
-      await click(/Ajouter une série cardio/i)(page);
-      await page.locator(MODAL).first().evaluate((el) => {
-        el.scrollTop = 900;
-      });
-      await page.waitForTimeout(600);
-    },
-    cleanup: escape,
-    area: MODAL,
   },
   // Pas de capture pour les icônes d'un créneau type : la grille de la démo
   // est vide et créer un créneau type générerait des cours dans le planning.
@@ -891,9 +1050,18 @@ const SHOTS: Shot[] = [
   },
 ];
 
+/** En-tête de contournement sur les seules requêtes de la preview (pas vers Supabase : CORS). */
+async function withBypass(context: BrowserContext): Promise<void> {
+  if (!BYPASS) return;
+  await context.route(`${BASE_URL}/**`, (route) =>
+    route.continue({ headers: { ...route.request().headers(), ...BYPASS_HEADERS } }),
+  );
+}
+
 async function openBrowser(): Promise<Browser> {
   if (CDP_URL) return chromium.connectOverCDP(CDP_URL);
-  return chromium.launch();
+  // CHROME_PATH : Chrome du poste quand le Chromium de Playwright n'est pas installé.
+  return chromium.launch(process.env.CHROME_PATH ? { executablePath: process.env.CHROME_PATH } : {});
 }
 
 async function signIn(page: Page) {
@@ -1075,19 +1243,22 @@ async function main() {
     throw new Error('DEMO_EMAIL et DEMO_PASSWORD sont requis.');
   }
   const only = process.argv.slice(2);
-  const wanted = only.length ? SHOTS.filter((s) => only.includes(s.slug)) : SHOTS;
+  const all = [...SHOTS, ...EDITOR_SHOTS];
+  const wanted = only.length ? all.filter((s) => only.includes(s.slug)) : all;
 
   const browser = await openBrowser();
   const context = await browser.newContext({ viewport: VIEWPORT, locale: 'fr-FR' });
   await context.addCookies([
     { name: 'athlex_lang', value: 'fr', url: BASE_URL },
   ]);
+  await withBypass(context);
   const page = await context.newPage();
 
   // Page publique : elle doit être photographiée telle qu'un visiteur la voit,
   // donc depuis un contexte sans session (sinon le gérant y voit « Gérer »).
   const anonContext = await browser.newContext({ viewport: VIEWPORT, locale: 'fr-FR' });
   await anonContext.addCookies([{ name: 'athlex_lang', value: 'fr', url: BASE_URL }]);
+  await withBypass(anonContext);
   const anonPage = await anonContext.newPage();
 
   const failed: string[] = [];
@@ -1105,7 +1276,7 @@ async function main() {
         console.log(`échec ${id} — ${err instanceof Error ? err.message : String(err)}`);
       }
     }
-    await revokeTestInvitations(page);
+    if (wanted.some((s) => s.slug === 'inviter-un-membre')) await revokeTestInvitations(page);
   } finally {
     await anonContext.close();
     await context.close();

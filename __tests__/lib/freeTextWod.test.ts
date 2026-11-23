@@ -9,7 +9,7 @@ import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import WodEditor from '@/components/wods/WodEditor';
 import {
-  APP_MOVEMENT_CATALOG, freeDescription, freeTextPreview, nearCatalogName, readFreeText, splitFreeDescription,
+  APP_MOVEMENT_CATALOG, FREE_TEXT_ABBREVIATIONS, FREE_TEXT_EXTRA_MOVEMENTS, MOVEMENT_MAP, freeDescription, freeTextPreview, nearCatalogName, readFreeText, splitFreeDescription,
 } from '@/lib/freeTextWod';
 import { EMPTY_WOD_FORM, editorContent, sharedWodColumns, wodDescription } from '@/lib/wodFields';
 import { editorMovements, freeTextFromRows, rowsFromFreeText } from '@/lib/wodEditorLines';
@@ -24,14 +24,14 @@ describe('contrat partagé avec l’app (free-text-wod-contract.json)', () => {
   const contract = JSON.parse(bytes.toString('utf8')) as { cases: { name: string; text: string; expected: unknown }[] };
 
   it('le fichier est celui de l’app, octet pour octet', () => {
-    // nbstyle69/athlex-app#621 (39972d1), src/__tests__/fixtures/free-text-wod-contract.json
-    expect(bytes.length).toBe(10121);
+    // nbstyle69/athlex-app#625 (fefa951), src/__tests__/fixtures/free-text-wod-contract.json
+    expect(bytes.length).toBe(21723);
     expect(createHash('sha256').update(bytes).digest('hex'))
-      .toBe('5596d406cb6af6a894b8ef68940d63c4ac88ea8475899dbafbfa417fd6f256ec');
+      .toBe('bc688a82907f1e71839567e6ede1b4708f7ddbe8d945d3be0fc49a81e7c36fec');
   });
 
   it('chaque cas porte blocks, rest, recognized, toFix, ignored', () => {
-    expect(contract.cases).toHaveLength(7);
+    expect(contract.cases).toHaveLength(12);
     for (const c of contract.cases) {
       expect(Object.keys(c.expected as object).sort()).toEqual(['blocks', 'ignored', 'recognized', 'rest', 'toFix']);
     }
@@ -73,22 +73,63 @@ describe('catalogue de l’app (copie)', () => {
   });
 });
 
+describe('lecture de l’app (copies de freeTextWod.ts et tournamentUtils.ts)', () => {
+  const sha = (b: Buffer) => createHash('sha256').update(b).digest('hex');
+  const free = fixture('app-freeTextWod.ts.txt');
+  const utils = fixture('app-tournamentUtils.ts.txt');
+
+  it('les références sont les fichiers de l’app (fefa951), octet pour octet', () => {
+    expect([free.length, sha(free)]).toEqual([8037, '30ed1aa44024ce1f6a1ee566b0bd5222eb746b17c1ecf1d662e709c7e7211f4b']);
+    expect([utils.length, sha(utils)]).toEqual([14982, '5bfe20c3fcc298631c30e7b0caaaed28574093ad0d2ae194fc1aca0a76492351']);
+  });
+
+  it('MOVEMENT_MAP du Manager = celui de l’app', () => {
+    const src = utils.toString('utf8');
+    const block = src.slice(src.indexOf('const MOVEMENT_MAP'), src.indexOf('\n};', src.indexOf('const MOVEMENT_MAP')));
+    const body = block.slice(block.indexOf('{') + 1).replace(/\/\/.*$/gm, '');
+    const app: Record<string, string> = {};
+    for (const m of body.matchAll(/(?:'([^']+)'|([\p{L}\w]+))\s*:\s*'([^']+)'/gu)) app[m[1] ?? m[2]] = m[3];
+    expect(Object.keys(app).length).toBeGreaterThan(150);
+    expect(MOVEMENT_MAP).toEqual(app);
+  });
+
+  it('mouvements propres au texte libre et abréviations = ceux de l’app', () => {
+    const src = free.toString('utf8');
+    const extra = src.slice(src.indexOf('FREE_TEXT_EXTRA_MOVEMENTS: CatalogMovement[] = ['), src.indexOf('];', src.indexOf('FREE_TEXT_EXTRA_MOVEMENTS:')));
+    expect(FREE_TEXT_EXTRA_MOVEMENTS.map(m => m.name)).toEqual([...extra.matchAll(/name: '([^']+)'/g)].map(m => m[1]));
+    expect(FREE_TEXT_EXTRA_MOVEMENTS).toHaveLength(10);
+    const ab = src.slice(src.indexOf('FREE_TEXT_ABBREVIATIONS:'), src.indexOf('};', src.indexOf('FREE_TEXT_ABBREVIATIONS:')));
+    expect(FREE_TEXT_ABBREVIATIONS).toEqual(Object.fromEntries([...ab.matchAll(/(\w+): '([^']+)'/g)].map(m => [m[1], m[2]])));
+  });
+});
+
 describe('aperçu « Ce que l’app comprend »', () => {
   const MAQUETTE = "For time\n21 pull-ups + 15/12 cal ski + 21 thrusters @43/29\n1'30 rest\n18 chest-to-bar + 15/12 cal ski + 18 thrusters @43/29\n1'30 rest\n15 bar muscle-ups + 12/9 cal ski + 15 thrusters @43/29\nTC 14'\nRX+ : 12'";
 
-  it('exemple de la maquette : 6 comptent, 3 à corriger, groupés par ligne', () => {
+  it('exemple de la maquette : tout est reconnu (« ski » → SkiErg depuis #453 PR 3c), groupé par ligne', () => {
     const p = freeTextPreview(MAQUETTE);
-    expect([p.okCount, p.fixCount]).toEqual([6, 3]);
+    expect([p.okCount, p.fixCount]).toEqual([9, 0]);
     expect(p.groups[0]).toEqual({
       line: '21 pull-ups + 15/12 cal ski + 21 thrusters @43/29',
       items: [
         { ok: true, text: 'Pull-ups · 21 reps' },
-        { ok: false, text: '« ski » n’est pas dans la liste officielle : écris « SkiErg » pour compter 15 / 12 cal' },
+        { ok: true, text: 'SkiErg · 15 / 12 cal' },
         { ok: true, text: 'Thruster · 21 reps · ♂ 43 / ♀ 29 kg' },
       ],
     });
-    expect(p.groups[1].items[1].text).toBe('« ski » : écris « SkiErg » pour compter 15 / 12 cal');
-    expect(p.groups[2].items[1].text).toBe('« ski » : écris « SkiErg » pour compter 12 / 9 cal');
+  });
+
+  it('écritures reconnues : plus de suggestion ; non reconnues : la suggestion reste', () => {
+    const p = freeTextPreview('21 T2B + 21 KB deadlifts @24/16\n10 STOH @60/40\n1 pow clean + 3 jerk');
+    expect(p.groups.map(g => g.items)).toEqual([
+      [{ ok: true, text: 'Toes-to-Bar · 21 reps' }, { ok: true, text: 'KB Deadlift · 21 reps · ♂ 24 / ♀ 16 kg' }],
+      [{ ok: true, text: 'Shoulder to Overhead · 10 reps · ♂ 60 / ♀ 40 kg' }],
+      [
+        { ok: false, text: '« pow clean » n’est pas dans la liste officielle : écris « Power Clean » pour compter 1 rep' },
+        { ok: false, text: '« jerk » n’est pas dans la liste officielle : non compté' },
+      ],
+    ]);
+    expect(freeTextPreview('1 pow clean\n2 pow clean').groups[1].items[0].text).toBe('« pow clean » : écris « Power Clean » pour compter 2 reps');
   });
 
   it('lignes non comptées avec leur raison, doublons regroupés', () => {
@@ -108,8 +149,7 @@ describe('aperçu « Ce que l’app comprend »', () => {
 
   it('nom du catalogue sans quantité, singulier, nom inconnu', () => {
     expect(freeTextPreview('Run').groups[0].items[0].text).toBe('« Run » : ajoute une quantité pour le compter');
-    expect(freeTextPreview('1 pull-up').groups[0].items[0].text)
-      .toBe('« pull-up » n’est pas dans la liste officielle : écris « Pull-ups » pour compter 1 rep');
+    expect(freeTextPreview('1 pull-up').groups[0].items[0]).toEqual({ ok: true, text: 'Pull-ups · 1 rep' });
     expect(freeTextPreview('10 zorglub').groups[0].items[0].text)
       .toBe('« zorglub » n’est pas dans la liste officielle : non compté');
   });
@@ -224,7 +264,7 @@ describe('éditeur : sélecteur Mouvements | Texte libre', () => {
     const html = render('whiteboard', { textMode: 'free', freeText: '21 pull-ups + 15/12 cal ski + 10 wall balls' });
     expect(html).toContain('data-testid="texte-libre"');
     expect(html).toContain('data-testid="apercu-texte-libre"');
-    expect(text(html)).toContain('2 mouvements comptent · 1 à corriger');
+    expect(text(html)).toContain('3 mouvements comptent · 0 à corriger');
     expect(text(html)).toContain('Crédités dans les badges seulement quand le score prouve la séance terminée.');
     expect(text(html)).toContain('Les séries Musculation et Cardio sont lues seulement si elles sont écrites en tête, avant le reste du texte.');
     expect(html).toMatch(/role="radio" aria-checked="true"[^>]*>Texte libre/);

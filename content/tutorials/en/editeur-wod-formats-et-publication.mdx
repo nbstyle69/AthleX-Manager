@@ -36,6 +36,79 @@ These settings live in the **Créer un WOD** (or **Modifier le WOD**) window of 
 
 The **Score** and the **Texte libre** (free text) also work for the WODs of a Marketplace offer, and they are copied to the subscribed boxes.
 
+## The free text format
+
+1. Free text decides what the athlete reads and what counts towards their badges. It never picks the format. Writing « AMRAP 12' » in the text sets neither the **Type** nor the **Score**: pick them at the top of the window, and set the **Time Cap (mm:ss)** further down. The format line still shows to the athlete, but the preview files it under « Non comptées » (not counted).
+2. For each movement, write the quantity first, then the name from the official list, then the load: `21 thrusters @43/29`, `20/15 cal SkiErg`, `400 m run`. Separate movements with "+" or a line break. The names that are read are listed in « Mouvements et badges ».
+3. In free text, only a **Temps** finished before the time cap credits badges. For an AMRAP, an EMOM or a Tabata whose reps must count, use **Mouvements**.
+
+**For Time** (Type For Time · Score Temps · Time Cap 10:00)
+
+```text
+For time
+21 thrusters @43/29 + 21 pull-ups
+15 thrusters @43/29 + 15 pull-ups
+9 thrusters @43/29 + 9 pull-ups
+TC 10'
+```
+
+The preview shows 6 movements that count. « For time » and « TC 10' » are not counted. A time finished before 10:00 credits badges.
+
+**AMRAP** (Type AMRAP · Score Tours + reps · Time Cap 12:00)
+
+```text
+AMRAP 12'
+10 wall balls @9/6
+20/15 cal SkiErg
+10 burpees
+```
+
+The 3 movements are recognised, but a rounds + reps score credits nothing in free text.
+
+<Screenshot src="/tutorials/editeur-wod-formats-et-publication/5.png" alt="AMRAP type, Rounds + reps score, AMRAP session in free text and the What the app understands preview" />
+
+**EMOM** (Type EMOM · Intervalle E2MOM · Score Reps totales · Time Cap 16:00)
+
+```text
+E2MOM 16'
+12/10 cal Row
+10 KB swings @24/16
+```
+
+The session is shown and recognised, but it credits nothing in free text.
+
+**Tabata** (Type Tabata · Travail 20 · Repos 10 · Score Reps totales)
+
+```text
+Tabata 8 rounds
+Air squats
+Push-ups
+```
+
+Without a quantity, both movements show in orange, « à corriger » (to fix). That is normal for a Tabata: the session is still saved and shows as is.
+
+**Complex in a metcon** (Type Force · Score Charge (kg) · Time Cap 10:00)
+
+```text
+E2MOM 10'
+1 power clean @70/45 + 1 front squat @70/45 + 1 push jerk @70/45
+```
+
+Write the quantity before each movement and the load after each one: `@70/45` only applies to the movement just before it. With a load score, free text credits nothing towards badges. For a complex in % of the 1RM of a reference movement, use **Ajouter un complexe** (add a complex) in the Musculation block instead (see « Blocs Musculation et Cardio »): the editor writes it at the top of the text and the app reads it as a set.
+
+**Musculation then metcon** (Type For Time · Score Temps · Time Cap 8:00)
+
+```text
+Back Squat — 5 × 3 @ 80 %1RM — repos 2:00
+
+For time
+30 burpees
+400 m run
+TC 8'
+```
+
+The first line comes from the **Musculation** block: add it with **Ajouter une série** (add a set) rather than by hand, the editor writes it at the top of the text.
+
 ## Publish now or at a set time
 
 1. The **Publier** switch (« Visible par les athlètes de la box », visible to the box's athletes) is on by default. Turn it off to keep a draft.
@@ -62,6 +135,9 @@ The **Score** and the **Texte libre** (free text) also work for the WODs of a Ma
 - **The offers are greyed out.** « Choisis d'abord une date : la copie a besoin du jour de la semaine. » (pick a date first) → fill in the **Date**.
 - **A coach does not see Mes offres Marketplace.** The section is shown only to the owner and co-owner → they copy the WOD into an offer.
 - **Scores are not ranked.** **Classement** is off (« Scores enregistrés en historique uniquement ») → reopen the WOD and turn it on.
+- **I wrote AMRAP in the text but the app asks for a time.** The format is set in Type and Score, not in the text → pick **Tours + reps**.
+- **My free text AMRAP reps do not count towards badges.** In free text, only a Temps finished before the cap credits → switch to **Mouvements**.
+- **In my metcon complex, only the last movement has a load.** The load only applies to the movement just before it → write `@70/45` after each movement.
 
 ## Go there
 
