@@ -11,6 +11,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { PURPLE_SOFT, chipClass } from '@/components/admin/adminTokens';
+import { NOT_DONE } from '@/lib/wodScoreType';
 
 interface Stats {
   totalUsers: number;
@@ -171,8 +172,9 @@ export default function AnalyticsPage() {
       supabase.from('profiles').select('total_wods_generated'),
       supabase.from('generated_wods').select('*', { count: 'exact', head: true }).gte('created_at', dPeriod),
       supabase.from('athlete_badges').select('*', { count: 'exact', head: true }),
-      supabase.from('wod_scores').select('*', { count: 'exact', head: true }),
-      supabase.from('wod_scores').select('*', { count: 'exact', head: true }).gte('submitted_at', dPeriod),
+      // Une séance seulement marquée faite (#453) n'est pas un score.
+      supabase.from('wod_scores').select('*', { count: 'exact', head: true }).or(NOT_DONE),
+      supabase.from('wod_scores').select('*', { count: 'exact', head: true }).or(NOT_DONE).gte('submitted_at', dPeriod),
       supabase.from('daily_tournament_scores').select('*', { count: 'exact', head: true }).eq('status', 'contested'),
       supabase.from('wod_scores').select('member_id').gte('submitted_at', d7),
       supabase.from('class_reservations').select('member_id').gte('created_at', d7),

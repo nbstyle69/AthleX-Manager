@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/client';
 import { stripWodJson, withWodJson, writeWithWodJsonFallback } from '@/lib/wodJson';
 import {
-  EMPTY_WOD_FORM, SharedWodColumns, WodFormState, formatCap, sharedWodColumns,
+  EMPTY_WOD_FORM, SharedWodColumns, WodFormState, editorContent, formatCap, sharedWodColumns,
 } from '@/lib/wodFields';
 
 /**
@@ -42,10 +42,10 @@ export type ProgramWodPayload = SharedWodColumns & {
   sort_order?: number;
 };
 
-const COLONNES = [
+export const COLONNES = [
   'id', 'title', 'description', 'wod_type', 'block_name', 'time_cap_seconds', 'rounds',
   'notes', 'video_url', 'leaderboard_enabled', 'emom_interval_minutes',
-  'tabata_work_seconds', 'tabata_rest_seconds',
+  'tabata_work_seconds', 'tabata_rest_seconds', 'score_type', 'text_mode',
   'scheduled_date', 'program_week', 'program_day', 'sort_order', 'is_published',
 ].join(', ');
 
@@ -149,6 +149,10 @@ export function formulaireDepuisSeance(w: ProgramWod, semaineAffichee: number): 
     notes: w.notes ?? '',
     videoUrl: w.video_url ?? '',
     leaderboard: false,
+    scoreType: w.score_type ?? '',
+    scoreTypeAuto: false,
+    textMode: editorContent(w.description, w.text_mode).textMode,
+    freeText: editorContent(w.description, w.text_mode).freeText,
     published: w.is_published ?? true,
     emomInterval: w.emom_interval_minutes ? String(w.emom_interval_minutes) : '1',
     tabataWork: w.tabata_work_seconds ? String(w.tabata_work_seconds) : '20',

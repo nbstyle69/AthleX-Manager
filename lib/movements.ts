@@ -239,7 +239,7 @@ export function isFormatHeaderLine(line: string): boolean {
   return HEADER_PATTERNS.some(re => re.test(s));
 }
 
-const DURATION_LINE = /^\d+(?:\s*\/\s*\d+)?\s*(?:s|sec|secs|sec\.|")\s+\S/i;
+export const DURATION_LINE = /^\d+(?:\s*\/\s*\d+)?\s*(?:s|sec|secs|sec\.|")\s+\S/i;
 const DISTANCE_LINE = /^(\d+(?:[.,]\d+)?)(?:\s*\/\s*\d+(?:[.,]\d+)?)?\s*(m|km|mi|miles?|yds?|yards?|meters?|metres?|mètres?)\b/i;
 const METERS_PER_UNIT: Record<string, number> = {
   km: 1000, mi: 1609.344, mile: 1609.344, miles: 1609.344, yd: 0.9144, yds: 0.9144, yard: 0.9144, yards: 0.9144,

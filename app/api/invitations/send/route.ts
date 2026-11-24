@@ -3,6 +3,10 @@ import { createServiceClient, getServerUser } from '@/lib/supabase/server';
 import { isBoxOwnerAdmin } from '@/lib/isBoxOwnerAdmin';
 import { SITE_URL, MAIL_FROM } from '@/lib/site-url';
 import { refuseClosedBox } from '@/lib/boxEntryGuard';
+import { logResendFailure } from '@/lib/resendFailure';
+
+const INVITATION_EMAIL_FAILED =
+  "L'e-mail d'invitation n'est pas parti. Partage le QR code ou le lien, ou réessaie plus tard.";
 
 /**
  * Envoi du lien d'invitation par e-mail, au nom de la box.
@@ -111,11 +115,9 @@ export async function POST(req: NextRequest) {
   });
 
   if (!res.ok) {
-    const detail = await res.text();
-    return NextResponse.json(
-      { sent: false, error: `Resend ${res.status} — ${detail.slice(0, 200)}` },
-      { status: 200 },
-    );
+    // Ni le corps Resend ni l'adresse : ce message est aussi gardé en base (mark_box_invitation_sent).
+    const ref = logResendFailure('invitation', res.status);
+    return NextResponse.json({ sent: false, error: INVITATION_EMAIL_FAILED, ref }, { status: 200 });
   }
 
   return NextResponse.json({ sent: true, to: invitation.email });

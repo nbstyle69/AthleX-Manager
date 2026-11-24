@@ -3,6 +3,7 @@ import Stripe from 'stripe';
 import { createServiceClient, getServerUser } from '@/lib/supabase/server';
 import { isBoxOwnerAdmin } from '@/lib/isBoxOwnerAdmin';
 import { MAIL_FROM } from '@/lib/site-url';
+import { logResendFailure } from '@/lib/resendFailure';
 
 function getStripe() {
   return new Stripe(process.env.STRIPE_SECRET_KEY!, {
@@ -41,7 +42,7 @@ async function sendReminderEmail(
     }),
   });
   if (!res.ok) {
-    console.error('dunning resend error', res.status, await res.text());
+    logResendFailure('dunning', res.status);
     return false;
   }
   return true;

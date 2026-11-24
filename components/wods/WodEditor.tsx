@@ -1,7 +1,7 @@
 'use client';
 
 import { Dispatch, SetStateAction, useEffect, useState } from 'react';
-import { Plus, Trash2, X, Loader2, Video, Dumbbell, HeartPulse, ChevronDown, ChevronRight, Info } from 'lucide-react';
+import { Plus, Trash2, X, Loader2, Video, Dumbbell, HeartPulse, ChevronDown, ChevronRight, Info, Layers, RotateCcw, CheckCircle2 } from 'lucide-react';
 import { CARDIO_UNITS } from '@/lib/movements';
 import MovementUnitSelect from '@/components/wods/MovementUnitSelect';
 import { useMovementCatalog } from '@/lib/useMovementCatalog';
@@ -24,21 +24,37 @@ import {
   StrengthEntry,
   isStrengthLine,
 } from '@/lib/strengthBlock';
-import { BLOCKS, DAY_LABELS, WOD_TYPES, WodFormState } from '@/lib/wodFields';
+import { BLOCKS, DAY_LABELS, WOD_TYPES, WodFormState, withScoreType, withWodType } from '@/lib/wodFields';
+import { SCORE_FREE, ScoreLock } from '@/lib/wodScoreType';
+import ScoreTypeSelect from '@/components/wods/ScoreTypeSelect';
+import FreeTextPreview from '@/components/wods/FreeTextPreview';
+import { FREE_TEXT_BLOCKS_RULE, StrengthCandidate } from '@/lib/freeTextWod';
+import { countOf } from '@/lib/plural';
 import {
   CardioRow,
   STRENGTH_UNIT_LABEL,
   StrengthRow,
   StrengthUnitChoice,
+  TransformUndo,
+  addComplexMove,
   cardioRowsFromLines,
   changeStrengthUnit,
-  composeMovements,
+  complexRefName,
+  emptyComplexEntry,
+  removeComplexMove,
+  repsWord,
+  setComplexRef,
+  updateComplexMove,
+  editorMovements,
+  freeTextFromRows,
+  rowsFromFreeText,
   serializeCardioRow,
   serializeStrengthRow,
   strengthRowError,
   strengthRowsFromLines,
   strengthUnitChoice,
   strengthUnitChoices,
+  transformFreeTextLine,
   updateCardioRow,
   updateStrengthRow,
 } from '@/lib/wodEditorLines';
@@ -104,6 +120,12 @@ interface WodEditorProps {
   restDays?: readonly RestDay[];
   /** Contexte Whiteboard : offres Marketplace de la box (absent = pas de ligne). */
   offers?: WodEditorOffer[];
+  /**
+   * WOD existant : types de score encore permis au vu des scores déjà posés
+   * (`scoreLockFor`). Absent = création : le Score est obligatoire. Un WOD
+   * d'offre Marketplace n'a jamais de scores : `SCORE_FREE` en modification.
+   */
+  scoreLock?: ScoreLock;
 }
 
 const inp = 'w-full bg-ax-surface-secondary border border-ax-border rounded-ax-control px-4 py-3 text-sm text-ax-text placeholder:text-ax-text-muted focus:outline-none focus:border-ax-focus focus-visible:ring-2 focus-visible:ring-ax-focus focus-visible:ring-offset-2 focus-visible:ring-offset-ax-surface disabled:cursor-not-allowed disabled:bg-ax-neutral-soft [html.light_&]:disabled:bg-ax-surface-secondary disabled:text-ax-text-muted aria-[invalid=true]:border-ax-danger transition-colors motion-reduce:transition-none';
@@ -111,10 +133,11 @@ const inp = 'w-full bg-ax-surface-secondary border border-ax-border rounded-ax-c
 export default function WodEditor({
   mode, heading, submitLabel, form, setForm, movements, setMovements,
   saving, error, onClose, onSubmit, groups = [], programs = [], weeksCount = 1,
-  lockedProgram, restDays = [], offers = [],
+  lockedProgram, restDays = [], offers = [], scoreLock,
 }: WodEditorProps) {
   const isWhiteboard = mode === 'whiteboard';
   const isProgram = mode === 'program';
+  const noScore = form.scoreType === 'none';
 
   // Les lignes de force et de cardio sont éditées structurées ; `movements` ne
   // reçoit que leur sérialisation, ou leur texte d'origine tant qu'elles ne sont
@@ -130,8 +153,28 @@ export default function WodEditor({
     () => movementRowsFromLines(movements.filter(l => !isStrengthLine(l) && !isCardioLine(l))),
   );
 
-  const commit = (wod: MovementRow[], strength: StrengthRow[], cardio: CardioRow[]) =>
-    setMovements(composeMovements(wod, strength, cardio));
+  // Texte libre : `movements` ne porte que les séries (Musculation, Cardio) ;
+  // le texte vit dans `form.freeText` et s'enregistre tel quel après elles.
+  const isFree = form.textMode === 'free';
+  const commit = (wod: MovementRow[], strength: StrengthRow[], cardio: CardioRow[], free = isFree) =>
+    setMovements(editorMovements(free, wod, strength, cardio));
+
+  // Mouvements → Texte libre : les lignes actuelles pré-remplissent le texte.
+  // Texte libre → Mouvements : relu par la logique des lignes (une ligne non
+  // reconnue reste une ligne libre, rien n'est perdu).
+  const setTextMode = (mode: 'lines' | 'free') => {
+    if (mode === form.textMode) return;
+    if (mode === 'free') {
+      const text = freeTextFromRows(wodRows);
+      setForm(f => ({ ...f, textMode: 'free', freeText: text }));
+      commit(wodRows, strengthRows, cardioRows, true);
+    } else {
+      const rows = rowsFromFreeText(form.freeText);
+      setWodRows(rows);
+      setForm(f => ({ ...f, textMode: 'lines' }));
+      commit(rows, strengthRows, cardioRows, false);
+    }
+  };
 
   const setWod = (rows: MovementRow[]) => {
     setWodRows(rows);
@@ -141,11 +184,33 @@ export default function WodEditor({
   const removeMovement = (i: number) => setWod(wodRows.filter((_, idx) => idx !== i));
   const patchMovement = (i: number, patch: Partial<MovementRow>) => setWod(updateMovementRow(wodRows, i, patch));
 
+  // « Transformer en bloc Musculation » (#454) : état d'avant la première
+  // transformation, rendu par « Annuler » ; oublié dès une autre modification.
+  const [transformUndo, setTransformUndo] = useState<TransformUndo | null>(null);
+
   const setStrength = (rows: StrengthRow[]) => {
+    setTransformUndo(null);
     setStrengthRows(rows);
     commit(wodRows, rows, cardioRows);
   };
   const addStrength = () => setStrength([...strengthRows, { ...EMPTY_STRENGTH_ENTRY }]);
+  const addComplex = () => setStrength([...strengthRows, emptyComplexEntry()]);
+
+  // La ligne quitte le texte et devient une carte du bloc : écrite en tête à l'enregistrement.
+  const transformLine = (c: StrengthCandidate) => {
+    const next = transformFreeTextLine(form.freeText, strengthRows, transformUndo, c);
+    setTransformUndo(next.undo);
+    setForm(f => ({ ...f, freeText: next.freeText }));
+    setStrengthRows(next.rows);
+    commit(wodRows, next.rows, cardioRows);
+  };
+  const undoTransform = () => {
+    if (!transformUndo) return;
+    setForm(f => ({ ...f, freeText: transformUndo.freeText }));
+    setStrengthRows(transformUndo.rows);
+    commit(wodRows, transformUndo.rows, cardioRows);
+    setTransformUndo(null);
+  };
   const removeStrength = (i: number) => setStrength(strengthRows.filter((_, idx) => idx !== i));
   const updateStrength = (i: number, patch: Partial<StrengthEntry>) =>
     setStrength(updateStrengthRow(strengthRows, i, patch));
@@ -167,11 +232,12 @@ export default function WodEditor({
   const audienceChosen = !isWhiteboard || form.audience !== '';
   const groupsChosen = !isWhiteboard || form.audience !== 'groups' || form.groupIds.length > 0;
   const strengthValid = strengthRows.every(r => !strengthRowError(r));
-  const canSubmit = !!form.title.trim() && !saving && (!isWhiteboard || !!form.date) && audienceChosen && groupsChosen && strengthValid;
+  const scoreChosen = !!scoreLock || form.scoreType !== '';
+  const canSubmit = !!form.title.trim() && !saving && (!isWhiteboard || !!form.date) && audienceChosen && groupsChosen && strengthValid && scoreChosen;
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-ax-overlay backdrop-blur-ax-glass p-4">
-      <div className="bg-ax-surface border border-ax-border rounded-ax-card w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+      <div className="bg-ax-surface border border-ax-border rounded-ax-card w-full max-w-4xl max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between px-6 py-5 border-b border-ax-border">
           <h2 className="text-lg font-black text-ax-text">{heading}</h2>
           <button onClick={onClose} className="p-1.5 rounded-ax-control hover:bg-ax-hover text-ax-text-secondary hover:text-ax-text transition-colors">
@@ -272,11 +338,17 @@ export default function WodEditor({
             <div>
               <label className="block text-xs font-semibold text-ax-text-secondary mb-1.5 uppercase tracking-wider">Type <span className="text-ax-text-muted normal-case tracking-normal">(optionnel)</span></label>
               <select className={inp} value={form.wod_type}
-                onChange={e => setForm(f => ({ ...f, wod_type: e.target.value }))}>
+                onChange={e => { const v = e.target.value; setForm(f => withWodType(f, v)); }}>
                 <option value="" className="text-ax-text bg-ax-surface">— Aucun —</option>
                 {WOD_TYPES.map(t => <option key={t.value} value={t.value} className="text-ax-text bg-ax-surface">{t.label}</option>)}
               </select>
             </div>
+            <ScoreTypeSelect
+              value={form.scoreType}
+              onChange={v => setForm(f => withScoreType(f, v))}
+              lock={scoreLock ?? SCORE_FREE}
+              existing={!!scoreLock}
+              triggerClassName={inp} />
           </div>
 
           {form.wod_type === 'emom' && (
@@ -330,15 +402,59 @@ export default function WodEditor({
           </div>
 
           <div>
-            <div className="flex items-center justify-between mb-1.5">
-              <label className="block text-xs font-semibold text-ax-text-secondary uppercase tracking-wider">Programme / Mouvements</label>
-              <button type="button" onClick={addMovement} className="text-xs text-ax-text font-semibold flex items-center gap-1 hover:opacity-80">
-                <Plus size={12} /> Ajouter
-              </button>
+            <div data-testid="entete-programme" className="flex flex-wrap items-center justify-between gap-2 mb-1.5">
+              <label id="programme-label" className="block text-xs font-semibold text-ax-text-secondary uppercase tracking-wider">Programme / Mouvements</label>
+              <div className="flex items-center gap-3 ml-auto">
+                {!isFree && (
+                  <button type="button" onClick={addMovement} className="text-xs text-ax-text font-semibold flex items-center gap-1 hover:opacity-80">
+                    <Plus size={12} /> Ajouter
+                  </button>
+                )}
+                <div data-testid="selecteur-mode" role="radiogroup" aria-labelledby="programme-label"
+                  className="flex gap-1 p-1 rounded-ax-control bg-ax-surface-secondary border border-ax-border">
+                  {(['lines', 'free'] as const).map(m => (
+                    <button key={m} type="button" role="radio" aria-checked={form.textMode === m}
+                      onClick={() => setTextMode(m)}
+                      className={`px-3 py-1.5 rounded-ax-control text-xs font-bold transition-colors ${form.textMode === m ? 'bg-ax-accent-soft text-ax-text border border-ax-input-border' : 'text-ax-text-secondary border border-transparent hover:text-ax-text'}`}>
+                      {m === 'lines' ? 'Mouvements' : 'Texte libre'}
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
             <datalist id="box-movement-catalog">
               {movementCatalog.map(mv => <option key={mv.name} value={mv.name} />)}
             </datalist>
+            {isFree ? (
+              <div className="space-y-2">
+                <textarea data-testid="texte-libre" rows={8}
+                  className={`${inp} resize-y min-h-[12rem] [field-sizing:content] font-normal leading-relaxed`}
+                  value={form.freeText}
+                  onChange={e => { const v = e.target.value; setTransformUndo(null); setForm(f => ({ ...f, freeText: v })); }}
+                  aria-labelledby="programme-label"
+                  placeholder={'For time\n21 pull-ups + 15/12 cal SkiErg + 21 thrusters @43/29\n1\'30 rest\nTC 14\''} />
+                <p className="text-[11px] text-ax-text-muted">
+                  Écris la séance comme au tableau : elle s’affiche telle quelle dans l’app. Les mouvements reconnus comptent dans les badges des athlètes. {FREE_TEXT_BLOCKS_RULE}
+                </p>
+                <FreeTextPreview text={form.freeText} managerCatalog={movementCatalog.map(mv => mv.name)} blockLines={movements}
+                  onTransform={transformLine} />
+                {transformUndo && (
+                  <div data-testid="transformation-faite" role="status"
+                    className="flex flex-wrap items-center justify-between gap-2 bg-ax-surface-secondary border border-ax-border rounded-ax-control px-3 py-2.5">
+                    <p className="flex items-start gap-2 text-xs text-ax-text min-w-0">
+                      <CheckCircle2 size={14} className="text-ax-success shrink-0 mt-px" aria-hidden />
+                      <span className="break-words">
+                        {countOf(transformUndo.count, 'ligne transformée', 'lignes transformées')} en bloc Musculation : vérifie le mouvement de référence et le repos.
+                      </span>
+                    </p>
+                    <button type="button" onClick={undoTransform}
+                      className="flex items-center gap-1 text-xs font-semibold text-ax-text hover:opacity-80">
+                      <RotateCcw size={12} aria-hidden /> Annuler
+                    </button>
+                  </div>
+                )}
+              </div>
+            ) : (
             <div className="space-y-2">
               {wodRows.map((parsed, i) => {
                 if (parsed.free) {
@@ -447,6 +563,7 @@ export default function WodEditor({
                 Les exercices cardio (Row, Bike, SkiErg, Run…) se comptent en mètres ou calories, avec une quantité ♂/♀ séparée si besoin.
               </p>
             </div>
+            )}
           </div>
 
           {/* Bloc Musculation — séries × reps × charge (kg ou %1RM), ou séries × % du max (gymnastique) */}
@@ -455,12 +572,111 @@ export default function WodEditor({
               <label className="block text-xs font-semibold text-ax-text-secondary uppercase tracking-wider flex items-center gap-1.5">
                 <Dumbbell size={13} /> Musculation <span className="text-ax-text-muted normal-case tracking-normal">(optionnel)</span>
               </label>
-              <button type="button" onClick={addStrength} className="text-xs text-ax-text font-semibold flex items-center gap-1 hover:opacity-80">
-                <Plus size={12} /> Ajouter une série
-              </button>
+              <div className="flex flex-wrap justify-end gap-x-4 gap-y-1">
+                <button type="button" onClick={addStrength} className="text-xs text-ax-text font-semibold flex items-center gap-1 hover:opacity-80">
+                  <Plus size={12} /> Ajouter une série
+                </button>
+                <button type="button" onClick={addComplex} data-testid="ajouter-complexe" className="text-xs text-ax-text font-semibold flex items-center gap-1 hover:opacity-80">
+                  <Plus size={12} /> Ajouter un complexe
+                </button>
+              </div>
             </div>
             <div className="space-y-2">
               {strengthRows.map((e, i) => {
+                if (e.complex) {
+                  const c = e.complex;
+                  const err = strengthRowError(e);
+                  const named = c.movements.filter(m => m.name.trim());
+                  const ref = complexRefName(e);
+                  return (
+                    <div key={i} data-testid="carte-complexe" className="bg-ax-surface-secondary border border-ax-border rounded-ax-control p-3 space-y-2">
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="flex items-center gap-1.5 text-xs font-bold text-ax-text uppercase tracking-wider">
+                          <Layers size={13} aria-hidden /> Complexe
+                        </p>
+                        <button type="button" onClick={() => removeStrength(i)} aria-label="Retirer le complexe"
+                          className="p-3 rounded-ax-control bg-ax-surface-secondary border border-ax-border text-ax-text-muted hover:text-ax-danger transition-colors">
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                      {c.movements.map((m, j) => (
+                        <div key={j} className="flex gap-2 items-center">
+                          <input type="number" min={1} inputMode="numeric"
+                            className={`${inp} !w-20 shrink-0 text-center !px-2`}
+                            value={m.reps}
+                            onChange={ev => setStrength(updateComplexMove(strengthRows, i, j, { reps: parseInt(ev.target.value, 10) || 1 }))}
+                            aria-label={`Répétitions du mouvement ${j + 1}`} />
+                          <span className="text-ax-text-muted text-xs w-7 shrink-0">{repsWord(m.reps)}</span>
+                          <input list="box-movement-catalog"
+                            className={`${inp} flex-1 min-w-0`}
+                            value={m.name}
+                            onChange={ev => setStrength(updateComplexMove(strengthRows, i, j, { name: ev.target.value }))}
+                            placeholder="Exercice (rechercher…)" aria-label={`Mouvement ${j + 1} du complexe`} />
+                          <button type="button" onClick={() => setStrength(removeComplexMove(strengthRows, i, j))}
+                            disabled={c.movements.length <= 2} aria-label={`Retirer le mouvement ${j + 1}`}
+                            className="p-3 rounded-ax-control bg-ax-surface-secondary border border-ax-border text-ax-text-muted hover:text-ax-danger disabled:opacity-40 disabled:hover:text-ax-text-muted disabled:cursor-not-allowed transition-colors">
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                      ))}
+                      <button type="button" onClick={() => setStrength(addComplexMove(strengthRows, i))}
+                        className="text-xs text-ax-text-secondary font-semibold flex items-center gap-1 hover:text-ax-text">
+                        <Plus size={12} /> Ajouter un mouvement au complexe
+                      </button>
+                      <div className="border-t border-ax-border pt-2 flex flex-wrap gap-2 items-center">
+                        <input type="number" min={1} inputMode="numeric"
+                          className={`${inp} !w-20 shrink-0 text-center !px-2`}
+                          value={e.sets}
+                          onChange={ev => updateStrength(i, { sets: parseInt(ev.target.value, 10) || 1 })}
+                          aria-label="Séries du complexe" />
+                        <span className="text-ax-text-muted text-sm">× complexe</span>
+                        <span className="text-ax-text-muted text-sm">@</span>
+                        <input type="number" min={0} step={0.5} inputMode="decimal"
+                          className={`${inp} !w-24 shrink-0 text-center !px-2`}
+                          value={e.load ?? ''}
+                          onChange={ev => updateStrength(i, { load: ev.target.value === '' ? null : parseFloat(ev.target.value) })}
+                          placeholder="Charge" aria-label="Charge du complexe" />
+                        <select className={`${inp} !w-32 shrink-0 !px-2`} value={e.unit}
+                          onChange={ev => setStrengthUnit(i, ev.target.value as StrengthUnitChoice)}
+                          aria-label="Unité de charge du complexe">
+                          <option value="kg" className="text-ax-text bg-ax-surface">kg</option>
+                          <option value="%1RM" className="text-ax-text bg-ax-surface">%1RM de…</option>
+                        </select>
+                        {e.unit === '%1RM' && (
+                          <select className={`${inp} flex-1 min-w-[10rem] !px-2`} value={ref ?? ''}
+                            onChange={ev => setStrength(setComplexRef(strengthRows, i, ev.target.value))}
+                            disabled={!named.length}
+                            aria-label="Mouvement de référence du %1RM">
+                            {!named.length && <option value="">Nomme les mouvements</option>}
+                            {named.map((m, k) => <option key={k} value={m.name.trim()} className="text-ax-text bg-ax-surface">{m.name.trim()}</option>)}
+                          </select>
+                        )}
+                      </div>
+                      <div className="flex flex-wrap gap-2 items-center">
+                        <input type="text"
+                          className={`${inp} flex-1 min-w-[8rem]`}
+                          value={e.restSec != null ? String(e.restSec) : ''}
+                          onChange={ev => updateStrength(i, { restSec: ev.target.value === '' ? null : parseInt(ev.target.value, 10) || null })}
+                          placeholder="Repos (sec)" aria-label="Repos entre séries du complexe en secondes" />
+                        <input type="text"
+                          className={`${inp} flex-1 min-w-[8rem]`}
+                          value={e.tempo ?? ''}
+                          onChange={ev => updateStrength(i, { tempo: ev.target.value || null })}
+                          placeholder="Tempo (30X1)" aria-label="Tempo du complexe" />
+                        <input type="text"
+                          className={`${inp} flex-1 min-w-[14rem]`}
+                          value={e.loadNote ?? ''}
+                          onChange={ev => updateStrength(i, { loadNote: ev.target.value || null })}
+                          placeholder="Charge libre (RPE 9, RM du jour…)" aria-label="Charge libre du complexe" />
+                      </div>
+                      {err && <p className="text-[11px] text-ax-danger">{err}</p>}
+                      <p className="text-[11px] text-ax-text-muted break-words">{serializeStrengthRow(e) || 'Nomme au moins deux mouvements pour enregistrer ce complexe.'}</p>
+                      <p className="text-[11px] text-ax-text-muted">
+                        Un complexe ne met jamais à jour un 1RM et ne compte pas de reps de badge. Chez l’athlète, la charge est calculée sur son 1RM du mouvement de référence.
+                      </p>
+                    </div>
+                  );
+                }
                 const choice = strengthUnitChoice(e);
                 const pct = choice === 'pctOfMax';
                 const unitError = strengthRowError(e);
@@ -746,17 +962,21 @@ export default function WodEditor({
             </div>
           )}
 
-          <div className="flex items-center justify-between bg-ax-surface-secondary rounded-ax-control px-4 py-3">
+          <div data-testid="bloc-classement" className={`flex items-center justify-between bg-ax-surface-secondary rounded-ax-control px-4 py-3 ${noScore ? 'opacity-50' : ''}`}>
             <div>
               <p className="text-sm font-semibold text-ax-text">Classement</p>
-              <p className="text-xs text-ax-text-muted">{form.leaderboard ? 'Les scores sont classés entre membres' : 'Scores enregistrés en historique uniquement'}</p>
+              <p className="text-xs text-ax-text-muted">{noScore ? 'Pas de classement sans score' : form.leaderboard ? 'Les scores sont classés entre membres' : 'Scores enregistrés en historique uniquement'}</p>
             </div>
             <button
               type="button"
+              role="switch"
+              aria-checked={!noScore && form.leaderboard}
+              aria-label="Classement"
+              disabled={noScore}
               onClick={() => setForm(f => ({ ...f, leaderboard: !f.leaderboard }))}
-              className={`relative w-11 h-6 rounded-full transition-colors ${form.leaderboard ? 'bg-ax-text' : 'bg-ax-hover'}`}
+              className={`relative w-11 h-6 rounded-full transition-colors disabled:cursor-not-allowed ${!noScore && form.leaderboard ? 'bg-ax-text' : 'bg-ax-hover'}`}
             >
-              <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-ax-text shadow transition-transform ${form.leaderboard ? 'translate-x-5' : 'translate-x-0.5'}`} />
+              <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-ax-text shadow transition-transform ${!noScore && form.leaderboard ? 'translate-x-5' : 'translate-x-0.5'}`} />
             </button>
           </div>
 

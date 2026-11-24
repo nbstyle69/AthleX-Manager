@@ -7,6 +7,8 @@ import {
   Moon,
 } from 'lucide-react';
 import WodEditor from '@/components/wods/WodEditor';
+import { createClient } from '@/lib/supabase/client';
+import { SCORE_FREE, ScoreLock, loadScoreLock } from '@/lib/wodScoreType';
 import PdfImportModal from '@/components/wods/PdfImportModal';
 import { downloadWodCsvTemplate, parseWodImportFile } from '@/lib/wodImport';
 import { messageErreur } from '@/lib/erreurs';
@@ -15,7 +17,7 @@ import { programColor } from '@/components/wods/RestrictionBadges';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import {
-  BLOCK_COLOR, BLOCK_LABEL, DAY_LABELS, EMPTY_WOD_FORM, TYPE_COLOR, WodFormState, formatCap, movementLines,
+  BLOCK_COLOR, BLOCK_LABEL, DAY_LABELS, EMPTY_WOD_FORM, TYPE_COLOR, WodFormState, editorContent, formatCap, movementLines,
 } from '@/lib/wodFields';
 import {
   CaseProgramme, ProgramWod,
@@ -76,6 +78,7 @@ export default function ProgramSessionsEditor({ program, userId, onClose, onChan
   const [modal, setModal] = useState(false);
   const [editWod, setEditWod] = useState<ProgramWod | null>(null);
   const [form, setForm] = useState<WodFormState>(EMPTY_WOD_FORM);
+  const [scoreLock, setScoreLock] = useState<ScoreLock>(SCORE_FREE);
   const [movements, setMovements] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
@@ -139,10 +142,11 @@ export default function ProgramSessionsEditor({ program, userId, onClose, onChan
     setModal(true);
   }
 
-  function openEdit(w: ProgramWod) {
+  async function openEdit(w: ProgramWod) {
+    setScoreLock(await loadScoreLock(createClient(), w.id));
     setEditWod(w);
     setForm(formulaireDepuisSeance(w, week));
-    setMovements(movementLines(w.description));
+    setMovements(editorContent(w.description, w.text_mode).movements);
     setFormError(null);
     setModal(true);
   }
@@ -737,6 +741,7 @@ export default function ProgramSessionsEditor({ program, userId, onClose, onChan
           weeksCount={isFixed ? totalSemaines : Math.max(totalSemaines, form.week) + 12}
           lockedProgram={{ id: program.id, title: program.title, type: program.type }}
           restDays={restDays}
+          scoreLock={editWod ? scoreLock : undefined}
         />
       )}
     </div>

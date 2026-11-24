@@ -1,10 +1,10 @@
 ---
 slug: editeur-wod-formats-et-publication
 title: EMOM, Tabata, time cap and scheduled publishing of a WOD
-summary: Set up an EMOM or a Tabata, schedule the publishing time, choose whether scores are ranked and copy the WOD into a Marketplace offer.
+summary: Set up an EMOM or a Tabata, choose the score, write the session as free text, schedule the publishing time, choose whether scores are ranked and copy the WOD into a Marketplace offer.
 role: both
 pages: [whiteboard]
-tags: [emom, e2mom, tabata, time cap, rounds, block, publish, schedule, time, ranking, leaderboard, marketplace offer]
+tags: [emom, e2mom, tabata, time cap, rounds, block, score, no score, free text, publish, schedule, time, ranking, leaderboard, marketplace offer]
 order: 28
 ---
 
@@ -19,6 +19,95 @@ These settings live in the **Créer un WOD** (or **Modifier le WOD**) window of 
 3. In **Type (optionnel)**, pick **EMOM**: the **Intervalle EMOM** row offers **EMOM**, **E2MOM**, **E3MOM**, **E4MOM** and **E5MOM**. The text below confirms the choice, for example « Un intervalle = 2 min entre chaque départ. » (one interval = 2 min between starts). <Screenshot src="/tutorials/editeur-wod-formats-et-publication/1.png" alt="Créer un WOD window with the EMOM type and the E2MOM interval selected" />
 4. For a **Tabata**, set **Travail (sec)** (work) and **Repos (sec)** (rest): 20 and 10 by default. Work is at least 5 seconds. <Screenshot src="/tutorials/editeur-wod-formats-et-publication/2.png" alt="Créer un WOD window with the Tabata type, Work 20 seconds and Rest 10 seconds" />
 5. Further down, fill **Time Cap (mm:ss)**, for example `12:30`, and **Rounds (optionnel)**. A bare number in the time cap counts as minutes: `12` gives 12:00.
+
+## Choose the score
+
+1. To the right of **Type (optionnel)**, the **Score** field (required) offers: **Temps** (final time; at the time cap, the athlete enters their reps), **Tours + reps** (full rounds + reps of the round in progress), **Reps totales** (total reps), **Charge (kg)** (best load lifted) and **Sans score** (session only marked as done, no ranking).
+2. Until you touch it, the Score follows the Type: For Time → Temps, AMRAP → Tours + reps, EMOM and Tabata → Reps totales, Force → Charge (kg). Pick another one if your session is measured differently.
+3. **Sans score** turns ranking off: **Classement** is greyed out, « Pas de classement sans score » (no ranking without a score).
+4. A WOD created before this field opens with « Non défini : les athlètes choisissent. » (not set: athletes choose): you can leave it that way. If athletes have already posted scores, only their type stays possible; the reason shows under the field (for example « 2 scores existent déjà en « Temps » : seul ce type reste possible. »).
+
+## Write the session as free text
+
+1. In the **Programme / Mouvements** header, pick **Texte libre** (free text) instead of **Mouvements**.
+2. Write the session as on the board: it shows as is in the app, line breaks included. Going from **Mouvements** to **Texte libre**, your current lines prefill the text; the other way, the text is read back line by line and a line that is not recognised stays a free line: nothing is lost.
+3. Musculation and Cardio sets are read only when they are written at the top, before the rest of the text. The editor's **Musculation** and **Cardio** blocks write them at the top for you. A strength or complex line written further down can become a card of the block with **Transformer en bloc Musculation** (turn into a Musculation block): see « Blocs Musculation et Cardio ».
+4. Under the text, **Ce que l'app comprend** (what the app understands) shows the movements that count towards badges: see « Mouvements et badges ».
+
+The **Score** and the **Texte libre** (free text) also work for the WODs of a Marketplace offer, and they are copied to the subscribed boxes.
+
+## The free text format
+
+1. Free text decides what the athlete reads and what counts towards their badges. It never picks the format. Writing « AMRAP 12' » in the text sets neither the **Type** nor the **Score**: pick them at the top of the window, and set the **Time Cap (mm:ss)** further down. The format line still shows to the athlete, but the preview files it under « Non comptées » (not counted).
+2. For each movement, write the quantity first, then the name from the official list, then the load: `21 thrusters @43/29`, `20/15 cal SkiErg`, `400 m run`. Separate movements with "+" or a line break. The names that are read are listed in « Mouvements et badges ».
+3. In free text, only a **Temps** finished before the time cap credits badges. For an AMRAP, an EMOM or a Tabata whose reps must count, use **Mouvements**.
+
+**For Time** (Type For Time · Score Temps · Time Cap 10:00)
+
+```text
+For time
+21 thrusters @43/29 + 21 pull-ups
+15 thrusters @43/29 + 15 pull-ups
+9 thrusters @43/29 + 9 pull-ups
+TC 10'
+```
+
+The preview shows 6 movements that count. « For time » and « TC 10' » are not counted. A time finished before 10:00 credits badges.
+
+**AMRAP** (Type AMRAP · Score Tours + reps · Time Cap 12:00)
+
+```text
+AMRAP 12'
+10 wall balls @9/6
+20/15 cal SkiErg
+10 burpees
+```
+
+The 3 movements are recognised, but a rounds + reps score credits nothing in free text.
+
+<Screenshot src="/tutorials/editeur-wod-formats-et-publication/5.png" alt="AMRAP type, Rounds + reps score, AMRAP session in free text and the What the app understands preview" />
+
+**EMOM** (Type EMOM · Intervalle E2MOM · Score Reps totales · Time Cap 16:00)
+
+```text
+E2MOM 16'
+12/10 cal Row
+10 KB swings @24/16
+```
+
+The session is shown and recognised, but it credits nothing in free text.
+
+**Tabata** (Type Tabata · Travail 20 · Repos 10 · Score Reps totales)
+
+```text
+Tabata 8 rounds
+Air squats
+Push-ups
+```
+
+Without a quantity, both movements show in orange, « à corriger » (to fix). That is normal for a Tabata: the session is still saved and shows as is.
+
+**Complex in a metcon** (Type Force · Score Charge (kg) · Time Cap 10:00)
+
+```text
+E2MOM 10'
+1 power clean @70/45 + 1 front squat @70/45 + 1 push jerk @70/45
+```
+
+Write the quantity before each movement and the load after each one: `@70/45` only applies to the movement just before it. With a load score, free text credits nothing towards badges. For a complex in % of the 1RM of a reference movement, use **Ajouter un complexe** (add a complex) in the Musculation block instead (see « Blocs Musculation et Cardio »): the editor writes it at the top of the text and the app reads it as a set.
+
+**Musculation then metcon** (Type For Time · Score Temps · Time Cap 8:00)
+
+```text
+Back Squat — 5 × 3 @ 80 %1RM — repos 2:00
+
+For time
+30 burpees
+400 m run
+TC 8'
+```
+
+The first line comes from the **Musculation** block: add it with **Ajouter une série** (add a set) rather than by hand, the editor writes it at the top of the text.
 
 ## Publish now or at a set time
 
@@ -37,13 +126,18 @@ These settings live in the **Créer un WOD** (or **Modifier le WOD**) window of 
 
 ## Common mistakes
 
-- **Créer le WOD stays greyed out.** The **Titre**, the **Date** or the **Qui reçoit ce WOD ?** choice is missing (« Choisis qui voit ce WOD ») → fill them in.
+- **Créer le WOD stays greyed out.** The **Titre**, the **Date**, the **Score** or the **Qui reçoit ce WOD ?** choice is missing (« Choisis qui voit ce WOD ») → fill them in.
+- **The Score cannot be changed.** Athletes have already posted scores of another type: the reason shows under the field → keep the type of those scores.
+- **Classement is greyed out.** The Score is on **Sans score** → pick another score to rank athletes.
 - **Athletes do not see the session this morning.** It is on **Programmer** and the **Heure** has not passed yet → bring the time forward or choose **Maintenant**.
 - **The WOD carries the Brouillon (draft) badge.** **Publier** is off → turn it on, or click the **Publier** eye on the card.
 - **The interval or the Tabata settings are gone.** They are only kept for the **EMOM** or **Tabata** type → set the right type again.
 - **The offers are greyed out.** « Choisis d'abord une date : la copie a besoin du jour de la semaine. » (pick a date first) → fill in the **Date**.
 - **A coach does not see Mes offres Marketplace.** The section is shown only to the owner and co-owner → they copy the WOD into an offer.
 - **Scores are not ranked.** **Classement** is off (« Scores enregistrés en historique uniquement ») → reopen the WOD and turn it on.
+- **I wrote AMRAP in the text but the app asks for a time.** The format is set in Type and Score, not in the text → pick **Tours + reps**.
+- **My free text AMRAP reps do not count towards badges.** In free text, only a Temps finished before the cap credits → switch to **Mouvements**.
+- **In my metcon complex, only the last movement has a load.** The load only applies to the movement just before it → write `@70/45` after each movement.
 
 ## Go there
 

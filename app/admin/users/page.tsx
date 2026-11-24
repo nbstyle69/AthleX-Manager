@@ -1,7 +1,9 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { Suspense, useEffect, useState, useCallback, useRef } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import { USERS_SORT_FIELD, nextUsersSort, parseUsersSort, type SortDir, type UsersSortCol } from '@/lib/admin/usersSort';
 import { Users, Search, Building2, ChevronUp, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -22,23 +24,37 @@ interface UserProfile {
   box_name: string | null;
 }
 
+// useSearchParams demande une frontière Suspense pour que le build passe (Next 15).
 export default function AdminUsersPage() {
+  return (
+    <Suspense fallback={null}>
+      <AdminUsersList />
+    </Suspense>
+  );
+}
+
+function AdminUsersList() {
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(0);
   const [totalCount, setTotalCount] = useState(0);
 
-  type SortCol = 'username' | 'role' | 'box' | 'level' | 'elo' | 'matches' | 'wins' | 'date' | '';
-  const [sortCol, setSortCol] = useState<SortCol>('elo');
-  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
-  function toggleSort(col: SortCol) {
-    if (sortCol === col) { setSortDir(d => d === 'asc' ? 'desc' : 'asc'); }
-    else { setSortCol(col); setSortDir(col === 'elo' || col === 'matches' || col === 'wins' ? 'desc' : 'asc'); }
+  // Le tri vit dans l'URL (?tri=…&sens=…) et c'est la base qui trie, avant la pagination.
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const { col: sortCol, dir: sortDir } = parseUsersSort(searchParams);
+  function toggleSort(col: UsersSortCol) {
+    const next = nextUsersSort({ col: sortCol, dir: sortDir }, col);
+    setPage(0);
+    router.replace(`/admin/users?tri=${next.col}&sens=${next.dir}`, { scroll: false });
   }
   const supabase = createClient();
+  // Seule la dernière requête lancée écrit la liste : un clic rapide ne laisse pas un ancien ordre s'afficher.
+  const lastRequest = useRef(0);
 
-  const load = useCallback(async (currentPage: number, currentSearch: string) => {
+  const load = useCallback(async (currentPage: number, currentSearch: string, col: UsersSortCol, dir: SortDir) => {
+    const request = ++lastRequest.current;
     setLoading(true);
     const from = currentPage * PAGE_SIZE;
     const to = from + PAGE_SIZE - 1;
@@ -48,16 +64,16 @@ export default function AdminUsersPage() {
     let countQuery = supabase.from('profiles').select('id', { count: 'exact', head: true });
     if (currentSearch) countQuery = countQuery.ilike('username', `%${currentSearch}%`);
     const { count } = await countQuery;
-    setTotalCount(count ?? 0);
 
-    // Server-side paginated query
+    // Server-side paginated query : tri choisi, puis l'id pour départager (pages sans doublon).
     let dataQuery = supabase
       .from('profiles')
-      .select('id, username, role, level, elo, total_matches, wins, created_at')
-      .order('elo', { ascending: false })
-      .range(from, to);
+      .select('id, username, role, level, elo, total_matches, wins, created_at');
     if (currentSearch) dataQuery = dataQuery.ilike('username', `%${currentSearch}%`);
-    const { data: profiles } = await dataQuery;
+    const { data: profiles } = await dataQuery
+      .order(USERS_SORT_FIELD[col], { ascending: dir === 'asc', nullsFirst: false })
+      .order('id', { ascending: true })
+      .range(from, to);
 
     // Fetch box memberships only for current page users
     const userIds = (profiles ?? []).map(p => p.id);
@@ -82,41 +98,21 @@ export default function AdminUsersPage() {
       });
     }
 
+    if (request !== lastRequest.current) return;
+    setTotalCount(count ?? 0);
     setUsers((profiles ?? []).map(p => ({ ...p, box_name: boxMap.get(p.id) ?? null })));
     setLoading(false);
   }, []);
 
-  useEffect(() => { load(page, search); }, [load, page]);
+  useEffect(() => { load(page, search, sortCol, sortDir); }, [load, page, sortCol, sortDir]);
 
   // On search change: reset to page 0 and reload
   useEffect(() => {
-    const t = setTimeout(() => { setPage(0); load(0, search); }, 300);
+    const t = setTimeout(() => { setPage(0); load(0, search, sortCol, sortDir); }, 300);
     return () => clearTimeout(t);
   }, [search]);
 
   const totalPages = Math.ceil(totalCount / PAGE_SIZE);
-
-  const filtered = (() => {
-    let list = [...users];  // already filtered server-side
-    if (sortCol) {
-      const dir = sortDir === 'asc' ? 1 : -1;
-      const LEVEL_ORDER: Record<string, number> = { pro: 6, gx: 5, 'rx+': 4, rx: 3, inter: 2, scaled: 1 };
-      list = [...list].sort((a, b) => {
-        switch (sortCol) {
-          case 'username': return dir * (a.username ?? '').localeCompare(b.username ?? '');
-          case 'role':     return dir * (a.role ?? '').localeCompare(b.role ?? '');
-          case 'box':      return dir * (a.box_name ?? '').localeCompare(b.box_name ?? '');
-          case 'level':    return dir * ((LEVEL_ORDER[a.level] ?? 0) - (LEVEL_ORDER[b.level] ?? 0));
-          case 'elo':      return dir * (a.elo - b.elo);
-          case 'matches':  return dir * (a.total_matches - b.total_matches);
-          case 'wins':     return dir * (a.wins - b.wins);
-          case 'date':     return dir * (new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
-          default: return 0;
-        }
-      });
-    }
-    return list;
-  })();
 
   // Même sens qu'avant (super admin vert, admin bleu, gérant violet, autres
   // neutres), en jetons lisibles dans les deux thèmes.
@@ -160,21 +156,26 @@ export default function AdminUsersPage() {
         <Table aria-label="Utilisateurs">
           <TableHeader>
             <TableRow className="hover:bg-transparent">
-              {[
-                { key: 'username' as SortCol, label: 'Utilisateur' },
-                { key: 'role' as SortCol, label: 'Rôle' },
-                { key: 'box' as SortCol, label: 'Box' },
-                { key: 'level' as SortCol, label: 'Niveau' },
-                { key: 'elo' as SortCol, label: 'ELO' },
-                { key: 'matches' as SortCol, label: 'Matchs' },
-                { key: 'wins' as SortCol, label: 'Wins' },
-                { key: 'date' as SortCol, label: 'Inscrit le' },
-              ].map(col => (
+              {([
+                { key: 'username', label: 'Utilisateur' },
+                { key: 'role', label: 'Rôle' },
+                { key: null, label: 'Box' },
+                { key: null, label: 'Niveau' },
+                { key: 'elo', label: 'ELO' },
+                { key: 'matches', label: 'Matchs' },
+                { key: 'wins', label: 'Wins' },
+                { key: 'date', label: 'Inscrit le' },
+              ] as { key: UsersSortCol | null; label: string }[]).map(col => col.key === null ? (
+                // Box et Niveau : pas de tri, la base ne sait pas les ordonner sans fonction serveur.
+                <TableHead key={col.label} className="px-5 whitespace-nowrap">
+                  <span className="font-bold uppercase tracking-wider text-ax-text-secondary">{col.label}</span>
+                </TableHead>
+              ) : (
                 <TableHead key={col.label}
                   aria-sort={sortCol === col.key ? (sortDir === 'asc' ? 'ascending' : 'descending') : undefined}
                   className="px-5 whitespace-nowrap">
                   {/* Bouton dans l'en-tête : le tri marche aussi au clavier, même action qu'au clic. */}
-                  <button type="button" onClick={() => toggleSort(col.key)}
+                  <button type="button" onClick={() => toggleSort(col.key!)}
                     className={`inline-flex items-center gap-1 rounded-ax-control font-bold uppercase tracking-wider select-none transition-colors hover:text-ax-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ax-focus motion-reduce:transition-none ${
                       sortCol === col.key ? 'text-ax-accent-text' : 'text-ax-text-secondary'
                     }`}>
@@ -188,7 +189,7 @@ export default function AdminUsersPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filtered.map(u => (
+            {users.map(u => (
               <TableRow key={u.id}>
                 <TableCell className="px-5 py-4">
                   <div className="flex items-center gap-3 min-w-[11rem]">

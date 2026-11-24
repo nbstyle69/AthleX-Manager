@@ -65,6 +65,8 @@ describe('sharedWodColumns', () => {
       emom_interval_minutes: 3,
       tabata_work_seconds: null,
       tabata_rest_seconds: null,
+      score_type: 'reps' as const,
+      text_mode: 'lines' as const,
     };
 
     // Préremplissage identique à celui de l'éditeur.
@@ -79,6 +81,7 @@ describe('sharedWodColumns', () => {
       videoUrl: enBase.video_url,
       leaderboard: enBase.leaderboard_enabled,
       emomInterval: String(enBase.emom_interval_minutes),
+      scoreType: enBase.score_type,
     };
 
     expect(sharedWodColumns(form, enBase.description.split('\n'))).toEqual(enBase);

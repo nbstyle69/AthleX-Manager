@@ -19,11 +19,29 @@ Athlete movement badges are computed from completed reps, movement by movement. 
 3. Enter the reps and the men's / women's loads: the badge is computed from reps, the loads serve the athlete and the ranking. <Screenshot src="/tutorials/mouvements-et-badges/2.png" alt="Completed movement line with reps and loads" />
 4. Repeat for every metcon line, then click **Créer le WOD** (or **Enregistrer**). After the session, the reps validated by athletes feed their badges with no further action from you.
 
+## As free text
+
+1. With **Texte libre**, the **Ce que l'app comprend** preview (what the app understands) reads your session the way the app does: each line is split on "+", `@43/29` gives the ♂ / ♀ loads and `15/12 cal` the ♂ / ♀ quantities. Format, rest, time cap and target lines do not count (« Non comptées »).
+2. In green, the recognised movements: a name from the list below, singular or plural, upper or lower case, with or without hyphens ("thrusters", "toes to bar"), or a common abbreviation ("T2B", "STOH"). In orange, the lines **à corriger** (to fix): « « pow clean » n’est pas dans la liste officielle : écris « Power Clean » pour compter 1 rep » (not in the official list: write Power Clean to count 1 rep) when a close name exists; a spelling that can mean several movements ("jerk", "hang clean"): write the exact name; « pas encore compté par l'app » (not counted by the app yet) for a movement the app does not read in free text yet; « série écrite après le texte, non lue » (set written after the text, not read) for a Musculation or Cardio set written further down (Musculation and Cardio sets are read only when they are written at the top, before the rest of the text). The counter sums it up: « 6 mouvements comptent · 3 à corriger ». <Screenshot src="/tutorials/mouvements-et-badges/3.png" alt="Free text with 21 T2B + 21 KB deadlifts and 1 pow clean: two movements in green, pow clean in orange with the Power Clean suggestion" />
+3. Recognised movements are credited to badges only when the score proves the session was finished: a **Temps** not stopped at the time cap. A score in reps, rounds + reps, load, stopped at the cap or « Faite » credits nothing in free text.
+4. With **Mouvements**, a For Time stopped at the time cap credits the first X reps in the WOD's order, never more than the written session.
+
+### Movements read in free text
+
+In free text, the app reads the names below, singular or plural (`pull-up` or `pull-ups`), upper or lower case, with or without hyphens. It also reads common abbreviations: BMU, C2B, CTB, DU, HSPU, OHS, RMU, S2OH, SDLHP, STOH, T2B, WW. It never guesses: "pow clean" stays orange and the preview suggests the right name. For ergs and running, write the unit: `15 cal row`, `500 m row`, `400 m run`. Without a unit, ergs count in calories and Run in metres. **Mouvements** mode offers a longer list: if your movement is not below, use **Mouvements** so that it counts.
+
+- **Barbell:** Thruster, Power Clean, Power Snatch, Clean & Jerk, Deadlift, Front Squat, Back Squat, Overhead Squat, Push Press, Push Jerk, Sumo Deadlift High Pull, Squat Snatch, Squat Clean, Squat Clean & Jerk, Cluster, Snatch Balance, Snatch High Pull, Clean Pull, Tall Clean, Power Jerk, Split Jerk, Back Rack Split Jerk, Strict Press, Bench Press, Zercher Squat, Snatch, Clean, Shoulder to Overhead
+- **Dumbbell, kettlebell and medicine ball:** Alt DB Snatch, DB Thruster, Devils Press, DB Deadlift, DB Clean & Jerk, DB Push Press, DB Strict Press, DB Lunge, DB Overhead Lunge, KB Swing, Goblet Squat, KB Clean, KB Snatch, KB Deadlift, KB Front Squat, KB Lunge, KB Overhead Lunge, Wall Balls
+- **Gymnastics:** Pull-ups, Toes-to-Bar, Chest-to-Bar, Bar Muscle-ups, Handstand Push-ups, Ring Dips, Ring Muscle-ups, Rope Climbs, Pistols, Handstand Walk, Wall Walk
+- **Bodyweight:** Box Jump-overs, Box Jumps, Box Step-ups, Burpees Over the Bar, Burpees, Push-ups, Sit-ups, Air Squats, Double-unders, Lunges, V-ups, Hollow Rocks
+- **Cardio:** Row, Bike Erg, Echo Bike, SkiErg (in calories by default), Run (in metres by default)
+
 ## Common mistakes
 
 - **A hand-typed movement gives no badge.** Out of catalogue, it is stored with its raw name and credits nothing; reopened, the line becomes free text, without the list → delete it (bin), add it again with **Ajouter** and take the list entry.
 - **Strength block reps do not count.** Strength sets are not metcon: they credit no badge, unlike the cardio block, which is credited as `sets × quantity`.
 - **A movement is missing from the list.** The catalogue is shared platform-wide and cannot be edited from the box → write it in plain text for the session and report it to AthleX so it can be added.
+- **My movement stays orange although it is spelled right.** It is not in the list read in free text, or its spelling can mean several movements ("jerk") or is not recognised ("pow clean") → write the name suggested by the preview or the exact name from the list, or switch to **Mouvements**.
 - **Two variants of the same movement give different counters.** They are two distinct catalogue entries → keep the same entry from one session to the next.
 
 ## Go there

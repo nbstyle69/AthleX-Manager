@@ -1,8 +1,9 @@
 import { createClient, getServerProfile } from '@/lib/supabase/server';
-import { Shield, Swords, Users, Trophy, CalendarClock, ChevronRight } from 'lucide-react';
+import { Shield, Swords, Users, Trophy, CalendarClock, ChevronRight, UserPlus } from 'lucide-react';
 import Link from 'next/link';
 import { Card } from '@/components/ui/card';
 import { fullDate } from '@/lib/confirmDialog';
+import { parisDate } from '@/lib/datetime';
 import { overdueAlertText, type OverdueBox } from '@/lib/boxArchiveOverdue';
 
 // Pastille violette : pas de jeton « doux » pour --ax-purple, même dosage que les autres.
@@ -31,6 +32,19 @@ export default async function AdminDashboard() {
   const { count: totalDailies } = await supabase
     .from('daily_tournaments')
     .select('*', { count: 'exact', head: true });
+
+  // Nouveaux inscrits : colonnes autorisées seulement, jamais l'e-mail.
+  const { count: weekSignups } = await supabase
+    .from('profiles')
+    .select('id', { count: 'exact', head: true })
+    .gte('created_at', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString());
+  const { data: latestSignups } = await supabase
+    .from('profiles')
+    .select('id, username, role, created_at')
+    .order('created_at', { ascending: false })
+    .order('id')
+    .limit(5);
+  const weekCount = weekSignups ?? 0;
 
   // Archivage (PR 3) : l'alerte des 2 jours, seulement si elle liste une box.
   const { data: overdueData } = await supabase.rpc('box_archive_overdue');
@@ -128,6 +142,39 @@ export default async function AdminDashboard() {
           <p className="text-xs text-ax-text-secondary mt-1">athlètes inscrits</p>
         </Card>
       </div>
+
+      {/* Nouveaux inscrits */}
+      <Card className="p-5">
+        <div className="flex items-center gap-3 mb-3">
+          <div className={`w-9 h-9 shrink-0 rounded-ax-control ${PURPLE_SOFT} flex items-center justify-center`}>
+            <UserPlus size={18} className="text-ax-purple" />
+          </div>
+          <h2 className="text-xs font-bold text-ax-text-secondary uppercase tracking-wider">Nouveaux inscrits</h2>
+        </div>
+        <p className="text-3xl font-black text-ax-text">{weekCount}</p>
+        <p className="text-xs text-ax-text-secondary mt-1">{weekCount <= 1 ? 'inscrit' : 'inscrits'} sur les 7 derniers jours</p>
+        {(latestSignups ?? []).length === 0 ? (
+          <p className="text-sm text-ax-text-secondary mt-4">Aucune inscription récente.</p>
+        ) : (
+          <ul className="mt-4 divide-y divide-ax-border border-y border-ax-border">
+            {(latestSignups ?? []).map(u => (
+              <li key={u.id} className="flex items-center justify-between gap-3 py-2">
+                <span className="min-w-0 text-sm font-semibold text-ax-text break-words">{u.username}</span>
+                <span className="shrink-0 text-xs text-ax-text-secondary tabular-nums">
+                  {parisDate(u.created_at, { day: '2-digit', month: '2-digit', year: 'numeric' })}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+        <Link
+          href="/admin/users?tri=date&sens=desc"
+          className="mt-4 inline-flex items-center gap-1 rounded-ax-control text-sm font-semibold text-ax-accent-text hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ax-focus"
+        >
+          Voir tous les nouveaux inscrits
+          <ChevronRight size={14} className="shrink-0" />
+        </Link>
+      </Card>
 
       {/* Quick actions */}
       {(contestedCount ?? 0) > 0 && (

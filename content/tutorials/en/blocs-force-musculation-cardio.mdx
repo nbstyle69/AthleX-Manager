@@ -1,30 +1,44 @@
 ---
 slug: blocs-force-musculation-cardio
 title: Strength and cardio blocks
-summary: Add strength sets and cardio sets to a WOD, and know what counts towards badges.
+summary: Add strength sets, complexes and cardio sets to a WOD, and know what counts towards badges.
 role: both
 pages: [whiteboard]
-tags: [strength, musculation, cardio, sets, badges, wod]
+tags: [strength, musculation, complex, complexe, 1rm, cardio, sets, badges, wod, free text]
 order: 22
 ---
 
 ## Before you start
 
-The WOD editor has three areas: **Programme / Mouvements** (the metcon), **Musculation** (strength, optional) and **Cardio** (optional). Both optional blocks are written as sets, not as free reps.
+The WOD editor has three areas: **Programme / Mouvements** (the metcon), **Musculation** (strength, optional) and **Cardio** (optional). Both optional blocks are written as sets, not as free reps. They stay available when the session is written as **Texte libre** (free text): their sets then show at the top of the text, as is, and the app reads them as with **Mouvements**: guided strength session (set grid) for Musculation, cardio badge credit for Cardio. Musculation and Cardio sets are read only when they are written at the top, before the rest of the text: the **Ce que l'app comprend** preview (what the app understands) lists them under their own heading, and a set written further down shows there as **à corriger** (to fix).
 
 ## Steps
 
 1. Open a WOD on the Whiteboard and find the **Musculation (optionnel)** block. <Screenshot src="/tutorials/blocs-force-musculation-cardio/3.png" alt="Musculation, Cardio and Time cap blocks of the WOD form" />
 2. Click **Ajouter une série**, then fill in the exercise, sets, reps and the **Charge** in **kg** or **%1RM**; when the load depends on the day, write it in **Charge libre** (`RPE 9`). A **Tempo** (`30X1`) and a rest value in seconds can complete the line. <Screenshot src="/tutorials/blocs-force-musculation-cardio/1.png" alt="Strength block with one set, load and tempo" />
-3. Scroll to the **Cardio (optionnel)** block and click **Ajouter une série cardio**: pick the movement (Row, SkiErg, Run and so on), the number of sets and the quantity in metres, calories or seconds. <Screenshot src="/tutorials/blocs-force-musculation-cardio/2.png" alt="Cardio (optional) block with a Row set" />
-4. Add an intensity target if you want one: watts **or** pace, never both on the same line. Rest between sets is written as `mm:ss`, and an **RPE** can complete the line. <Screenshot src="/tutorials/blocs-force-musculation-cardio/4.png" alt="Cardio line with watts, target, rest and RPE" />
-5. Click **Créer le WOD** (or **Enregistrer**): the three blocks reach the athlete app together, always in this order: Musculation, Cardio, then the metcon.
+3. For a complex (several movements chained without letting go of the bar), click **Ajouter un complexe** (add a complex) in the block header. On each line, write the reps and the movement (official list); **Ajouter un mouvement au complexe** adds one (two at least). Then fill in the sets **× complexe** and the load in **kg** or **%1RM de…** (%1RM of…), with the **reference movement**: by default the last one of the complex. Rest, tempo and free load are filled in as for a set. The saved line looks like `Complexe — 1 Deadlift + 1 Hang Power Clean + 1 Power Clean — 5 × 1 @ 75 %1RM Power Clean — repos 2:00`.
+4. Scroll to the **Cardio (optionnel)** block and click **Ajouter une série cardio**: pick the movement (Row, SkiErg, Run and so on), the number of sets and the quantity in metres, calories or seconds. <Screenshot src="/tutorials/blocs-force-musculation-cardio/2.png" alt="Cardio (optional) block with a Row set" />
+5. Add an intensity target if you want one: watts **or** pace, never both on the same line. Rest between sets is written as `mm:ss`, and an **RPE** can complete the line. <Screenshot src="/tutorials/blocs-force-musculation-cardio/4.png" alt="Cardio line with watts, target, rest and RPE" />
+6. Click **Créer le WOD** (or **Enregistrer**): the three blocks reach the athlete app together, always in this order: Musculation, Cardio, then the metcon.
+
+## The 1RM % of a complex
+
+A complex has no 1RM of its own. In the athlete app, a %1RM load is worked out from the athlete's 1RM of the reference movement: 75 % of a 100 kg Power Clean 1RM gives 75 kg. Without a known 1RM for that movement, the athlete sees the percentage alone. A complex does not change the 1RM: the lifted load never updates a record, and the complex counts no badge reps.
+
+## Turn a free-text line into a Musculation block
+
+1. In **Texte libre** (free text), a strength or complex line written after the rest of the text is not read by the app. The **Ce que l'app comprend** preview (what the app understands) spots it when it has a known form: the block format (`Back Squat — 5 × 3 @ 80 %1RM`), `Back squat 5×3 @80%` or `5 × (1 deadlift + 1 power clean) @75% power clean`.
+2. Click **Transformer en bloc Musculation** (turn into a Musculation block): the line leaves the text and becomes a card of the **Musculation** block, written at the top when saved.
+3. Check the card: the reference movement, the load ("Lu comme %1RM : à vérifier", read as %1RM, to check, when the text only said `%`) and the rest, which stays in the text. **Annuler** (undo) puts the text and the block back as they were before the change.
+4. A line you do not turn stays **à corriger** (to fix): the athlete sees the text, with no set grid and no computed load.
 
 ## Common mistakes
 
 - **Strength sets credit no badge.** That is the expected behaviour: sets in the strength block do not count badge reps, they are not metcon → put whatever must count in the metcon.
 - **A cardio set is not credited.** The cardio block *is* credited, as `sets × quantity`, but a line without an exercise is not saved ("Choisis l’exercice pour enregistrer cette série.") → pick Row, SkiErg, Run and so on from the list.
 - **A pace target is ignored.** It is not in `mm:ss` format → write it like `2:00`, then pick `/500 m` or `/km`.
+- **The complex is not saved.** A complex chains at least two named movements ("Un complexe enchaîne au moins deux mouvements : nomme le deuxième.") → name the second movement.
+- **The athlete's 1RM did not move after a complex.** That is intended: a complex does not change the 1RM → to test a record, program a single set of the movement.
 - **An "RPE 9" load does not fit in the Charge field.** That field only takes numbers → write it in **Charge libre**.
 
 ## Go there

@@ -3,6 +3,9 @@ import { rpcEntryRefusal } from '@/lib/boxEntryGuard';
 import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 import { clientIp, takeToken } from '@/lib/trialRateLimit';
 import { MAIL_FROM, SITE_URL } from '@/lib/site-url';
+import { logResendFailure } from '@/lib/resendFailure';
+
+const TRIAL_EMAIL_FAILED = "La confirmation par e-mail n'a pas pu être envoyée.";
 
 interface BookOk {
   ok: true;
@@ -174,8 +177,8 @@ async function sendConfirmation(args: {
   });
 
   if (!res.ok) {
-    const detail = await res.text();
-    return { sent: false, error: `Resend ${res.status} — ${detail.slice(0, 200)}` };
+    logResendFailure('trial-booking', res.status);
+    return { sent: false, error: TRIAL_EMAIL_FAILED };
   }
   return { sent: true, error: null };
 }
