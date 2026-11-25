@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/server';
 import { getRequestUser } from '@/lib/auth/requestUser';
 import {
-  connectAccount, getConnectStripe, loadMember, logStripeError, planChangeError, releaseSchedule,
+  connectAccount, getConnectStripe, invalidBoxIdError, loadMember, logStripeError, optionalBoxId, planChangeError,
+  releaseSchedule,
 } from '@/lib/membership/server';
 
 /**
@@ -13,14 +14,20 @@ import {
  *     elles portent encore cet échéancier ;
  *   - au comptoir : `cancel_plan_change_request`.
  * Rien à annuler → 409 PLAN_CHANGE_NOTHING_TO_CANCEL.
+ * `box_id` (facultatif, l'app) borne l'annulation à cette box ; corps absent
+ * ou sans `box_id` : l'adhésion que /compte affiche.
  */
 export async function POST(req: NextRequest) {
   try {
     const user = await getRequestUser(req);
     if (!user?.id) return NextResponse.json({ error: 'Non authentifié.' }, { status: 401 });
 
+    const body = await req.json().catch(() => null);
+    const boxId = optionalBoxId(body?.box_id);
+    if (boxId === null) return invalidBoxIdError();
+
     const supabase = createServiceClient();
-    const m = await loadMember(supabase, user.id);
+    const m = await loadMember(supabase, user.id, boxId);
     if (!m) return planChangeError('PLAN_CHANGE_NOT_MEMBER');
 
     if (m.stripe_schedule_id) {

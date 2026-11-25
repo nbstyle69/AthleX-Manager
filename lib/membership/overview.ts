@@ -69,9 +69,12 @@ export function buildOverview(i: {
   };
 }
 
-/** Lecture de « Mon abonnement » : null si l'appelant n'a pas d'adhésion active. */
-export async function readOverview(service: SupabaseClient, stripe: Stripe, userId: string): Promise<MembershipOverview | null> {
-  const m = await loadMember(service, userId);
+/**
+ * Lecture de « Mon abonnement » : null si l'appelant n'a pas d'adhésion active
+ * (dans `boxId` s'il est donné, sinon celle que /compte affiche).
+ */
+export async function readOverview(service: SupabaseClient, stripe: Stripe, userId: string, boxId?: string): Promise<MembershipOverview | null> {
+  const m = await loadMember(service, userId, boxId);
   if (!m) return null;
 
   const [box, plansRes, pendingRes, block] = await Promise.all([
