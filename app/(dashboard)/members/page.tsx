@@ -5,12 +5,14 @@ import * as Popover from '@radix-ui/react-popover';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Users, Search, SlidersHorizontal, X, Loader2, ChevronDown, ChevronUp, Check, Trash2, CreditCard, ShieldCheck, Crown } from 'lucide-react';
+import { Users, Search, SlidersHorizontal, X, Loader2, ChevronDown, ChevronUp, Check, Trash2, CreditCard, ShieldCheck, Crown, Banknote } from 'lucide-react';
 import { getMyBox } from '@/lib/getMyBox';
 import { softVar, textTint } from '@/lib/colorVars';
 import HelpButton from '@/components/help/HelpButton';
 import { getMemberEmails } from '@/lib/memberEmails';
 import AthleteSheet from '@/components/dashboard/AthleteSheet';
+import CashPaymentDialog, { type CashPaymentRequest } from '@/components/comptoir/CashPaymentDialog';
+import { needsFirstCashPayment, type CounterAccessMember } from '@/lib/comptoir/counter';
 import { useConfirmDialog } from '@/components/ui/confirm-dialog';
 import { ERROR_TITLE } from '@/lib/confirmDialog';
 import { reactivationErrorBox } from '@/lib/memberReactivation';
@@ -279,6 +281,10 @@ export default function MembersPage() {
   const [planSaving, setPlanSaving]  = useState<string | null>(null);
   const [showPlans,  setShowPlans]   = useState(false);
   const [sheetMemberId, setSheetMemberId] = useState<string | null>(null);
+  // #463 : formule jamais encaissée → « Encaissement reçu » sur la ligne.
+  // Colonnes fermées au navigateur : lues par la route serveur, comme Abonnés.
+  const [counterByMember, setCounterByMember] = useState<Map<string, CounterAccessMember>>(new Map());
+  const [cashRequest, setCashRequest] = useState<CashPaymentRequest | null>(null);
 
   // Les listes nominatives des Statistiques pointent ici avec `?q=<pseudo>` :
   // sans pré-remplissage, un « voir la fiche » retomberait sur la liste entière.
@@ -310,6 +316,12 @@ export default function MembersPage() {
       setSortDir(col === 'elo' ? 'desc' : 'asc');
     }
   }
+
+  const loadCounter = useCallback(async (id: string) => {
+    const res = await fetch(`/api/members/counter-access?box_id=${id}`).catch(() => null);
+    const data = res?.ok ? (await res.json()) as { members: CounterAccessMember[] } : null;
+    setCounterByMember(new Map((data?.members ?? []).map((m) => [m.member_id, m])));
+  }, []);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -380,8 +392,9 @@ export default function MembersPage() {
     }).filter(Boolean) as Member[];
 
     setMembers(parsed);
+    await loadCounter(box.id);
     setLoading(false);
-  }, []);
+  }, [loadCounter]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -503,6 +516,7 @@ export default function MembersPage() {
     // Jusqu'ici, un refus affichait quand même la nouvelle formule.
     if (!ok) { inform({ kind: 'error', title: ERROR_TITLE, body: data.error ?? 'La formule n’a pas été modifiée.' }); return; }
     setMembers(prev => prev.map(m => m.id === memberId ? { ...m, plan_id: planId } : m));
+    void loadCounter(boxId);
   }
 
   async function togglePlanGroup(planId: string, groupId: string, inGroup: boolean) {
@@ -585,6 +599,7 @@ export default function MembersPage() {
   return (
     <div className="space-y-6">
       {dialog}
+      <CashPaymentDialog request={cashRequest} onClose={() => setCashRequest(null)} onDone={() => { if (boxId) void loadCounter(boxId); }} />
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="min-w-0">
           <div className="flex items-center gap-3">
@@ -752,6 +767,8 @@ export default function MembersPage() {
             <tbody>
               {filtered.map(m => {
                 const lvlColor = LEVEL_COLOR[m.level] ?? 'var(--ax-neutral)';
+                const counter = counterByMember.get(m.id);
+                const toCollect = !!counter && !m.is_banned && needsFirstCashPayment(counter);
                 return (
                   <tr key={m.id} className="border-b border-ax-border last:border-0 hover:bg-ax-hover transition-colors">
                     <td className="px-4 py-4">
@@ -762,6 +779,19 @@ export default function MembersPage() {
                         <div className="min-w-[10rem]">
                           <p className={`text-sm font-semibold break-words ${m.is_banned ? 'line-through text-ax-text-muted' : 'text-ax-text'}`}>{m.username}</p>
                           <p className="text-xs text-ax-text-muted [overflow-wrap:anywhere]">{m.email}</p>
+                          {toCollect && (
+                            // Sous le pseudo : la cellule (10rem min.) le contient, le tableau ne s'élargit pas, et il reste visible à 390 px.
+                            <button onClick={() => setCashRequest({
+                              target: { kind: 'member', boxMemberId: counter.box_member_id },
+                              who: m.username,
+                              planName: plans.find(p => p.id === counter.plan_id)?.name ?? null,
+                              priceCents: counter.price_cents,
+                              currentUntil: null,
+                            })}
+                              className="mt-1.5 inline-flex items-center gap-1 text-xs font-bold text-ax-warning bg-ax-warning-soft hover:brightness-110 rounded-ax-control px-2.5 py-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ax-focus">
+                              <Banknote size={13} /> Encaissement reçu
+                            </button>
+                          )}
                         </div>
                       </div>
                     </td>
