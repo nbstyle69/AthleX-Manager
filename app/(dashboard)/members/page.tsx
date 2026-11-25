@@ -809,6 +809,7 @@ export default function MembersPage() {
                     </td>
                     <td className="px-4 py-4 text-right whitespace-nowrap">
                       {toCollect && (
+                        // Au-dessus de « Fiche · Bannir » : la colonne garde sa largeur, le tableau ne déborde pas.
                         <button onClick={() => setCashRequest({
                           target: { kind: 'member', boxMemberId: counter.box_member_id },
                           who: m.username,
@@ -816,7 +817,7 @@ export default function MembersPage() {
                           priceCents: counter.price_cents,
                           currentUntil: null,
                         })}
-                          className="inline-flex items-center gap-1 text-xs font-bold text-ax-warning bg-ax-warning-soft hover:brightness-110 rounded-ax-control px-2.5 py-1.5 mr-3 align-middle focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ax-focus">
+                          className="flex w-fit ml-auto items-center gap-1 text-xs font-bold text-ax-warning bg-ax-warning-soft hover:brightness-110 rounded-ax-control px-2.5 py-1.5 mb-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ax-focus">
                           <Banknote size={13} /> Encaissement reçu
                         </button>
                       )}
