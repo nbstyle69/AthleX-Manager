@@ -20,7 +20,8 @@ import { parisDate } from '@/lib/datetime';
 import { TO_COLLECT_LABEL, statusBadge } from '@/lib/subscriberStatus';
 import CashPaymentDialog, { type CashPaymentRequest } from '@/components/comptoir/CashPaymentDialog';
 import {
-  counterBlocks, endingLine, noticeLabel, renewalBlocked, shortDate, tableDueNote, toCollectLine,
+  awaitsInvitationCash, counterBlocks, endingLine, firstPaymentLine, needsFirstCashPayment, noticeLabel,
+  renewalBlocked, shortDate, tableDueNote, toCollectLine,
   type CounterAccessBox, type CounterAccessMember,
 } from '@/lib/comptoir/counter';
 
@@ -150,6 +151,9 @@ export default function SubscribersPage() {
   const { dialog, ask, inform } = useConfirmDialog();
   const [loading, setLoading] = useState(true);
   const [rows, setRows] = useState<Row[]>([]);
+  // #463 : membres avec formule jamais encaissée. Hors du tableau et des compteurs,
+  // seulement pour le bloc « À encaisser ».
+  const [firstPayRows, setFirstPayRows] = useState<Row[]>([]);
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<'all' | Kind>('all');
   const [cancelReqs, setCancelReqs] = useState<CancelRequest[]>([]);
@@ -191,8 +195,11 @@ export default function SubscribersPage() {
     setCounterBox(counter?.box ?? null);
     setCounterMembers(counter?.members ?? []);
     const cashUntilById = new Map((counter?.members ?? []).map((m) => [m.box_member_id, m.cash_access_until]));
+    const firstPayIds = new Set((counter?.members ?? []).filter(needsFirstCashPayment).map((m) => m.box_member_id));
+    const firstPayBilling = ((billingRaw ?? []) as BillingRow[]).filter((b) => !!b.id && firstPayIds.has(b.id));
+    const billingRows = [...memberRows, ...firstPayBilling];
 
-    const planIds = Array.from(new Set(memberRows.flatMap((b) => [b.plan_id, b.scheduled_plan_id]).filter((id): id is string => !!id)));
+    const planIds = Array.from(new Set(billingRows.flatMap((b) => [b.plan_id, b.scheduled_plan_id]).filter((id): id is string => !!id)));
     const planById: Record<string, { name: string | null; color: string | null; price_cents: number | null }> = {};
     if (planIds.length > 0) {
       const { data: planRows } = await supabase
@@ -200,7 +207,7 @@ export default function SubscribersPage() {
       for (const p of planRows ?? []) planById[p.id] = { name: p.name, color: p.color, price_cents: p.price_cents };
     }
 
-    const subscriberIds = Array.from(new Set(memberRows.map((b) => b.member_id).filter((id): id is string => !!id)));
+    const subscriberIds = Array.from(new Set(billingRows.map((b) => b.member_id).filter((id): id is string => !!id)));
     const usernameById: Record<string, string | null> = {};
     if (subscriberIds.length > 0) {
       const { data: subProfiles } = await supabase
@@ -279,7 +286,7 @@ export default function SubscribersPage() {
       }
     }
 
-    const memberships: Row[] = memberRows.map((r, i) => {
+    const toRow = (r: BillingRow, i: number): Row => {
       const plan = r.plan_id ? planById[r.plan_id] : null;
       return {
         key: `m-${r.member_id}-${i}`,
@@ -304,7 +311,9 @@ export default function SubscribersPage() {
         scheduledAt: r.scheduled_change_at ?? null,
         cashUntil: r.id ? cashUntilById.get(r.id) ?? null : null,
       };
-    });
+    };
+    const memberships: Row[] = memberRows.map(toRow);
+    setFirstPayRows(firstPayBilling.map((r, i) => ({ ...toRow(r, i), key: `f-${r.member_id}-${i}` })));
 
     const programs: Row[] = (programRows ?? []).map((r: any, i: number) => {
       const p = buyerById[r.user_id];
@@ -603,7 +612,7 @@ export default function SubscribersPage() {
 
       {/* Comptoir P1 : fins d'accès proches et premiers paiements à encaisser */}
       {(() => {
-        const rowByMember = new Map(rows.filter((r) => r.boxMemberId).map((r) => [r.boxMemberId!, r]));
+        const rowByMember = new Map([...rows, ...firstPayRows].filter((r) => r.boxMemberId).map((r) => [r.boxMemberId!, r]));
         const { ending, toCollect } = counterBlocks(counterMembers);
         const head = (r: Row | undefined) => (
           <p className="text-sm font-bold text-ax-text break-words">
@@ -661,16 +670,16 @@ export default function SubscribersPage() {
                     <div key={m.box_member_id} className="flex flex-wrap items-start justify-between gap-4 bg-ax-surface border border-ax-border rounded-ax-control p-3">
                       <div className="min-w-0 basis-[14rem] flex-1 space-y-1">
                         {head(r)}
-                        <p className="text-xs text-ax-text-secondary">{toCollectLine(m.joined_at)}</p>
+                        <p className="text-xs text-ax-text-secondary">{needsFirstCashPayment(m) ? firstPaymentLine(m.joined_at) : toCollectLine(m.joined_at)}</p>
                         {m.pending_invitation && <p className="text-[10px] text-ax-text-muted">Invitation du {shortDate(m.pending_invitation.created_at)}</p>}
                       </div>
                       <div className="flex flex-wrap items-center gap-2 flex-shrink-0">{cashButton(r)}</div>
                     </div>
                   );
                 })}
-                <p className="flex items-start gap-1.5 text-[10px] text-ax-text-secondary">
+                {toCollect.some(awaitsInvitationCash) && <p className="flex items-start gap-1.5 text-[10px] text-ax-text-secondary">
                   <Bell size={12} className="mt-px shrink-0" /> Ces personnes ont rejoint la box mais ne peuvent pas réserver tant que leur premier paiement n’est pas encaissé.
-                </p>
+                </p>}
               </div>
             )}
           </>

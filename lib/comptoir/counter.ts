@@ -118,6 +118,20 @@ export interface CounterAccessBox { allow_counter_renewal: boolean; sells_online
 export const accessEnded = (m: Pick<CounterAccessMember, 'subscription_status' | 'cash_access_until'>, now: Date = new Date()) =>
   m.subscription_status === 'expired' || (!!m.cash_access_until && daysFromToday(m.cash_access_until, now) < 0);
 
+/**
+ * Membre actif à qui le gérant a posé une formule payante depuis Membres, sans
+ * aucun paiement : ni statut d'abonnement, ni Stripe (#463). La RPC
+ * `record_member_cash_payment` accepte ce premier encaissement.
+ */
+export const needsFirstCashPayment = (
+  m: Pick<CounterAccessMember, 'status' | 'subscription_status' | 'has_stripe_subscription' | 'plan_id' | 'price_cents'>,
+) => m.status === 'active' && m.subscription_status == null && !m.has_stripe_subscription
+  && !!m.plan_id && isPayablePlan(m.price_cents);
+
+/** Invité « encaissement box » qui a rejoint, premier paiement attendu. */
+export const awaitsInvitationCash = (m: Pick<CounterAccessMember, 'status' | 'subscription_status'>) =>
+  m.status === 'inactive' && m.subscription_status === 'pending_cash';
+
 /** Les deux blocs d'Abonnés : « Fin d'accès proche » (trié par date) et « À encaisser ». */
 export function counterBlocks(members: CounterAccessMember[], now: Date = new Date()) {
   const ending = members
@@ -127,7 +141,7 @@ export function counterBlocks(members: CounterAccessMember[], now: Date = new Da
     .sort((a, b) => a.days - b.days)
     .map(({ m }) => m);
   const toCollect = members
-    .filter((m) => m.status === 'inactive' && m.subscription_status === 'pending_cash')
+    .filter((m) => awaitsInvitationCash(m) || needsFirstCashPayment(m))
     .sort((a, b) => (a.joined_at ?? '').localeCompare(b.joined_at ?? ''));
   return { ending, toCollect };
 }
@@ -143,6 +157,10 @@ export function endingLine(m: Pick<CounterAccessMember, 'subscription_status' | 
 export const toCollectLine = (joinedAt: string | null) =>
   `Invitée avec paiement à la box${joinedAt ? ` · a rejoint la box le ${shortDate(joinedAt)}` : ''} · inactive tant que l’encaissement n’est pas reçu`;
 
+/** Ligne d'un membre actif dont la formule n'a jamais été encaissée (#463). */
+export const firstPaymentLine = (joinedAt: string | null) =>
+  `Formule attribuée, aucun paiement enregistré${joinedAt ? ` · a rejoint la box le ${shortDate(joinedAt)}` : ''}`;
+
 /** Sous-ligne du tableau, colonne « Prochaine échéance » d'un membre au comptoir. */
 export function tableDueNote(m: Pick<CounterAccessMember, 'subscription_status' | 'cash_access_until'>, now: Date = new Date()): { text: string; amber: boolean } {
   if (accessEnded(m, now)) return { text: 'accès terminé', amber: false };
@@ -157,6 +175,7 @@ export const FREE_PLAN_NOTE = 'Formule gratuite : aucune date de fin.';
 export function cashPaymentError(message: string | null | undefined): string {
   const m = message ?? '';
   if (m.includes('COUNTER_RENEWAL_DISABLED')) return COUNTER_RENEWAL_DISABLED_MESSAGE;
+  if (m.includes('STRIPE_PAYMENT_PENDING')) return 'Ce membre a un paiement en ligne en attente : rien à encaisser au comptoir tant qu’il n’est pas réglé ou annulé.';
   if (m.includes('STRIPE_MEMBER')) return 'Ce membre paie en ligne par Stripe : aucun encaissement au comptoir à enregistrer.';
   if (m.includes('NO_PLAN_PRICE')) return 'Ce membre n’a pas de formule payante : attribue-lui une formule avant d’encaisser.';
   if (m.includes('FORBIDDEN')) return 'Seuls le gérant et les co-gérants de la box enregistrent un encaissement.';
