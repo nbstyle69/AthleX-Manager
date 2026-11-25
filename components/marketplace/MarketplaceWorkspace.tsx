@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import {
   Plus, Pencil, Trash2, X, Check, Loader2, Search, Package,
-  Globe, Lock, Video, Upload, Info, AlertTriangle,
+  Globe, Lock, Video, Upload, Info, AlertTriangle, Send,
 } from 'lucide-react';
 import { SUBSCRIPTION_COLORS, subscriptionColorVar } from '@/lib/audience';
 import WodEditor from '@/components/wods/WodEditor';
@@ -26,6 +26,11 @@ import { ERROR_TITLE } from '@/lib/confirmDialog';
 import { askDeleteWithSubscriptions, countOf } from '@/lib/deleteWithSubscriptions';
 import { entryRefusalFrom, entryRefusalInfo } from '@/lib/entryRefusalView';
 import { parisDate } from '@/lib/datetime';
+import {
+  INVITATION_ONLY_DETAIL, formatOfferPrice, hasPending, offerBadge, pricingLabel, serverMessage, shortParisDate,
+  type SentInvitation, type Visibility,
+} from '@/lib/programmingInvitations';
+import { InviteBoxModal, SentInvitationsBlock, type InvitePreset } from '@/components/marketplace/ProgrammingInvitations';
 
 const DISCIPLINES = ['crossfit', 'hyrox', 'hybrid', 'haltero', 'endurance'];
 const LEVELS = ['all', 'beginner', 'intermediate', 'advanced'];
@@ -60,6 +65,8 @@ interface Programming {
   goal: string | null;
   target_audience: string | null;
   equipment: string | null;
+  /** 'invitation' : invisible du catalogue (20270167). */
+  visibility?: Visibility;
   /** Enrichissement `list_programming_catalog` (catalogue seulement). */
   wods_total?: number;
   wods_per_week?: number[];
@@ -97,7 +104,7 @@ function isLiveSub(s: Subscription): boolean {
 const EMPTY_OFFER = {
   title: '', description: '', discipline: 'crossfit', level: 'all',
   days_per_week: '5', weeks_count: '4', billing: 'free' as const,
-  price: '', goal: '', target_audience: '', equipment: '',
+  price: '', goal: '', target_audience: '', equipment: '', visibility: 'catalogue' as Visibility,
 };
 
 /**
@@ -708,6 +715,60 @@ function MyOffers({ offers, activeBoxId, onChanged }: {
   const [editing, setEditing] = useState<Programming | 'new' | null>(null);
   const [publishError, setPublishError] = useState<{ id: string; message: string } | null>(null);
   const [publishing, setPublishing] = useState<string | null>(null);
+  const [invites, setInvites] = useState<Record<string, SentInvitation[]>>({});
+  const [invitesError, setInvitesError] = useState<string | null>(null);
+  const [inviting, setInviting] = useState<{ offer: Programming; preset: InvitePreset | null } | null>(null);
+  const [invBusy, setInvBusy] = useState<string | null>(null);
+
+  // Suivi des invitations : une lecture par offre (publiée, ou dépubliée avec
+  // un historique). La fonction rend déjà « expired » pour une invitation échue.
+  const loadInvites = useCallback(async () => {
+    const entries = await Promise.all(offers.map(async (o) => {
+      const { data, error } = await supabase.rpc('list_programming_invitations_sent', { p_programming_id: o.id });
+      return [o.id, error ? null : ((data ?? []) as SentInvitation[]), error?.message] as const;
+    }));
+    const firstError = entries.find(([, , e]) => e)?.[2];
+    setInvitesError(firstError ? serverMessage(firstError) : null);
+    setInvites(Object.fromEntries(entries.map(([id, list]) => [id, list ?? []])));
+  }, [offers, supabase]);
+  useEffect(() => { void loadInvites(); }, [loadInvites]);
+
+  function askCancelInvite(i: SentInvitation) {
+    const box = i.invited_box_name ?? 'Cette box';
+    return ask({
+      title: 'Annuler l\u2019invitation ?',
+      element: `${box} · ${pricingLabel(i.pricing)}`,
+      body: `${box} ne pourra plus l\u2019accepter. Le lien de l\u2019e-mail affichera « Invitation annulée ».`,
+      confirmLabel: 'Annuler l\u2019invitation', cancelLabel: 'Garder', danger: true,
+      run: async () => {
+        setInvBusy(i.invitation_id);
+        const { error } = await supabase.rpc('cancel_programming_invitation', { p_invitation_id: i.invitation_id });
+        setInvBusy(null);
+        if (error) { void inform({ title: ERROR_TITLE, body: serverMessage(error.message), kind: 'error' }); return; }
+        await loadInvites();
+      },
+    });
+  }
+  // Le lundi de fin est celui que rend la fonction (access_ends_at) : il
+  // s'affiche ensuite dans la ligne, jamais recalculé ici.
+  function askRevoke(i: SentInvitation) {
+    const box = i.invited_box_name ?? 'Cette box';
+    if (!i.subscription_id) return;
+    const subId = i.subscription_id;
+    return ask({
+      title: 'Retirer l\u2019accès offert ?',
+      element: `${box} · Offerte${i.responded_at ? ` · acceptée le ${shortParisDate(i.responded_at)}` : ''}`,
+      body: `Plus aucune semaine ne se posera chez ${box} à partir de lundi prochain. Les séances déjà posées, la semaine en cours, les scores et l\u2019ELO restent. ${box} reçoit une notification.`,
+      confirmLabel: 'Retirer l\u2019accès', cancelLabel: 'Annuler', danger: true,
+      run: async () => {
+        setInvBusy(i.invitation_id);
+        const { error } = await supabase.rpc('revoke_offered_programming_access', { p_subscription_id: subId });
+        setInvBusy(null);
+        if (error) { void inform({ title: ERROR_TITLE, body: serverMessage(error.message), kind: 'error' }); return; }
+        await loadInvites();
+      },
+    });
+  }
 
   // La publication passe par `publish_programming` : le serveur refuse une
   // offre sans description, objectif, public visé, ou avec une semaine vide.
@@ -766,12 +827,18 @@ function MyOffers({ offers, activeBoxId, onChanged }: {
                 <div className="min-w-0">
                   <div className="flex items-center gap-2 mb-1 flex-wrap">
                     <h3 className="font-bold text-ax-text min-w-0 break-words">{o.title}</h3>
-                    {o.is_published
-                      ? <Badge variant="success" className="text-[10px] font-black uppercase px-2 py-0.5 gap-1"><Globe size={10} /> Publiée</Badge>
-                      : <Badge variant="neutral" className="text-[10px] font-black uppercase px-2 py-0.5 gap-1"><Lock size={10} /> Brouillon</Badge>}
+                    {(() => {
+                      const b = offerBadge(o);
+                      return (
+                        <Badge variant={b.variant} className="text-[10px] font-black uppercase px-2 py-0.5 gap-1">
+                          {b.kind === 'published' ? <Globe size={10} /> : <Lock size={10} />} {b.label}
+                        </Badge>
+                      );
+                    })()}
                   </div>
                   <p className="text-xs text-ax-text-muted">
-                    {o.discipline ? disciplineLabel(o.discipline) : ''} · {LEVEL_LABEL[o.level ?? 'all']} · {o.weeks_count} sem · {o.billing === 'free' ? 'Gratuit' : `${(o.price_cents / 100).toFixed(0)}€${o.billing === 'monthly' ? '/mois' : ''}`}
+                    {o.discipline ? disciplineLabel(o.discipline) : ''} · {LEVEL_LABEL[o.level ?? 'all']} · {o.weeks_count} sem · {formatOfferPrice(o)}
+                    {o.is_published && o.visibility === 'invitation' && ` · ${INVITATION_ONLY_DETAIL}`}
                   </p>
                   {publishError?.id === o.id && (
                     <div className="mt-2 text-xs text-ax-warning bg-ax-warning-soft border border-ax-warning rounded-ax-control px-3 py-2">
@@ -780,18 +847,48 @@ function MyOffers({ offers, activeBoxId, onChanged }: {
                     </div>
                   )}
                 </div>
-                <div className="flex items-center gap-1.5 shrink-0">
+                <div className="flex items-center gap-1.5 shrink-0 flex-wrap">
                   <Button variant="ax-outline" size="ax-compact" onClick={() => togglePublish(o)} disabled={publishing === o.id} title={o.is_published ? 'Dépublier' : 'Publier'}
                     className="text-xs text-ax-text-secondary hover:text-ax-text">
                     {publishing === o.id ? <Loader2 size={12} className="animate-spin" /> : o.is_published ? 'Dépublier' : 'Publier'}
                   </Button>
+                  {o.is_published && (
+                    <Button variant="ax-outline" size="ax-compact" onClick={() => setInviting({ offer: o, preset: null })}
+                      className="text-xs">
+                      <Send size={13} /> Inviter une box
+                    </Button>
+                  )}
                   <Button variant="ax-outline" size="ax-compact" onClick={() => setEditing(o)} className="w-8 px-0 text-ax-text-secondary hover:text-ax-text" aria-label="Modifier"><Pencil size={14} /></Button>
                   <Button variant="ax-outline" size="ax-compact" onClick={() => askRemove(o)} className="w-8 px-0 text-ax-text-secondary hover:text-ax-danger hover:border-ax-danger" aria-label="Supprimer"><Trash2 size={14} /></Button>
                 </div>
               </div>
+              <SentInvitationsBlock
+                key={`${o.id}-${(invites[o.id] ?? []).length > 0}`}
+                invitations={invites[o.id] ?? []}
+                defaultOpen={hasPending(invites[o.id] ?? [])}
+                busyId={invBusy}
+                onCancel={askCancelInvite}
+                onRevoke={askRevoke}
+                onResend={(i) => setInviting({
+                  offer: o, preset: { boxId: i.invited_box_id, boxName: i.invited_box_name ?? 'Box', pricing: i.pricing },
+                })}
+              />
             </Card>
           ))}
         </div>
+      )}
+
+      {invitesError && (
+        <p className="mt-3 text-xs text-ax-danger">Suivi des invitations incomplet : {invitesError}</p>
+      )}
+
+      {inviting && (
+        <InviteBoxModal
+          offer={inviting.offer}
+          preset={inviting.preset}
+          onClose={() => setInviting(null)}
+          onSent={() => { setInviting(null); void loadInvites(); }}
+        />
       )}
 
       {editing && (
@@ -817,6 +914,7 @@ function OfferEditor({ offer, publisherBoxId, onClose, onSaved }: {
     level: offer.level ?? 'all', days_per_week: String(offer.days_per_week ?? 5),
     weeks_count: String(offer.weeks_count), billing: offer.billing, price: offer.price_cents ? String(offer.price_cents / 100) : '',
     goal: offer.goal ?? '', target_audience: offer.target_audience ?? '', equipment: offer.equipment ?? '',
+    visibility: offer.visibility ?? 'catalogue',
   } : { ...EMPTY_OFFER });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -858,6 +956,7 @@ function OfferEditor({ offer, publisherBoxId, onClose, onSaved }: {
       goal: form.goal.trim() || null,
       target_audience: form.target_audience.trim() || null,
       equipment: form.equipment.trim() || null,
+      visibility: form.visibility,
       updated_at: new Date().toISOString(),
     };
     if (offerId) {
@@ -985,6 +1084,27 @@ function OfferEditor({ offer, publisherBoxId, onClose, onSaved }: {
               </Field>
             )}
           </div>
+          <fieldset>
+            <legend className="text-xs font-semibold text-ax-text-secondary mb-1">Visibilité</legend>
+            <div className="grid gap-2 sm:grid-cols-2" role="radiogroup">
+              {([
+                ['catalogue', Globe, 'Catalogue', 'Toutes les box la voient et peuvent s\u2019abonner. Tu peux aussi inviter.'],
+                ['invitation', Lock, 'Sur invitation seulement', 'Invisible du catalogue : seules les box que tu invites peuvent s\u2019abonner.'],
+              ] as const).map(([v, Icon, label, help]) => {
+                const on = form.visibility === v;
+                return (
+                  <label key={v} className={`flex items-start gap-3 rounded-ax-control border px-3 py-2.5 cursor-pointer ${on ? 'border-ax-input-border bg-ax-surface-secondary' : 'border-ax-border'}`}>
+                    <input type="radio" name="offer-visibility" value={v} checked={on}
+                      onChange={() => setForm({ ...form, visibility: v })} className="mt-1 accent-[var(--ax-text)]" />
+                    <span className="min-w-0">
+                      <span className="flex items-center gap-1.5 text-sm font-bold text-ax-text"><Icon size={13} /> {label}</span>
+                      <span className="block text-xs text-ax-text-secondary">{help}</span>
+                    </span>
+                  </label>
+                );
+              })}
+            </div>
+          </fieldset>
           {error && <p className="text-xs text-ax-danger">{error}</p>}
           <Button variant="ax-white" onClick={saveOffer} disabled={saving} className="w-full">
             {saving && <Loader2 size={15} className="animate-spin" />}
