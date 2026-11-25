@@ -960,7 +960,10 @@ function OfferEditor({ offer, publisherBoxId, onClose, onSaved }: {
       updated_at: new Date().toISOString(),
     };
     if (offerId) {
-      const { error: err } = await supabase.from('box_programming').update(payload).eq('id', offerId);
+      // Une offre garde sa box éditrice : la box active (celle de la barre
+      // latérale) peut être une autre box du même gérant.
+      const { error: err } = await supabase.from('box_programming')
+        .update({ ...payload, publisher_box_id: undefined }).eq('id', offerId);
       setSaving(false);
       if (err) { setError(err.message); return; }
     } else {
