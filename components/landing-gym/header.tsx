@@ -1,33 +1,76 @@
 "use client";
 import { useState } from "react";
-import { ArrowUpRight, Menu, X } from "lucide-react";
-import { translations, type Locale } from "@/data/landing";
+import { ArrowRight, Menu, X } from "lucide-react";
+import {
+  athletesHref,
+  coachsHref,
+  translations,
+  type Locale,
+} from "@/data/landing";
+
 export function Brand() {
   return (
     <a className="brand" href="/landing" aria-label="AthleX">
-      <img src="/athex-mark-light.png" alt="" width={34} height={34} />
+      <img src="/athex-mark-light.png" alt="" width={30} height={30} />
       <span className="font-display">ATHLEX</span>
     </a>
   );
 }
-export function Header({
+
+export function LanguageSwitch({
   locale,
   onLocale,
-  onTour,
 }: {
   locale: Locale;
   onLocale: (l: Locale) => void;
-  onTour: () => void;
 }) {
-  const [menu, setMenu] = useState(false);
+  return (
+    <div
+      className="language-switch"
+      role="group"
+      aria-label={translations[locale].nav.language}
+    >
+      <button
+        onClick={() => onLocale("fr")}
+        aria-pressed={locale === "fr"}
+        aria-label="Français"
+      >
+        FR
+      </button>
+      <span aria-hidden="true">/</span>
+      <button
+        onClick={() => onLocale("en")}
+        aria-pressed={locale === "en"}
+        aria-label="English"
+      >
+        EN
+      </button>
+    </div>
+  );
+}
+
+export function navLinks(locale: Locale) {
   const t = translations[locale].nav;
-  const links = [
-    [t.features, "#salle"],
-    [t.ranking, "/classement"],
+  return [
+    [t.athletes, athletesHref],
+    [t.coachs, coachsHref],
     [t.pricing, "#tarifs"],
     [t.faq, "#faq"],
     [t.find, "/box"],
-  ];
+    [t.ranking, "/classement"],
+  ] as const;
+}
+
+export function Header({
+  locale,
+  onLocale,
+}: {
+  locale: Locale;
+  onLocale: (l: Locale) => void;
+}) {
+  const [menu, setMenu] = useState(false);
+  const t = translations[locale].nav;
+  const links = navLinks(locale);
   return (
     <>
       <a className="skip-link" href="#main">
@@ -35,40 +78,24 @@ export function Header({
       </a>
       <header className="site-header">
         <div className="header-inner">
-          <Brand />
-          <nav className="desktop-nav" aria-label={t.main}>
-            {links.map(([label, href]) => (
-              <a
-                key={href}
-                href={href}
-                onClick={href === "#salle" ? onTour : undefined}
-              >
-                {label}
-              </a>
-            ))}
-          </nav>
-          <div className="header-actions">
-            <div className="language-switch" aria-label={t.language}>
-              {(["fr", "en"] as const).map((l) => (
-                <button
-                  key={l}
-                  onClick={() => onLocale(l)}
-                  aria-pressed={locale === l}
-                  aria-label={l === "fr" ? "Français" : "English"}
-                >
-                  {l.toUpperCase()}
-                </button>
+          <div className="header-left">
+            <Brand />
+            <nav className="desktop-nav" aria-label={t.main}>
+              {links.map(([label, href]) => (
+                <a key={label} href={href}>
+                  {label}
+                </a>
               ))}
-            </div>
+            </nav>
+          </div>
+          <div className="header-actions">
+            <LanguageSwitch locale={locale} onLocale={onLocale} />
             <a className="login-link" href="/login">
               {t.login}
             </a>
-            <a
-              className="button button-light header-trial"
-              href="/pricing/onboarding"
-            >
+            <a className="button button-primary header-trial" href="/pricing/onboarding">
               {t.trial}
-              <ArrowUpRight size={16} />
+              <ArrowRight size={16} aria-hidden="true" />
             </a>
             <button
               className="mobile-menu-button"
@@ -77,27 +104,19 @@ export function Header({
               aria-label={menu ? t.close : t.menu}
               onClick={() => setMenu(!menu)}
             >
-              {menu ? <X /> : <Menu />}
+              {menu ? <X size={24} /> : <Menu size={24} />}
             </button>
           </div>
         </div>
         {menu && (
           <nav id="mobile-nav" className="mobile-nav" aria-label={t.main}>
             {links.map(([label, href]) => (
-              <a
-                key={href}
-                href={href}
-                onClick={() => {
-                  setMenu(false);
-                  if (href === "#salle") onTour();
-                }}
-              >
+              <a key={label} href={href} onClick={() => setMenu(false)}>
                 {label}
-                <ArrowUpRight size={16} />
               </a>
             ))}
             <a href="/login">{t.login}</a>
-            <a href="/pricing/onboarding">{t.trial}</a>
+            <LanguageSwitch locale={locale} onLocale={onLocale} />
           </nav>
         )}
       </header>
