@@ -1,6 +1,6 @@
 import {
   receivedTitle, receivedLine, receivedBadge, acceptLabel, acceptTariff, contentLine, declineElement,
-  invitationLinkState, checkCheckoutInvitation, checkoutExpiresAt, INVITATION_TOO_SOON_MESSAGE,
+  invitationLinkState, checkCheckoutInvitation, isOfferedAccess, checkoutExpiresAt, INVITATION_TOO_SOON_MESSAGE,
   type ReceivedInvitation, type InvitationRow,
 } from '@/lib/programmingInvitations';
 
@@ -93,4 +93,19 @@ describe('expiration de la session Checkout', () => {
   it('24 h 05 pile : 24 h', () => {
     expect(checkoutExpiresAt(at(24 * 60 + 5), NOW)).toEqual({ expiresAt: NOW.getTime() / 1000 + 24 * 3600 });
   });
+});
+
+describe('badge « Offerte » dans la grille du Catalogue', () => {
+  it('invitation sans référence Stripe : offerte', () => {
+    expect(isOfferedAccess({ invitation_id: 'i1', stripe_subscription_id: null })).toBe(true);
+    expect(isOfferedAccess({ invitation_id: 'i1' })).toBe(true);
+  });
+  it('invitation payée (référence Stripe) : prix', () => {
+    expect(isOfferedAccess({ invitation_id: 'i1', stripe_subscription_id: 'sub_1' })).toBe(false);
+  });
+  it('abonnement du catalogue, sans invitation : prix', () => {
+    expect(isOfferedAccess({ invitation_id: null, stripe_subscription_id: 'sub_1' })).toBe(false);
+    expect(isOfferedAccess({ invitation_id: null, stripe_subscription_id: null })).toBe(false);
+  });
+  it('pas d’abonnement de la box active : prix', () => expect(isOfferedAccess(null)).toBe(false));
 });

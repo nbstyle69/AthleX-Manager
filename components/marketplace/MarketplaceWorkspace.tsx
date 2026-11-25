@@ -27,7 +27,7 @@ import { askDeleteWithSubscriptions, countOf } from '@/lib/deleteWithSubscriptio
 import { entryRefusalFrom, entryRefusalInfo } from '@/lib/entryRefusalView';
 import { parisDate } from '@/lib/datetime';
 import {
-  INVITATION_ONLY_DETAIL, LEVEL_LABEL, declineElement, formatOfferPrice, hasPending, invitationLinkState, offerBadge,
+  INVITATION_ONLY_DETAIL, LEVEL_LABEL, declineElement, formatOfferPrice, hasPending, invitationLinkState, isOfferedAccess, offerBadge,
   pricingLabel, publisherName, serverMessage, shortParisDate,
   type ReceivedInvitation, type SentInvitation, type Visibility,
 } from '@/lib/programmingInvitations';
@@ -92,6 +92,8 @@ interface Subscription {
   stripe_subscription_id?: string | null;
   cancel_requested_at?: string | null;
   remove_future_on_cancel?: boolean;
+  /** Invitation d'origine (#461) : posée par accept_programming_invitation ou le webhook. */
+  invitation_id?: string | null;
 }
 
 /** Même condition que list_applicable_programmings / apply_program_week côté serveur. */
@@ -359,6 +361,8 @@ function Catalogue({
           {visible.map((p) => {
             const subscribed = subscribedProgIds.has(p.id);
             const liveSubs = subs.filter((s) => s.programming_id === p.id && isLiveSub(s));
+            // Accès « Offert » par invitation à la box active : badge « Offerte » au lieu du prix.
+            const offered = isOfferedAccess(liveSubs.find((s) => s.subscriber_box_id === activeBoxId) ?? null);
             const perWeek = p.wods_per_week ?? [];
             const filled = perWeek.filter((n) => n > 0).length;
             const cardColor = subscribed ? subscriptionColorVar(liveSubs[0]?.color) : null;
@@ -370,7 +374,9 @@ function Catalogue({
               >
                 <div className="flex items-start justify-between gap-2 mb-2">
                   <button onClick={() => setDetail(p)} className="min-w-0 break-words text-left font-bold text-ax-text text-base leading-tight hover:underline">{p.title}</button>
-                  {p.billing === 'free'
+                  {offered
+                    ? <Badge variant="success" className="text-[10px] font-black uppercase px-2 py-0.5">Offerte</Badge>
+                    : p.billing === 'free'
                     ? <Badge variant="success" className="text-[10px] font-black uppercase px-2 py-0.5">Gratuit</Badge>
                     : <Badge variant="neutral" className="text-[10px] font-black uppercase px-2 py-0.5">{(p.price_cents / 100).toFixed(0)}€{p.billing === 'monthly' ? '/mois' : ''}</Badge>}
                 </div>

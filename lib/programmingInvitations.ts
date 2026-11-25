@@ -213,6 +213,15 @@ export function contentLine(i: { wods_total: number; weeks_count: number }): str
   return `${i.wods_total} WOD · ${i.weeks_count} semaine${i.weeks_count > 1 ? 's' : ''}`;
 }
 
+/**
+ * Abonnement de la box active venu d'une invitation « Offerte » : il porte
+ * l'invitation et aucune référence Stripe (une invitation « au prix de l'offre »
+ * payée en porte une). La carte du Catalogue affiche alors « Offerte ».
+ */
+export function isOfferedAccess(sub: { invitation_id?: string | null; stripe_subscription_id?: string | null } | null): boolean {
+  return !!sub?.invitation_id && !sub.stripe_subscription_id;
+}
+
 /** Élément de la confirmation Refuser : « Force Hiver 6 sem · Box Bravo · Offerte ». */
 export function declineElement(i: ReceivedInvitation): string {
   return `${i.title} · ${publisherName(i)} · ${i.pricing === 'offered' ? 'Offerte' : formatOfferPrice(i)}`;
