@@ -779,6 +779,19 @@ export default function MembersPage() {
                         <div className="min-w-[10rem]">
                           <p className={`text-sm font-semibold break-words ${m.is_banned ? 'line-through text-ax-text-muted' : 'text-ax-text'}`}>{m.username}</p>
                           <p className="text-xs text-ax-text-muted [overflow-wrap:anywhere]">{m.email}</p>
+                          {toCollect && (
+                            // Sous le pseudo : la cellule (10rem min.) le contient, le tableau ne s'élargit pas, et il reste visible à 390 px.
+                            <button onClick={() => setCashRequest({
+                              target: { kind: 'member', boxMemberId: counter.box_member_id },
+                              who: m.username,
+                              planName: plans.find(p => p.id === counter.plan_id)?.name ?? null,
+                              priceCents: counter.price_cents,
+                              currentUntil: null,
+                            })}
+                              className="mt-1.5 inline-flex items-center gap-1 text-xs font-bold text-ax-warning bg-ax-warning-soft hover:brightness-110 rounded-ax-control px-2.5 py-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ax-focus">
+                              <Banknote size={13} /> Encaissement reçu
+                            </button>
+                          )}
                         </div>
                       </div>
                     </td>
@@ -808,19 +821,6 @@ export default function MembersPage() {
                       </span>
                     </td>
                     <td className="px-4 py-4 text-right whitespace-nowrap">
-                      {toCollect && (
-                        // Au-dessus de « Fiche · Bannir » : la colonne garde sa largeur, le tableau ne déborde pas.
-                        <button onClick={() => setCashRequest({
-                          target: { kind: 'member', boxMemberId: counter.box_member_id },
-                          who: m.username,
-                          planName: plans.find(p => p.id === counter.plan_id)?.name ?? null,
-                          priceCents: counter.price_cents,
-                          currentUntil: null,
-                        })}
-                          className="flex w-fit ml-auto items-center gap-1 text-xs font-bold text-ax-warning bg-ax-warning-soft hover:brightness-110 rounded-ax-control px-2.5 py-1.5 mb-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ax-focus">
-                          <Banknote size={13} /> Encaissement reçu
-                        </button>
-                      )}
                       <button onClick={() => setSheetMemberId(m.id)}
                         className="text-xs font-semibold text-ax-text-secondary hover:text-ax-text transition-colors mr-3">
                         Fiche
