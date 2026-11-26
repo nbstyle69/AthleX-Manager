@@ -6,7 +6,7 @@ import { Header } from "./header";
 import { Audience, FinalCta, Footer, Hero, Steps } from "./sections";
 import { Pricing } from "./pricing";
 import { Faq } from "./faq";
-import { AthletesContent } from "./athletes";
+import { AthletesContent, CoachsContent } from "./detail";
 
 type Meta = { title: string; description: string };
 
@@ -57,6 +57,7 @@ function LandingShell({
 
 const homeMeta = (l: Locale) => translations[l].meta;
 const athletesMeta = (l: Locale) => translations[l].athletes.meta;
+const coachsMeta = (l: Locale) => translations[l].coachs.meta;
 
 export function LandingPage({ initialLocale = "fr" }: { initialLocale?: Locale }) {
   return (
@@ -79,6 +80,14 @@ export function AthletesPage({ initialLocale = "fr" }: { initialLocale?: Locale 
   return (
     <LandingShell initialLocale={initialLocale} meta={athletesMeta} active="/athletes">
       {(locale) => <AthletesContent locale={locale} />}
+    </LandingShell>
+  );
+}
+
+export function CoachsPage({ initialLocale = "fr" }: { initialLocale?: Locale }) {
+  return (
+    <LandingShell initialLocale={initialLocale} meta={coachsMeta} active="/coachs">
+      {(locale) => <CoachsContent locale={locale} />}
     </LandingShell>
   );
 }

@@ -7,11 +7,9 @@ export const plans = {
   box: { monthly: 79, annual: 62 },
 };
 
-// Pages détaillées : /athletes (lot 2). Tant que /coachs (lot 3) n'est pas en
-// ligne, « Box & coachs » mène à la section « Pour qui ? » de l'accueil
-// (une ancre est préfixée par /landing hors de l'accueil, voir pageHref).
+// Pages détaillées : /athletes (lot 2) et /coachs (lot 3).
 export const athletesHref = "/athletes";
-export const coachsHref = "#pour-qui";
+export const coachsHref = "/coachs";
 
 // Lien interne qui garde la langue : ?lang=en sur les pages de la landing,
 // et /landing devant une ancre de l'accueil quand on n'y est pas.
@@ -267,7 +265,83 @@ export const translations = {
       exit: {
         title: "Prêt à t’entraîner ?",
         copy: "Crée ton compte, puis rejoins ta box avec son code.",
-        coachs: "Tu gères une box ou tu coaches ? Découvre l’espace Box & coachs",
+        other: "Tu gères une box ou tu coaches ? Découvre l’espace Box & coachs",
+      },
+    },
+    coachs: {
+      meta: {
+        title: "AthleX pour les box et les coachs — Gère. Anime. Développe.",
+        description:
+          "Programmation Functional, Hybrid et Musculation, planning et réservations, abonnements Stripe ou au comptoir, tournois et notifications : AthleX Manager pour les box et les coachs. Essai gratuit de 14 jours.",
+      },
+      breadcrumb: { home: "Accueil", current: "Box & coachs", label: "Fil d’Ariane" },
+      eyebrow: "Pour les box et les coachs",
+      title: "Gère. Anime. Développe.",
+      subtitle:
+        "Programmation, planning, membres, abonnements et tournois dans une seule console. Et une app pour tes membres.",
+      pricing: "Voir les tarifs",
+      reassurance: ["Sans carte bancaire", "Annulable à tout moment"],
+      stats: [
+        { value: "3", label: "pistes de programmation : Functional, Hybrid et Musculation" },
+        { value: "14 j", label: "d’essai gratuit du plan Box, sans carte bancaire" },
+        { value: "Stripe", label: "carte et prélèvement SEPA, ou paiement au comptoir" },
+      ],
+      features: [
+        {
+          label: "01 · Programmation",
+          title: "Ta programmation, prête chaque semaine.",
+          copy: "Le générateur prépare tes WOD par piste. Tu ajustes dans l’éditeur et tu publies sur le whiteboard.",
+          points: [
+            "Pistes Functional, Hybrid et Musculation",
+            "Éditeur : mouvements, texte libre, blocs Musculation et Cardio",
+            "Import d’une programmation en PDF",
+          ],
+        },
+        {
+          label: "02 · Planning",
+          title: "Ton planning, tes réservations.",
+          copy: "Définis tes horaires et tes créneaux types. Tes membres réservent depuis l’app.",
+          points: [
+            "Horaires et créneaux types",
+            "Places restantes affichées sur chaque créneau",
+            "Réservation suspendue après le délai d’impayé",
+          ],
+        },
+        {
+          label: "03 · Membres et abonnements",
+          title: "Tes abonnements, encaissés pour toi.",
+          copy: "Invite tes membres, attribue une formule et laisse Stripe prélever sur ton compte. Le comptoir reste possible.",
+          points: [
+            "Invitations par lien, QR code, e-mail ou CSV",
+            "Carte et prélèvement SEPA sur ton compte Stripe",
+            "Paiement au comptoir et suivi des impayés",
+          ],
+        },
+        {
+          label: "04 · Animation",
+          title: "Fais vivre ta communauté.",
+          copy: "Lance un tournoi de box, publie une annonce, envoie une notification à tes membres.",
+          points: [
+            "Tournois : classique, élimination simple, double élimination, ligue avec divisions",
+            "Annonces et notifications push",
+            "Classement ELO de ta box",
+          ],
+        },
+        {
+          label: "05 · Pilotage",
+          title: "Tes chiffres, en un coup d’œil.",
+          copy: "Le dashboard résume ta box : membres actifs, réservations, encaissements à suivre.",
+          points: [
+            "Dashboard et statistiques",
+            "Multi-coachs et rôles",
+            "Page publique de ta box dans l’annuaire",
+          ],
+        },
+      ],
+      exit: {
+        title: "Prêt à lancer ta box ?",
+        copy: "14 jours d’essai, sans carte bancaire. Annulable à tout moment.",
+        other: "Tu t’entraînes ? Découvre l’espace Athlètes",
       },
     },
     footer: {
@@ -517,7 +591,83 @@ export const translations = {
       exit: {
         title: "Ready to train?",
         copy: "Create your account, then join your gym with its code.",
-        coachs: "Run a gym or coach? Discover the Gyms & coaches space",
+        other: "Run a gym or coach? Discover the Gyms & coaches space",
+      },
+    },
+    coachs: {
+      meta: {
+        title: "AthleX for gyms and coaches — Manage. Connect. Grow.",
+        description:
+          "Functional, Hybrid and Strength programming, schedule and bookings, memberships through Stripe or at the front desk, tournaments and notifications: AthleX Manager for gyms and coaches. 14-day free trial.",
+      },
+      breadcrumb: { home: "Home", current: "Gyms & coaches", label: "Breadcrumb" },
+      eyebrow: "For gyms and coaches",
+      title: "Manage. Connect. Grow.",
+      subtitle:
+        "Programming, schedule, members, memberships and tournaments in one console. And an app for your members.",
+      pricing: "See pricing",
+      reassurance: ["No credit card", "Cancel anytime"],
+      stats: [
+        { value: "3", label: "programming tracks: Functional, Hybrid and Strength" },
+        { value: "14 days", label: "free trial of the Box plan, no credit card" },
+        { value: "Stripe", label: "card and SEPA Direct Debit, or payment at the front desk" },
+      ],
+      features: [
+        {
+          label: "01 · Programming",
+          title: "Your programming, ready every week.",
+          copy: "The generator prepares your WODs by track. You fine-tune them in the editor and publish to the whiteboard.",
+          points: [
+            "Functional, Hybrid and Strength tracks",
+            "Editor: movements, free text, Strength and Cardio blocks",
+            "Import a program from a PDF",
+          ],
+        },
+        {
+          label: "02 · Schedule",
+          title: "Your schedule, your bookings.",
+          copy: "Set your opening hours and template time slots. Your members book from the app.",
+          points: [
+            "Opening hours and template time slots",
+            "Spots left shown on every class",
+            "Booking suspended after the overdue grace period",
+          ],
+        },
+        {
+          label: "03 · Members and memberships",
+          title: "Your memberships, collected for you.",
+          copy: "Invite your members, assign a plan and let Stripe collect into your account. The front desk is still an option.",
+          points: [
+            "Invitations by link, QR code, email or CSV",
+            "Card and SEPA Direct Debit on your Stripe account",
+            "Front-desk payment and overdue tracking",
+          ],
+        },
+        {
+          label: "04 · Engagement",
+          title: "Bring your community to life.",
+          copy: "Run a gym tournament, post an announcement, send a notification to your members.",
+          points: [
+            "Tournaments: classic, single elimination, double elimination, league with divisions",
+            "Announcements and push notifications",
+            "Your gym’s ELO leaderboard",
+          ],
+        },
+        {
+          label: "05 · Insights",
+          title: "Your numbers at a glance.",
+          copy: "The dashboard sums up your gym: active members, bookings, payments to follow up.",
+          points: [
+            "Dashboard and statistics",
+            "Multiple coaches and roles",
+            "Your gym’s public page in the directory",
+          ],
+        },
+      ],
+      exit: {
+        title: "Ready to launch your gym?",
+        copy: "14-day trial, no credit card. Cancel anytime.",
+        other: "Do you train? Discover the Athletes space",
       },
     },
     footer: {

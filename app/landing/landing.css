@@ -1040,6 +1040,8 @@
 
 .athlex-landing .stats-grid {
   display: grid;
+  /* Empilées en mobile : toutes les cartes prennent la hauteur de la plus haute. */
+  grid-auto-rows: 1fr;
   gap: 12px;
   margin: 0;
   padding: 0 var(--lp-gutter);
@@ -1055,7 +1057,8 @@
   border-radius: var(--ax-radius-card);
 }
 .athlex-landing .stat-card strong {
-  flex: 0 0 92px;
+  flex: 0 0 auto;
+  min-width: 92px;
   font-size: 30px;
   font-weight: 700;
   line-height: 1.48;
@@ -1217,5 +1220,64 @@
   }
   .athlex-landing .features + .final-section {
     padding-block: 48px 96px;
+  }
+}
+
+/* ── Cadres de navigateur (/coachs ; maquettes 228:730 et 247:4394) ─────── */
+.athlex-landing .browser-slot {
+  width: 100%;
+  aspect-ratio: 600 / 420;
+  overflow: hidden;
+  background: var(--ax-background);
+  border: 1px solid var(--ax-input-border);
+  border-radius: var(--ax-radius-card);
+}
+.athlex-landing .browser-bar {
+  display: flex;
+  gap: 6px;
+  padding: 9px 12px;
+  border-bottom: 1px solid var(--ax-border);
+  background: var(--ax-surface);
+}
+.athlex-landing .browser-bar span {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--ax-input-border);
+}
+.athlex-landing .visual-browser,
+.athlex-landing .visual-browser-phone {
+  width: 100%;
+}
+.athlex-landing .visual-browser > div {
+  width: 100%;
+}
+/* Navigateur et téléphone qui le chevauche en bas à droite. */
+.athlex-landing .combo-slot {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 600 / 483;
+}
+.athlex-landing .combo-slot .browser-slot {
+  width: 93%;
+  aspect-ratio: 560 / 400;
+}
+.athlex-landing .combo-slot .phone-slot,
+.athlex-landing .detail-hero .combo-slot .phone-slot {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 34%;
+  aspect-ratio: 202 / 423;
+  border-width: 5px;
+  border-radius: 26px;
+}
+@media (min-width: 1024px) {
+  .athlex-landing .detail-hero-visual.visual-browser-phone {
+    flex: 0 1 600px;
+  }
+  /* Blocs pairs (texte à droite) : sans panneau, comme les maquettes bureau. */
+  .athlex-landing .feature-reverse {
+    background: none;
   }
 }
