@@ -431,12 +431,17 @@
 .athlex-landing .reassurance svg {
   color: var(--ax-accent-text);
 }
+/* Mobile (223:123) : le téléphone seul, centré. */
 .athlex-landing .hero-visual {
+  display: flex;
+  justify-content: center;
   width: 100%;
-  aspect-ratio: 350 / 518;
-  border: 1px solid var(--ax-border);
-  border-radius: var(--ax-radius-panel);
-  background: var(--ax-surface);
+}
+.athlex-landing .hero-visual .browser-slot {
+  display: none;
+}
+.athlex-landing .hero-visual .phone-slot {
+  width: 240px;
 }
 @media (min-width: 768px) {
   .athlex-landing .hero .actions {
@@ -456,9 +461,26 @@
   .athlex-landing .hero-subtitle {
     font-size: 19px;
   }
+  /* 222:27 : navigateur en haut à droite, téléphone qui le chevauche en bas à gauche. */
   .athlex-landing .hero-visual {
+    position: relative;
     max-width: 544px;
-    aspect-ratio: 544 / 520;
+    aspect-ratio: 544 / 495;
+  }
+  .athlex-landing .hero-visual .browser-slot {
+    display: flex;
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 92%;
+    aspect-ratio: 500 / 340;
+  }
+  .athlex-landing .hero-visual .phone-slot {
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    width: 40.6%;
+    aspect-ratio: 221 / 465;
   }
 }
 @media (min-width: 1024px) {
@@ -1026,8 +1048,9 @@
   justify-content: center;
 }
 
-/* Cadre de téléphone vide : la vraie capture arrive au lot 4. */
+/* Cadre de téléphone : la capture remplit l’écran. */
 .athlex-landing .phone-slot {
+  overflow: hidden;
   width: 232px;
   aspect-ratio: 272 / 575;
   background: var(--ax-background);
@@ -1225,6 +1248,8 @@
 
 /* ── Cadres de navigateur (/coachs ; maquettes 228:730 et 247:4394) ─────── */
 .athlex-landing .browser-slot {
+  display: flex;
+  flex-direction: column;
   width: 100%;
   aspect-ratio: 600 / 420;
   overflow: hidden;
@@ -1249,8 +1274,28 @@
 .athlex-landing .visual-browser-phone {
   width: 100%;
 }
-.athlex-landing .visual-browser > div {
+.athlex-landing .shot {
+  display: block;
   width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: top;
+}
+.athlex-landing .browser-slot .shot {
+  flex: 1 1 0;
+  min-height: 0;
+  object-position: left top;
+}
+/* Deux téléphones côte à côte : ils rétrécissent pour tenir dans la largeur. */
+.athlex-landing .phones-slot {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  width: 100%;
+}
+.athlex-landing .phones-slot .phone-slot {
+  flex: 0 1 auto;
+  min-width: 0;
 }
 /* Navigateur et téléphone qui le chevauche en bas à droite. */
 .athlex-landing .combo-slot {
@@ -1275,6 +1320,13 @@
 @media (min-width: 1024px) {
   .athlex-landing .detail-hero-visual.visual-browser-phone {
     flex: 0 1 600px;
+  }
+  /* 228:242 : le second téléphone un peu plus bas. */
+  .athlex-landing .phones-slot {
+    gap: 24px;
+  }
+  .athlex-landing .detail-hero .phones-slot .phone-slot + .phone-slot {
+    margin-top: 36px;
   }
   /* Blocs pairs (texte à droite) : sans panneau, comme les maquettes bureau. */
   .athlex-landing .feature-reverse {

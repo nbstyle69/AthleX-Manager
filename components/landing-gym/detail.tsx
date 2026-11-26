@@ -7,26 +7,44 @@ import {
   type Locale,
 } from "@/data/landing";
 import { CheckList, ONBOARDING, SIGNUP, StoreBadges } from "./sections";
+import { BrowserFrame, isApp, Shot, type Screen } from "./screens";
 
-// Emplacements des vraies captures (lot 4) : cadres vides, aucun écran dessiné.
-type Visual = "phone" | "browser" | "browser-phone";
+// Une ou deux captures par visuel : un écran d’app = téléphone, un écran du Manager =
+// navigateur ; Manager + app = navigateur que le téléphone chevauche ; deux écrans d’app =
+// deux téléphones côte à côte.
+type Visual = [Screen] | [Screen, Screen];
 
-function Slot({ kind }: { kind: Visual }) {
-  const browser = (
-    <div className="browser-slot">
-      <div className="browser-bar">
-        <span />
-        <span />
-        <span />
+const visualKind = ([first, second]: Visual) =>
+  isApp(first) ? (second ? "phones" : "phone") : second ? "browser-phone" : "browser";
+
+function Slot({ shots, locale, hero }: { shots: Visual; locale: Locale; hero: boolean }) {
+  const [first, second] = shots;
+  if (isApp(first)) {
+    const sizes = hero ? "(min-width: 768px) 248px, 182px" : "(min-width: 768px) 272px, 232px";
+    const phones = shots.map((s) => (
+      <div className="phone-slot" key={s}>
+        <Shot screen={s} locale={locale} sizes={sizes} priority={hero} />
       </div>
-    </div>
+    ));
+    return second ? <div className="phones-slot">{phones}</div> : phones[0];
+  }
+  const browser = (
+    <BrowserFrame>
+      <Shot
+        screen={first}
+        locale={locale}
+        sizes={second ? "(min-width: 1024px) 560px, 93vw" : "(min-width: 1024px) 600px, 100vw"}
+        priority={hero}
+      />
+    </BrowserFrame>
   );
-  if (kind === "phone") return <div className="phone-slot" aria-hidden="true" />;
-  if (kind === "browser") return <div aria-hidden="true">{browser}</div>;
+  if (!second) return browser;
   return (
-    <div className="combo-slot" aria-hidden="true">
+    <div className="combo-slot">
       {browser}
-      <div className="phone-slot" />
+      <div className="phone-slot">
+        <Shot screen={second} locale={locale} sizes="(min-width: 1024px) 204px, 34vw" priority={hero} />
+      </div>
     </div>
   );
 }
@@ -94,8 +112,8 @@ function DetailContent({
             </ul>
             {badges && <StoreBadges locale={locale} />}
           </div>
-          <div className={`detail-hero-visual visual-${heroVisual}`}>
-            <Slot kind={heroVisual} />
+          <div className={`detail-hero-visual visual-${visualKind(heroVisual)}`}>
+            <Slot shots={heroVisual} locale={locale} hero />
           </div>
         </div>
       </section>
@@ -124,8 +142,8 @@ function DetailContent({
               <p className="feature-copy">{feature.copy}</p>
               <CheckList items={feature.points} />
             </div>
-            <div className={`feature-visual visual-${featureVisuals[i]}`}>
-              <Slot kind={featureVisuals[i]} />
+            <div className={`feature-visual visual-${visualKind(featureVisuals[i])}`}>
+              <Slot shots={featureVisuals[i]} locale={locale} hero={false} />
             </div>
           </section>
         ))}
@@ -159,7 +177,14 @@ export function AthletesContent({ locale }: { locale: Locale }) {
         { label: t.athletes.find, href: "/box" },
       ]}
       badges
-      visuals={["phone", "phone", "phone", "phone", "phone", "phone"]}
+      visuals={[
+        ["appAccueil", "appMinuteur"],
+        ["appWod"],
+        ["appMinuteur"],
+        ["appBracket"],
+        ["appBadges"],
+        ["appReservation", "appAnnonces"],
+      ]}
       otherHref={pageHref(coachsHref, locale, false)}
     />
   );
@@ -176,7 +201,14 @@ export function CoachsContent({ locale }: { locale: Locale }) {
         { label: t.coachs.pricing, href: "/pricing" },
       ]}
       badges={false}
-      visuals={["browser-phone", "browser", "browser-phone", "browser", "browser", "browser"]}
+      visuals={[
+        ["managerDashboard", "appAnnonces"],
+        ["managerWhiteboard"],
+        ["managerHoraires", "appReservation"],
+        ["managerAbonnes"],
+        ["managerTournoi"],
+        ["managerDashboard"],
+      ]}
       otherHref={pageHref(athletesHref, locale, false)}
     />
   );
