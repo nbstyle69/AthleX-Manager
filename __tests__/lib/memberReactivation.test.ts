@@ -1,7 +1,7 @@
 // Débannir passe par `reactivate_box_member` ; son refus « abonnement en cours »
 // s'affiche dans une boîte d'information ; bannir passe par la route serveur.
 // Aucune écriture de `status` de box_members depuis le navigateur.
-import { readFileSync, readdirSync, statSync } from 'fs';
+import { existsSync, readFileSync, readdirSync, statSync } from 'fs';
 import { join } from 'path';
 import { reactivationErrorBox } from '@/lib/memberReactivation';
 import { ERROR_TITLE } from '@/lib/confirmDialog';
@@ -39,7 +39,8 @@ describe('page Membres', () => {
 });
 
 it('aucune écriture de `status` de box_members depuis le navigateur (bannir, débannir)', () => {
-  const walk = (d: string): string[] => readdirSync(d).flatMap(n => {
+  // Un dossier absent (hooks/ depuis le lot 1 de la landing) n'est pas une erreur.
+  const walk = (d: string): string[] => (existsSync(d) ? readdirSync(d) : []).flatMap(n => {
     const p = join(d, n);
     if (statSync(p).isDirectory()) return n === 'api' && d.endsWith('app') ? [] : walk(p);
     return /\.tsx?$/.test(n) ? [p] : [];

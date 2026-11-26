@@ -987,3 +987,235 @@
     font-size: 14px;
   }
 }
+
+/* ── Lien actif de la navigation ──────────────────────────────────────── */
+.athlex-landing .desktop-nav a[aria-current="page"],
+.athlex-landing .mobile-nav a[aria-current="page"],
+.athlex-landing .footer-columns a[aria-current="page"] {
+  color: var(--ax-accent-text);
+}
+
+/* ── Pages détaillées (/athletes ; maquettes 228:242 et 247:3711) ─────── */
+.athlex-landing .breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--ax-text-muted);
+}
+.athlex-landing .breadcrumb a {
+  color: var(--ax-text-secondary);
+}
+.athlex-landing .breadcrumb a:hover {
+  color: var(--ax-text);
+}
+.athlex-landing .breadcrumb [aria-current="page"] {
+  font-weight: 600;
+  color: var(--ax-text);
+}
+.athlex-landing .detail-hero .hero-inner {
+  padding-top: 28px;
+  padding-bottom: 48px;
+}
+.athlex-landing .detail-hero .hero-text {
+  gap: 18px;
+}
+.athlex-landing .detail-hero-visual,
+.athlex-landing .feature-visual {
+  display: flex;
+  justify-content: center;
+}
+
+/* Cadre de téléphone vide : la vraie capture arrive au lot 4. */
+.athlex-landing .phone-slot {
+  width: 232px;
+  aspect-ratio: 272 / 575;
+  background: var(--ax-background);
+  border: 5px solid var(--ax-input-border);
+  border-radius: 30px;
+}
+.athlex-landing .detail-hero .phone-slot {
+  width: 182px;
+}
+
+.athlex-landing .stats-grid {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+  padding: 0 var(--lp-gutter);
+  list-style: none;
+}
+.athlex-landing .stat-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 20px;
+  background: var(--ax-surface);
+  border: 1px solid var(--ax-border);
+  border-radius: var(--ax-radius-card);
+}
+.athlex-landing .stat-card strong {
+  flex: 0 0 92px;
+  font-size: 30px;
+  font-weight: 700;
+  line-height: 1.48;
+  color: var(--ax-accent-text);
+}
+.athlex-landing .stat-card span {
+  font-size: 14px;
+  line-height: 1.4;
+  color: var(--ax-text-secondary);
+}
+
+.athlex-landing .features {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 40px;
+  padding: 48px var(--lp-gutter);
+  background: var(--ax-surface-secondary);
+}
+.athlex-landing .features + .final-section {
+  padding-block: 32px 48px;
+}
+.athlex-landing .feature-block {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 20px;
+  background: var(--ax-background);
+  border-radius: var(--ax-radius-panel);
+}
+.athlex-landing .feature-text {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.athlex-landing .feature-text h2 {
+  margin: 0;
+  font-size: 26px;
+  font-weight: 700;
+  line-height: 1.1;
+  text-transform: uppercase;
+}
+.athlex-landing .feature-copy {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.55;
+  color: var(--ax-text-secondary);
+}
+.athlex-landing .feature-text .check-list {
+  gap: 8px;
+}
+.athlex-landing .feature-visual {
+  padding-top: 8px;
+}
+
+.athlex-landing .detail-final {
+  gap: 14px;
+  padding: 36px 20px;
+}
+.athlex-landing .detail-final .text-link {
+  justify-content: center;
+  line-height: 1.4;
+}
+.athlex-landing .detail-final .text-link svg {
+  flex-shrink: 0;
+}
+
+@media (min-width: 768px) {
+  .athlex-landing .phone-slot {
+    width: 272px;
+    border-width: 6px;
+    border-radius: 36px;
+  }
+  .athlex-landing .detail-hero .phone-slot {
+    width: 248px;
+  }
+  .athlex-landing .stats-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
+  }
+  .athlex-landing .stat-card {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+    padding: 24px;
+  }
+  .athlex-landing .stat-card strong {
+    flex: none;
+    font-size: 40px;
+  }
+  .athlex-landing .stat-card span {
+    font-size: 15px;
+  }
+  .athlex-landing .detail-final {
+    gap: 18px;
+    padding: 56px 48px;
+  }
+  .athlex-landing .detail-final h2 {
+    font-size: 44px;
+  }
+  .athlex-landing .detail-final > p {
+    font-size: 17px;
+  }
+}
+@media (min-width: 1024px) {
+  .athlex-landing .detail-hero .hero-inner {
+    gap: 48px;
+    padding-block: 80px 88px;
+  }
+  .athlex-landing .detail-hero .hero-text {
+    flex: 1 1 0;
+    gap: 22px;
+  }
+  .athlex-landing .detail-hero h1 {
+    max-width: 560px;
+    font-size: 60px;
+  }
+  .athlex-landing .detail-hero .hero-subtitle {
+    font-size: 18px;
+  }
+  .athlex-landing .detail-hero-visual {
+    flex: 0 0 auto;
+  }
+  .athlex-landing .features {
+    gap: 24px;
+    margin-top: 0;
+    padding: 96px var(--lp-gutter) 48px;
+    background: none;
+  }
+  .athlex-landing .feature-block {
+    flex-direction: row;
+    align-items: center;
+    gap: 72px;
+    padding: 48px;
+    background: var(--ax-surface-secondary);
+  }
+  .athlex-landing .feature-reverse {
+    flex-direction: row-reverse;
+  }
+  .athlex-landing .feature-text {
+    flex: 0 1 440px;
+    gap: 16px;
+  }
+  .athlex-landing .feature-text .eyebrow {
+    letter-spacing: 0.1em;
+  }
+  .athlex-landing .feature-text h2 {
+    font-size: 34px;
+  }
+  .athlex-landing .feature-copy {
+    font-size: 16px;
+  }
+  .athlex-landing .feature-text .check-list {
+    gap: 10px;
+  }
+  .athlex-landing .feature-visual {
+    flex: 1 1 0;
+    padding-top: 0;
+  }
+  .athlex-landing .features + .final-section {
+    padding-block: 48px 96px;
+  }
+}

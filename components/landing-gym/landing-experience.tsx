@@ -1,13 +1,28 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { translations, type Locale } from "@/data/landing";
 import { Header } from "./header";
 import { Audience, FinalCta, Footer, Hero, Steps } from "./sections";
 import { Pricing } from "./pricing";
 import { Faq } from "./faq";
+import { AthletesContent } from "./athletes";
 
-export function LandingPage({ initialLocale = "fr" }: { initialLocale?: Locale }) {
+type Meta = { title: string; description: string };
+
+// Chrome commun des pages de la landing : langue (?lang=en), en-tête, pied de page.
+// `active` : chemin de la page (lien en menthe), absent sur l'accueil.
+function LandingShell({
+  initialLocale,
+  meta,
+  active,
+  children,
+}: {
+  initialLocale: Locale;
+  meta: (l: Locale) => Meta;
+  active?: string;
+  children: (locale: Locale) => ReactNode;
+}) {
   const [locale, setLocale] = useState<Locale>(initialLocale);
   useEffect(() => {
     const sync = () =>
@@ -19,11 +34,11 @@ export function LandingPage({ initialLocale = "fr" }: { initialLocale?: Locale }
   }, []);
   useEffect(() => {
     document.documentElement.lang = locale;
-    document.title = translations[locale].meta.title;
+    document.title = meta(locale).title;
     document
       .querySelector('meta[name="description"]')
-      ?.setAttribute("content", translations[locale].meta.description);
-  }, [locale]);
+      ?.setAttribute("content", meta(locale).description);
+  }, [locale, meta]);
   const changeLocale = (l: Locale) => {
     setLocale(l);
     const url = new URL(window.location.href);
@@ -33,16 +48,37 @@ export function LandingPage({ initialLocale = "fr" }: { initialLocale?: Locale }
   };
   return (
     <div className="landing-shell">
-      <Header locale={locale} onLocale={changeLocale} />
-      <main id="main">
-        <Hero locale={locale} />
-        <Audience locale={locale} />
-        <Steps locale={locale} />
-        <Pricing locale={locale} />
-        <Faq locale={locale} />
-        <FinalCta locale={locale} />
-      </main>
-      <Footer locale={locale} onLocale={changeLocale} />
+      <Header locale={locale} onLocale={changeLocale} active={active} />
+      <main id="main">{children(locale)}</main>
+      <Footer locale={locale} onLocale={changeLocale} active={active} />
     </div>
+  );
+}
+
+const homeMeta = (l: Locale) => translations[l].meta;
+const athletesMeta = (l: Locale) => translations[l].athletes.meta;
+
+export function LandingPage({ initialLocale = "fr" }: { initialLocale?: Locale }) {
+  return (
+    <LandingShell initialLocale={initialLocale} meta={homeMeta}>
+      {(locale) => (
+        <>
+          <Hero locale={locale} />
+          <Audience locale={locale} />
+          <Steps locale={locale} />
+          <Pricing locale={locale} />
+          <Faq locale={locale} />
+          <FinalCta locale={locale} />
+        </>
+      )}
+    </LandingShell>
+  );
+}
+
+export function AthletesPage({ initialLocale = "fr" }: { initialLocale?: Locale }) {
+  return (
+    <LandingShell initialLocale={initialLocale} meta={athletesMeta} active="/athletes">
+      {(locale) => <AthletesContent locale={locale} />}
+    </LandingShell>
   );
 }

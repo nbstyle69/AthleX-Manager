@@ -6,7 +6,7 @@ jest.mock('@/lib/supabase/server', () => ({
   createServiceClient: jest.fn(),
 }));
 
-import { readFileSync, readdirSync, statSync } from 'fs';
+import { existsSync, readFileSync, readdirSync, statSync } from 'fs';
 import { join } from 'path';
 import { POST } from '../../app/api/members/assign-plan/route';
 import { getServerUser, createServiceClient } from '@/lib/supabase/server';
@@ -91,7 +91,8 @@ describe('POST /api/members/assign-plan', () => {
 
 describe('aucune écriture de facturation de box_members depuis le navigateur', () => {
   const BILLING = /\b(plan_id|stripe_[a-z_]+|subscription_[a-z_]+|commitment_end_date|amount_cents|pause_[a-z_]+|dunning_[a-z_]+|past_due_since|payment_method_type|last_payment_error)\s*:/;
-  const walk = (d: string): string[] => readdirSync(d).flatMap(n => {
+  // Un dossier absent (hooks/ depuis le lot 1 de la landing) n'est pas une erreur.
+  const walk = (d: string): string[] => (existsSync(d) ? readdirSync(d) : []).flatMap(n => {
     const p = join(d, n);
     if (statSync(p).isDirectory()) return n === 'api' && d.endsWith('app') ? [] : walk(p);
     return /\.tsx?$/.test(n) ? [p] : [];
