@@ -1,40 +1,43 @@
 "use client";
+import { useState } from "react";
+import { ArrowRight } from "lucide-react";
 import {
   Accordion,
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { translations, type Locale } from "@/data/landing";
+import { homeFaq, translations, type Locale } from "@/data/landing";
+import { SectionHeading } from "./sections";
+
 export function Faq({ locale }: { locale: Locale }) {
+  const [all, setAll] = useState(false);
   const t = translations[locale].faq;
+  const shown = t.entries
+    .map((item, i) => ({ ...item, i }))
+    .filter(({ i }) => all || homeFaq.includes(i));
   return (
-    <section
-      id="faq"
-      data-zone={20}
-      className="shared-zone faq-section"
-      aria-labelledby="faq-title"
-    >
-      <div className="shared-heading">
-        <div className="zone-sign">{t.label}</div>
-        <h2 className="font-display" id="faq-title">
-          {t.title}
-        </h2>
-        <p>{t.copy}</p>
-      </div>
+    <section id="faq" className="section section-alt" aria-labelledby="faq-title">
+      <SectionHeading id="faq-title" label={t.label} title={t.title} />
       <Accordion
         type="single"
         collapsible
         className="faq-list"
         defaultValue="question-0"
       >
-        {t.entries.map((item, i) => (
+        {shown.map(({ question, answer, i }) => (
           <AccordionItem value={`question-${i}`} key={i}>
-            <AccordionTrigger>{item.question}</AccordionTrigger>
-            <AccordionContent>{item.answer}</AccordionContent>
+            <AccordionTrigger>{question}</AccordionTrigger>
+            <AccordionContent>{answer}</AccordionContent>
           </AccordionItem>
         ))}
       </Accordion>
+      {!all && (
+        <button className="text-link" onClick={() => setAll(true)}>
+          {t.more}
+          <ArrowRight size={16} aria-hidden="true" />
+        </button>
+      )}
     </section>
   );
 }

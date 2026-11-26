@@ -1,9 +1,10 @@
 import type { Metadata, Viewport } from 'next';
 import { LandingPage } from '@/components/landing-gym/landing-experience';
 import { translations } from '@/data/landing';
+import '@/components/landing/public-chrome.css';
 import './landing.css';
 
-type Props = { searchParams: Promise<{ lang?: string; profil?: string }> };
+type Props = { searchParams: Promise<{ lang?: string }> };
 
 export async function generateMetadata({ searchParams }: Props): Promise<Metadata> {
   const { lang } = await searchParams;
@@ -38,12 +39,10 @@ export const viewport: Viewport = {
 export default async function Page({ searchParams }: Props) {
   const params = await searchParams;
   return (
-    // Racine unique de `landing.css` : toutes ses règles et variables y sont bornées.
-    <div className="athlex-landing">
-      <LandingPage
-        initialLocale={params.lang === 'en' ? 'en' : 'fr'}
-        initialProfile={params.profil === 'athlete' || params.profil === 'pro' ? params.profil : null}
-      />
+    // Racine unique de `landing.css` : toutes ses règles y sont bornées.
+    // `axp-dark` rend aux jetons --ax-* leurs valeurs sombres en thème clair.
+    <div className="athlex-landing axp-dark">
+      <LandingPage initialLocale={params.lang === 'en' ? 'en' : 'fr'} />
     </div>
   );
 }
