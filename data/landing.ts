@@ -206,7 +206,7 @@ export const translations = {
       reassurance: ["iOS et Android", "Functional · Hybrid · Musculation"],
       stats: [
         { value: "3", label: "disciplines : Functional, Hybrid et Musculation" },
-        { value: "187", label: "badges de mouvement à débloquer" },
+        { value: "187", label: "badges à débloquer" },
         {
           value: "4",
           label: "formats de tournoi : classique, bracket, double élimination, divisions",
@@ -248,9 +248,9 @@ export const translations = {
           title: "Chaque répétition compte.",
           copy: "Tes répétitions débloquent des badges de mouvement. Ajoute tes amis et compare vos progrès.",
           points: [
-            "187 badges de mouvement",
+            "187 badges à débloquer",
             "Amis et profils",
-            "« Partager ma perf » en image",
+            "« Partager ma performance » en image",
           ],
         },
         {
@@ -456,7 +456,7 @@ export const translations = {
       reassurance: ["iOS and Android", "Functional · Hybrid · Strength"],
       stats: [
         { value: "3", label: "disciplines: Functional, Hybrid and Strength" },
-        { value: "187", label: "movement badges to unlock" },
+        { value: "187", label: "badges to unlock" },
         {
           value: "4",
           label: "tournament formats: classic, bracket, double elimination, divisions",
@@ -498,7 +498,7 @@ export const translations = {
           title: "Every rep counts.",
           copy: "Your reps unlock movement badges. Add your friends and compare your progress.",
           points: [
-            "187 movement badges",
+            "187 badges to unlock",
             "Friends and profiles",
             "“Share my performance” as an image",
           ],
