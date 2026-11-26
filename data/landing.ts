@@ -7,10 +7,20 @@ export const plans = {
   box: { monthly: 79, annual: 62 },
 };
 
-// Pages détaillées des lots 2 et 3 : tant qu'elles ne sont pas en ligne, les
-// liens « Athlètes » et « Box & coachs » mènent à la section « Pour qui ? ».
-export const athletesHref = "#pour-qui";
+// Pages détaillées : /athletes (lot 2). Tant que /coachs (lot 3) n'est pas en
+// ligne, « Box & coachs » mène à la section « Pour qui ? » de l'accueil
+// (une ancre est préfixée par /landing hors de l'accueil, voir pageHref).
+export const athletesHref = "/athletes";
 export const coachsHref = "#pour-qui";
+
+// Lien interne qui garde la langue : ?lang=en sur les pages de la landing,
+// et /landing devant une ancre de l'accueil quand on n'y est pas.
+export function pageHref(target: string, locale: Locale, onHome: boolean) {
+  const q = locale === "en" ? "?lang=en" : "";
+  if (target.startsWith("#")) return onHome ? target : `/landing${q}${target}`;
+  if (["/landing", "/athletes", "/coachs"].includes(target)) return target + q;
+  return target;
+}
 
 // Questions affichées sur l'accueil (indices dans faq.entries) ; « Voir toutes
 // les questions » déplie les autres.
@@ -180,6 +190,85 @@ export const translations = {
     exit: {
       title: "Prêt à passer au niveau supérieur ?",
       copy: "Ton prochain chapitre commence ici. Quel que soit ton terrain.",
+    },
+    athletes: {
+      meta: {
+        title: "AthleX pour les athlètes — Entraîne-toi. Compète. Progresse.",
+        description:
+          "Séances Functional, Hybrid et Musculation générées pour toi, minuteur, records, tournois, classement ELO et badges : l’app AthleX pour les athlètes, sur iOS et Android.",
+      },
+      breadcrumb: { home: "Accueil", current: "Athlètes", label: "Fil d’Ariane" },
+      eyebrow: "Pour les athlètes",
+      title: "Entraîne-toi. Compète. Progresse.",
+      subtitle:
+        "Ta séance du jour, ton minuteur, tes records et tes tournois dans une seule app. Seul ou avec ta box.",
+      find: "Trouver une box",
+      reassurance: ["iOS et Android", "Functional · Hybrid · Musculation"],
+      stats: [
+        { value: "3", label: "disciplines : Functional, Hybrid et Musculation" },
+        { value: "187", label: "badges de mouvement à débloquer" },
+        {
+          value: "4",
+          label: "formats de tournoi : classique, bracket, double élimination, divisions",
+        },
+      ],
+      features: [
+        {
+          label: "01 · Séances",
+          title: "Ta séance du jour, générée pour toi.",
+          copy: "Choisis ta discipline, ton temps et ton matériel : AthleX compose un WOD ou une séance de musculation.",
+          points: [
+            "Functional, Hybrid et Musculation",
+            "WOD express quand tu es pressé",
+            "« Après ma classe » pour compléter ta séance de box",
+          ],
+        },
+        {
+          label: "02 · Minuteur et records",
+          title: "Chronomètre. Saisis. Progresse.",
+          copy: "Le minuteur suit le format de ta séance. Ton score rejoint ton historique et tes records se mettent à jour.",
+          points: [
+            "For Time, AMRAP, EMOM, Tabata",
+            "Séries de musculation et 1RM recalculé",
+            "Records de gymnastique en répétitions",
+          ],
+        },
+        {
+          label: "03 · Tournois et ELO",
+          title: "Affronte ta box. Grimpe au classement.",
+          copy: "Inscris-toi aux tournois de ta box, enchaîne les WOD et fais monter ton ELO.",
+          points: [
+            "Classique, bracket, double élimination, divisions",
+            "Classement ELO de ta box et global",
+            "Résultats validés par ton coach",
+          ],
+        },
+        {
+          label: "04 · Badges et amis",
+          title: "Chaque répétition compte.",
+          copy: "Tes répétitions débloquent des badges de mouvement. Ajoute tes amis et compare vos progrès.",
+          points: [
+            "187 badges de mouvement",
+            "Amis et profils",
+            "« Partager ma perf » en image",
+          ],
+        },
+        {
+          label: "05 · Ta box",
+          title: "Ta box dans ta poche.",
+          copy: "Réserve ton créneau, consulte le whiteboard du jour, lis les annonces et suis ton abonnement.",
+          points: [
+            "Réservation des cours",
+            "Whiteboard et classement de la séance",
+            "Annonces et notifications de ta box",
+          ],
+        },
+      ],
+      exit: {
+        title: "Prêt à t’entraîner ?",
+        copy: "Crée ton compte, puis rejoins ta box avec son code.",
+        coachs: "Tu gères une box ou tu coaches ? Découvre l’espace Box & coachs",
+      },
     },
     footer: {
       description:
@@ -351,6 +440,85 @@ export const translations = {
     exit: {
       title: "Ready to reach the next level?",
       copy: "Your next chapter starts here. Whatever your training ground.",
+    },
+    athletes: {
+      meta: {
+        title: "AthleX for athletes — Train. Compete. Progress.",
+        description:
+          "Functional, Hybrid and Strength sessions generated for you, timer, records, tournaments, ELO leaderboard and badges: the AthleX app for athletes, on iOS and Android.",
+      },
+      breadcrumb: { home: "Home", current: "Athletes", label: "Breadcrumb" },
+      eyebrow: "For athletes",
+      title: "Train. Compete. Progress.",
+      subtitle:
+        "Your workout of the day, your timer, your records and your tournaments in one app. On your own or with your gym.",
+      find: "Find a gym",
+      reassurance: ["iOS and Android", "Functional · Hybrid · Strength"],
+      stats: [
+        { value: "3", label: "disciplines: Functional, Hybrid and Strength" },
+        { value: "187", label: "movement badges to unlock" },
+        {
+          value: "4",
+          label: "tournament formats: classic, bracket, double elimination, divisions",
+        },
+      ],
+      features: [
+        {
+          label: "01 · Workouts",
+          title: "Your workout of the day, built for you.",
+          copy: "Pick your discipline, your time and your equipment: AthleX builds a WOD or a strength session.",
+          points: [
+            "Functional, Hybrid and Strength",
+            "Express WOD when you’re short on time",
+            "“After my class” to round off your gym session",
+          ],
+        },
+        {
+          label: "02 · Timer and records",
+          title: "Time it. Log it. Progress.",
+          copy: "The timer follows your session’s format. Your score joins your history and your records update.",
+          points: [
+            "For Time, AMRAP, EMOM, Tabata",
+            "Strength sets and recalculated 1RM",
+            "Gymnastics records in reps",
+          ],
+        },
+        {
+          label: "03 · Tournaments and ELO",
+          title: "Take on your gym. Climb the leaderboard.",
+          copy: "Sign up for your gym’s tournaments, chain the WODs and push your ELO up.",
+          points: [
+            "Classic, bracket, double elimination, divisions",
+            "ELO leaderboard for your gym and worldwide",
+            "Results validated by your coach",
+          ],
+        },
+        {
+          label: "04 · Badges and friends",
+          title: "Every rep counts.",
+          copy: "Your reps unlock movement badges. Add your friends and compare your progress.",
+          points: [
+            "187 movement badges",
+            "Friends and profiles",
+            "“Share my performance” as an image",
+          ],
+        },
+        {
+          label: "05 · Your gym",
+          title: "Your gym in your pocket.",
+          copy: "Book your class, check today’s whiteboard, read the announcements and follow your membership.",
+          points: [
+            "Class booking",
+            "Whiteboard and session leaderboard",
+            "Announcements and notifications from your gym",
+          ],
+        },
+      ],
+      exit: {
+        title: "Ready to train?",
+        copy: "Create your account, then join your gym with its code.",
+        coachs: "Run a gym or coach? Discover the Gyms & coaches space",
+      },
     },
     footer: {
       description:

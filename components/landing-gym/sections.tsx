@@ -2,14 +2,15 @@ import { ArrowRight, Check, Smartphone, User, Users } from "lucide-react";
 import {
   athletesHref,
   coachsHref,
+  pageHref,
   translations,
   type Locale,
 } from "@/data/landing";
 import { APP_STORE_URL, PLAY_STORE_URL } from "@/lib/store-links";
 import { Brand, LanguageSwitch, navLinks } from "./header";
 
-const SIGNUP = "/signup";
-const ONBOARDING = "/pricing/onboarding";
+export const SIGNUP = "/signup";
+export const ONBOARDING = "/pricing/onboarding";
 
 export function SectionHeading({
   label,
@@ -120,7 +121,7 @@ export function Audience({ locale }: { locale: Locale }) {
       action: c.signup,
       href: SIGNUP,
       primary: false,
-      moreHref: athletesHref,
+      moreHref: pageHref(athletesHref, locale, true),
     },
     {
       ...t.pro,
@@ -128,7 +129,7 @@ export function Audience({ locale }: { locale: Locale }) {
       action: c.trial,
       href: ONBOARDING,
       primary: true,
-      moreHref: coachsHref,
+      moreHref: pageHref(coachsHref, locale, true),
     },
   ];
   return (
@@ -217,12 +218,14 @@ export function FinalCta({ locale }: { locale: Locale }) {
 export function Footer({
   locale,
   onLocale,
+  active,
 }: {
   locale: Locale;
   onLocale: (l: Locale) => void;
+  active?: string;
 }) {
   const t = translations[locale].footer;
-  const [athletes, coachs, pricing, faq, find, ranking] = navLinks(locale);
+  const [athletes, coachs, pricing, faq, find, ranking] = navLinks(locale, active);
   const columns = [
     [t.product, [athletes, coachs, pricing, faq]],
     [t.discover, [find, ranking]],
@@ -239,7 +242,7 @@ export function Footer({
     <footer className="site-footer">
       <div className="footer-top">
         <div className="footer-brand">
-          <Brand />
+          <Brand locale={locale} />
           <p>{t.description}</p>
         </div>
         <div className="footer-columns">

@@ -4,13 +4,14 @@ import { ArrowRight, Menu, X } from "lucide-react";
 import {
   athletesHref,
   coachsHref,
+  pageHref,
   translations,
   type Locale,
 } from "@/data/landing";
 
-export function Brand() {
+export function Brand({ locale = "fr" }: { locale?: Locale }) {
   return (
-    <a className="brand" href="/landing" aria-label="AthleX">
+    <a className="brand" href={pageHref("/landing", locale, false)} aria-label="AthleX">
       <img src="/athex-mark-light.png" alt="" width={30} height={30} />
       <span className="font-display">ATHLEX</span>
     </a>
@@ -49,28 +50,32 @@ export function LanguageSwitch({
   );
 }
 
-export function navLinks(locale: Locale) {
+// `active` : chemin de la page en cours (lien en menthe), absent sur l'accueil.
+export function navLinks(locale: Locale, active?: string) {
   const t = translations[locale].nav;
+  const href = (target: string) => pageHref(target, locale, !active);
   return [
-    [t.athletes, athletesHref],
-    [t.coachs, coachsHref],
-    [t.pricing, "#tarifs"],
-    [t.faq, "#faq"],
-    [t.find, "/box"],
-    [t.ranking, "/classement"],
+    [t.athletes, href(athletesHref), athletesHref === active],
+    [t.coachs, href(coachsHref), coachsHref === active],
+    [t.pricing, href("#tarifs"), false],
+    [t.faq, href("#faq"), false],
+    [t.find, "/box", false],
+    [t.ranking, "/classement", false],
   ] as const;
 }
 
 export function Header({
   locale,
   onLocale,
+  active,
 }: {
   locale: Locale;
   onLocale: (l: Locale) => void;
+  active?: string;
 }) {
   const [menu, setMenu] = useState(false);
   const t = translations[locale].nav;
-  const links = navLinks(locale);
+  const links = navLinks(locale, active);
   return (
     <>
       <a className="skip-link" href="#main">
@@ -79,10 +84,10 @@ export function Header({
       <header className="site-header">
         <div className="header-inner">
           <div className="header-left">
-            <Brand />
+            <Brand locale={locale} />
             <nav className="desktop-nav" aria-label={t.main}>
-              {links.map(([label, href]) => (
-                <a key={label} href={href}>
+              {links.map(([label, href, current]) => (
+                <a key={label} href={href} aria-current={current ? "page" : undefined}>
                   {label}
                 </a>
               ))}
@@ -110,8 +115,13 @@ export function Header({
         </div>
         {menu && (
           <nav id="mobile-nav" className="mobile-nav" aria-label={t.main}>
-            {links.map(([label, href]) => (
-              <a key={label} href={href} onClick={() => setMenu(false)}>
+            {links.map(([label, href, current]) => (
+              <a
+                key={label}
+                href={href}
+                aria-current={current ? "page" : undefined}
+                onClick={() => setMenu(false)}
+              >
                 {label}
               </a>
             ))}
