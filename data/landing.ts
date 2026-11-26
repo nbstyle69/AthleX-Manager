@@ -148,7 +148,7 @@ export const translations = {
         {
           question: "Mes athlètes doivent-ils payer l’application ?",
           answer:
-            "Non. L’app mobile iOS et Android est gratuite pour tes athlètes : ils créent un compte et rejoignent ta box avec ton code d’invitation. Elle sera bientôt disponible.",
+            "Non. L’application est gratuite pour tes athlètes, sur l’App Store et Google Play.",
         },
         {
           question: "Comment sont gérés les paiements des abonnements ?",
@@ -319,7 +319,7 @@ export const translations = {
         {
           question: "Do my athletes have to pay for the app?",
           answer:
-            "No. The iOS and Android app is free for your athletes: they create an account and join your gym with your invitation code. It is coming soon.",
+            "No. The app is free for your athletes, on the App Store and Google Play.",
         },
         {
           question: "How are membership payments handled?",
