@@ -78,7 +78,7 @@ function monde(membre: Record<string, unknown> = ENLIGNE, extra: Record<string, 
   (createServiceClient as jest.Mock).mockReturnValue(db.client);
 }
 
-const req = (body: unknown = {}): any => ({ json: jest.fn().mockResolvedValue(body), headers: { get: () => null } });
+const req = (body: unknown = {}): any => ({ json: jest.fn().mockResolvedValue(body), headers: { get: () => null }, nextUrl: new URL('http://localhost/') });
 const ecritures = (table: string) => db.writes.filter((w) => w.table === table);
 
 function stripeParDefaut() {

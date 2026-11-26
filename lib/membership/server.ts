@@ -136,6 +136,18 @@ export function logStripeError(route: string, etape: string, err: any) {
   }));
 }
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** `box_id` facultatif : absent → undefined, UUID → la box, autre chose → null (400 INVALID_BOX_ID). */
+export function optionalBoxId(raw: unknown): string | undefined | null {
+  if (raw === undefined || raw === null) return undefined;
+  return typeof raw === 'string' && UUID_RE.test(raw) ? raw : null;
+}
+
+export function invalidBoxIdError() {
+  return NextResponse.json({ error: 'Box invalide.', code: 'INVALID_BOX_ID' }, { status: 400 });
+}
+
 /** Refus nommé : `{ error, code }`, 409 par défaut. */
 export function planChangeError(code: PlanChangeCode, status = 409) {
   return NextResponse.json({ error: PLAN_CHANGE_MESSAGES[code], code }, { status });
