@@ -8,6 +8,7 @@ import {
 } from "@/data/landing";
 import { APP_STORE_URL, PLAY_STORE_URL } from "@/lib/store-links";
 import { Brand, LanguageSwitch, navLinks } from "./header";
+import { BrowserFrame, Shot } from "./screens";
 
 export const SIGNUP = "/signup";
 export const ONBOARDING = "/pricing/onboarding";
@@ -104,8 +105,22 @@ export function Hero({ locale }: { locale: Locale }) {
           </ul>
           <StoreBadges locale={locale} />
         </div>
-        {/* Emplacement des vraies captures (lot 4). */}
-        <div className="hero-visual" aria-hidden="true" />
+        {/* Maquette 222:27 : dashboard du Manager, accueil de l’app qui le chevauche ;
+            en mobile (223:123), le téléphone seul. */}
+        <div className="hero-visual">
+          <BrowserFrame>
+            {/* Masqué en mobile : pas de préchargement, chargé à l’affichage. */}
+            <Shot screen="managerDashboard" locale={locale} sizes="(min-width: 1024px) 500px, 92vw" />
+          </BrowserFrame>
+          <div className="phone-slot">
+            <Shot
+              screen="appAccueil"
+              locale={locale}
+              sizes="(min-width: 1024px) 221px, (min-width: 768px) 40vw, 240px"
+              priority
+            />
+          </div>
+        </div>
       </div>
     </section>
   );

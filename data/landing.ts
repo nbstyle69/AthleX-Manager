@@ -355,6 +355,21 @@ export const translations = {
       legal: "Mentions légales",
       copyright: "© 2026 AthleX — NBS Innovation. Tous droits réservés.",
     },
+    // Textes alternatifs des captures (maquettes, données fictives).
+    screens: {
+      appAccueil: "Écran d’accueil de l’app AthleX : ELO, actu de la box, semaine",
+      appMinuteur: "Minuteur de l’app AthleX en cours : format For Time, mouvement suivant",
+      appWod: "Écran « Ton WOD » de l’app AthleX : séance générée, mouvements et durée estimée",
+      appBracket: "Tournoi dans l’app AthleX : bracket à élimination directe",
+      appBadges: "Profil dans l’app AthleX : ELO, niveau et badges obtenus",
+      appReservation: "Réservation dans l’app AthleX : créneaux du jour et places restantes",
+      appAnnonces: "Annonces de la box dans l’app AthleX",
+      managerDashboard: "Dashboard d’AthleX Manager : tournois actifs, membres, scores en attente, code d’invitation",
+      managerWhiteboard: "Whiteboard d’AthleX Manager : WOD de la semaine par piste",
+      managerHoraires: "Horaires et créneaux dans AthleX Manager : grille hebdomadaire des cours",
+      managerAbonnes: "Abonnés dans AthleX Manager : abonnements actifs, impayés et demandes de résiliation",
+      managerTournoi: "Tournoi dans AthleX Manager : bracket à élimination simple",
+    },
   },
   en: {
     meta: {
@@ -680,6 +695,21 @@ export const translations = {
       terms: "Terms",
       legal: "Legal notice",
       copyright: "© 2026 AthleX — NBS Innovation. All rights reserved.",
+    },
+    // Alt text for the screenshots (mockups, fictional data).
+    screens: {
+      appAccueil: "AthleX app home screen: ELO, gym news, week",
+      appMinuteur: "AthleX app timer running: For Time format, next movement",
+      appWod: "“Your WOD” screen in the AthleX app: generated session, movements and estimated time",
+      appBracket: "Tournament in the AthleX app: single elimination bracket",
+      appBadges: "Profile in the AthleX app: ELO, level and earned badges",
+      appReservation: "Booking in the AthleX app: classes of the day and spots left",
+      appAnnonces: "Gym announcements in the AthleX app",
+      managerDashboard: "AthleX Manager dashboard: active tournaments, members, pending scores, invite code",
+      managerWhiteboard: "AthleX Manager whiteboard: the week’s WODs by track",
+      managerHoraires: "Opening hours and classes in AthleX Manager: weekly schedule grid",
+      managerAbonnes: "Subscribers in AthleX Manager: active subscriptions, overdue payments and cancellation requests",
+      managerTournoi: "Tournament in AthleX Manager: single elimination bracket",
     },
   },
 };
