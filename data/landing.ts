@@ -209,7 +209,7 @@ export const translations = {
         { value: "187", label: "badges à débloquer" },
         {
           value: "4",
-          label: "formats de tournoi : classique, bracket, double élimination, divisions",
+          label: "formats de tournoi : classique, élimination simple, double élimination, ligue avec divisions",
         },
       ],
       features: [
@@ -238,7 +238,7 @@ export const translations = {
           title: "Affronte ta box. Grimpe au classement.",
           copy: "Inscris-toi aux tournois de ta box, enchaîne les WOD et fais monter ton ELO.",
           points: [
-            "Classique, bracket, double élimination, divisions",
+            "Classique, élimination simple, double élimination, ligue avec divisions",
             "Classement ELO de ta box et global",
             "Résultats validés par ton coach",
           ],
@@ -459,7 +459,7 @@ export const translations = {
         { value: "187", label: "badges to unlock" },
         {
           value: "4",
-          label: "tournament formats: classic, bracket, double elimination, divisions",
+          label: "tournament formats: classic, single elimination, double elimination, league with divisions",
         },
       ],
       features: [
@@ -488,7 +488,7 @@ export const translations = {
           title: "Take on your gym. Climb the leaderboard.",
           copy: "Sign up for your gym’s tournaments, chain the WODs and push your ELO up.",
           points: [
-            "Classic, bracket, double elimination, divisions",
+            "Classic, single elimination, double elimination, league with divisions",
             "ELO leaderboard for your gym and worldwide",
             "Results validated by your coach",
           ],
