@@ -8,6 +8,7 @@ const FICHIERS = [
   'data/landing.ts',
   'app/landing/page.tsx',
   'app/athletes/page.tsx',
+  'app/coachs/page.tsx',
   'app/landing/landing.css',
   ...readdirSync(join(process.cwd(), DIR)).map((f) => `${DIR}/${f}`),
 ];
