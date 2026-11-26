@@ -1040,6 +1040,8 @@
 
 .athlex-landing .stats-grid {
   display: grid;
+  /* Empilées en mobile : toutes les cartes prennent la hauteur de la plus haute. */
+  grid-auto-rows: 1fr;
   gap: 12px;
   margin: 0;
   padding: 0 var(--lp-gutter);
