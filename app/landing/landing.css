@@ -1289,6 +1289,7 @@
 /* Deux téléphones côte à côte : ils rétrécissent pour tenir dans la largeur. */
 .athlex-landing .phones-slot {
   display: flex;
+  align-items: flex-start;
   justify-content: center;
   gap: 12px;
   width: 100%;
