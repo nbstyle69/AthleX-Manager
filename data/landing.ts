@@ -303,8 +303,8 @@ export const translations = {
           copy: "Définis tes horaires et tes créneaux types. Tes membres réservent depuis l’app.",
           points: [
             "Horaires et créneaux types",
-            "Places restantes en temps réel",
-            "Réservation bloquée en cas d’impayé",
+            "Places restantes affichées sur chaque créneau",
+            "Réservation suspendue après le délai d’impayé",
           ],
         },
         {
@@ -629,8 +629,8 @@ export const translations = {
           copy: "Set your opening hours and template time slots. Your members book from the app.",
           points: [
             "Opening hours and template time slots",
-            "Spots left in real time",
-            "Booking blocked when a payment is overdue",
+            "Spots left shown on every class",
+            "Booking suspended after the overdue grace period",
           ],
         },
         {
