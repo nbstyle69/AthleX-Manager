@@ -17,10 +17,27 @@ type Visual = [Screen] | [Screen, Screen];
 const visualKind = ([first, second]: Visual) =>
   isApp(first) ? (second ? "phones" : "phone") : second ? "browser-phone" : "browser";
 
+// Largeur affichée de chaque image (mesurée sur la preview, #479) : < 768 px, 768 à 1 023 px,
+// puis le maximum atteint à partir de 1 024 px. Les cadres retirent 10 px (téléphone) ou 2 px
+// (navigateur) de bordure ; la composition met le navigateur à 93 % et le téléphone à 34 %.
+const SIZES = {
+  heroPhone: "(min-width: 768px) 236px, 172px",
+  featurePhone: "(min-width: 768px) 260px, 222px",
+  heroComboBrowser:
+    "(min-width: 1024px) 640px, (min-width: 768px) calc((100vw - 80px) * 0.93), calc((100vw - 40px) * 0.93)",
+  heroComboPhone:
+    "(min-width: 1024px) 225px, (min-width: 768px) calc((100vw - 80px) * 0.34 - 10px), calc((100vw - 40px) * 0.34 - 10px)",
+  featureBrowser: "(min-width: 1024px) 678px, (min-width: 768px) calc(100vw - 122px), calc(100vw - 82px)",
+  featureComboBrowser:
+    "(min-width: 1024px) 630px, (min-width: 768px) calc((100vw - 120px) * 0.93), calc((100vw - 80px) * 0.93)",
+  featureComboPhone:
+    "(min-width: 1024px) 221px, (min-width: 768px) calc((100vw - 120px) * 0.34 - 10px), calc((100vw - 80px) * 0.34 - 10px)",
+};
+
 function Slot({ shots, locale, hero }: { shots: Visual; locale: Locale; hero: boolean }) {
   const [first, second] = shots;
   if (isApp(first)) {
-    const sizes = hero ? "(min-width: 768px) 248px, 182px" : "(min-width: 768px) 272px, 232px";
+    const sizes = hero ? SIZES.heroPhone : SIZES.featurePhone;
     const phones = shots.map((s) => (
       <div className="phone-slot" key={s}>
         <Shot screen={s} locale={locale} sizes={sizes} priority={hero} />
@@ -33,7 +50,9 @@ function Slot({ shots, locale, hero }: { shots: Visual; locale: Locale; hero: bo
       <Shot
         screen={first}
         locale={locale}
-        sizes={second ? "(min-width: 1024px) 560px, 93vw" : "(min-width: 1024px) 600px, 100vw"}
+        sizes={
+          !second ? SIZES.featureBrowser : hero ? SIZES.heroComboBrowser : SIZES.featureComboBrowser
+        }
         priority={hero}
       />
     </BrowserFrame>
@@ -43,7 +62,12 @@ function Slot({ shots, locale, hero }: { shots: Visual; locale: Locale; hero: bo
     <div className="combo-slot">
       {browser}
       <div className="phone-slot">
-        <Shot screen={second} locale={locale} sizes="(min-width: 1024px) 204px, 34vw" priority={hero} />
+        <Shot
+          screen={second}
+          locale={locale}
+          sizes={hero ? SIZES.heroComboPhone : SIZES.featureComboPhone}
+          priority={hero}
+        />
       </div>
     </div>
   );

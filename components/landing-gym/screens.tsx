@@ -28,6 +28,7 @@ export function Shot({
       width={isApp(screen) ? 780 : 2400}
       height={isApp(screen) ? 1688 : 1572}
       sizes={sizes}
+      quality={90}
       priority={priority}
     />
   );
