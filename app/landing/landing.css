@@ -22,7 +22,9 @@
 }
 @media (min-width: 1280px) {
   .athlex-landing {
-    --lp-gutter: 120px;
+    /* Contenu borné à 1 200 px et centré (#479) : la gouttière grandit au-delà de 1 440 px.
+       Le % se résout dans chaque section, sur la largeur de la page. */
+    --lp-gutter: max(120px, calc((100% - 1200px) / 2));
   }
 }
 
@@ -1320,7 +1322,25 @@
 }
 @media (min-width: 1024px) {
   .athlex-landing .detail-hero-visual.visual-browser-phone {
-    flex: 0 1 600px;
+    flex: 0 1 690px;
+  }
+  /* /coachs (266:6518) : texte 480 px, composition 690 px, écart 30 px. */
+  .athlex-landing .detail-hero .hero-inner:has(.visual-browser-phone) {
+    gap: 30px;
+  }
+  .athlex-landing .detail-hero .hero-inner:has(.visual-browser-phone) .hero-text {
+    flex: 0 1 480px;
+  }
+  /* /coachs, blocs avec le Manager : padding 48/32, texte 400, écart 56, visuel 680. */
+  .athlex-landing .feature-block:has(.browser-slot) {
+    gap: 56px;
+    padding: 48px 32px;
+  }
+  .athlex-landing .feature-block:has(.browser-slot) .feature-text {
+    flex: 0 1 400px;
+  }
+  .athlex-landing .feature-block:has(.browser-slot) .feature-visual {
+    flex: 0 1 680px;
   }
   /* 228:242 : le second téléphone un peu plus bas. */
   .athlex-landing .phones-slot {
