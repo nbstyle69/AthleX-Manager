@@ -4,6 +4,9 @@ import { createClient, createServiceClient } from '@/lib/supabase/server';
 import { isBoxOwnerAdmin } from '@/lib/isBoxOwnerAdmin';
 import { SITE_URL } from '@/lib/site-url';
 import { refuseClosedBox } from '@/lib/boxEntryGuard';
+import {
+  OFFER_RESERVED_MESSAGE, checkCheckoutInvitation, checkoutExpiresAt, type InvitationRow,
+} from '@/lib/programmingInvitations';
 
 function getStripe() {
   return new Stripe(process.env.STRIPE_SECRET_KEY!, {
@@ -27,7 +30,7 @@ const PLATFORM_FEE_PERCENT = Number(process.env.PLATFORM_FEE_PERCENT ?? '4');
 export async function POST(req: NextRequest) {
   const stripe = getStripe();
   try {
-    const { programming_id, subscriber_box_id } = await req.json();
+    const { programming_id, subscriber_box_id, invitation_id } = await req.json();
     if (!programming_id || !subscriber_box_id) {
       return NextResponse.json(
         { error: 'programming_id et subscriber_box_id requis' },
@@ -51,7 +54,7 @@ export async function POST(req: NextRequest) {
     // Offre + éditrice.
     const { data: prog, error: progErr } = await supabase
       .from('box_programming')
-      .select('id, publisher_box_id, title, description, price_cents, currency, billing, is_published, stripe_product_id, stripe_price_id')
+      .select('id, publisher_box_id, title, description, price_cents, currency, billing, is_published, visibility, stripe_product_id, stripe_price_id')
       .eq('id', programming_id)
       .single();
     if (progErr || !prog) {
@@ -60,7 +63,8 @@ export async function POST(req: NextRequest) {
     const p = prog as unknown as {
       id: string; publisher_box_id: string; title: string; description: string | null;
       price_cents: number; currency: string; billing: 'free' | 'one_time' | 'monthly';
-      is_published: boolean; stripe_product_id: string | null; stripe_price_id: string | null;
+      is_published: boolean; visibility?: string | null;
+      stripe_product_id: string | null; stripe_price_id: string | null;
     };
 
     if (!p.is_published) {
@@ -90,6 +94,31 @@ export async function POST(req: NextRequest) {
       .maybeSingle();
     if ((existingSub as { status?: string } | null)?.status === 'active') {
       return NextResponse.json({ error: 'Cette box est déjà abonnée.' }, { status: 409 });
+    }
+
+    // Invitation « au prix de l'offre » (#461) : relue côté serveur, jamais crue
+    // du client. Une offre « sur invitation » sans invitation valable est refusée
+    // AVANT tout paiement : la base refuserait sinon l'activation au webhook.
+    let invitation: InvitationRow | null = null;
+    if (invitation_id) {
+      const { data: inv } = await supabase
+        .from('box_programming_invitations')
+        .select('id, programming_id, invited_box_id, pricing, status, expires_at')
+        .eq('id', invitation_id)
+        .maybeSingle();
+      const invRefus = checkCheckoutInvitation(inv as InvitationRow | null, p.id, subscriber_box_id);
+      if (invRefus) return NextResponse.json({ error: invRefus }, { status: 409 });
+      invitation = inv as InvitationRow;
+    }
+    if (p.visibility === 'invitation' && !invitation) {
+      return NextResponse.json({ error: OFFER_RESERVED_MESSAGE }, { status: 403 });
+    }
+    // La session expire au plus tard 5 min avant l'invitation (Stripe : 30 min à 24 h).
+    let sessionExpiresAt: number | undefined;
+    if (invitation) {
+      const exp = checkoutExpiresAt(invitation.expires_at);
+      if ('error' in exp) return NextResponse.json({ error: exp.error }, { status: 409 });
+      sessionExpiresAt = exp.expiresAt;
     }
 
     // Compte connecté de la box éditrice.
@@ -152,6 +181,7 @@ export async function POST(req: NextRequest) {
       created_by: user.id,
       amount_cents: String(p.price_cents),
       platform_fee_cents: String(feeAmount),
+      ...(invitation ? { invitation_id: invitation.id } : {}),
     };
 
     const session = await stripe.checkout.sessions.create(
@@ -175,6 +205,7 @@ export async function POST(req: NextRequest) {
             }),
         success_url: `${baseUrl}/programming?purchase=success`,
         cancel_url: `${baseUrl}/programming?purchase=cancel`,
+        ...(sessionExpiresAt ? { expires_at: sessionExpiresAt } : {}),
         metadata: meta,
       },
       { stripeAccount },

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import {
   Plus, Pencil, Trash2, X, Check, Loader2, Search, Package,
@@ -27,16 +27,15 @@ import { askDeleteWithSubscriptions, countOf } from '@/lib/deleteWithSubscriptio
 import { entryRefusalFrom, entryRefusalInfo } from '@/lib/entryRefusalView';
 import { parisDate } from '@/lib/datetime';
 import {
-  INVITATION_ONLY_DETAIL, formatOfferPrice, hasPending, offerBadge, pricingLabel, serverMessage, shortParisDate,
-  type SentInvitation, type Visibility,
+  INVITATION_ONLY_DETAIL, LEVEL_LABEL, declineElement, formatOfferPrice, hasPending, invitationLinkState, isOfferedAccess, offerBadge,
+  pricingLabel, publisherName, serverMessage, shortParisDate,
+  type ReceivedInvitation, type SentInvitation, type Visibility,
 } from '@/lib/programmingInvitations';
 import { InviteBoxModal, SentInvitationsBlock, type InvitePreset } from '@/components/marketplace/ProgrammingInvitations';
+import { AcceptInvitationModal, ReceivedInvitationsSection } from '@/components/marketplace/ReceivedInvitations';
 
 const DISCIPLINES = ['crossfit', 'hyrox', 'hybrid', 'haltero', 'endurance'];
 const LEVELS = ['all', 'beginner', 'intermediate', 'advanced'];
-const LEVEL_LABEL: Record<string, string> = {
-  all: 'Tous niveaux', beginner: 'Débutant', intermediate: 'Intermédiaire', advanced: 'Avancé',
-};
 const FIELD_CLS = 'min-h-11 rounded-ax-control border border-ax-input-border bg-ax-surface px-3 py-2.5 text-base sm:text-sm text-ax-text placeholder:text-ax-text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ax-focus focus-visible:ring-offset-2 focus-visible:ring-offset-ax-surface transition-colors';
 const INPUT_CLS = `w-full ${FIELD_CLS}`;
 
@@ -93,6 +92,8 @@ interface Subscription {
   stripe_subscription_id?: string | null;
   cancel_requested_at?: string | null;
   remove_future_on_cancel?: boolean;
+  /** Invitation d'origine (#461) : posée par accept_programming_invitation ou le webhook. */
+  invitation_id?: string | null;
 }
 
 /** Même condition que list_applicable_programmings / apply_program_week côté serveur. */
@@ -213,6 +214,7 @@ export default function MarketplaceWorkspace({ tab }: { tab: 'catalogue' | 'mine
           catalogue={catalogue} subs={subs} myBoxes={myBoxes} myBoxIds={myBoxIds}
           q={q} setQ={setQ} fDiscipline={fDiscipline} setFDiscipline={setFDiscipline}
           fLevel={fLevel} setFLevel={setFLevel} fFree={fFree} setFFree={setFFree}
+          activeBox={myBoxes.find((b) => b.id === activeBoxId) ?? null}
           onChanged={load}
         />
       ) : (
@@ -225,20 +227,91 @@ export default function MarketplaceWorkspace({ tab }: { tab: 'catalogue' | 'mine
 /* ─────────────────────────── Catalogue ─────────────────────────── */
 function Catalogue({
   catalogue, subs, myBoxes, myBoxIds, q, setQ, fDiscipline, setFDiscipline,
-  fLevel, setFLevel, fFree, setFFree, onChanged,
+  fLevel, setFLevel, fFree, setFFree, activeBox, onChanged,
 }: {
   catalogue: Programming[]; subs: Subscription[]; myBoxes: Box[]; myBoxIds: Set<string>;
   q: string; setQ: (v: string) => void; fDiscipline: string; setFDiscipline: (v: string) => void;
   fLevel: string; setFLevel: (v: string) => void; fFree: boolean; setFFree: (v: boolean) => void;
-  onChanged: () => void;
+  activeBox: Box | null; onChanged: () => void;
 }) {
+  const supabase = createClient();
+  const { dialog, ask, inform } = useConfirmDialog();
   const [subModal, setSubModal] = useState<Programming | null>(null);
   const [detail, setDetail] = useState<Programming | null>(null);
+
+  // ── Invitations reçues (#461, PR 3) : celles de la box active.
+  const [received, setReceived] = useState<ReceivedInvitation[]>([]);
+  const [receivedError, setReceivedError] = useState<string | null>(null);
+  const [accepting, setAccepting] = useState<ReceivedInvitation | null>(null);
+  const [invDetail, setInvDetail] = useState<ReceivedInvitation | null>(null);
+  const [invBusy, setInvBusy] = useState<string | null>(null);
+  const [highlightId, setHighlightId] = useState<string | null>(null);
+  const linkChecked = useRef(false);
+  // `inform` change à chaque rendu : l'effet du lien le lit par une référence.
+  const informRef = useRef(inform);
+  informRef.current = inform;
+  const activeBoxId = activeBox?.id ?? null;
+
+  const loadReceived = useCallback(async (): Promise<ReceivedInvitation[]> => {
+    if (!activeBoxId) { setReceived([]); return []; }
+    const { data, error } = await supabase.rpc('list_my_programming_invitations', { p_box_id: activeBoxId });
+    setReceivedError(error ? serverMessage(error.message) : null);
+    const list = (data ?? []) as ReceivedInvitation[];
+    setReceived(list);
+    return list;
+  }, [activeBoxId, supabase]);
+
+  // Lien de l'e-mail `/programming?invitation={id}` : lu une fois, après la
+  // première lecture. Une invitation d'une autre box du gérant n'est pas dans la
+  // liste : la box active n'est pas changée ici, la boîte « plus valable » s'affiche.
+  useEffect(() => {
+    void loadReceived().then((list) => {
+      if (linkChecked.current || typeof window === 'undefined') return;
+      linkChecked.current = true;
+      const param = new URLSearchParams(window.location.search).get('invitation');
+      const state = invitationLinkState(param, list);
+      // Lu une fois : retiré de l'adresse, sinon le rechargement qui suit une
+      // acceptation (Catalogue remonté) le relirait comme « plus valable ».
+      if (param) {
+        const url = new URL(window.location.href);
+        url.searchParams.delete('invitation');
+        window.history.replaceState(window.history.state, '', url.toString());
+      }
+      if (state === 'found') setHighlightId(param);
+      if (state === 'invalid') {
+        void informRef.current({
+          title: 'Invitation plus valable',
+          body: 'Cette invitation a expiré ou a été annulée. Demande à la box qui programme de te la renvoyer.',
+          kind: 'info', closeLabel: 'Fermer',
+        });
+      }
+    });
+  }, [loadReceived]);
+
+  function askDecline(i: ReceivedInvitation) {
+    const pub = publisherName(i);
+    return ask({
+      title: 'Refuser l\u2019invitation ?',
+      element: declineElement(i),
+      body: `${pub} verra « Refusée » dans son suivi. Si l\u2019offre est au catalogue, tu pourras toujours t\u2019y abonner plus tard ; sinon, il faudra une nouvelle invitation.`,
+      confirmLabel: 'Refuser', cancelLabel: 'Annuler', danger: true,
+      run: async () => {
+        setInvBusy(i.invitation_id);
+        const { error } = await supabase.rpc('decline_programming_invitation', { p_invitation_id: i.invitation_id });
+        setInvBusy(null);
+        if (error) { void inform({ title: ERROR_TITLE, body: serverMessage(error.message), kind: 'error' }); return; }
+        setInvDetail(null);
+        await loadReceived();
+      },
+    });
+  }
 
   const subscribedProgIds = new Set(subs.filter(isLiveSub).map((s) => s.programming_id));
 
   const visible = catalogue.filter((p) => {
-    if (myBoxIds.has(p.publisher_box_id)) return false; // don't subscribe to your own offers
+    // Ses propres offres ne s'achètent pas ; une offre d'une autre de ses box
+    // reste visible quand une de ses box y est abonnée (invitation acceptée).
+    if (myBoxIds.has(p.publisher_box_id) && !subscribedProgIds.has(p.id)) return false;
     // Une offre sans WOD n'a rien à vendre : absente du catalogue, sauf si on y
     // est déjà abonné (il faut pouvoir voir pourquoi rien n'arrive).
     if ((p.wods_total ?? 0) === 0 && !subscribedProgIds.has(p.id)) return false;
@@ -251,6 +324,16 @@ function Catalogue({
 
   return (
     <div>
+      {dialog}
+      <ReceivedInvitationsSection
+        invitations={received}
+        highlightId={highlightId}
+        busyId={invBusy}
+        onDetail={setInvDetail}
+        onDecline={askDecline}
+        onAccept={setAccepting}
+      />
+      {receivedError && <p className="mb-4 text-xs text-ax-danger">Invitations reçues illisibles : {receivedError}</p>}
       <div className="flex flex-wrap gap-2 mb-5">
         <div className="relative flex-1 min-w-[180px]">
           <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-ax-text-muted" />
@@ -278,6 +361,8 @@ function Catalogue({
           {visible.map((p) => {
             const subscribed = subscribedProgIds.has(p.id);
             const liveSubs = subs.filter((s) => s.programming_id === p.id && isLiveSub(s));
+            // Accès « Offert » par invitation à la box active : badge « Offerte » au lieu du prix.
+            const offered = isOfferedAccess(liveSubs.find((s) => s.subscriber_box_id === activeBoxId) ?? null);
             const perWeek = p.wods_per_week ?? [];
             const filled = perWeek.filter((n) => n > 0).length;
             const cardColor = subscribed ? subscriptionColorVar(liveSubs[0]?.color) : null;
@@ -289,7 +374,9 @@ function Catalogue({
               >
                 <div className="flex items-start justify-between gap-2 mb-2">
                   <button onClick={() => setDetail(p)} className="min-w-0 break-words text-left font-bold text-ax-text text-base leading-tight hover:underline">{p.title}</button>
-                  {p.billing === 'free'
+                  {offered
+                    ? <Badge variant="success" className="text-[10px] font-black uppercase px-2 py-0.5">Offerte</Badge>
+                    : p.billing === 'free'
                     ? <Badge variant="success" className="text-[10px] font-black uppercase px-2 py-0.5">Gratuit</Badge>
                     : <Badge variant="neutral" className="text-[10px] font-black uppercase px-2 py-0.5">{(p.price_cents / 100).toFixed(0)}€{p.billing === 'monthly' ? '/mois' : ''}</Badge>}
                 </div>
@@ -338,6 +425,41 @@ function Catalogue({
         />
       )}
 
+      {invDetail && (
+        <OfferDetailPanel
+          programming={{
+            id: invDetail.programming_id, publisher_box_id: invDetail.publisher_box_id, title: invDetail.title,
+            description: invDetail.description, discipline: invDetail.discipline, level: invDetail.level,
+            days_per_week: invDetail.days_per_week, weeks_count: invDetail.weeks_count, billing: invDetail.billing,
+            price_cents: invDetail.price_cents, currency: invDetail.currency, is_published: true,
+            publisher_name: publisherName(invDetail), goal: invDetail.goal, target_audience: invDetail.target_audience,
+            equipment: invDetail.equipment, wods_total: invDetail.wods_total, wods_per_week: invDetail.wods_per_week ?? [],
+            preview_week1: invDetail.preview_week1 ?? [],
+          }}
+          subscribed={false}
+          onClose={() => setInvDetail(null)}
+          onSubscribe={() => undefined}
+          actions={(
+            <div className="flex flex-wrap justify-end gap-2">
+              <Button type="button" variant="ax-outline" disabled={invBusy === invDetail.invitation_id} onClick={() => askDecline(invDetail)}>Refuser</Button>
+              <Button type="button" variant="ax-white" onClick={() => { setAccepting(invDetail); setInvDetail(null); }}>
+                {invDetail.pricing === 'offered' ? 'Accepter' : 'Accepter et payer'}
+              </Button>
+            </div>
+          )}
+        />
+      )}
+
+      {accepting && activeBox && (
+        <AcceptInvitationModal
+          invitation={accepting}
+          boxId={activeBox.id}
+          boxName={activeBox.name}
+          onClose={() => setAccepting(null)}
+          onAccepted={() => { setAccepting(null); void loadReceived(); onChanged(); }}
+        />
+      )}
+
       {subModal && (
         <SubscribeModal
           programming={subModal} myBoxes={myBoxes} subs={subs}
@@ -349,8 +471,10 @@ function Catalogue({
 }
 
 /* ────────────────────── Fiche détaillée d'une offre ────────────────────── */
-function OfferDetailPanel({ programming: p, subscribed, onClose, onSubscribe }: {
+function OfferDetailPanel({ programming: p, subscribed, onClose, onSubscribe, actions }: {
   programming: Programming; subscribed: boolean; onClose: () => void; onSubscribe: () => void;
+  /** Remplace le bouton du bas (invitation reçue : Refuser / Accepter). */
+  actions?: React.ReactNode;
 }) {
   const perWeek = p.wods_per_week ?? [];
   const preview = p.preview_week1 ?? [];
@@ -413,11 +537,11 @@ function OfferDetailPanel({ programming: p, subscribed, onClose, onSubscribe }: 
           Avec l&apos;application automatique, la semaine 1 se pose dans ton Whiteboard le dimanche suivant à 18h ; tu peux aussi la poser tout de suite depuis le Whiteboard (« Programmation »). Le contenu reçu n&apos;est pas modifiable, mais tu choisis qui le voit.
         </p>
 
-        {subscribed ? (
+        {actions ?? (subscribed ? (
           <div className="flex items-center justify-center gap-2 py-2 rounded-ax-control bg-ax-success-soft text-ax-success text-sm font-bold"><Check size={15} /> Abonné</div>
         ) : (
           <Button variant="ax-white" onClick={onSubscribe} className="w-full">S&apos;abonner</Button>
-        )}
+        ))}
       </Card>
     </div>
   );

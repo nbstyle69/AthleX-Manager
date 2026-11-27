@@ -5,6 +5,7 @@
  * (send / cancel / revoke) ; rien ici n'écrit.
  */
 import { parisDate } from '@/lib/datetime';
+import { disciplineLabel } from '@/lib/disciplines';
 
 export type Visibility = 'catalogue' | 'invitation';
 export type InvitationPricing = 'offered' | 'offer_price';
@@ -139,4 +140,140 @@ export function searchQuery(q: string): string | null {
 /** Tarifs proposés : une offre gratuite ne s'invite qu'en « Offerte » (le serveur refuse l'autre). */
 export function pricingChoices(o: OfferPrice): InvitationPricing[] {
   return o.billing === 'free' ? ['offered'] : ['offered', 'offer_price'];
+}
+
+/* ───────────── PR 3 : côté box invitée (Catalogue, paiement) ───────────── */
+
+export const LEVEL_LABEL: Record<string, string> = {
+  all: 'Tous niveaux', beginner: 'Débutant', intermediate: 'Intermédiaire', advanced: 'Avancé',
+};
+
+/** Ligne de `list_my_programming_invitations` (invitations en attente et non échues). */
+export interface ReceivedInvitation extends OfferPrice {
+  invitation_id: string;
+  programming_id: string;
+  title: string;
+  description: string | null;
+  discipline: string | null;
+  level: string | null;
+  days_per_week: number | null;
+  weeks_count: number;
+  currency: string;
+  publisher_box_id: string;
+  publisher_box_name: string | null;
+  goal: string | null;
+  target_audience: string | null;
+  equipment: string | null;
+  wods_total: number;
+  wods_per_week: number[] | null;
+  preview_week1: { day: number; titles: string[] }[] | null;
+  pricing: InvitationPricing;
+  message: string | null;
+  created_at: string;
+  expires_at: string;
+}
+
+export const publisherName = (i: { publisher_box_name: string | null }) => i.publisher_box_name ?? 'Une box';
+
+/** « Box Bravo t'invite à « Force Hiver 6 sem » ». */
+export function receivedTitle(i: ReceivedInvitation): string {
+  return `${publisherName(i)} t’invite à « ${i.title} »`;
+}
+
+/**
+ * « Haltéro · Intermédiaire · 6 sem · reçue le 24 novembre · expire le 8 décembre ».
+ * « sur invitation » n'y figure pas : la fonction ne rend pas la visibilité.
+ */
+export function receivedLine(i: ReceivedInvitation, now: Date = new Date()): string {
+  return [
+    i.discipline ? disciplineLabel(i.discipline) : null,
+    i.level ? LEVEL_LABEL[i.level] ?? i.level : null,
+    `${i.weeks_count} sem`,
+    `reçue le ${shortParisDate(i.created_at, now)}`,
+    `expire le ${shortParisDate(i.expires_at, now)}`,
+  ].filter(Boolean).join(' · ');
+}
+
+/** Badge de la carte : « Offerte » (succès) ou le prix de l'offre (neutre). */
+export function receivedBadge(i: ReceivedInvitation): { label: string; variant: BadgeVariant } {
+  return i.pricing === 'offered' ? { label: 'Offerte', variant: 'success' } : { label: formatOfferPrice(i), variant: 'neutral' };
+}
+
+export function acceptLabel(p: InvitationPricing): string {
+  return p === 'offered' ? 'Accepter' : 'Accepter et payer';
+}
+
+/** Ligne « Tarif » de la fenêtre Accepter. */
+export function acceptTariff(i: ReceivedInvitation): string {
+  return i.pricing === 'offered' ? `Offerte par ${publisherName(i)} — gratuit, sans date de fin` : formatOfferPrice(i);
+}
+
+/** Ligne « Contenu » : « 30 WOD · 6 semaines ». */
+export function contentLine(i: { wods_total: number; weeks_count: number }): string {
+  return `${i.wods_total} WOD · ${i.weeks_count} semaine${i.weeks_count > 1 ? 's' : ''}`;
+}
+
+/**
+ * Abonnement de la box active venu d'une invitation « Offerte » : il porte
+ * l'invitation et aucune référence Stripe (une invitation « au prix de l'offre »
+ * payée en porte une). La carte du Catalogue affiche alors « Offerte ».
+ */
+export function isOfferedAccess(sub: { invitation_id?: string | null; stripe_subscription_id?: string | null } | null): boolean {
+  return !!sub?.invitation_id && !sub.stripe_subscription_id;
+}
+
+/** Élément de la confirmation Refuser : « Force Hiver 6 sem · Box Bravo · Offerte ». */
+export function declineElement(i: ReceivedInvitation): string {
+  return `${i.title} · ${publisherName(i)} · ${i.pricing === 'offered' ? 'Offerte' : formatOfferPrice(i)}`;
+}
+
+/**
+ * Lien de l'e-mail `/programming?invitation={id}` : `null` sans paramètre,
+ * 'found' si l'invitation est dans la liste de la box active, sinon 'invalid'
+ * (échue, annulée, déjà traitée, ou adressée à une autre box).
+ */
+export function invitationLinkState(param: string | null, list: { invitation_id: string }[]): 'found' | 'invalid' | null {
+  if (!param) return null;
+  return list.some((i) => i.invitation_id === param) ? 'found' : 'invalid';
+}
+
+/* ── Route de paiement : contrôles purs, appelés par create-programming-checkout ── */
+
+export interface InvitationRow {
+  id: string;
+  programming_id: string;
+  invited_box_id: string;
+  pricing: string;
+  status: string;
+  expires_at: string;
+}
+
+export const OFFER_RESERVED_MESSAGE = 'Cette offre est réservée aux box invitées.';
+export const INVITATION_TOO_SOON_MESSAGE = 'Cette invitation expire trop tôt pour payer : demande-lui de la renvoyer.';
+
+/** Une invitation qui ouvre le paiement : en attente, non échue, au prix de l'offre, pour cette offre et cette box. */
+export function checkCheckoutInvitation(
+  inv: InvitationRow | null, programmingId: string, subscriberBoxId: string, now: Date = new Date(),
+): string | null {
+  if (!inv) return 'Invitation introuvable.';
+  if (inv.programming_id !== programmingId || inv.invited_box_id !== subscriberBoxId) {
+    return 'Cette invitation ne concerne pas cette offre ou cette box.';
+  }
+  if (inv.status !== 'pending') return 'Cette invitation n’attend plus de réponse.';
+  if (new Date(inv.expires_at).getTime() <= now.getTime()) return 'Cette invitation a expiré.';
+  if (inv.pricing !== 'offer_price') return 'Cette invitation est offerte : elle s’accepte sans paiement.';
+  return null;
+}
+
+const MIN = 60_000;
+/**
+ * `expires_at` de la session Checkout (secondes) : 5 min avant l'échéance de
+ * l'invitation, et au plus 24 h (Stripe accepte 30 min à 24 h). Une invitation
+ * qui expire dans moins de 35 min est refusée.
+ */
+export function checkoutExpiresAt(invitationExpiresAt: string, now: Date = new Date()):
+  { expiresAt: number } | { error: string } {
+  const end = new Date(invitationExpiresAt).getTime() - 5 * MIN;
+  if (end - now.getTime() < 30 * MIN) return { error: INVITATION_TOO_SOON_MESSAGE };
+  return { expiresAt: Math.floor(Math.min(end, now.getTime() + 24 * 60 * MIN) / 1000) };
 }

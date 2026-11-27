@@ -569,6 +569,8 @@ export async function POST(req: NextRequest) {
           const programmingId = session.metadata.programming_id;
           const subscriberBoxId = session.metadata.subscriber_box_id;
           const createdBy = session.metadata.created_by ?? null;
+          // Invitation « au prix de l'offre » (#461) : posée par create-programming-checkout.
+          const invitationId = session.metadata.invitation_id || null;
           if (!programmingId || !subscriberBoxId) break;
 
           // Ancre = lundi SUIVANT (Europe/Paris), comme le DEFAULT de la colonne
@@ -599,10 +601,33 @@ export async function POST(req: NextRequest) {
                 created_by: createdBy,
                 stripe_customer_id: (session.customer as string) ?? null,
                 stripe_subscription_id: (session.subscription as string) ?? null,
+                ...(invitationId ? { invitation_id: invitationId } : {}),
               },
               { onConflict: 'programming_id,subscriber_box_id' },
             );
           must({ error: subErr }, 'box_programming_subscriptions.upsert');
+
+          // L'invitation passe « acceptée », seulement si elle attend encore :
+          // un rejeu de l'événement ne réécrit rien.
+          if (invitationId) {
+            const { data: sub } = must(await supabase
+              .from('box_programming_subscriptions')
+              .select('id')
+              .eq('programming_id', programmingId)
+              .eq('subscriber_box_id', subscriberBoxId)
+              .maybeSingle(), 'box_programming_subscriptions.select_invitation');
+            must(await supabase
+              .from('box_programming_invitations')
+              .update({
+                status: 'accepted',
+                responded_at: new Date().toISOString(),
+                subscription_id: (sub as { id: string } | null)?.id ?? null,
+              })
+              .eq('id', invitationId)
+              .eq('programming_id', programmingId)
+              .eq('invited_box_id', subscriberBoxId)
+              .eq('status', 'pending'), 'box_programming_invitations.accept');
+          }
           console.log('Box programming activated');
           break;
         }
