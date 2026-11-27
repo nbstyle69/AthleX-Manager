@@ -470,12 +470,11 @@
     aspect-ratio: 544 / 495;
   }
   .athlex-landing .hero-visual .browser-slot {
-    display: flex;
+    display: block;
     position: absolute;
     top: 0;
     right: 0;
     width: 92%;
-    aspect-ratio: 500 / 340;
   }
   .athlex-landing .hero-visual .phone-slot {
     position: absolute;
@@ -1248,12 +1247,11 @@
   }
 }
 
-/* ── Cadres de navigateur (/coachs ; maquettes 228:730 et 247:4394) ─────── */
+/* ── Cadres de navigateur (/coachs ; maquettes 266:6518 et 266:13775) ──── */
+/* La hauteur suit la capture servie (recadrage bureau ou mobile, #479). */
 .athlex-landing .browser-slot {
-  display: flex;
-  flex-direction: column;
+  display: block;
   width: 100%;
-  aspect-ratio: 600 / 420;
   overflow: hidden;
   background: var(--ax-background);
   border: 1px solid var(--ax-input-border);
@@ -1265,6 +1263,11 @@
   padding: 9px 12px;
   border-bottom: 1px solid var(--ax-border);
   background: var(--ax-surface);
+}
+@media (max-width: 767px) {
+  .athlex-landing .browser-bar {
+    padding: 6px 10px;
+  }
 }
 .athlex-landing .browser-bar span {
   width: 8px;
@@ -1283,10 +1286,11 @@
   object-fit: cover;
   object-position: top;
 }
+.athlex-landing .browser-slot picture {
+  display: block;
+}
 .athlex-landing .browser-slot .shot {
-  flex: 1 1 0;
-  min-height: 0;
-  object-position: left top;
+  height: auto;
 }
 /* Deux téléphones côte à côte : ils rétrécissent pour tenir dans la largeur. */
 .athlex-landing .phones-slot {
@@ -1300,25 +1304,60 @@
   flex: 0 1 auto;
   min-width: 0;
 }
-/* Navigateur et téléphone qui le chevauche en bas à droite. */
+/* Navigateur et téléphone qui le chevauche en bas à droite, aux proportions des maquettes :
+   mobile 266:13775 (hero 350 × 330, bloc 02 310 × 300), bureau 266:6518 (hero 690 × 552,
+   bloc 02 678 × 551). */
 .athlex-landing .combo-slot {
   position: relative;
   width: 100%;
-  aspect-ratio: 600 / 483;
+  aspect-ratio: 310 / 300;
 }
 .athlex-landing .combo-slot .browser-slot {
-  width: 93%;
-  aspect-ratio: 560 / 400;
+  width: 87.1%;
 }
 .athlex-landing .combo-slot .phone-slot,
 .athlex-landing .detail-hero .combo-slot .phone-slot {
   position: absolute;
   right: 0;
   bottom: 0;
-  width: 34%;
+  width: 42.6%;
   aspect-ratio: 202 / 423;
   border-width: 5px;
   border-radius: 26px;
+}
+.athlex-landing .detail-hero .combo-slot {
+  aspect-ratio: 350 / 330;
+}
+.athlex-landing .detail-hero .combo-slot .browser-slot {
+  width: 91.4%;
+}
+.athlex-landing .detail-hero .combo-slot .phone-slot {
+  width: 40.6%;
+}
+@media (min-width: 768px) {
+  .athlex-landing .combo-slot {
+    aspect-ratio: 678 / 551;
+  }
+  .athlex-landing .combo-slot .browser-slot {
+    width: 84.7%;
+    margin-top: 5.1%;
+  }
+  .athlex-landing .combo-slot .phone-slot {
+    width: 34.2%;
+  }
+  .athlex-landing .detail-hero .combo-slot {
+    aspect-ratio: 690 / 552;
+  }
+  .athlex-landing .detail-hero .combo-slot .browser-slot {
+    width: 93.3%;
+    margin-top: 0;
+  }
+  /* Le téléphone déborde de 25 px à droite, comme la maquette. */
+  .athlex-landing .detail-hero .combo-slot .phone-slot {
+    right: auto;
+    left: 70%;
+    width: 33.7%;
+  }
 }
 @media (min-width: 1024px) {
   .athlex-landing .detail-hero-visual.visual-browser-phone {

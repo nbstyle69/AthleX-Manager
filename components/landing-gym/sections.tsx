@@ -110,7 +110,7 @@ export function Hero({ locale }: { locale: Locale }) {
         <div className="hero-visual">
           <BrowserFrame>
             {/* Masqué en mobile : pas de préchargement, chargé à l’affichage. */}
-            <Shot screen="managerDashboard" locale={locale} sizes="498px" />
+            <Shot screen="managerDashboard" locale={locale} sizes="498px" hero />
           </BrowserFrame>
           <div className="phone-slot">
             <Shot

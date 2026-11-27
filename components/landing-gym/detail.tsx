@@ -19,19 +19,19 @@ const visualKind = ([first, second]: Visual) =>
 
 // Largeur affichée de chaque image (mesurée sur la preview, #479) : < 768 px, 768 à 1 023 px,
 // puis le maximum atteint à partir de 1 024 px. Les cadres retirent 10 px (téléphone) ou 2 px
-// (navigateur) de bordure ; la composition met le navigateur à 93 % et le téléphone à 34 %.
+// (navigateur) de bordure ; proportions des compositions dans landing.css (.combo-slot).
 const SIZES = {
   heroPhone: "(min-width: 768px) 236px, 172px",
   featurePhone: "(min-width: 768px) 260px, 222px",
   heroComboBrowser:
-    "(min-width: 1024px) 640px, (min-width: 768px) calc((100vw - 80px) * 0.93), calc((100vw - 40px) * 0.93)",
+    "(min-width: 1024px) 642px, (min-width: 768px) calc((100vw - 80px) * 0.933 - 2px), calc((100vw - 40px) * 0.914 - 2px)",
   heroComboPhone:
-    "(min-width: 1024px) 225px, (min-width: 768px) calc((100vw - 80px) * 0.34 - 10px), calc((100vw - 40px) * 0.34 - 10px)",
+    "(min-width: 1024px) 223px, (min-width: 768px) calc((100vw - 80px) * 0.337 - 10px), calc((100vw - 40px) * 0.406 - 10px)",
   featureBrowser: "(min-width: 1024px) 678px, (min-width: 768px) calc(100vw - 122px), calc(100vw - 82px)",
   featureComboBrowser:
-    "(min-width: 1024px) 630px, (min-width: 768px) calc((100vw - 120px) * 0.93), calc((100vw - 80px) * 0.93)",
+    "(min-width: 1024px) 574px, (min-width: 768px) calc((100vw - 120px) * 0.847 - 2px), calc((100vw - 80px) * 0.871 - 2px)",
   featureComboPhone:
-    "(min-width: 1024px) 221px, (min-width: 768px) calc((100vw - 120px) * 0.34 - 10px), calc((100vw - 80px) * 0.34 - 10px)",
+    "(min-width: 1024px) 223px, (min-width: 768px) calc((100vw - 120px) * 0.342 - 10px), calc((100vw - 80px) * 0.426 - 10px)",
 };
 
 function Slot({ shots, locale, hero }: { shots: Visual; locale: Locale; hero: boolean }) {
@@ -54,6 +54,7 @@ function Slot({ shots, locale, hero }: { shots: Visual; locale: Locale; hero: bo
           !second ? SIZES.featureBrowser : hero ? SIZES.heroComboBrowser : SIZES.featureComboBrowser
         }
         priority={hero}
+        hero={hero}
       />
     </BrowserFrame>
   );
